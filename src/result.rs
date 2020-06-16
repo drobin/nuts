@@ -20,6 +20,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod error;
-pub mod result;
-pub mod types;
+use crate::error;
+
+/// The [`std::result::Result`] used by this library.
+///
+/// Maps the error to [`Error`].
+///
+/// [`std::result::Result`]: https://doc.rust-lang.org/core/result/enum.Result.html
+/// [`Error`]: ../error/enum.Error.html
+pub type Result<T> = std::result::Result<T, error::Error>;

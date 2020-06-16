@@ -20,6 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod error;
-pub mod result;
-pub mod types;
+/// Collection of error-codes.
+#[derive(Debug)]
+pub enum Error {
+    /// An invalid argument was passed to a function.
+    ///
+    /// It has a message, that describes the failure.
+    InvalArg(String),
+}
