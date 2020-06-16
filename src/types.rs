@@ -91,3 +91,22 @@ pub enum WrappingKey {
     },
 }
 
+/// Container disk types.
+pub enum DiskType {
+    /// Space for the container is allocated once during creation of the
+    /// container, unused blocks are initialized with all zeros.
+    FatZero,
+
+    /// Space for the container is allocated once during creation of the
+    /// container, unused blocks are initialized with random data.
+    FatRandom,
+
+    /// Space for the container is allocated dynamically when needed, unused
+    /// blocks are initialized with all zeros.
+    ThinZero,
+
+    /// Space for the container is allocated dynamically when needed, unused
+    /// blocks are initialized with random data.
+    ThinRandom,
+}
+
