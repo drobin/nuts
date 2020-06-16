@@ -75,3 +75,19 @@ impl Digest {
     }
 }
 
+/// Supported wrapping key algorithms.
+///
+/// Based on a password provided by the user one of the algorithms are used to
+/// calculate a wrapping key. The wrapping key then is used for encryption of
+/// the secret in the header of the container.
+pub enum WrappingKey {
+    /// PBKDF2
+    Pbkdf2 {
+        /// Number of iterations used by PBKDF2.
+        iterations: u32,
+
+        /// Length of salt value generated for PBKDF2.
+        salt_len: u32,
+    },
+}
+
