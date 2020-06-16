@@ -57,3 +57,21 @@ impl Cipher {
         }
     }
 }
+
+/// Supported message digests.
+pub enum Digest {
+    /// SHA1
+    Sha1,
+}
+
+impl Digest {
+    /// Return the size of the message digest.
+    ///
+    /// This is the size of the resulting hash.
+    pub fn size(&self) -> u32 {
+        match self {
+            Digest::Sha1 => 20,
+        }
+    }
+}
+

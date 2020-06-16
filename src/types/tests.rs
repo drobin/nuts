@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::types::Cipher;
+use crate::types::{Cipher, Digest};
 
 #[test]
 fn cipher_key_size_none() {
@@ -50,4 +50,9 @@ fn cipher_block_size_none() {
 #[test]
 fn cipher_block_size_aes128_ctr() {
     assert_eq!(Cipher::Aes128Ctr.block_size(), 1);
+}
+
+#[test]
+fn digest_size_sha1() {
+    assert_eq!(Digest::Sha1.size(), 20);
 }
