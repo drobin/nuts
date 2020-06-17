@@ -20,6 +20,29 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+/// Details about an [`Error::InvalHeader`] error.
+///
+/// [`Error::InvalHeader`]: enum.Error.html#variant.InvalHeader
+#[derive(PartialEq, Debug)]
+pub enum InvalHeaderKind {
+    /// Invalid magic.
+    ///
+    /// The first few bytes encodes a magic string, which is incorrect.
+    InvalMagic,
+
+    /// Invalid revision.
+    InvalRevision,
+
+    /// Invalid cipher.
+    InvalCipher,
+
+    /// Invalid digest.
+    InvalDigest,
+
+    /// Invalid wrapping key.
+    InvalWrappingKey,
+}
+
 /// Collection of error-codes.
 #[derive(Debug)]
 pub enum Error {
@@ -27,4 +50,12 @@ pub enum Error {
     ///
     /// It has a message, that describes the failure.
     InvalArg(String),
+
+    /// An invalid header of the container was detected.
+    ///
+    /// The value contains some details about the error.
+    InvalHeader(InvalHeaderKind),
+
+    /// Not enough data available to read from a source.
+    NoData,
 }

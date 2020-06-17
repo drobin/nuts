@@ -20,9 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub(crate) mod binary;
-pub(crate) mod data;
-pub mod error;
-pub(crate) mod header;
-pub mod result;
-pub mod types;
+use crate::types::WrappingKey;
+
+#[derive(PartialEq, Debug)]
+pub enum WrappingKeyData {
+    Pbkdf2Data { key: WrappingKey, salt: Vec<u8> },
+}
