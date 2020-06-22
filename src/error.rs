@@ -58,4 +58,7 @@ pub enum Error {
 
     /// Not enough data available to read from a source.
     NoData,
+
+    /// Not enough space available to write into a target.
+    NoSpace,
 }

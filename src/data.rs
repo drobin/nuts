@@ -20,9 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::types::WrappingKey;
-
 #[derive(PartialEq, Debug)]
 pub enum WrappingKeyData {
-    Pbkdf2Data { key: WrappingKey, salt: Vec<u8> },
+    Pbkdf2Data { iterations: u32, salt: Vec<u8> },
 }

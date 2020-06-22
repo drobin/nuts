@@ -73,3 +73,53 @@ pub fn read_u32(data: &[u8], offset: &mut u32) -> Result<u32> {
 pub fn read_u32_as<T>(data: &[u8], offset: &mut u32, convert: AsFunc<u32, T>) -> Result<T> {
     read_u32(data, offset).and_then(|num| convert(num))
 }
+
+pub fn write_vec(target: &mut [u8], offset: &mut u32, data: &[u8]) -> Result<()> {
+    let start = *offset as usize;
+    let end = start + data.len();
+    let slice = target.get_mut(start..end).ok_or(Error::NoSpace)?;
+
+    slice.copy_from_slice(data);
+    *offset += slice.len() as u32;
+
+    Ok(())
+}
+
+pub fn write_u8(target: &mut [u8], offset: &mut u32, num: u8) -> Result<()> {
+    let pos = *offset as usize;
+    let n = target.get_mut(pos).ok_or(Error::NoSpace)?;
+
+    *n = num;
+    *offset += 1;
+
+    Ok(())
+}
+
+pub fn write_u8_as<T>(
+    target: &mut [u8],
+    offset: &mut u32,
+    val: T,
+    convert: AsFunc<T, u8>,
+) -> Result<()> {
+    convert(val).and_then(|num| write_u8(target, offset, num))
+}
+
+pub fn write_u32(target: &mut [u8], offset: &mut u32, num: u32) -> Result<()> {
+    let start = *offset as usize;
+    let end = start + 4;
+    let slice = target.get_mut(start..end).ok_or(Error::NoSpace)?;
+
+    NetworkEndian::write_u32(slice, num);
+    *offset += 4;
+
+    Ok(())
+}
+
+pub fn write_u32_as<T>(
+    target: &mut [u8],
+    offset: &mut u32,
+    val: T,
+    convert: AsFunc<T, u32>,
+) -> Result<()> {
+    convert(val).and_then(|num| write_u32(target, offset, num))
+}

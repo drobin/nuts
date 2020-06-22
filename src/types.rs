@@ -27,7 +27,7 @@ use crate::error::Error;
 use crate::result::Result;
 
 /// Supported cipher algorithms.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Cipher {
     /// No encryption
     None,
@@ -63,7 +63,7 @@ impl Cipher {
 }
 
 /// Supported message digests.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Digest {
     /// SHA1
     Sha1,
@@ -85,7 +85,7 @@ impl Digest {
 /// Based on a password provided by the user one of the algorithms are used to
 /// calculate a wrapping key. The wrapping key then is used for encryption of
 /// the secret in the header of the container.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum WrappingKey {
     /// PBKDF2
     Pbkdf2 {
@@ -98,7 +98,7 @@ pub enum WrappingKey {
 }
 
 /// Container disk types.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum DiskType {
     /// Space for the container is allocated once during creation of the
     /// container, unused blocks are initialized with all zeros.
