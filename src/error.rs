@@ -46,6 +46,13 @@ pub enum InvalHeaderKind {
 /// Collection of error-codes.
 #[derive(Debug)]
 pub enum Error {
+    /// An IO error has occured.
+    ///
+    /// The related [`std::error::Error`] is passed to the variant.
+    ///
+    /// [`std::error::Error`]: https://doc.rust-lang.org/nightly/std/io/struct.Error.html
+    IoError(std::io::Error),
+
     /// An invalid argument was passed to a function.
     ///
     /// It has a message, that describes the failure.
