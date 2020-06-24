@@ -29,7 +29,7 @@ pub struct WrappingKeyData {
 }
 
 impl WrappingKeyData {
-    pub fn pbkdf2(iterations: u32, salt: &[u8]) -> WrappingKeyData {
+    pub fn pbkdf2(iterations: u32, salt: &Vec<u8>) -> WrappingKeyData {
         let wkey = WrappingKey::Pbkdf2 {
             iterations,
             salt_len: salt.len() as u32,

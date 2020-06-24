@@ -54,15 +54,15 @@ impl Header {
     }
 
     pub fn read(source: &[u8], offset: &mut u32) -> Result<Header> {
-        binary::read_vec_as(source, offset, 7, validate_magic)?;
+        binary::read_array_as(source, offset, 7, validate_magic)?;
 
         let header = Header {
             revision: binary::read_u8_as(source, offset, u8_to_revision)?,
             cipher: binary::read_u8_as(source, offset, u8_to_cipher)?,
             digest: binary::read_u8_as(source, offset, u8_to_digest)?,
             wrapping_key: read_wrapping_key(source, offset)?,
-            hmac: read_vec(source, offset)?,
-            secret: read_vec(source, offset)?,
+            hmac: binary::read_vec(source, offset)?,
+            secret: binary::read_vec(source, offset)?,
         };
 
         Ok(header)
@@ -71,13 +71,13 @@ impl Header {
     pub fn write(&self, target: &mut [u8]) -> Result<u32> {
         let mut offset: u32 = 0;
 
-        binary::write_vec(target, &mut offset, &MAGIC)?;
+        binary::write_array(target, &mut offset, &MAGIC)?;
         binary::write_u8_as(target, &mut offset, self.revision, revision_to_u8)?;
         binary::write_u8_as(target, &mut offset, self.cipher, cipher_to_u8)?;
         binary::write_u8_as(target, &mut offset, self.digest, digest_to_u8)?;
         write_wrapping_key(target, &mut offset, &self.wrapping_key)?;
-        write_vec(target, &mut offset, &self.hmac)?;
-        write_vec(target, &mut offset, &self.secret)?;
+        binary::write_vec(target, &mut offset, &self.hmac)?;
+        binary::write_vec(target, &mut offset, &self.secret)?;
 
         Ok(offset)
     }
@@ -143,10 +143,9 @@ fn read_wrapping_key(data: &[u8], offset: &mut u32) -> Result<Option<WrappingKey
     match algorithm {
         1 => {
             let iterations = binary::read_u32(data, offset)?;
-            let salt_len = binary::read_u32(data, offset)?;
-            let salt = binary::read_vec(data, offset, salt_len)?;
+            let salt = binary::read_vec(data, offset)?;
 
-            Ok(Some(WrappingKeyData::pbkdf2(iterations, salt)))
+            Ok(Some(WrappingKeyData::pbkdf2(iterations, &salt)))
         }
         0xFF => Ok(None),
         _ => Err(Error::InvalHeader(InvalHeaderKind::InvalWrappingKey)),
@@ -170,8 +169,7 @@ fn write_wrapping_key(
 
             binary::write_u8(target, offset, 1)?;
             binary::write_u32(target, offset, iterations)?;
-            binary::write_u32(target, offset, salt_len)?;
-            binary::write_vec(target, offset, salt)?;
+            binary::write_vec(target, offset, &salt)?;
 
             Ok(())
         }
@@ -181,18 +179,4 @@ fn write_wrapping_key(
             Ok(())
         }
     }
-}
-
-fn read_vec(data: &[u8], offset: &mut u32) -> Result<Vec<u8>> {
-    let size = binary::read_u32(data, offset)?;
-    let vec = binary::read_vec(data, offset, size)?;
-
-    Ok(vec.to_vec())
-}
-
-fn write_vec(target: &mut [u8], offset: &mut u32, data: &Vec<u8>) -> Result<()> {
-    binary::write_u32(target, offset, data.len() as u32)?;
-    binary::write_vec(target, offset, data)?;
-
-    Ok(())
 }

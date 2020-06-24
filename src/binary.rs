@@ -27,7 +27,7 @@ use crate::result::Result;
 
 pub type AsFunc<U, T> = fn(U) -> Result<T>;
 
-pub fn read_vec<'a>(data: &'a [u8], offset: &mut u32, size: u32) -> Result<&'a [u8]> {
+pub fn read_array<'a>(data: &'a [u8], offset: &mut u32, size: u32) -> Result<&'a [u8]> {
     let start = *offset as usize;
     let end = start + size as usize;
     let slice: &[u8] = data.get(start..end).ok_or(Error::NoData)?;
@@ -37,13 +37,20 @@ pub fn read_vec<'a>(data: &'a [u8], offset: &mut u32, size: u32) -> Result<&'a [
     Ok(slice)
 }
 
-pub fn read_vec_as<'a, T>(
+pub fn read_array_as<'a, T>(
     data: &'a [u8],
     offset: &mut u32,
     size: u32,
     convert: AsFunc<&'a [u8], T>,
 ) -> Result<T> {
-    read_vec(data, offset, size).and_then(|slice| convert(slice))
+    read_array(data, offset, size).and_then(|slice| convert(slice))
+}
+
+pub fn read_vec(data: &[u8], offset: &mut u32) -> Result<Vec<u8>> {
+    let size = read_u32(data, offset)?;
+    let vec = read_array(data, offset, size)?;
+
+    Ok(vec.to_vec())
 }
 
 pub fn read_u8(data: &[u8], offset: &mut u32) -> Result<u8> {
@@ -70,17 +77,24 @@ pub fn read_u32(data: &[u8], offset: &mut u32) -> Result<u32> {
     Ok(num)
 }
 
-pub fn read_u32_as<T>(data: &[u8], offset: &mut u32, convert: AsFunc<u32, T>) -> Result<T> {
-    read_u32(data, offset).and_then(|num| convert(num))
-}
+// pub fn read_u32_as<T>(data: &[u8], offset: &mut u32, convert: AsFunc<u32, T>) -> Result<T> {
+//     read_u32(data, offset).and_then(|num| convert(num))
+// }
 
-pub fn write_vec(target: &mut [u8], offset: &mut u32, data: &[u8]) -> Result<()> {
+pub fn write_array(target: &mut [u8], offset: &mut u32, data: &[u8]) -> Result<()> {
     let start = *offset as usize;
     let end = start + data.len();
     let slice = target.get_mut(start..end).ok_or(Error::NoSpace)?;
 
     slice.copy_from_slice(data);
     *offset += slice.len() as u32;
+
+    Ok(())
+}
+
+pub fn write_vec(target: &mut [u8], offset: &mut u32, data: &Vec<u8>) -> Result<()> {
+    write_u32(target, offset, data.len() as u32)?;
+    write_array(target, offset, data)?;
 
     Ok(())
 }
@@ -115,11 +129,11 @@ pub fn write_u32(target: &mut [u8], offset: &mut u32, num: u32) -> Result<()> {
     Ok(())
 }
 
-pub fn write_u32_as<T>(
-    target: &mut [u8],
-    offset: &mut u32,
-    val: T,
-    convert: AsFunc<T, u32>,
-) -> Result<()> {
-    convert(val).and_then(|num| write_u32(target, offset, num))
-}
+// pub fn write_u32_as<T>(
+//     target: &mut [u8],
+//     offset: &mut u32,
+//     val: T,
+//     convert: AsFunc<T, u32>,
+// ) -> Result<()> {
+//     convert(val).and_then(|num| write_u32(target, offset, num))
+// }
