@@ -20,16 +20,17 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::io::{Cursor, ErrorKind, Seek, SeekFrom};
+use std::io::Cursor;
 
 use crate::block::Block;
+use crate::types::DiskType;
 
 fn mk_fake_file() -> std::io::Cursor<Vec<u8>> {
     Cursor::new(Vec::new())
 }
 
 fn prepare(bsize: Option<u32>) -> (Block, [u8; 6], Cursor<Vec<u8>>) {
-    let block = Block::build(bsize.unwrap_or(3));
+    let block = Block::new(bsize.unwrap_or(3), 0, 0, DiskType::ThinZero);
     let source = [1, 2, 3, 4, 5, 6];
     let target = mk_fake_file();
 

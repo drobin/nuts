@@ -24,6 +24,7 @@ use std::io::{Cursor, ErrorKind, Seek, SeekFrom};
 
 use crate::block::Block;
 use crate::error::Error;
+use crate::types::DiskType;
 
 fn mk_fake_file() -> std::io::Cursor<Vec<u8>> {
     let mut c = Cursor::new(vec![1, 2, 3, 4, 5, 6]);
@@ -32,7 +33,7 @@ fn mk_fake_file() -> std::io::Cursor<Vec<u8>> {
 }
 
 fn prepare(bsize: Option<u32>) -> (Block, Cursor<Vec<u8>>, [u8; 3]) {
-    let block = Block::build(bsize.unwrap_or(3));
+    let block = Block::new(bsize.unwrap_or(3), 2, 0, DiskType::ThinZero);
     let source = mk_fake_file();
     let target = [0; 3];
 

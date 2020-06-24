@@ -21,9 +21,13 @@
 // IN THE SOFTWARE.
 
 use crate::block::Block;
+use crate::types::DiskType;
 
 #[test]
 fn success() {
-    let b = Block::build(4711);
+    let b = Block::new(4711, 1, 2, DiskType::FatRandom);
     assert_eq!(b.bsize, 4711);
+    assert_eq!(b.blocks, 1);
+    assert_eq!(b.ablocks, 2);
+    assert_eq!(b.dtype, DiskType::FatRandom);
 }

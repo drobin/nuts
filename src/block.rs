@@ -27,14 +27,23 @@ use std::io::{ErrorKind, Read, Seek, SeekFrom, Write};
 
 use crate::error::Error;
 use crate::result::Result;
+use crate::types::DiskType;
 
 pub struct Block {
-    bsize: u32,
+    pub bsize: u32,
+    pub blocks: u64,
+    pub ablocks: u64,
+    pub dtype: DiskType,
 }
 
 impl Block {
-    pub fn build(bsize: u32) -> Block {
-        Block { bsize }
+    pub fn new(bsize: u32, blocks: u64, ablocks: u64, dtype: DiskType) -> Block {
+        Block {
+            bsize,
+            blocks,
+            ablocks,
+            dtype,
+        }
     }
 
     pub fn read<T>(&self, source: &mut T, target: &mut [u8], id: u64) -> Result<u32>
