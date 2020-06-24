@@ -24,10 +24,10 @@
 mod tests;
 
 use crate::binary;
-use crate::data::WrappingKeyData;
 use crate::error::{Error, InvalHeaderKind};
 use crate::result::Result;
-use crate::types::{Cipher, Digest};
+use crate::types::{Cipher, Digest, WrappingKey};
+use crate::wkey::WrappingKeyData;
 
 const MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
 
@@ -146,10 +146,7 @@ fn read_wrapping_key(data: &[u8], offset: &mut u32) -> Result<Option<WrappingKey
             let salt_len = binary::read_u32(data, offset)?;
             let salt = binary::read_vec(data, offset, salt_len)?;
 
-            Ok(Some(WrappingKeyData::Pbkdf2Data {
-                salt: salt.to_vec(),
-                iterations,
-            }))
+            Ok(Some(WrappingKeyData::pbkdf2(iterations, salt)))
         }
         0xFF => Ok(None),
         _ => Err(Error::InvalHeader(InvalHeaderKind::InvalWrappingKey)),
@@ -162,10 +159,18 @@ fn write_wrapping_key(
     data: &Option<WrappingKeyData>,
 ) -> Result<()> {
     match data {
-        Some(WrappingKeyData::Pbkdf2Data { iterations, salt }) => {
+        Some(data) => {
+            let WrappingKey::Pbkdf2 {
+                iterations,
+                salt_len,
+            } = data.wkey;
+
+            let salt = data.pbkdf2.as_ref().unwrap();
+            assert_eq!(salt_len, salt.len() as u32);
+
             binary::write_u8(target, offset, 1)?;
-            binary::write_u32(target, offset, *iterations)?;
-            binary::write_u32(target, offset, salt.len() as u32)?;
+            binary::write_u32(target, offset, iterations)?;
+            binary::write_u32(target, offset, salt_len)?;
             binary::write_vec(target, offset, salt)?;
 
             Ok(())

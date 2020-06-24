@@ -20,7 +20,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[derive(PartialEq, Debug)]
-pub enum WrappingKeyData {
-    Pbkdf2Data { iterations: u32, salt: Vec<u8> },
+use crate::types::WrappingKey;
+
+#[derive(Debug, PartialEq)]
+pub struct WrappingKeyData {
+    pub wkey: WrappingKey,
+    pub pbkdf2: Option<Vec<u8>>,
+}
+
+impl WrappingKeyData {
+    pub fn pbkdf2(iterations: u32, salt: &[u8]) -> WrappingKeyData {
+        let wkey = WrappingKey::Pbkdf2 {
+            iterations,
+            salt_len: salt.len() as u32,
+        };
+        WrappingKeyData {
+            wkey,
+            pbkdf2: Some(salt.to_vec()),
+        }
+    }
 }

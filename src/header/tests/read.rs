@@ -20,9 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::data::WrappingKeyData;
 use crate::header::Header;
-use crate::types::{Cipher, Digest};
+use crate::types::{Cipher, Digest, WrappingKey};
+use crate::wkey::WrappingKeyData;
 
 struct Data {
     magic: [u8; 7],
@@ -84,9 +84,12 @@ fn ok() {
     assert_eq!(header.digest, Some(Digest::Sha1));
     assert_eq!(
         header.wrapping_key,
-        Some(WrappingKeyData::Pbkdf2Data {
-            iterations: 4711,
-            salt: vec![1, 2, 3, 4, 5, 6, 7],
+        Some(WrappingKeyData {
+            wkey: WrappingKey::Pbkdf2 {
+                iterations: 4711,
+                salt_len: 7
+            },
+            pbkdf2: Some(vec![1, 2, 3, 4, 5, 6, 7])
         })
     );
     assert_eq!(header.hmac, vec![1, 2, 3]);
