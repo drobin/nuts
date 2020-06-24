@@ -20,11 +20,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod new;
+use crate::header::Header;
+use crate::types::{Cipher, Digest};
 
-#[cfg(test)]
-mod read;
-
-#[cfg(test)]
-mod write;
+#[test]
+fn ok() {
+    let header = Header::new(Cipher::Aes128Ctr, Digest::Sha1);
+    assert_eq!(header.revision, 1);
+    assert_eq!(header.cipher, Cipher::Aes128Ctr);
+    assert_eq!(header.digest, Some(Digest::Sha1));
+    assert_eq!(header.wrapping_key, None);
+    assert!(header.hmac.is_empty());
+    assert!(header.secret.is_empty());
+}

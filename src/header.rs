@@ -42,6 +42,17 @@ pub struct Header {
 }
 
 impl Header {
+    pub fn new(cipher: Cipher, digest: Digest) -> Header {
+        Header {
+            revision: 1,
+            cipher: cipher,
+            digest: Some(digest),
+            wrapping_key: None,
+            hmac: Vec::new(),
+            secret: Vec::new(),
+        }
+    }
+
     pub fn read(source: &[u8], offset: &mut u32) -> Result<Header> {
         binary::read_vec_as(source, offset, 7, validate_magic)?;
 
