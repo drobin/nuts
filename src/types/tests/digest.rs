@@ -20,14 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod cipher;
+use crate::types::Digest;
 
-#[cfg(test)]
-mod digest;
+#[test]
+fn size_sha1() {
+    assert_eq!(Digest::Sha1.size(), 20);
+}
 
-#[cfg(test)]
-mod disk_type;
-
-#[cfg(test)]
-mod options;
+#[test]
+fn display_sha1() {
+    assert_eq!(format!("{}", Digest::Sha1), "sha1");
+}

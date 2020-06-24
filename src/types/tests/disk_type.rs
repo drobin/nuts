@@ -20,14 +20,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod cipher;
+use crate::types::DiskType;
 
-#[cfg(test)]
-mod digest;
+#[test]
+fn display_fat_zero() {
+    assert_eq!(format!("{}", DiskType::FatZero), "fat-zero");
+}
 
-#[cfg(test)]
-mod disk_type;
+#[test]
+fn display_fat_random() {
+    assert_eq!(format!("{}", DiskType::FatRandom), "fat-random");
+}
 
-#[cfg(test)]
-mod options;
+#[test]
+fn display_thin_zero() {
+    assert_eq!(format!("{}", DiskType::ThinZero), "thin-zero");
+}
+
+#[test]
+fn display_thin_random() {
+    assert_eq!(format!("{}", DiskType::ThinRandom), "thin-random");
+}

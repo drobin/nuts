@@ -62,6 +62,15 @@ impl Cipher {
     }
 }
 
+impl std::fmt::Display for Cipher {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Cipher::None => write!(f, "none"),
+            Cipher::Aes128Ctr => write!(f, "aes128-ctr"),
+        }
+    }
+}
+
 /// Supported message digests.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Digest {
@@ -76,6 +85,14 @@ impl Digest {
     pub fn size(&self) -> u32 {
         match self {
             Digest::Sha1 => 20,
+        }
+    }
+}
+
+impl std::fmt::Display for Digest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Digest::Sha1 => write!(f, "sha1"),
         }
     }
 }
@@ -115,6 +132,17 @@ pub enum DiskType {
     /// Space for the container is allocated dynamically when needed, unused
     /// blocks are initialized with random data.
     ThinRandom,
+}
+
+impl std::fmt::Display for DiskType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DiskType::FatZero => write!(f, "fat-zero"),
+            DiskType::FatRandom => write!(f, "fat-random"),
+            DiskType::ThinZero => write!(f, "thin-zero"),
+            DiskType::ThinRandom => write!(f, "thin-random"),
+        }
+    }
 }
 
 /// The minimum size of a block.

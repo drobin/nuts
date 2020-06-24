@@ -20,14 +20,44 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod cipher;
+use crate::types::Cipher;
 
-#[cfg(test)]
-mod digest;
+#[test]
+fn key_size_none() {
+    assert_eq!(Cipher::None.key_size(), 0);
+}
 
-#[cfg(test)]
-mod disk_type;
+#[test]
+fn key_size_aes128_ctr() {
+    assert_eq!(Cipher::Aes128Ctr.key_size(), 16);
+}
 
-#[cfg(test)]
-mod options;
+#[test]
+fn iv_size_none() {
+    assert_eq!(Cipher::None.iv_size(), 0);
+}
+
+#[test]
+fn iv_size_aes128_ctr() {
+    assert_eq!(Cipher::Aes128Ctr.iv_size(), 16);
+}
+
+#[test]
+fn block_size_none() {
+    assert_eq!(Cipher::None.block_size(), 1);
+}
+
+#[test]
+fn block_size_aes128_ctr() {
+    assert_eq!(Cipher::Aes128Ctr.block_size(), 1);
+}
+
+#[test]
+fn display_none() {
+    assert_eq!(format!("{}", Cipher::None), "none");
+}
+
+#[test]
+fn display_aes128_ctr() {
+    assert_eq!(format!("{}", Cipher::Aes128Ctr), "aes128-ctr");
+}
