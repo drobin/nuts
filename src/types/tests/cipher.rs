@@ -20,7 +20,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use crate::error::Error;
 use crate::types::Cipher;
+
+#[test]
+fn from_string_none() {
+    assert_eq!(Cipher::from_string("none").unwrap(), Cipher::None);
+}
+
+#[test]
+fn from_aes128_ctr() {
+    assert_eq!(
+        Cipher::from_string("aes128-ctr").unwrap(),
+        Cipher::Aes128Ctr
+    );
+}
+
+#[test]
+fn from_string_inval() {
+    let err = Cipher::from_string("xxx").unwrap_err();
+
+    if let Error::InvalArg(msg) = err {
+        assert_eq!(msg, "invalid cipher: xxx");
+    } else {
+        panic!("invalid error: {:?}", err);
+    }
+}
 
 #[test]
 fn key_size_none() {

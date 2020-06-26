@@ -60,6 +60,47 @@ impl Cipher {
             Cipher::Aes128Ctr => 1,
         }
     }
+
+    /// Converts the given `str` into a [`Cipher`] variant.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an [`Error::InvalArg`] error if `str` is not
+    /// a valid cipher.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use nuts::types::*;
+    /// use nuts::error::*;
+    ///
+    /// assert_eq!(Cipher::from_string("none").unwrap(), Cipher::None);
+    /// assert_eq!(
+    ///     Cipher::from_string("aes128-ctr").unwrap(),
+    ///     Cipher::Aes128Ctr
+    /// );
+    ///
+    /// let err = Cipher::from_string("xxx").unwrap_err();
+    ///
+    /// if let Error::InvalArg(msg) = err {
+    ///     assert_eq!(msg, "invalid cipher: xxx");
+    /// } else {
+    ///     panic!("invalid error: {:?}", err);
+    /// }
+    /// ```
+    ///
+    /// [`Cipher`]: enum.Cipher.html
+    /// [`Error::InvalArg`]: ../error/enum.Error.html#variant.InvalArg
+    pub fn from_string(str: &str) -> Result<Cipher> {
+        match str {
+            "none" => Ok(Cipher::None),
+            "aes128-ctr" => Ok(Cipher::Aes128Ctr),
+            _ => {
+                let message = format!("invalid cipher: {}", str);
+                Err(Error::InvalArg(message))
+            }
+        }
+    }
 }
 
 impl std::fmt::Display for Cipher {
@@ -212,6 +253,7 @@ pub const BLOCK_MIN_SIZE: u32 = 512;
 ///
 /// [`default()`]: #method.default
 /// [`default_with_sizes()`]: #method.default_with_sizes
+#[derive(Debug)]
 pub struct Options {
     /// The disk type.
     pub dtype: DiskType,
