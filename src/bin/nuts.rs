@@ -30,6 +30,24 @@ use nuts::container::Container;
 use nuts::result::Result;
 use nuts::types::Options;
 
+macro_rules! say {
+    ($sub:expr) => {
+        if !$sub.is_present("quiet") {
+            println!();
+        }
+    };
+    ($sub:expr, $arg:expr) => {
+        if !$sub.is_present("quiet") {
+            println!($arg);
+        }
+    };
+    ($sub:expr $(,$arg:expr)*) => {
+        if !$sub.is_present("quiet") {
+            println!($($arg,)*);
+        }
+    };
+}
+
 fn main() -> Result<()> {
     let info_command = include!("info.sub");
     let create_command = include!("create.sub");
@@ -54,12 +72,12 @@ fn info(sub: &ArgMatches) -> Result<()> {
     let path = sub.value_of("PATH").unwrap();
     let container = Container::open(path)?;
 
-    println!("cipher:           {}", container.cipher());
-    println!("digest:           {}", container.digest());
-    println!("disk type:        {}", container.dtype());
-    println!("block size:       {}", container.bsize());
-    println!("blocks:           {}", container.blocks());
-    println!("allocated blocks: {}", container.ablocks());
+    say!(sub, "cipher:           {}", container.cipher());
+    say!(sub, "digest:           {}", container.digest());
+    say!(sub, "disk type:        {}", container.dtype());
+    say!(sub, "block size:       {}", container.bsize());
+    say!(sub, "blocks:           {}", container.blocks());
+    say!(sub, "allocated blocks: {}", container.ablocks());
 
     Ok(())
 }
@@ -69,12 +87,12 @@ fn create(sub: &ArgMatches) -> Result<()> {
     let options = Options::default();
     let container = Container::create(path, &options)?;
 
-    println!("cipher:           {}", container.cipher());
-    println!("digest:           {}", container.digest());
-    println!("disk type:        {}", container.dtype());
-    println!("block size:       {}", container.bsize());
-    println!("blocks:           {}", container.blocks());
-    println!("allocated blocks: {}", container.ablocks());
+    say!(sub, "cipher:           {}", container.cipher());
+    say!(sub, "digest:           {}", container.digest());
+    say!(sub, "disk type:        {}", container.dtype());
+    say!(sub, "block size:       {}", container.bsize());
+    say!(sub, "blocks:           {}", container.blocks());
+    say!(sub, "allocated blocks: {}", container.ablocks());
 
     Ok(())
 }
