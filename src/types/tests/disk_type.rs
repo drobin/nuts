@@ -20,7 +20,51 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use crate::error::Error;
 use crate::types::DiskType;
+
+#[test]
+fn from_string_fat_zero() {
+    assert_eq!(
+        DiskType::from_string("fat-zero").unwrap(),
+        DiskType::FatZero
+    );
+}
+
+#[test]
+fn from_string_fat_random() {
+    assert_eq!(
+        DiskType::from_string("fat-random").unwrap(),
+        DiskType::FatRandom
+    );
+}
+
+#[test]
+fn from_string_thin_zero() {
+    assert_eq!(
+        DiskType::from_string("thin-zero").unwrap(),
+        DiskType::ThinZero
+    );
+}
+
+#[test]
+fn from_string_thin_random() {
+    assert_eq!(
+        DiskType::from_string("thin-random").unwrap(),
+        DiskType::ThinRandom
+    );
+}
+
+#[test]
+fn from_string_inval() {
+    let err = DiskType::from_string("xxx").unwrap_err();
+
+    if let Error::InvalArg(msg) = err {
+        assert_eq!(msg, "invalid disk-type: xxx");
+    } else {
+        panic!("invalid error: {:?}", err);
+    }
+}
 
 #[test]
 fn display_fat_zero() {

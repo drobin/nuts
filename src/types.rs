@@ -134,6 +134,62 @@ pub enum DiskType {
     ThinRandom,
 }
 
+impl DiskType {
+    /// Converts the given `str` into a [`DiskType`] variant.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an [`Error::InvalArg`] error if `str` is not
+    /// a valid disk type.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use nuts::types::*;
+    /// use nuts::error::*;
+    ///
+    /// assert_eq!(
+    ///     DiskType::from_string("fat-zero").unwrap(),
+    ///     DiskType::FatZero
+    /// );
+    /// assert_eq!(
+    ///     DiskType::from_string("fat-random").unwrap(),
+    ///     DiskType::FatRandom
+    /// );
+    /// assert_eq!(
+    ///     DiskType::from_string("thin-zero").unwrap(),
+    ///     DiskType::ThinZero
+    /// );
+    /// assert_eq!(
+    ///     DiskType::from_string("thin-random").unwrap(),
+    ///     DiskType::ThinRandom
+    /// );
+    ///
+    /// let err = DiskType::from_string("xxx").unwrap_err();
+    ///
+    /// if let Error::InvalArg(msg) = err {
+    ///     assert_eq!(msg, "invalid disk-type: xxx");
+    /// } else {
+    ///     panic!("invalid error: {:?}", err);
+    /// }
+    /// ```
+    ///
+    /// [`DiskType`]: enum.DiskType.html
+    /// [`Error::InvalArg`]: ../error/enum.Error.html#variant.InvalArg
+    pub fn from_string(str: &str) -> Result<DiskType> {
+        match str {
+            "fat-zero" => Ok(DiskType::FatZero),
+            "fat-random" => Ok(DiskType::FatRandom),
+            "thin-zero" => Ok(DiskType::ThinZero),
+            "thin-random" => Ok(DiskType::ThinRandom),
+            _ => {
+                let message = format!("invalid disk-type: {}", str);
+                Err(Error::InvalArg(message))
+            }
+        }
+    }
+}
+
 impl std::fmt::Display for DiskType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
