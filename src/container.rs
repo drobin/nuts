@@ -26,6 +26,7 @@ use crate::block::Block;
 use crate::error::Error;
 use crate::header::Header;
 use crate::result::Result;
+use crate::secret::Secret;
 use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
 
 pub struct Container {
@@ -37,28 +38,86 @@ pub struct Container {
 
 impl Container {
     pub fn create(path: &str, options: &Options) -> Result<Container> {
-        let mut container = Container {
+        let block = Block::new(options.bsize(), options.blocks(), 0, options.dtype);
+        let mut fd = create_file(path)?;
+
+        let mut header = Container::create_header(options);
+        let secret = Container::create_secret(options);
+
+        Container::dump_secret(&secret, &mut header)?;
+        Container::dump_header(&header, &block, &mut fd)?;
+
+        Ok(Container {
             cipher: options.cipher,
             digest: options.md,
-            block: Block::new(options.bsize(), options.blocks(), 0, options.dtype),
-            fd: create_file(path)?,
-        };
-
-        // Create the header, written into `buf`.
-        let header = Header::new(options.cipher, options.md);
-        let mut buf = [0; 512];
-
-        // Dump header into `buf`,
-        // `buf` is written into the first block of the container.
-        header.write(&mut buf)?;
-        container.block.write(&buf, &mut container.fd, 0)?;
-
-        Ok(container)
+            block,
+            fd,
+        })
     }
 
     pub fn open(path: &str) -> Result<Container> {
         let mut fd = open_file(path)?;
+        let header = Container::open_header(&mut fd)?;
+        let secret = Container::open_secret(&header)?;
 
+        let block = Block::new(secret.bsize, secret.blocks, 0, secret.dtype);
+
+        Ok(Container {
+            cipher: header.cipher,
+            digest: header.digest.unwrap(),
+            block,
+            fd,
+        })
+    }
+
+    fn create_header(options: &Options) -> Header {
+        let header = Header::new(options.cipher, options.md);
+
+        // TODO generate keys if applicable
+
+        header
+    }
+
+    fn create_secret(options: &Options) -> Secret {
+        let mut secret = Secret::new();
+
+        secret.dtype = options.dtype;
+        secret.bsize = options.bsize();
+        secret.blocks = options.blocks();
+
+        // TODO generate keys if applicable
+
+        secret
+    }
+
+    fn dump_header(header: &Header, block: &Block, fd: &mut File) -> Result<u32> {
+        let mut buf = [0; BLOCK_MIN_SIZE as usize];
+
+        let offset = header.write(&mut buf)?;
+        let end = offset as usize;
+
+        block.write(&buf[..end], fd, 0)
+    }
+
+    fn dump_secret(secret: &Secret, header: &mut Header) -> Result<u32> {
+        let mut buf = [0; BLOCK_MIN_SIZE as usize];
+        let result = secret.write(&mut buf);
+
+        if let Ok(offset) = result {
+            let end = offset as usize;
+            header.secret.clear();
+            header.secret.extend_from_slice(&buf[..end]);
+        }
+
+        // In any case clear the buffer, which contains the secret.
+        for elem in buf.iter_mut() {
+            *elem = 0;
+        }
+
+        result
+    }
+
+    fn open_header(fd: &mut File) -> Result<Header> {
         // Create a temp. block with bsize = BLOCK_MIN_SIZE.
         // This is enough to read the header.
         // Binary header is dumped into `buf`.
@@ -66,18 +125,14 @@ impl Container {
 
         // Read the binary header into `buf`.
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
-        block.read(&mut fd, &mut buf, 0)?;
+        block.read(fd, &mut buf, 0)?;
 
         // Parse the header.
-        let mut offset = 0;
-        let header = Header::read(&buf, &mut offset)?;
+        Header::read(&buf).map(|(header, _)| header)
+    }
 
-        Ok(Container {
-            cipher: header.cipher,
-            digest: header.digest.unwrap(),
-            block: Block::new(BLOCK_MIN_SIZE, 0, 0, DiskType::FatRandom),
-            fd: fd,
-        })
+    fn open_secret(header: &Header) -> Result<Secret> {
+        Secret::read(&header.secret).map(|(secret, _)| secret)
     }
 
     pub fn cipher(&self) -> Cipher {
