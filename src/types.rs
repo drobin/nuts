@@ -128,6 +128,42 @@ impl Digest {
             Digest::Sha1 => 20,
         }
     }
+
+    /// Converts the given `str` into a [`Digest`] variant.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an [`Error::InvalArg`] error if `str` is not
+    /// a valid digest.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use nuts::types::*;
+    /// use nuts::error::*;
+    ///
+    /// assert_eq!(Digest::from_string("sha1").unwrap(), Digest::Sha1);
+    ///
+    /// let err = Digest::from_string("xxx").unwrap_err();
+    ///
+    /// if let Error::InvalArg(msg) = err {
+    ///     assert_eq!(msg, "invalid digest: xxx");
+    /// } else {
+    ///     panic!("invalid error: {:?}", err);
+    /// }
+    /// ```
+    ///
+    /// [`Digest`]: enum.Digest.html
+    /// [`Error::InvalArg`]: ../error/enum.Error.html#variant.InvalArg
+    pub fn from_string(str: &str) -> Result<Digest> {
+        match str {
+            "sha1" => Ok(Digest::Sha1),
+            _ => {
+                let message = format!("invalid digest: {}", str);
+                Err(Error::InvalArg(message))
+            }
+        }
+    }
 }
 
 impl std::fmt::Display for Digest {

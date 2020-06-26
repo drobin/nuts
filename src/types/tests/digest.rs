@@ -20,7 +20,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use crate::error::Error;
 use crate::types::Digest;
+
+#[test]
+fn from_string_sha1() {
+    assert_eq!(Digest::from_string("sha1").unwrap(), Digest::Sha1);
+}
+
+#[test]
+fn from_string_inval() {
+    let err = Digest::from_string("xxx").unwrap_err();
+
+    if let Error::InvalArg(msg) = err {
+        assert_eq!(msg, "invalid digest: xxx");
+    } else {
+        panic!("invalid error: {:?}", err);
+    }
+}
 
 #[test]
 fn size_sha1() {
