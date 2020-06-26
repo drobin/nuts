@@ -28,7 +28,7 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
 use nuts::container::Container;
 use nuts::result::Result;
-use nuts::types::Options;
+use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
 macro_rules! say {
     ($sub:expr) => {
@@ -84,7 +84,40 @@ fn info(sub: &ArgMatches) -> Result<()> {
 
 fn create(sub: &ArgMatches) -> Result<()> {
     let path = sub.value_of("PATH").unwrap();
-    let options = Options::default();
+    let mut options = Options::default();
+
+    if let Some(dtype) = sub.value_of("disk-type") {
+        options.dtype = DiskType::from_string(dtype)?;
+    }
+
+    if let Some(iterations) = sub.value_of("iterations") {
+        let WrappingKey::Pbkdf2 {
+            iterations: _,
+            salt_len,
+        } = options.wkey;
+        let iterations = iterations.parse::<u32>().unwrap();
+        options.wkey = WrappingKey::Pbkdf2 {
+            iterations,
+            salt_len,
+        };
+    }
+
+    if let Some(salt_len) = sub.value_of("salt-length") {
+        let WrappingKey::Pbkdf2 {
+            iterations,
+            salt_len: _,
+        } = options.wkey;
+        let salt_len = salt_len.parse::<u32>().unwrap();
+        options.wkey = WrappingKey::Pbkdf2 {
+            iterations,
+            salt_len,
+        };
+    }
+
+    if let Some(cipher) = sub.value_of("cipher") {
+        options.cipher = Cipher::from_string(cipher)?;
+    }
+
     let container = Container::create(path, &options)?;
 
     say!(sub, "cipher:           {}", container.cipher());
