@@ -41,6 +41,12 @@ pub enum InvalHeaderKind {
 
     /// Invalid wrapping key.
     InvalWrappingKey,
+
+    /// Invalid disk type.
+    InvalDiskType,
+
+    /// Invalid block size.
+    InvalBlockSize,
 }
 
 /// Collection of error-codes.

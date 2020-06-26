@@ -77,9 +77,20 @@ pub fn read_u32(data: &[u8], offset: &mut u32) -> Result<u32> {
     Ok(num)
 }
 
-// pub fn read_u32_as<T>(data: &[u8], offset: &mut u32, convert: AsFunc<u32, T>) -> Result<T> {
-//     read_u32(data, offset).and_then(|num| convert(num))
-// }
+pub fn read_u32_as<T>(data: &[u8], offset: &mut u32, convert: AsFunc<u32, T>) -> Result<T> {
+    read_u32(data, offset).and_then(|num| convert(num))
+}
+
+pub fn read_u64(data: &[u8], offset: &mut u32) -> Result<u64> {
+    let start = *offset as usize;
+    let end = start + 8;
+    let source = data.get(start..end).ok_or(Error::NoData)?;
+    let num = NetworkEndian::read_u64(source);
+
+    *offset += 8;
+
+    Ok(num)
+}
 
 pub fn write_array(target: &mut [u8], offset: &mut u32, data: &[u8]) -> Result<()> {
     let start = *offset as usize;
@@ -125,6 +136,17 @@ pub fn write_u32(target: &mut [u8], offset: &mut u32, num: u32) -> Result<()> {
 
     NetworkEndian::write_u32(slice, num);
     *offset += 4;
+
+    Ok(())
+}
+
+pub fn write_u64(target: &mut [u8], offset: &mut u32, num: u64) -> Result<()> {
+    let start = *offset as usize;
+    let end = start + 8;
+    let slice = target.get_mut(start..end).ok_or(Error::NoSpace)?;
+
+    NetworkEndian::write_u64(slice, num);
+    *offset += 8;
 
     Ok(())
 }

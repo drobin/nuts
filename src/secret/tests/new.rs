@@ -20,12 +20,17 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub(crate) mod binary;
-pub(crate) mod block;
-pub mod container;
-pub mod error;
-pub(crate) mod header;
-pub mod result;
-pub(crate) mod secret;
-pub mod types;
-pub(crate) mod wkey;
+use crate::secret::Secret;
+use crate::types::{DiskType, BLOCK_MIN_SIZE};
+
+#[test]
+fn ok() {
+    let secret = Secret::new();
+    assert_eq!(secret.dtype, DiskType::FatRandom);
+    assert_eq!(secret.bsize, BLOCK_MIN_SIZE);
+    assert_eq!(secret.blocks, 0);
+    assert!(secret.master_key.is_empty());
+    assert!(secret.master_iv.is_empty());
+    assert!(secret.hmac_key.is_empty());
+    assert!(secret.userdata.is_empty());
+}

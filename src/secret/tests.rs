@@ -20,12 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub(crate) mod binary;
-pub(crate) mod block;
-pub mod container;
-pub mod error;
-pub(crate) mod header;
-pub mod result;
-pub(crate) mod secret;
-pub mod types;
-pub(crate) mod wkey;
+#[cfg(test)]
+mod new;
+
+#[cfg(test)]
+mod read;
+
+#[cfg(test)]
+mod write;
+
+#[cfg(test)]
+mod zero;
