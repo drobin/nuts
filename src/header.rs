@@ -53,19 +53,27 @@ impl Header {
         }
     }
 
-    pub fn read(source: &[u8], offset: &mut u32) -> Result<Header> {
-        binary::read_array_as(source, offset, 7, validate_magic)?;
+    pub fn read(source: &[u8]) -> Result<(Header, u32)> {
+        let mut offset = 0;
+
+        binary::read_array_as(source, &mut offset, 7, validate_magic)?;
+        let revision = binary::read_u8_as(source, &mut offset, u8_to_revision)?;
+        let cipher = binary::read_u8_as(source, &mut offset, u8_to_cipher)?;
+        let digest = binary::read_u8_as(source, &mut offset, u8_to_digest)?;
+        let wrapping_key = read_wrapping_key(source, &mut offset)?;
+        let hmac = binary::read_vec(source, &mut offset)?;
+        let secret = binary::read_vec(source, &mut offset)?;
 
         let header = Header {
-            revision: binary::read_u8_as(source, offset, u8_to_revision)?,
-            cipher: binary::read_u8_as(source, offset, u8_to_cipher)?,
-            digest: binary::read_u8_as(source, offset, u8_to_digest)?,
-            wrapping_key: read_wrapping_key(source, offset)?,
-            hmac: binary::read_vec(source, offset)?,
-            secret: binary::read_vec(source, offset)?,
+            revision,
+            cipher,
+            digest,
+            wrapping_key,
+            hmac,
+            secret,
         };
 
-        Ok(header)
+        Ok((header, offset))
     }
 
     pub fn write(&self, target: &mut [u8]) -> Result<u32> {

@@ -75,8 +75,7 @@ fn mk_data_size(d: &Data, size: usize) -> Vec<u8> {
 #[test]
 fn ok() {
     let data = mk_data(&OK_DATA);
-    let mut offset: u32 = 0;
-    let header = Header::read(&data, &mut offset).unwrap();
+    let (header, offset) = Header::read(&data).unwrap();
 
     assert_eq!(offset, 41);
     assert_eq!(header.revision, 1);
@@ -100,9 +99,7 @@ fn ok() {
 fn incomplete() {
     for i in 1..41 {
         let data = mk_data_size(&OK_DATA, i);
-        let mut offset: u32 = 0;
-
-        let err = format!("{:?}", Header::read(&data, &mut offset).unwrap_err());
+        let err = format!("{:?}", Header::read(&data).unwrap_err());
         assert_eq!(err, "NoData");
     }
 }
@@ -113,9 +110,8 @@ fn bad_magic() {
         magic: [b'X', b'u', b't', b's', b'-', b'i', b'o'],
         ..OK_DATA
     });
-    let mut offset: u32 = 0;
 
-    let err = format!("{:?}", Header::read(&data, &mut offset).unwrap_err());
+    let err = format!("{:?}", Header::read(&data).unwrap_err());
     assert_eq!(err, "InvalHeader(InvalMagic)");
 }
 
@@ -125,9 +121,8 @@ fn bad_revision() {
         revision: 0,
         ..OK_DATA
     });
-    let mut offset: u32 = 0;
 
-    let err = format!("{:?}", Header::read(&data, &mut offset).unwrap_err());
+    let err = format!("{:?}", Header::read(&data).unwrap_err());
     assert_eq!(err, "InvalHeader(InvalRevision)");
 }
 
@@ -137,9 +132,8 @@ fn bad_cipher() {
         cipher: 99,
         ..OK_DATA
     });
-    let mut offset: u32 = 0;
 
-    let err = format!("{:?}", Header::read(&data, &mut offset).unwrap_err());
+    let err = format!("{:?}", Header::read(&data).unwrap_err());
     assert_eq!(err, "InvalHeader(InvalCipher)");
 }
 
@@ -149,9 +143,8 @@ fn bad_digest() {
         digest: 99,
         ..OK_DATA
     });
-    let mut offset: u32 = 0;
 
-    let err = format!("{:?}", Header::read(&data, &mut offset).unwrap_err());
+    let err = format!("{:?}", Header::read(&data).unwrap_err());
     assert_eq!(err, "InvalHeader(InvalDigest)");
 }
 
@@ -161,8 +154,7 @@ fn bad_wrapping_key() {
         wkey: [9, 0, 0, 0x12, 0x67, 0, 0, 0, 0x07, 1, 2, 3, 4, 5, 6, 7],
         ..OK_DATA
     });
-    let mut offset: u32 = 0;
 
-    let err = format!("{:?}", Header::read(&data, &mut offset).unwrap_err());
+    let err = format!("{:?}", Header::read(&data).unwrap_err());
     assert_eq!(err, "InvalHeader(InvalWrappingKey)");
 }
