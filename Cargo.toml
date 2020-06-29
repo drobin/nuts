@@ -30,4 +30,5 @@ edition = "2018"
 
 [dependencies]
 byteorder = "1.3.4"
+log = "0.4"
 clap = "2.33.1"

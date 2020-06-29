@@ -20,6 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use log::debug;
 use std::fs::File;
 
 use crate::block::Block;
@@ -47,12 +48,19 @@ impl Container {
         Container::dump_secret(&secret, &mut header)?;
         Container::dump_header(&header, &block, &mut fd)?;
 
-        Ok(Container {
+        let container = Container {
             cipher: options.cipher,
             digest: options.md,
             block,
             fd,
-        })
+        };
+
+        debug!(
+            "allocating container, dtype = {}, bsize = {}, blocks = {}",
+            container.block.dtype, container.block.bsize, container.block.blocks
+        );
+
+        Ok(container)
     }
 
     pub fn open(path: &str) -> Result<Container> {
@@ -61,6 +69,9 @@ impl Container {
         let secret = Container::open_secret(&header)?;
 
         let block = Block::new(secret.bsize, secret.blocks, 0, secret.dtype);
+
+        debug!("header: {:?}", header);
+        debug!("secret: {:?}", secret);
 
         Ok(Container {
             cipher: header.cipher,

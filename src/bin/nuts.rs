@@ -21,14 +21,56 @@
 // IN THE SOFTWARE.
 
 extern crate clap;
+extern crate log;
 extern crate nuts;
 
 use clap::{crate_name, crate_version};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
+use log::LevelFilter;
+
 use nuts::container::Container;
 use nuts::result::Result;
 use nuts::types::{Cipher, DiskType, Options, WrappingKey};
+
+struct NutsLogger;
+
+impl log::Log for NutsLogger {
+    fn enabled(&self, _metadata: &log::Metadata) -> bool {
+        true
+    }
+
+    fn log(&self, record: &log::Record) {
+        if !self.enabled(record.metadata()) {
+            return;
+        }
+
+        println!(
+            "{}:{} -- {}",
+            record.level(),
+            record.target(),
+            record.args()
+        );
+    }
+
+    fn flush(&self) {}
+}
+
+static LOGGER: NutsLogger = NutsLogger;
+
+pub fn init_logger() {
+    log::set_logger(&LOGGER)
+        .map(|()| log::set_max_level(LevelFilter::Info))
+        .unwrap();
+}
+
+pub fn update_logger(sub: &ArgMatches) {
+    if sub.is_present("quiet") {
+        log::set_max_level(LevelFilter::Off);
+    } else if sub.is_present("verbose") {
+        log::set_max_level(LevelFilter::Trace);
+    }
+}
 
 macro_rules! say {
     ($sub:expr) => {
@@ -49,6 +91,8 @@ macro_rules! say {
 }
 
 fn main() -> Result<()> {
+    init_logger();
+
     let info_command = include!("info.sub");
     let create_command = include!("create.sub");
 
@@ -69,6 +113,8 @@ fn main() -> Result<()> {
 }
 
 fn info(sub: &ArgMatches) -> Result<()> {
+    update_logger(sub);
+
     let path = sub.value_of("PATH").unwrap();
     let container = Container::open(path)?;
 
@@ -83,6 +129,8 @@ fn info(sub: &ArgMatches) -> Result<()> {
 }
 
 fn create(sub: &ArgMatches) -> Result<()> {
+    update_logger(sub);
+
     let path = sub.value_of("PATH").unwrap();
     let mut options = Options::default();
 

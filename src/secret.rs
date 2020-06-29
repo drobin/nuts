@@ -115,16 +115,19 @@ impl ops::Drop for Secret {
 
 impl fmt::Debug for Secret {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let stars = String::from("***");
+        let master_key = format!("<{} bytes>", self.master_key.len());
+        let master_iv = format!("<{} bytes>", self.master_iv.len());
+        let hmac_key = format!("<{} bytes>", self.hmac_key.len());
+        let userdata = format!("<{} bytes>", self.userdata.len());
 
-        fmt.debug_struct("Debug")
+        fmt.debug_struct("Secret")
             .field("dtype", &self.dtype)
             .field("bsize", &self.bsize)
             .field("blocks", &self.blocks)
-            .field("master_key", &stars)
-            .field("master_iv", &stars)
-            .field("hmac_key", &stars)
-            .field("userdata", &self.userdata)
+            .field("master_key", &master_key)
+            .field("master_iv", &master_iv)
+            .field("hmac_key", &hmac_key)
+            .field("userdata", &userdata)
             .finish()
     }
 }

@@ -23,6 +23,8 @@
 #[cfg(test)]
 mod tests;
 
+use std::fmt;
+
 use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
 use crate::result::Result;
@@ -31,7 +33,6 @@ use crate::wkey::WrappingKeyData;
 
 const MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
 
-#[derive(Debug)]
 pub struct Header {
     pub revision: u8,
     pub cipher: Cipher,
@@ -88,6 +89,22 @@ impl Header {
         binary::write_vec(target, &mut offset, &self.secret)?;
 
         Ok(offset)
+    }
+}
+
+impl fmt::Debug for Header {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let hmac = format!("<{} bytes>", self.hmac.len());
+        let secret = format!("<{} bytes>", self.secret.len());
+
+        fmt.debug_struct("Header")
+            .field("revision", &self.revision)
+            .field("cipher", &self.cipher)
+            .field("digest", &self.digest)
+            .field("wrapping_key", &self.wrapping_key)
+            .field("hmac", &hmac)
+            .field("secret", &secret)
+            .finish()
     }
 }
 
