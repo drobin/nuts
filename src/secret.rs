@@ -23,13 +23,14 @@
 #[cfg(test)]
 mod tests;
 
+use log::{error, warn};
 use std::fmt;
 use std::ops;
 
 use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
 use crate::result::Result;
-use crate::types::{DiskType, BLOCK_MIN_SIZE};
+use crate::types::{Cipher, Digest, DiskType, BLOCK_MIN_SIZE};
 
 macro_rules! reset_slice {
     ($buf:expr) => {
@@ -66,7 +67,7 @@ impl Secret {
         let mut offset = 0;
 
         let dtype = binary::read_u8_as(source, &mut offset, u8_to_disk_type)?;
-        let bsize = binary::read_u32_as(source, &mut offset, validate_block_size)?;
+        let bsize = binary::read_u32(source, &mut offset)?;
         let blocks = binary::read_u64(source, &mut offset)?;
         let master_key = binary::read_vec(source, &mut offset)?;
         let master_iv = binary::read_vec(source, &mut offset)?;
@@ -98,6 +99,120 @@ impl Secret {
         binary::write_vec(target, &mut offset, &self.userdata)?;
 
         Ok(offset)
+    }
+
+    pub fn validate(&self, cipher: Cipher, digest: Option<Digest>) -> Result<()> {
+        if cipher == Cipher::None && digest.is_some() {
+            let message = format!("digest cannot be {} for cipher {}", digest.unwrap(), cipher);
+            return Err(Error::InvalArg(message));
+        }
+
+        if cipher != Cipher::None && digest.is_none() {
+            let message = format!("digest cannot be None for cipher {}", cipher);
+            return Err(Error::InvalArg(message));
+        }
+
+        self.validate_block_size()?;
+        self.validate_blocks()?;
+        self.validate_master_key(cipher)?;
+        self.validate_master_iv(cipher)?;
+        self.validate_hmac_key(digest)?;
+
+        Ok(())
+    }
+
+    fn validate_block_size(&self) -> Result<()> {
+        if self.bsize >= BLOCK_MIN_SIZE && self.bsize % BLOCK_MIN_SIZE == 0 {
+            Ok(())
+        } else {
+            error!("invalid block size: {}", self.bsize);
+            Err(Error::InvalHeader(InvalHeaderKind::InvalBlockSize))
+        }
+    }
+
+    fn validate_blocks(&self) -> Result<()> {
+        if self.blocks >= 1 {
+            Ok(())
+        } else {
+            error!("invalid number of blocks: {}", self.blocks);
+            Err(Error::InvalHeader(InvalHeaderKind::InvalBlocks))
+        }
+    }
+
+    fn validate_master_key(&self, cipher: Cipher) -> Result<()> {
+        if self.master_key.len() < cipher.key_size() as usize {
+            error!(
+                "invalid master key, len: {}, expected: {} ({})",
+                self.master_key.len(),
+                cipher.key_size(),
+                cipher
+            );
+            Err(Error::InvalHeader(InvalHeaderKind::InvalMasterKey))
+        } else {
+            if self.master_key.len() != cipher.key_size() as usize {
+                warn!(
+                    "lost master key, len: {}, min: {} ({})",
+                    self.master_key.len(),
+                    cipher.key_size(),
+                    cipher
+                );
+            }
+
+            Ok(())
+        }
+    }
+
+    fn validate_master_iv(&self, cipher: Cipher) -> Result<()> {
+        if self.master_iv.len() < cipher.iv_size() as usize {
+            error!(
+                "invalid master iv, len: {}, expected: {} ({})",
+                self.master_iv.len(),
+                cipher.iv_size(),
+                cipher
+            );
+
+            Err(Error::InvalHeader(InvalHeaderKind::InvalMasterIv))
+        } else {
+            if self.master_iv.len() != cipher.iv_size() as usize {
+                warn!(
+                    "lost master iv, len: {}, min: {} ({})",
+                    self.master_iv.len(),
+                    cipher.iv_size(),
+                    cipher
+                );
+            }
+
+            Ok(())
+        }
+    }
+
+    fn validate_hmac_key(&self, digest: Option<Digest>) -> Result<()> {
+        let size = match digest {
+            Some(md) => md.size() as usize,
+            None => 0,
+        };
+
+        if self.hmac_key.len() < size {
+            error!(
+                "invalid hmac key, len: {}, expected: {} ({})",
+                self.hmac_key.len(),
+                size,
+                digest_to_string(digest)
+            );
+
+            Err(Error::InvalHeader(InvalHeaderKind::InvalHmacKey))
+        } else {
+            if self.hmac_key.len() != size {
+                warn!(
+                    "lost hmac key, len: {}, min: {} ({})",
+                    self.hmac_key.len(),
+                    size,
+                    digest_to_string(digest)
+                );
+            }
+
+            Ok(())
+        }
     }
 
     fn zero(&mut self) {
@@ -151,10 +266,9 @@ fn disk_type_to_u8(dtype: DiskType) -> Result<u8> {
     }
 }
 
-fn validate_block_size(i: u32) -> Result<u32> {
-    if i >= BLOCK_MIN_SIZE && i % BLOCK_MIN_SIZE == 0 {
-        Ok(i)
-    } else {
-        Err(Error::InvalHeader(InvalHeaderKind::InvalBlockSize))
+fn digest_to_string(digest: Option<Digest>) -> String {
+    match digest {
+        Some(md) => format!("{}", md),
+        None => String::from("None"),
     }
 }

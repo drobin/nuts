@@ -35,6 +35,18 @@ fn ok_secret() -> Secret {
     }
 }
 
+fn dtype_secret(dtype: DiskType) -> Secret {
+    Secret {
+        dtype,
+        bsize: BLOCK_MIN_SIZE,
+        blocks: 4711,
+        master_key: vec![1],
+        master_iv: vec![2, 3],
+        hmac_key: vec![4, 5, 6],
+        userdata: vec![7, 8, 9, 10],
+    }
+}
+
 #[test]
 fn ok() {
     let secret = ok_secret();
@@ -62,4 +74,40 @@ fn nospace() {
         );
         assert_eq!(err, "NoSpace");
     }
+}
+
+#[test]
+fn dtype_fat_zero() {
+    let secret = dtype_secret(DiskType::FatZero);
+    let mut target = [0; 39];
+
+    assert_eq!(secret.write(&mut target).unwrap(), 39);
+    assert_eq!(target[0..1], [0]);
+}
+
+#[test]
+fn dtype_fat_random() {
+    let secret = dtype_secret(DiskType::FatRandom);
+    let mut target = [0; 39];
+
+    assert_eq!(secret.write(&mut target).unwrap(), 39);
+    assert_eq!(target[0..1], [1]);
+}
+
+#[test]
+fn dtype_thin_zero() {
+    let secret = dtype_secret(DiskType::ThinZero);
+    let mut target = [0; 39];
+
+    assert_eq!(secret.write(&mut target).unwrap(), 39);
+    assert_eq!(target[0..1], [2]);
+}
+
+#[test]
+fn dtype_thin_random() {
+    let secret = dtype_secret(DiskType::ThinRandom);
+    let mut target = [0; 39];
+
+    assert_eq!(secret.write(&mut target).unwrap(), 39);
+    assert_eq!(target[0..1], [3]);
 }

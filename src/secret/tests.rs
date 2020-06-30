@@ -27,6 +27,9 @@ mod new;
 mod read;
 
 #[cfg(test)]
+mod validate;
+
+#[cfg(test)]
 mod write;
 
 #[cfg(test)]

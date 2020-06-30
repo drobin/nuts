@@ -106,6 +106,50 @@ fn incomplete() {
 }
 
 #[test]
+fn dtype_fat_zero() {
+    let data = mk_data(&Data {
+        dtype: 0,
+        ..OK_DATA
+    });
+
+    let (secret, _) = Secret::read(&data).unwrap();
+    assert_eq!(secret.dtype, DiskType::FatZero);
+}
+
+#[test]
+fn dtype_fat_random() {
+    let data = mk_data(&Data {
+        dtype: 1,
+        ..OK_DATA
+    });
+
+    let (secret, _) = Secret::read(&data).unwrap();
+    assert_eq!(secret.dtype, DiskType::FatRandom);
+}
+
+#[test]
+fn dtype_thin_zero() {
+    let data = mk_data(&Data {
+        dtype: 2,
+        ..OK_DATA
+    });
+
+    let (secret, _) = Secret::read(&data).unwrap();
+    assert_eq!(secret.dtype, DiskType::ThinZero);
+}
+
+#[test]
+fn dtype_thin_random() {
+    let data = mk_data(&Data {
+        dtype: 3,
+        ..OK_DATA
+    });
+
+    let (secret, _) = Secret::read(&data).unwrap();
+    assert_eq!(secret.dtype, DiskType::ThinRandom);
+}
+
+#[test]
 fn bad_dtype() {
     let data = mk_data(&Data {
         dtype: 4,
@@ -114,26 +158,4 @@ fn bad_dtype() {
 
     let err = format!("{:?}", Secret::read(&data).unwrap_err());
     assert_eq!(err, "InvalHeader(InvalDiskType)");
-}
-
-#[test]
-fn bad_bsize_lt_512() {
-    let data = mk_data(&Data {
-        bsize: 511,
-        ..OK_DATA
-    });
-
-    let err = format!("{:?}", Secret::read(&data).unwrap_err());
-    assert_eq!(err, "InvalHeader(InvalBlockSize)");
-}
-
-#[test]
-fn bad_bsize_modulo() {
-    let data = mk_data(&Data {
-        bsize: 513,
-        ..OK_DATA
-    });
-
-    let err = format!("{:?}", Secret::read(&data).unwrap_err());
-    assert_eq!(err, "InvalHeader(InvalBlockSize)");
 }

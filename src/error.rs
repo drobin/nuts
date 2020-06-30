@@ -47,6 +47,18 @@ pub enum InvalHeaderKind {
 
     /// Invalid block size.
     InvalBlockSize,
+
+    /// Invalid number of blocks.
+    InvalBlocks,
+
+    /// Invalid master key.
+    InvalMasterKey,
+
+    /// Invalid master iv.
+    InvalMasterIv,
+
+    /// Invalid HMAC key.
+    InvalHmacKey,
 }
 
 /// Collection of error-codes.
