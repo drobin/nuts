@@ -77,9 +77,9 @@ pub fn read_u32(data: &[u8], offset: &mut u32) -> Result<u32> {
     Ok(num)
 }
 
-pub fn read_u32_as<T>(data: &[u8], offset: &mut u32, convert: AsFunc<u32, T>) -> Result<T> {
-    read_u32(data, offset).and_then(|num| convert(num))
-}
+// pub fn read_u32_as<T>(data: &[u8], offset: &mut u32, convert: AsFunc<u32, T>) -> Result<T> {
+//     read_u32(data, offset).and_then(|num| convert(num))
+// }
 
 pub fn read_u64(data: &[u8], offset: &mut u32) -> Result<u64> {
     let start = *offset as usize;

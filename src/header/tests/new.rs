@@ -25,7 +25,7 @@ use crate::types::{Cipher, Digest};
 
 #[test]
 fn ok() {
-    let header = Header::new(Cipher::Aes128Ctr, Digest::Sha1);
+    let header = Header::new(Cipher::Aes128Ctr, Some(Digest::Sha1));
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::Aes128Ctr);
     assert_eq!(header.digest, Some(Digest::Sha1));

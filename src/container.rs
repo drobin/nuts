@@ -32,7 +32,7 @@ use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
 
 pub struct Container {
     cipher: Cipher,
-    digest: Digest,
+    digest: Option<Digest>,
     block: Block,
     fd: File,
 }
@@ -44,6 +44,12 @@ impl Container {
 
         let mut header = Container::create_header(options);
         let secret = Container::create_secret(options);
+
+        debug!("header: {:?}", header);
+        debug!("secret: {:?}", secret);
+
+        header.validate()?;
+        secret.validate(header.cipher, header.digest)?;
 
         Container::dump_secret(&secret, &mut header)?;
         Container::dump_header(&header, &block, &mut fd)?;
@@ -73,9 +79,12 @@ impl Container {
         debug!("header: {:?}", header);
         debug!("secret: {:?}", secret);
 
+        header.validate()?;
+        secret.validate(header.cipher, header.digest)?;
+
         Ok(Container {
             cipher: header.cipher,
-            digest: header.digest.unwrap(),
+            digest: header.digest,
             block,
             fd,
         })
@@ -150,7 +159,7 @@ impl Container {
         self.cipher
     }
 
-    pub fn digest(&self) -> Digest {
+    pub fn digest(&self) -> Option<Digest> {
         self.digest
     }
 

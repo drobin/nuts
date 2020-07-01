@@ -44,11 +44,11 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn new(cipher: Cipher, digest: Digest) -> Header {
+    pub fn new(cipher: Cipher, digest: Option<Digest>) -> Header {
         Header {
             revision: 1,
             cipher: cipher,
-            digest: Some(digest),
+            digest: digest,
             wrapping_key: None,
             hmac: Vec::new(),
             secret: Vec::new(),
@@ -98,15 +98,6 @@ impl Header {
         self.validate_hmac()?;
 
         Ok(())
-    }
-
-    fn validate_magic(magic: &[u8]) -> Result<()> {
-        if magic == MAGIC {
-            Ok(())
-        } else {
-            error!("invalid magic: {:x?}", magic);
-            Err(Error::InvalHeader(InvalHeaderKind::InvalMagic))
-        }
     }
 
     fn validate_revision(revision: u8) -> Result<()> {

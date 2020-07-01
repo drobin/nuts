@@ -117,9 +117,12 @@ fn info(sub: &ArgMatches) -> Result<()> {
 
     let path = sub.value_of("PATH").unwrap();
     let container = Container::open(path)?;
+    let digest = container
+        .digest()
+        .map_or_else(|| String::from("none"), |d| d.to_string());
 
     say!(sub, "cipher:           {}", container.cipher());
-    say!(sub, "digest:           {}", container.digest());
+    say!(sub, "digest:           {}", digest);
     say!(sub, "disk type:        {}", container.dtype());
     say!(sub, "block size:       {}", container.bsize());
     say!(sub, "blocks:           {}", container.blocks());
@@ -131,45 +134,62 @@ fn info(sub: &ArgMatches) -> Result<()> {
 fn create(sub: &ArgMatches) -> Result<()> {
     update_logger(sub);
 
+    let cipher = if let Some(cipher) = sub.value_of("cipher") {
+        Cipher::from_string(cipher)?
+    } else {
+        Cipher::Aes128Ctr
+    };
+
     let path = sub.value_of("PATH").unwrap();
-    let mut options = Options::default();
+    let mut options = Options::default_with_cipher(cipher);
 
     if let Some(dtype) = sub.value_of("disk-type") {
         options.dtype = DiskType::from_string(dtype)?;
     }
 
     if let Some(iterations) = sub.value_of("iterations") {
-        let WrappingKey::Pbkdf2 {
-            iterations: _,
-            salt_len,
-        } = options.wkey;
-        let iterations = iterations.parse::<u32>().unwrap();
-        options.wkey = WrappingKey::Pbkdf2 {
-            iterations,
-            salt_len,
-        };
+        match options.wkey {
+            Some(WrappingKey::Pbkdf2 {
+                iterations: _,
+                salt_len,
+            }) => {
+                let iterations = iterations.parse::<u32>().unwrap();
+                options.wkey = Some(WrappingKey::Pbkdf2 {
+                    iterations,
+                    salt_len,
+                });
+            }
+            None => {
+                panic!("unexpected wrapping key");
+            }
+        }
     }
 
     if let Some(salt_len) = sub.value_of("salt-length") {
-        let WrappingKey::Pbkdf2 {
-            iterations,
-            salt_len: _,
-        } = options.wkey;
-        let salt_len = salt_len.parse::<u32>().unwrap();
-        options.wkey = WrappingKey::Pbkdf2 {
-            iterations,
-            salt_len,
-        };
-    }
-
-    if let Some(cipher) = sub.value_of("cipher") {
-        options.cipher = Cipher::from_string(cipher)?;
+        match options.wkey {
+            Some(WrappingKey::Pbkdf2 {
+                iterations,
+                salt_len: _,
+            }) => {
+                let salt_len = salt_len.parse::<u32>().unwrap();
+                options.wkey = Some(WrappingKey::Pbkdf2 {
+                    iterations,
+                    salt_len,
+                });
+            }
+            None => {
+                panic!("unexpected wrapping key");
+            }
+        }
     }
 
     let container = Container::create(path, &options)?;
+    let digest = container
+        .digest()
+        .map_or_else(|| String::from("none"), |d| d.to_string());
 
     say!(sub, "cipher:           {}", container.cipher());
-    say!(sub, "digest:           {}", container.digest());
+    say!(sub, "digest:           {}", digest);
     say!(sub, "disk type:        {}", container.dtype());
     say!(sub, "block size:       {}", container.bsize());
     say!(sub, "blocks:           {}", container.blocks());
