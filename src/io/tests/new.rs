@@ -20,14 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::block::Block;
+use crate::io::IO;
 use crate::types::DiskType;
 
 #[test]
 fn success() {
-    let b = Block::new(4711, 1, 2, DiskType::FatRandom);
-    assert_eq!(b.bsize, 4711);
-    assert_eq!(b.blocks, 1);
-    assert_eq!(b.ablocks, 2);
-    assert_eq!(b.dtype, DiskType::FatRandom);
+    let io = IO::new(4711, 1, 2, DiskType::FatRandom);
+    assert_eq!(io.bsize, 4711);
+    assert_eq!(io.blocks, 1);
+    assert_eq!(io.ablocks, 2);
+    assert_eq!(io.dtype, DiskType::FatRandom);
 }

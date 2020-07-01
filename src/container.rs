@@ -23,9 +23,9 @@
 use log::debug;
 use std::fs::File;
 
-use crate::block::Block;
 use crate::error::Error;
 use crate::header::Header;
+use crate::io::IO;
 use crate::result::Result;
 use crate::secret::Secret;
 use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
@@ -33,15 +33,12 @@ use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
 pub struct Container {
     cipher: Cipher,
     digest: Option<Digest>,
-    block: Block,
+    io: IO,
     fd: File,
 }
 
 impl Container {
     pub fn create(path: &str, options: &Options) -> Result<Container> {
-        let block = Block::new(options.bsize(), options.blocks(), 0, options.dtype);
-        let mut fd = create_file(path)?;
-
         let mut header = Container::create_header(options);
         let secret = Container::create_secret(options);
 
@@ -51,19 +48,22 @@ impl Container {
         header.validate()?;
         secret.validate(header.cipher, header.digest)?;
 
+        let io = IO::new(options.bsize(), options.blocks(), 0, options.dtype);
+        let mut fd = create_file(path)?;
+
         Container::dump_secret(&secret, &mut header)?;
-        Container::dump_header(&header, &block, &mut fd)?;
+        Container::dump_header(&header, &io, &mut fd)?;
 
         let container = Container {
             cipher: options.cipher,
             digest: options.md,
-            block,
+            io,
             fd,
         };
 
         debug!(
             "allocating container, dtype = {}, bsize = {}, blocks = {}",
-            container.block.dtype, container.block.bsize, container.block.blocks
+            container.io.dtype, container.io.bsize, container.io.blocks
         );
 
         Ok(container)
@@ -74,18 +74,18 @@ impl Container {
         let header = Container::open_header(&mut fd)?;
         let secret = Container::open_secret(&header)?;
 
-        let block = Block::new(secret.bsize, secret.blocks, 0, secret.dtype);
-
         debug!("header: {:?}", header);
         debug!("secret: {:?}", secret);
 
         header.validate()?;
         secret.validate(header.cipher, header.digest)?;
 
+        let io = IO::new(secret.bsize, secret.blocks, 0, secret.dtype);
+
         Ok(Container {
             cipher: header.cipher,
             digest: header.digest,
-            block,
+            io,
             fd,
         })
     }
@@ -110,13 +110,13 @@ impl Container {
         secret
     }
 
-    fn dump_header(header: &Header, block: &Block, fd: &mut File) -> Result<u32> {
+    fn dump_header(header: &Header, io: &IO, fd: &mut File) -> Result<u32> {
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
         let offset = header.write(&mut buf)?;
         let end = offset as usize;
 
-        block.write(&buf[..end], fd, 0)
+        io.write(&buf[..end], fd, 0)
     }
 
     fn dump_secret(secret: &Secret, header: &mut Header) -> Result<u32> {
@@ -141,11 +141,11 @@ impl Container {
         // Create a temp. block with bsize = BLOCK_MIN_SIZE.
         // This is enough to read the header.
         // Binary header is dumped into `buf`.
-        let block = Block::new(BLOCK_MIN_SIZE, 1, 0, DiskType::ThinZero);
+        let io = IO::new(BLOCK_MIN_SIZE, 1, 0, DiskType::ThinZero);
 
         // Read the binary header into `buf`.
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
-        block.read(fd, &mut buf, 0)?;
+        io.read(fd, &mut buf, 0)?;
 
         // Parse the header.
         Header::read(&buf).map(|(header, _)| header)
@@ -164,19 +164,19 @@ impl Container {
     }
 
     pub fn dtype(&self) -> DiskType {
-        self.block.dtype
+        self.io.dtype
     }
 
     pub fn bsize(&self) -> u32 {
-        self.block.bsize
+        self.io.bsize
     }
 
     pub fn blocks(&self) -> u64 {
-        self.block.blocks
+        self.io.blocks
     }
 
     pub fn ablocks(&self) -> u64 {
-        self.block.ablocks
+        self.io.ablocks
     }
 }
 

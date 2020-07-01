@@ -22,8 +22,8 @@
 
 use std::io::{Cursor, ErrorKind, Seek, SeekFrom};
 
-use crate::block::Block;
 use crate::error::Error;
+use crate::io::IO;
 use crate::types::DiskType;
 
 fn mk_fake_file() -> std::io::Cursor<Vec<u8>> {
@@ -32,93 +32,93 @@ fn mk_fake_file() -> std::io::Cursor<Vec<u8>> {
     c
 }
 
-fn prepare(bsize: Option<u32>) -> (Block, Cursor<Vec<u8>>, [u8; 3]) {
-    let block = Block::new(bsize.unwrap_or(3), 2, 0, DiskType::ThinZero);
+fn prepare(bsize: Option<u32>) -> (IO, Cursor<Vec<u8>>, [u8; 3]) {
+    let io = IO::new(bsize.unwrap_or(3), 2, 0, DiskType::ThinZero);
     let source = mk_fake_file();
     let target = [0; 3];
 
-    (block, source, target)
+    (io, source, target)
 }
 
 #[test]
 fn full_block_0() {
-    let (block, mut source, mut target) = prepare(None);
+    let (io, mut source, mut target) = prepare(None);
 
-    assert_eq!(block.read(&mut source, &mut target, 0).unwrap(), 3);
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 3);
     assert_eq!(target, [1, 2, 3]);
     assert_eq!(source.position(), 3);
 }
 
 #[test]
 fn full_block_1() {
-    let (block, mut source, mut target) = prepare(None);
+    let (io, mut source, mut target) = prepare(None);
 
-    assert_eq!(block.read(&mut source, &mut target, 1).unwrap(), 3);
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 3);
     assert_eq!(target, [4, 5, 6]);
     assert_eq!(source.position(), 6);
 }
 
 #[test]
 fn part_block_0() {
-    let (block, mut source, mut target) = prepare(None);
+    let (io, mut source, mut target) = prepare(None);
     let buf = target.get_mut(0..2).unwrap();
 
-    assert_eq!(block.read(&mut source, buf, 0).unwrap(), 2);
+    assert_eq!(io.read(&mut source, buf, 0).unwrap(), 2);
     assert_eq!(target, [1, 2, 0]);
     assert_eq!(source.position(), 2);
 }
 
 #[test]
 fn part_block_1() {
-    let (block, mut source, mut target) = prepare(None);
+    let (io, mut source, mut target) = prepare(None);
     let buf = target.get_mut(0..2).unwrap();
 
-    assert_eq!(block.read(&mut source, buf, 1).unwrap(), 2);
+    assert_eq!(io.read(&mut source, buf, 1).unwrap(), 2);
     assert_eq!(target, [4, 5, 0]);
     assert_eq!(source.position(), 5);
 }
 
 #[test]
 fn bsize_0_block_0() {
-    let (block, mut source, mut target) = prepare(Some(0));
+    let (io, mut source, mut target) = prepare(Some(0));
 
-    assert_eq!(block.read(&mut source, &mut target, 0).unwrap(), 0);
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 0);
     assert_eq!(target, [0, 0, 0]);
     assert_eq!(source.position(), 0);
 }
 
 #[test]
 fn bsize_0_block_1() {
-    let (block, mut source, mut target) = prepare(Some(0));
+    let (io, mut source, mut target) = prepare(Some(0));
 
-    assert_eq!(block.read(&mut source, &mut target, 1).unwrap(), 0);
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 0);
     assert_eq!(target, [0, 0, 0]);
     assert_eq!(source.position(), 0);
 }
 
 #[test]
 fn bsize_2_block_0() {
-    let (block, mut source, mut target) = prepare(Some(2));
+    let (io, mut source, mut target) = prepare(Some(2));
 
-    assert_eq!(block.read(&mut source, &mut target, 0).unwrap(), 2);
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 2);
     assert_eq!(target, [1, 2, 0]);
     assert_eq!(source.position(), 2);
 }
 
 #[test]
 fn bsize_2_block_1() {
-    let (block, mut source, mut target) = prepare(Some(2));
+    let (io, mut source, mut target) = prepare(Some(2));
 
-    assert_eq!(block.read(&mut source, &mut target, 1).unwrap(), 2);
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 2);
     assert_eq!(target, [3, 4, 0]);
     assert_eq!(source.position(), 4);
 }
 
 #[test]
 fn seek_into_last_block() {
-    let (block, mut source, mut target) = prepare(Some(4));
+    let (io, mut source, mut target) = prepare(Some(4));
 
-    if let Error::IoError(err) = block.read(&mut source, &mut target, 1).unwrap_err() {
+    if let Error::IoError(err) = io.read(&mut source, &mut target, 1).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::UnexpectedEof);
     } else {
         panic!("invalid error");
@@ -127,9 +127,9 @@ fn seek_into_last_block() {
 
 #[test]
 fn seek_behind_last_id() {
-    let (block, mut source, mut target) = prepare(None);
+    let (io, mut source, mut target) = prepare(None);
 
-    if let Error::IoError(err) = block.read(&mut source, &mut target, 2).unwrap_err() {
+    if let Error::IoError(err) = io.read(&mut source, &mut target, 2).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::UnexpectedEof);
     } else {
         panic!("invalid error");

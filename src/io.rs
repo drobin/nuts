@@ -29,16 +29,16 @@ use crate::error::Error;
 use crate::result::Result;
 use crate::types::DiskType;
 
-pub struct Block {
+pub struct IO {
     pub bsize: u32,
     pub blocks: u64,
     pub ablocks: u64,
     pub dtype: DiskType,
 }
 
-impl Block {
-    pub fn new(bsize: u32, blocks: u64, ablocks: u64, dtype: DiskType) -> Block {
-        Block {
+impl IO {
+    pub fn new(bsize: u32, blocks: u64, ablocks: u64, dtype: DiskType) -> IO {
+        IO {
             bsize,
             blocks,
             ablocks,
