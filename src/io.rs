@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use log::debug;
 use std::io::{ErrorKind, Read, Seek, SeekFrom, Write};
 
 use crate::error::Error;
@@ -37,13 +38,72 @@ pub struct IO {
 }
 
 impl IO {
-    pub fn new(bsize: u32, blocks: u64, ablocks: u64, dtype: DiskType) -> IO {
-        IO {
+    pub fn new<T>(bsize: u32, blocks: u64, dtype: DiskType, target: &mut T) -> Result<IO>
+    where
+        T: Write + Seek,
+    {
+        let pos = IO::seek_to(target, SeekFrom::End(0))?;
+
+        Ok(IO {
             bsize,
             blocks,
-            ablocks,
+            ablocks: if bsize > 0 { pos / bsize as u64 } else { 0 },
             dtype,
+        })
+    }
+
+    pub fn ensure_capacity<T>(&mut self, target: &mut T, blocks: u64) -> Result<()>
+    where
+        T: Write + Seek,
+    {
+        let blocks = std::cmp::min(blocks, self.blocks);
+
+        match self.dtype {
+            DiskType::FatZero | DiskType::FatRandom => {
+                if blocks > 0 {
+                    // Fat containers are extended to its size.
+                    self.extend_container(target, self.blocks - self.ablocks)
+                } else {
+                    Ok(())
+                }
+            }
+            DiskType::ThinZero | DiskType::ThinRandom => {
+                if blocks > 0 && blocks > self.ablocks {
+                    // This containers are extended to the requested block.
+                    self.extend_container(target, blocks - self.ablocks)
+                } else {
+                    Ok(())
+                }
+            }
         }
+    }
+
+    fn extend_container<T>(&mut self, target: &mut T, count: u64) -> Result<()>
+    where
+        T: Write + Seek,
+    {
+        debug!(
+            "extending container by {} blocks, ablocks: {}",
+            count, self.ablocks
+        );
+
+        self.seek(target, self.ablocks)?;
+
+        let data = vec![0; self.bsize as usize];
+
+        for _i in 0..count {
+            target
+                .write_all(&data)
+                .or_else(|err| Err(Error::IoError(err)))?;
+            self.ablocks += 1;
+        }
+
+        debug!(
+            "container extended by {} blocks, ablocks: {}",
+            count, self.ablocks
+        );
+
+        Ok(())
     }
 
     pub fn read<T>(&self, source: &mut T, target: &mut [u8], id: u64) -> Result<u32>
@@ -90,9 +150,7 @@ impl IO {
         T: Seek,
     {
         let pos = id * self.bsize as u64;
-        let pos2 = fd
-            .seek(SeekFrom::Start(pos))
-            .or_else(|err| Err(Error::IoError(err)))?;
+        let pos2 = IO::seek_to(fd, SeekFrom::Start(pos))?;
 
         if pos != pos2 {
             let err = std::io::Error::new(
@@ -103,5 +161,13 @@ impl IO {
         } else {
             Ok(())
         }
+    }
+
+    fn seek_to<T>(fd: &mut T, pos: SeekFrom) -> Result<u64>
+    where
+        T: Seek,
+    {
+        let pos = fd.seek(pos).or_else(|err| Err(Error::IoError(err)))?;
+        Ok(pos)
     }
 }

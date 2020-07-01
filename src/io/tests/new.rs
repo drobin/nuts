@@ -20,13 +20,71 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::io::Cursor;
+
 use crate::io::IO;
 use crate::types::DiskType;
 
+fn setup(vec: Vec<u8>) -> IO {
+    let mut c = Cursor::new(vec);
+    IO::new(4, 1, DiskType::FatRandom, &mut c).unwrap()
+}
+
 #[test]
-fn success() {
-    let io = IO::new(4711, 1, 2, DiskType::FatRandom);
-    assert_eq!(io.bsize, 4711);
+fn empty() {
+    let io = setup(vec![]);
+
+    assert_eq!(io.bsize, 4);
+    assert_eq!(io.blocks, 1);
+    assert_eq!(io.ablocks, 0);
+    assert_eq!(io.dtype, DiskType::FatRandom);
+}
+
+#[test]
+fn half() {
+    let io = setup(vec![1, 2]);
+
+    assert_eq!(io.bsize, 4);
+    assert_eq!(io.blocks, 1);
+    assert_eq!(io.ablocks, 0);
+    assert_eq!(io.dtype, DiskType::FatRandom);
+}
+
+#[test]
+fn one() {
+    let io = setup(vec![1, 2, 3, 4]);
+
+    assert_eq!(io.bsize, 4);
+    assert_eq!(io.blocks, 1);
+    assert_eq!(io.ablocks, 1);
+    assert_eq!(io.dtype, DiskType::FatRandom);
+}
+
+#[test]
+fn one_half() {
+    let io = setup(vec![1, 2, 3, 4, 5, 6]);
+
+    assert_eq!(io.bsize, 4);
+    assert_eq!(io.blocks, 1);
+    assert_eq!(io.ablocks, 1);
+    assert_eq!(io.dtype, DiskType::FatRandom);
+}
+
+#[test]
+fn two() {
+    let io = setup(vec![1, 2, 3, 4, 5, 6, 7, 8]);
+
+    assert_eq!(io.bsize, 4);
+    assert_eq!(io.blocks, 1);
+    assert_eq!(io.ablocks, 2);
+    assert_eq!(io.dtype, DiskType::FatRandom);
+}
+
+#[test]
+fn two_half() {
+    let io = setup(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+    assert_eq!(io.bsize, 4);
     assert_eq!(io.blocks, 1);
     assert_eq!(io.ablocks, 2);
     assert_eq!(io.dtype, DiskType::FatRandom);

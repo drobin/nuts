@@ -30,9 +30,9 @@ fn mk_fake_file() -> std::io::Cursor<Vec<u8>> {
 }
 
 fn prepare(bsize: Option<u32>) -> (IO, [u8; 6], Cursor<Vec<u8>>) {
-    let io = IO::new(bsize.unwrap_or(3), 0, 0, DiskType::ThinZero);
+    let mut target = mk_fake_file();
+    let io = IO::new(bsize.unwrap_or(3), 0, DiskType::ThinZero, &mut target).unwrap();
     let source = [1, 2, 3, 4, 5, 6];
-    let target = mk_fake_file();
 
     (io, source, target)
 }

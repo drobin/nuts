@@ -21,6 +21,9 @@
 // IN THE SOFTWARE.
 
 #[cfg(test)]
+mod capacity;
+
+#[cfg(test)]
 mod new;
 
 #[cfg(test)]
