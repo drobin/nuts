@@ -295,13 +295,13 @@ pub struct Options {
     pub dtype: DiskType,
 
     /// The wrapping key algorithm.
-    pub wkey: WrappingKey,
+    pub wkey: Option<WrappingKey>,
 
     /// Cipher used by the container.
     pub cipher: Cipher,
 
     /// Message digest used by the container.
-    pub md: Digest,
+    pub md: Option<Digest>,
 
     /// The size of a single block.
     bsize: u32,
@@ -323,27 +323,83 @@ impl Options {
     /// assert_eq!(options.dtype, DiskType::FatRandom);
     /// assert_eq!(
     ///     options.wkey,
-    ///     WrappingKey::Pbkdf2 {
+    ///     Some(WrappingKey::Pbkdf2 {
     ///         iterations: 65536,
     ///         salt_len: 16
-    ///     }
+    ///     })
     /// );
     /// assert_eq!(options.cipher, Cipher::Aes128Ctr);
-    /// assert_eq!(options.md, Digest::Sha1);
+    /// assert_eq!(options.md, Some(Digest::Sha1));
     /// assert_eq!(options.bsize(), 512);
     /// assert_eq!(options.blocks(), 2048);
     /// ```
     pub fn default() -> Options {
-        Options {
+        Options::default_with_cipher(Cipher::Aes128Ctr)
+    }
+
+    /// Creates a set of defaults with the given `cipher`.
+    ///
+    /// If the `cipher` is [`Cipher::None`], then digest and wrapping_key are set
+    /// to [`Option::None`] as they are not used.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use nuts::types::*;
+    ///
+    /// let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    ///
+    /// assert_eq!(options.dtype, DiskType::FatRandom);
+    /// assert_eq!(
+    ///     options.wkey,
+    ///     Some(WrappingKey::Pbkdf2 {
+    ///         iterations: 65536,
+    ///         salt_len: 16
+    ///     })
+    /// );
+    /// assert_eq!(options.cipher, Cipher::Aes128Ctr);
+    /// assert_eq!(options.md, Some(Digest::Sha1));
+    /// assert_eq!(options.bsize(), 512);
+    /// assert_eq!(options.blocks(), 2048);
+    /// ```
+    ///
+    /// ```rust
+    /// use nuts::types::*;
+    ///
+    /// let options = Options::default_with_cipher(Cipher::None);
+    ///
+    /// assert_eq!(options.dtype, DiskType::FatRandom);
+    /// assert_eq!(options.wkey, None);
+    /// assert_eq!(options.cipher, Cipher::None);
+    /// assert_eq!(options.md, None);
+    /// assert_eq!(options.bsize(), 512);
+    /// assert_eq!(options.blocks(), 2048);
+    /// ```
+    ///
+    /// [`Cipher::None`]: enum.Cipher.html#variant.None
+    /// [`Option::None`]: https://doc.rust-lang.org/std/option/enum.Option.html#variant.None
+    pub fn default_with_cipher(cipher: Cipher) -> Options {
+        let options = Options {
             dtype: DiskType::FatRandom,
-            wkey: WrappingKey::Pbkdf2 {
-                iterations: 65536,
-                salt_len: 16,
-            },
-            cipher: Cipher::Aes128Ctr,
-            md: Digest::Sha1,
+            cipher: Cipher::None,
+            md: None,
+            wkey: None,
             bsize: BLOCK_MIN_SIZE,
             blocks: (1024 * 1024 / BLOCK_MIN_SIZE) as u64, // container of 1MB
+        };
+
+        if cipher != Cipher::None {
+            Options {
+                cipher: cipher,
+                md: Some(Digest::Sha1),
+                wkey: Some(WrappingKey::Pbkdf2 {
+                    iterations: 65536,
+                    salt_len: 16,
+                }),
+                ..options
+            }
+        } else {
+            options
         }
     }
 
@@ -366,13 +422,13 @@ impl Options {
     /// assert_eq!(options.dtype, DiskType::FatRandom);
     /// assert_eq!(
     ///     options.wkey,
-    ///     WrappingKey::Pbkdf2 {
+    ///     Some(WrappingKey::Pbkdf2 {
     ///         iterations: 65536,
     ///         salt_len: 16
-    ///     }
+    ///     })
     /// );
     /// assert_eq!(options.cipher, Cipher::Aes128Ctr);
-    /// assert_eq!(options.md, Digest::Sha1);
+    /// assert_eq!(options.md, Some(Digest::Sha1));
     /// assert_eq!(options.bsize(), 1024);
     /// assert_eq!(options.blocks(), 2);
     pub fn default_with_sizes(bsize: u32, blocks: u64) -> Result<Options> {

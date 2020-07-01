@@ -57,13 +57,41 @@ fn default() {
     assert_eq!(options.dtype, DiskType::FatRandom);
     assert_eq!(
         options.wkey,
-        WrappingKey::Pbkdf2 {
+        Some(WrappingKey::Pbkdf2 {
             iterations: 65536,
             salt_len: 16
-        }
+        })
     );
     assert_eq!(options.cipher, Cipher::Aes128Ctr);
-    assert_eq!(options.md, Digest::Sha1);
+    assert_eq!(options.md, Some(Digest::Sha1));
+    assert_eq!(options.bsize, 512);
+    assert_eq!(options.blocks, 2048);
+}
+
+#[test]
+fn default_with_cipher_none() {
+    let options = Options::default_with_cipher(Cipher::None);
+    assert_eq!(options.dtype, DiskType::FatRandom);
+    assert_eq!(options.wkey, None);
+    assert_eq!(options.cipher, Cipher::None);
+    assert_eq!(options.md, None);
+    assert_eq!(options.bsize, 512);
+    assert_eq!(options.blocks, 2048);
+}
+
+#[test]
+fn default_with_cipher_aes128_ctr() {
+    let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    assert_eq!(options.dtype, DiskType::FatRandom);
+    assert_eq!(
+        options.wkey,
+        Some(WrappingKey::Pbkdf2 {
+            iterations: 65536,
+            salt_len: 16
+        })
+    );
+    assert_eq!(options.cipher, Cipher::Aes128Ctr);
+    assert_eq!(options.md, Some(Digest::Sha1));
     assert_eq!(options.bsize, 512);
     assert_eq!(options.blocks, 2048);
 }
@@ -74,13 +102,13 @@ fn defaut_with_sizes_ok() {
     assert_eq!(options.dtype, DiskType::FatRandom);
     assert_eq!(
         options.wkey,
-        WrappingKey::Pbkdf2 {
+        Some(WrappingKey::Pbkdf2 {
             iterations: 65536,
             salt_len: 16
-        }
+        })
     );
     assert_eq!(options.cipher, Cipher::Aes128Ctr);
-    assert_eq!(options.md, Digest::Sha1);
+    assert_eq!(options.md, Some(Digest::Sha1));
     assert_eq!(options.bsize, 1024);
     assert_eq!(options.blocks, 2);
 }
