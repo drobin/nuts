@@ -73,29 +73,6 @@ fn mk_data_size(d: &Data, size: usize) -> Vec<u8> {
 }
 
 #[test]
-fn ok() {
-    let data = mk_data(&OK_DATA);
-    let (header, offset) = Header::read(&data).unwrap();
-
-    assert_eq!(offset, 41);
-    assert_eq!(header.revision, 1);
-    assert_eq!(header.cipher, Cipher::Aes128Ctr);
-    assert_eq!(header.digest, Some(Digest::Sha1));
-    assert_eq!(
-        header.wrapping_key,
-        Some(WrappingKeyData {
-            wkey: WrappingKey::Pbkdf2 {
-                iterations: 4711,
-                salt_len: 7
-            },
-            pbkdf2: Some(vec![1, 2, 3, 4, 5, 6, 7])
-        })
-    );
-    assert_eq!(header.hmac, vec![1, 2, 3]);
-    assert_eq!(header.secret, vec![4, 5, 6, 7]);
-}
-
-#[test]
 fn incomplete() {
     for i in 1..41 {
         let data = mk_data_size(&OK_DATA, i);
@@ -127,6 +104,28 @@ fn bad_revision() {
 }
 
 #[test]
+fn cipher_none() {
+    let data = mk_data(&Data {
+        cipher: 0,
+        ..OK_DATA
+    });
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 41);
+    assert_eq!(header.cipher, Cipher::None);
+}
+
+#[test]
+fn cipher_aes128_ctr() {
+    let data = mk_data(&Data {
+        cipher: 1,
+        ..OK_DATA
+    });
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 41);
+    assert_eq!(header.cipher, Cipher::Aes128Ctr);
+}
+
+#[test]
 fn bad_cipher() {
     let data = mk_data(&Data {
         cipher: 99,
@@ -135,6 +134,28 @@ fn bad_cipher() {
 
     let err = format!("{:?}", Header::read(&data).unwrap_err());
     assert_eq!(err, "InvalHeader(InvalCipher)");
+}
+
+#[test]
+fn digest_none() {
+    let data = mk_data(&Data {
+        digest: 0xff,
+        ..OK_DATA
+    });
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 41);
+    assert!(header.digest.is_none());
+}
+
+#[test]
+fn digest_sha1() {
+    let data = mk_data(&Data {
+        digest: 1,
+        ..OK_DATA
+    });
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 41);
+    assert_eq!(header.digest.unwrap(), Digest::Sha1);
 }
 
 #[test]
@@ -149,6 +170,35 @@ fn bad_digest() {
 }
 
 #[test]
+fn wrapping_key_none() {
+    let data = mk_data(&Data {
+        wkey: [0xff; 16],
+        wkey_size: 1,
+        ..OK_DATA
+    });
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 26);
+    assert!(header.wrapping_key.is_none());
+}
+
+#[test]
+fn wrapping_key_pbkdf2() {
+    let data = mk_data(&OK_DATA);
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 41);
+    assert_eq!(
+        header.wrapping_key,
+        Some(WrappingKeyData {
+            wkey: WrappingKey::Pbkdf2 {
+                iterations: 4711,
+                salt_len: 7
+            },
+            pbkdf2: Some(vec![1, 2, 3, 4, 5, 6, 7])
+        })
+    );
+}
+
+#[test]
 fn bad_wrapping_key() {
     let data = mk_data(&Data {
         wkey: [9, 0, 0, 0x12, 0x67, 0, 0, 0, 0x07, 1, 2, 3, 4, 5, 6, 7],
@@ -157,4 +207,44 @@ fn bad_wrapping_key() {
 
     let err = format!("{:?}", Header::read(&data).unwrap_err());
     assert_eq!(err, "InvalHeader(InvalWrappingKey)");
+}
+
+#[test]
+fn hmac_empty() {
+    let data = mk_data(&Data {
+        hmac: [0; 8],
+        hmac_size: 4,
+        ..OK_DATA
+    });
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 38);
+    assert!(header.hmac.is_empty());
+}
+
+#[test]
+fn hmac_non_empty() {
+    let data = mk_data(&OK_DATA);
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 41);
+    assert_eq!(header.hmac, vec![1, 2, 3]);
+}
+
+#[test]
+fn secret_empty() {
+    let data = mk_data(&Data {
+        secret: [0; 8],
+        secret_size: 4,
+        ..OK_DATA
+    });
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 37);
+    assert!(header.secret.is_empty());
+}
+
+#[test]
+fn secret_non_empty() {
+    let data = mk_data(&OK_DATA);
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 41);
+    assert_eq!(header.secret, vec![4, 5, 6, 7]);
 }

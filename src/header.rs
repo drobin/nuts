@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use log::{error, warn};
 use std::fmt;
 
 use crate::binary;
@@ -90,6 +91,78 @@ impl Header {
 
         Ok(offset)
     }
+
+    pub fn validate(&self) -> Result<()> {
+        Header::validate_revision(self.revision)?;
+        self.validate_digest()?;
+        self.validate_hmac()?;
+
+        Ok(())
+    }
+
+    fn validate_magic(magic: &[u8]) -> Result<()> {
+        if magic == MAGIC {
+            Ok(())
+        } else {
+            error!("invalid magic: {:x?}", magic);
+            Err(Error::InvalHeader(InvalHeaderKind::InvalMagic))
+        }
+    }
+
+    fn validate_revision(revision: u8) -> Result<()> {
+        if revision == 1 {
+            Ok(())
+        } else {
+            error!("invalid revision: {}", revision);
+            Err(Error::InvalHeader(InvalHeaderKind::InvalRevision))
+        }
+    }
+
+    fn validate_digest(&self) -> Result<()> {
+        if self.cipher == Cipher::None && self.digest.is_some() {
+            error!(
+                "invalid digest {} for cipher {}",
+                self.digest.unwrap(),
+                self.cipher
+            );
+
+            Err(Error::InvalHeader(InvalHeaderKind::InvalDigest))
+        } else if self.cipher != Cipher::None && self.digest.is_none() {
+            error!("invalid digest None for cipher {}", self.cipher);
+            Err(Error::InvalHeader(InvalHeaderKind::InvalDigest))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn validate_hmac(&self) -> Result<()> {
+        let size = match self.digest {
+            Some(md) => md.size() as usize,
+            None => 0,
+        };
+
+        if self.hmac.len() < size {
+            error!(
+                "invalid hmac, len: {}, expected: {} ({})",
+                self.hmac.len(),
+                size,
+                digest_to_string(self.digest)
+            );
+
+            Err(Error::InvalHeader(InvalHeaderKind::InvalHmac))
+        } else {
+            if self.hmac.len() != size {
+                warn!(
+                    "lost hmac, len: {}, min: {} ({})",
+                    self.hmac.len(),
+                    size,
+                    digest_to_string(self.digest)
+                );
+            }
+
+            Ok(())
+        }
+    }
 }
 
 impl fmt::Debug for Header {
@@ -112,6 +185,7 @@ fn validate_magic(slice: &[u8]) -> Result<()> {
     if slice == MAGIC {
         Ok(())
     } else {
+        error!("invalid magic: {:x?}", slice);
         Err(Error::InvalHeader(InvalHeaderKind::InvalMagic))
     }
 }
@@ -203,5 +277,12 @@ fn write_wrapping_key(
 
             Ok(())
         }
+    }
+}
+
+fn digest_to_string(digest: Option<Digest>) -> String {
+    match digest {
+        Some(md) => format!("{}", md),
+        None => String::from("None"),
     }
 }

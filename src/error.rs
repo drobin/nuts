@@ -42,6 +42,9 @@ pub enum InvalHeaderKind {
     /// Invalid wrapping key.
     InvalWrappingKey,
 
+    /// Invalid HMAC.
+    InvalHmac,
+
     /// Invalid disk type.
     InvalDiskType,
 
