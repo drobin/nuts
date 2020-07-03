@@ -110,13 +110,27 @@ impl IO {
     where
         T: Read + Seek,
     {
+        self.assert_id(id)?;
+
         let len = std::cmp::min(target.len(), self.bsize as usize);
         let buf = target.get_mut(0..len).unwrap();
 
-        self.seek(source, id)?;
-        source
-            .read_exact(buf)
-            .or_else(|err| Err(Error::IoError(err)))?;
+        if id < self.ablocks {
+            // Read an allocated block.
+            // Seek to the related position and read the buffer.
+
+            self.seek(source, id)?;
+            source
+                .read_exact(buf)
+                .or_else(|err| Err(Error::IoError(err)))?;
+        } else {
+            // Read an existing but unallocated block.
+            // Fill the target buffer with data which fits to the dtype.
+
+            for e in buf.iter_mut() {
+                *e = 0;
+            }
+        }
 
         Ok(len as u32)
     }
@@ -160,6 +174,16 @@ impl IO {
             Err(Error::IoError(err))
         } else {
             Ok(())
+        }
+    }
+
+    fn assert_id(&self, id: u64) -> Result<()> {
+        if id < self.blocks {
+            Ok(())
+        } else {
+            let err =
+                std::io::Error::new(ErrorKind::Other, format!("unable to locate block {}", id));
+            Err(Error::IoError(err))
         }
     }
 
