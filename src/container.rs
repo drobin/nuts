@@ -23,7 +23,6 @@
 use log::debug;
 use std::fs::File;
 
-use crate::error::Error;
 use crate::header::Header;
 use crate::io::IO;
 use crate::result::Result;
@@ -48,7 +47,7 @@ impl Container {
         header.validate()?;
         secret.validate(header.cipher, header.digest)?;
 
-        let mut fd = create_file(path)?;
+        let mut fd = File::create(path)?;
         let mut io = IO::new(options.bsize(), options.blocks(), options.dtype, &mut fd)?;
 
         io.ensure_capacity(&mut fd, 1)?;
@@ -71,7 +70,7 @@ impl Container {
     }
 
     pub fn open(path: &str) -> Result<Container> {
-        let mut fd = open_file(path)?;
+        let mut fd = File::open(path)?;
         let header = Container::open_header(&mut fd)?;
         let secret = Container::open_secret(&header)?;
 
@@ -179,12 +178,4 @@ impl Container {
     pub fn ablocks(&self) -> u64 {
         self.io.ablocks
     }
-}
-
-fn open_file(path: &str) -> Result<File> {
-    File::open(path).or_else(|err| Err(Error::IoError(err)))
-}
-
-fn create_file(path: &str) -> Result<File> {
-    File::create(path).or_else(|err| Err(Error::IoError(err)))
 }

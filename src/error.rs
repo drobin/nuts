@@ -90,3 +90,9 @@ pub enum Error {
     /// Not enough space available to write into a target.
     NoSpace,
 }
+
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Self {
+        Error::IoError(error)
+    }
+}

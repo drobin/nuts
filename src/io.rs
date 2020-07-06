@@ -42,7 +42,7 @@ impl IO {
     where
         T: Write + Seek,
     {
-        let pos = IO::seek_to(target, SeekFrom::End(0))?;
+        let pos = target.seek(SeekFrom::End(0))?;
 
         Ok(IO {
             bsize,
@@ -92,9 +92,7 @@ impl IO {
         let data = vec![0; self.bsize as usize];
 
         for _i in 0..count {
-            target
-                .write_all(&data)
-                .or_else(|err| Err(Error::IoError(err)))?;
+            target.write_all(&data)?;
             self.ablocks += 1;
         }
 
@@ -120,9 +118,7 @@ impl IO {
             // Seek to the related position and read the buffer.
 
             self.seek(source, id)?;
-            source
-                .read_exact(buf)
-                .or_else(|err| Err(Error::IoError(err)))?;
+            source.read_exact(buf)?;
         } else {
             // Read an existing but unallocated block.
             // Fill the target buffer with data which fits to the dtype.
@@ -150,9 +146,7 @@ impl IO {
         let block = [buf, pad].concat();
 
         self.seek(target, id)?;
-        target
-            .write_all(&block)
-            .or_else(|err| Err(Error::IoError(err)))?;
+        target.write_all(&block)?;
 
         Ok(self.bsize)
     }
@@ -162,7 +156,7 @@ impl IO {
         T: Seek,
     {
         let pos = id * self.bsize as u64;
-        let pos2 = IO::seek_to(fd, SeekFrom::Start(pos))?;
+        let pos2 = fd.seek(SeekFrom::Start(pos))?;
 
         if pos != pos2 {
             let err = std::io::Error::new(
@@ -183,13 +177,5 @@ impl IO {
                 std::io::Error::new(ErrorKind::Other, format!("unable to locate block {}", id));
             Err(Error::IoError(err))
         }
-    }
-
-    fn seek_to<T>(fd: &mut T, pos: SeekFrom) -> Result<u64>
-    where
-        T: Seek,
-    {
-        let pos = fd.seek(pos).or_else(|err| Err(Error::IoError(err)))?;
-        Ok(pos)
     }
 }
