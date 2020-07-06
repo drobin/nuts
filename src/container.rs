@@ -48,11 +48,12 @@ impl Container {
         header.validate()?;
         secret.validate(header.cipher, header.digest)?;
 
-        let io = IO::new(options.bsize(), options.blocks(), 0, options.dtype);
         let mut fd = create_file(path)?;
+        let mut io = IO::new(options.bsize(), options.blocks(), options.dtype, &mut fd)?;
 
+        io.ensure_capacity(&mut fd, 1)?;
         Container::dump_secret(&secret, &mut header)?;
-        Container::dump_header(&header, &io, &mut fd)?;
+        Container::dump_header(&header, &mut io, &mut fd)?;
 
         let container = Container {
             cipher: options.cipher,
@@ -80,7 +81,7 @@ impl Container {
         header.validate()?;
         secret.validate(header.cipher, header.digest)?;
 
-        let io = IO::new(secret.bsize, secret.blocks, 0, secret.dtype);
+        let io = IO::new(secret.bsize, secret.blocks, secret.dtype, &mut fd)?;
 
         Ok(Container {
             cipher: header.cipher,
@@ -110,7 +111,7 @@ impl Container {
         secret
     }
 
-    fn dump_header(header: &Header, io: &IO, fd: &mut File) -> Result<u32> {
+    fn dump_header(header: &Header, io: &mut IO, fd: &mut File) -> Result<u32> {
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
         let offset = header.write(&mut buf)?;
@@ -141,7 +142,7 @@ impl Container {
         // Create a temp. block with bsize = BLOCK_MIN_SIZE.
         // This is enough to read the header.
         // Binary header is dumped into `buf`.
-        let io = IO::new(BLOCK_MIN_SIZE, 1, 0, DiskType::ThinZero);
+        let io = IO::new(BLOCK_MIN_SIZE, 1, DiskType::ThinZero, fd)?;
 
         // Read the binary header into `buf`.
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
