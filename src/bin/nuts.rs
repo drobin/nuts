@@ -30,6 +30,7 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use log::LevelFilter;
 
 use nuts::container::Container;
+use nuts::error::Error;
 use nuts::result::Result;
 use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
@@ -62,6 +63,47 @@ pub fn init_logger() {
     log::set_logger(&LOGGER)
         .map(|()| log::set_max_level(LevelFilter::Info))
         .unwrap();
+}
+
+pub fn to_size<T>(s: &str) -> Result<T>
+where
+    T: std::convert::TryFrom<u64>,
+{
+    let s = s.trim_matches(char::is_whitespace).to_lowercase();
+
+    let (s, factor) = if s.ends_with("kb") {
+        (&s[..s.len() - 2], 1024)
+    } else if s.ends_with("mb") {
+        (&s[..s.len() - 2], 1024 * 1024)
+    } else if s.ends_with("gb") {
+        (&s[..s.len() - 2], 1024 * 1024 * 1024)
+    } else {
+        (&s[..], 1)
+    };
+
+    let size = s.parse::<u64>().or_else(|err| {
+        let msg = format!("{}", err);
+        Err(Error::InvalArg(msg))
+    })?;
+
+    match T::try_from(factor * size) {
+        Ok(n) => Ok(n),
+        Err(_) => {
+            let msg = format!("size {} is too large", size);
+            Err(Error::InvalArg(msg))
+        }
+    }
+}
+
+pub fn is_size<T>(s: String) -> std::result::Result<(), String>
+where
+    T: std::convert::TryFrom<u64>,
+{
+    match to_size::<T>(&s) {
+        Ok(_) => Ok(()),
+        Err(Error::InvalArg(err)) => Err(err),
+        _ => panic!("invalid error"),
+    }
 }
 
 pub fn update_logger(sub: &ArgMatches) {
@@ -141,7 +183,16 @@ fn create(sub: &ArgMatches) -> Result<()> {
     };
 
     let path = sub.value_of("PATH").unwrap();
+    let size = to_size::<u64>(sub.value_of("SIZE").unwrap()).unwrap();
     let mut options = Options::default_with_cipher(cipher);
+
+    let bsize = match sub.value_of("block-size") {
+        Some(bsize) => to_size::<u32>(bsize).unwrap(),
+        None => options.bsize(),
+    };
+    let blocks = size / bsize as u64;
+
+    options.update_sizes(bsize, blocks)?;
 
     if let Some(dtype) = sub.value_of("disk-type") {
         options.dtype = DiskType::from_string(dtype)?;

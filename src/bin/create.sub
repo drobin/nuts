@@ -39,13 +39,14 @@
         .about("Creates a nuts-volume.")
         .version(crate_version!())
         .arg(Arg::with_name("PATH").required(true).index(1))
-        .arg(Arg::with_name("SIZE").required(true).index(2))
+        .arg(Arg::with_name("SIZE").required(true).index(2).validator(is_size::<u64>))
         .args(&general_args)
         .arg(
             Arg::with_name("block-size")
                 .short("b")
                 .long("block-size")
                 .value_name("SIZE")
+                .validator(is_size::<u32>)
                 .help(&block_size_help),
         )
         .arg(
