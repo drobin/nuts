@@ -20,69 +20,148 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::io::Cursor;
+use std::io::{Cursor, ErrorKind};
 
+use crate::error::Error;
 use crate::io::IO;
 use crate::types::DiskType;
 
-fn mk_fake_file() -> std::io::Cursor<Vec<u8>> {
-    Cursor::new(Vec::new())
-}
-
-fn prepare(bsize: Option<u32>) -> (IO, [u8; 6], Cursor<Vec<u8>>) {
-    let mut target = mk_fake_file();
-    let io = IO::new(bsize.unwrap_or(3), 0, DiskType::ThinZero, &mut target).unwrap();
+fn prepare(bsize: u32, blocks: u64, data: Vec<u8>) -> (IO, [u8; 6], Cursor<Vec<u8>>) {
+    let mut target = Cursor::new(data);
+    let io = IO::new(bsize, blocks, DiskType::ThinZero, &mut target).unwrap();
     let source = [1, 2, 3, 4, 5, 6];
 
     (io, source, target)
 }
 
 #[test]
-fn full_block_0() {
-    let (io, mut source, mut target) = prepare(None);
+fn allocated_0_full() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
 
-    assert_eq!(io.write(&mut source, &mut target, 0).unwrap(), 3);
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, 9, 9, 9]);
+}
+
+#[test]
+fn allocated_0_part() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 0, 9, 9, 9]);
+}
+
+#[test]
+fn allocated_0_more() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, 9, 9, 9]);
+}
+
+#[test]
+fn allocated_1_full() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, 3]);
+}
+
+#[test]
+fn allocated_1_part() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, 0]);
+}
+
+#[test]
+fn allocated_1_more() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, 3]);
+}
+
+#[test]
+fn allocated_overflow() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    if let Error::IoError(err) = io.write(&source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
+}
+
+#[test]
+fn unallocated_0_full() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
     assert_eq!(target.into_inner(), [1, 2, 3]);
 }
 
 #[test]
-fn full_block_1() {
-    let (io, mut source, mut target) = prepare(None);
+fn unallocated_0_part() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+    let source = [1, 2];
 
-    assert_eq!(io.write(&mut source, &mut target, 1).unwrap(), 3);
-    assert_eq!(target.into_inner(), [0, 0, 0, 1, 2, 3]);
-}
-
-#[test]
-fn part_block_0() {
-    let (io, mut source, mut target) = prepare(None);
-    let buf = source.get_mut(0..2).unwrap();
-
-    assert_eq!(io.write(buf, &mut target, 0).unwrap(), 3);
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
     assert_eq!(target.into_inner(), [1, 2, 0]);
 }
 
 #[test]
-fn part_block_1() {
-    let (io, mut source, mut target) = prepare(None);
-    let buf = source.get_mut(0..2).unwrap();
+fn unallocated_0_more() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+    let source = [1, 2, 3, 4];
 
-    assert_eq!(io.write(buf, &mut target, 1).unwrap(), 3);
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3]);
+}
+
+#[test]
+fn unallocated_1_full() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [0, 0, 0, 1, 2, 3]);
+}
+
+#[test]
+fn unallocated_1_part() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
     assert_eq!(target.into_inner(), [0, 0, 0, 1, 2, 0]);
 }
 
 #[test]
-fn more_block_0() {
-    let (io, mut source, mut target) = prepare(Some(2));
+fn unallocated_1_more() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+    let source = [1, 2, 3, 4];
 
-    assert_eq!(io.write(&mut source, &mut target, 0).unwrap(), 2);
-    assert_eq!(target.into_inner(), [1, 2]);
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [0, 0, 0, 1, 2, 3]);
 }
 
 #[test]
-fn more_block_1() {
-    let (io, mut source, mut target) = prepare(Some(2));
+fn unallocated_overflow() {
+    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+    let source = [1, 2, 3];
 
-    assert_eq!(io.write(&mut source, &mut target, 1).unwrap(), 2);
-    assert_eq!(target.into_inner(), [0, 0, 1, 2]);
+    if let Error::IoError(err) = io.write(&source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
 }

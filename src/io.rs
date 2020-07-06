@@ -135,28 +135,26 @@ impl IO {
         Ok(len as u32)
     }
 
-    pub fn write<T>(&self, source: &[u8], target: &mut T, id: u64) -> Result<u32>
+    pub fn write<T>(&mut self, source: &[u8], target: &mut T, id: u64) -> Result<u32>
     where
         T: Write + Seek,
     {
+        self.assert_id(id)?;
+        self.ensure_capacity(target, id + 1)?;
+
         let len = std::cmp::min(source.len(), self.bsize as usize);
-        let remaining = self.bsize as usize - len;
+        let pad_len = self.bsize as usize - len;
 
         let buf = source.get(0..len).unwrap();
-        let pad = &vec![0; remaining][..];
+        let pad = &vec![0; pad_len][..];
         let block = [buf, pad].concat();
 
         self.seek(target, id)?;
+        target
+            .write_all(&block)
+            .or_else(|err| Err(Error::IoError(err)))?;
 
-        let mut n = 0;
-
-        while n < block.len() {
-            n += target
-                .write(&block[n..])
-                .or_else(|err| Err(Error::IoError(err)))?;
-        }
-
-        Ok(n as u32)
+        Ok(self.bsize)
     }
 
     fn seek<T>(&self, fd: &mut T, id: u64) -> Result<()>
