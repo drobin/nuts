@@ -20,9 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::fmt;
+
 use crate::types::WrappingKey;
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub struct WrappingKeyData {
     pub wkey: WrappingKey,
     pub pbkdf2: Option<Vec<u8>>,
@@ -38,5 +40,22 @@ impl WrappingKeyData {
             wkey,
             pbkdf2: Some(salt.to_vec()),
         }
+    }
+}
+
+impl fmt::Debug for WrappingKeyData {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let pbkdf2 = self.pbkdf2.as_ref().map_or_else(
+            || None,
+            |p| {
+                let s = format!("<{} bytes>", p.len());
+                Some(s)
+            },
+        );
+
+        fmt.debug_struct("WrappingKeyData")
+            .field("wkey", &self.wkey)
+            .field("pbkdf2", &pbkdf2)
+            .finish()
     }
 }

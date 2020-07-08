@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 #[cfg(test)]
-mod new;
+mod create;
 
 #[cfg(test)]
 mod read;

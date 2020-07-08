@@ -28,8 +28,9 @@ use std::fmt;
 
 use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
+use crate::rand;
 use crate::result::Result;
-use crate::types::{Cipher, Digest, WrappingKey};
+use crate::types::{Cipher, Digest, Options, WrappingKey};
 use crate::wkey::WrappingKeyData;
 
 const MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
@@ -44,15 +45,28 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn new(cipher: Cipher, digest: Option<Digest>) -> Header {
-        Header {
+    pub fn create(options: &Options) -> Result<Header> {
+        let wkey_data = match options.wkey {
+            Some(WrappingKey::Pbkdf2 {
+                iterations,
+                salt_len,
+            }) => {
+                let mut salt = vec![0; salt_len as usize];
+                rand::random(&mut salt)?;
+
+                Some(WrappingKeyData::pbkdf2(iterations, &salt))
+            }
+            None => None,
+        };
+
+        Ok(Header {
             revision: 1,
-            cipher: cipher,
-            digest: digest,
-            wrapping_key: None,
+            cipher: options.cipher,
+            digest: options.md,
+            wrapping_key: wkey_data,
             hmac: Vec::new(),
             secret: Vec::new(),
-        }
+        })
     }
 
     pub fn read(source: &[u8]) -> Result<(Header, u32)> {

@@ -21,15 +21,41 @@
 // IN THE SOFTWARE.
 
 use crate::header::Header;
-use crate::types::{Cipher, Digest};
+use crate::rand::RND;
+use crate::types::{Cipher, Digest, Options, WrappingKey};
+use crate::wkey::WrappingKeyData;
 
 #[test]
-fn ok() {
-    let header = Header::new(Cipher::Aes128Ctr, Some(Digest::Sha1));
+fn cipher_none() {
+    let options = Options::default_with_cipher(Cipher::None);
+    let header = Header::create(&options).unwrap();
+
+    assert_eq!(header.revision, 1);
+    assert_eq!(header.cipher, Cipher::None);
+    assert_eq!(header.digest, None);
+    assert_eq!(header.wrapping_key, None);
+    assert!(header.hmac.is_empty());
+    assert!(header.secret.is_empty());
+}
+
+#[test]
+fn cipher_aes128_ctr() {
+    let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    let header = Header::create(&options).unwrap();
+
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::Aes128Ctr);
     assert_eq!(header.digest, Some(Digest::Sha1));
-    assert_eq!(header.wrapping_key, None);
+    assert_eq!(
+        header.wrapping_key,
+        Some(WrappingKeyData {
+            wkey: WrappingKey::Pbkdf2 {
+                iterations: 65536,
+                salt_len: 16
+            },
+            pbkdf2: Some(RND[..16].to_vec())
+        })
+    );
     assert!(header.hmac.is_empty());
     assert!(header.secret.is_empty());
 }

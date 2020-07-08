@@ -38,7 +38,7 @@ pub struct Container {
 
 impl Container {
     pub fn create(path: &str, options: &Options) -> Result<Container> {
-        let mut header = Container::create_header(options);
+        let mut header = Container::create_header(options)?;
         let secret = Secret::create(options)?;
 
         debug!("header: {:?}", header);
@@ -90,8 +90,8 @@ impl Container {
         })
     }
 
-    fn create_header(options: &Options) -> Header {
-        let header = Header::new(options.cipher, options.md);
+    fn create_header(options: &Options) -> Result<Header> {
+        let header = Header::create(options);
 
         // TODO generate keys if applicable
 
