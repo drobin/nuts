@@ -24,19 +24,25 @@ use std::io::{Cursor, ErrorKind};
 
 use crate::error::Error;
 use crate::io::IO;
+use crate::rand::RND;
 use crate::types::DiskType;
 
-fn prepare(bsize: u32, blocks: u64, data: Vec<u8>) -> (IO, [u8; 6], Cursor<Vec<u8>>) {
+fn prepare(
+    dtype: DiskType,
+    bsize: u32,
+    blocks: u64,
+    data: Vec<u8>,
+) -> (IO, [u8; 6], Cursor<Vec<u8>>) {
     let mut target = Cursor::new(data);
-    let io = IO::new(bsize, blocks, DiskType::ThinZero, &mut target).unwrap();
+    let io = IO::new(bsize, blocks, dtype, &mut target).unwrap();
     let source = [1, 2, 3, 4, 5, 6];
 
     (io, source, target)
 }
 
 #[test]
-fn allocated_0_full() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+fn thin_zero_allocated_0_full() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![9; 6]);
     let source = [1, 2, 3];
 
     assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
@@ -44,8 +50,8 @@ fn allocated_0_full() {
 }
 
 #[test]
-fn allocated_0_part() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+fn thin_zero_allocated_0_part() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![9; 6]);
     let source = [1, 2];
 
     assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
@@ -53,8 +59,8 @@ fn allocated_0_part() {
 }
 
 #[test]
-fn allocated_0_more() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+fn thin_zero_allocated_0_more() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![9; 6]);
     let source = [1, 2, 3, 4];
 
     assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
@@ -62,8 +68,8 @@ fn allocated_0_more() {
 }
 
 #[test]
-fn allocated_1_full() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+fn thin_zero_allocated_1_full() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![9; 6]);
     let source = [1, 2, 3];
 
     assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
@@ -71,8 +77,8 @@ fn allocated_1_full() {
 }
 
 #[test]
-fn allocated_1_part() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+fn thin_zero_allocated_1_part() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![9; 6]);
     let source = [1, 2];
 
     assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
@@ -80,8 +86,8 @@ fn allocated_1_part() {
 }
 
 #[test]
-fn allocated_1_more() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+fn thin_zero_allocated_1_more() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![9; 6]);
     let source = [1, 2, 3, 4];
 
     assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
@@ -89,8 +95,8 @@ fn allocated_1_more() {
 }
 
 #[test]
-fn allocated_overflow() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![9; 6]);
+fn thin_zero_allocated_overflow() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![9; 6]);
     let source = [1, 2, 3];
 
     if let Error::IoError(err) = io.write(&source, &mut target, 2).unwrap_err() {
@@ -101,8 +107,8 @@ fn allocated_overflow() {
 }
 
 #[test]
-fn unallocated_0_full() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+fn thin_zero_unallocated_0_full() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![]);
     let source = [1, 2, 3];
 
     assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
@@ -110,8 +116,8 @@ fn unallocated_0_full() {
 }
 
 #[test]
-fn unallocated_0_part() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+fn thin_zero_unallocated_0_part() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![]);
     let source = [1, 2];
 
     assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
@@ -119,8 +125,8 @@ fn unallocated_0_part() {
 }
 
 #[test]
-fn unallocated_0_more() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+fn thin_zero_unallocated_0_more() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![]);
     let source = [1, 2, 3, 4];
 
     assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
@@ -128,8 +134,8 @@ fn unallocated_0_more() {
 }
 
 #[test]
-fn unallocated_1_full() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+fn thin_zero_unallocated_1_full() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![]);
     let source = [1, 2, 3];
 
     assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
@@ -137,8 +143,8 @@ fn unallocated_1_full() {
 }
 
 #[test]
-fn unallocated_1_part() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+fn thin_zero_unallocated_1_part() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![]);
     let source = [1, 2];
 
     assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
@@ -146,8 +152,8 @@ fn unallocated_1_part() {
 }
 
 #[test]
-fn unallocated_1_more() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+fn thin_zero_unallocated_1_more() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![]);
     let source = [1, 2, 3, 4];
 
     assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
@@ -155,8 +161,404 @@ fn unallocated_1_more() {
 }
 
 #[test]
-fn unallocated_overflow() {
-    let (mut io, _, mut target) = prepare(3, 2, vec![]);
+fn thin_zero_unallocated_overflow() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinZero, 3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    if let Error::IoError(err) = io.write(&source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
+}
+
+#[test]
+fn fat_zero_allocated_0_full() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, 9, 9, 9]);
+}
+
+#[test]
+fn fat_zero_allocated_0_part() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![9; 6]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 0, 9, 9, 9]);
+}
+
+#[test]
+fn fat_zero_allocated_0_more() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, 9, 9, 9]);
+}
+
+#[test]
+fn fat_zero_allocated_1_full() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, 3]);
+}
+
+#[test]
+fn fat_zero_allocated_1_part() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![9; 6]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, 0]);
+}
+
+#[test]
+fn fat_zero_allocated_1_more() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, 3]);
+}
+
+#[test]
+fn fat_zero_allocated_overflow() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    if let Error::IoError(err) = io.write(&source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
+}
+
+#[test]
+fn fat_zero_unallocated_0_full() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, 0, 0, 0]);
+}
+
+#[test]
+fn fat_zero_unallocated_0_part() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 0, 0, 0, 0]);
+}
+
+#[test]
+fn fat_zero_unallocated_0_more() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, 0, 0, 0]);
+}
+
+#[test]
+fn fat_zero_unallocated_1_full() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [0, 0, 0, 1, 2, 3]);
+}
+
+#[test]
+fn fat_zero_unallocated_1_part() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [0, 0, 0, 1, 2, 0]);
+}
+
+#[test]
+fn fat_zero_unallocated_1_more() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [0, 0, 0, 1, 2, 3]);
+}
+
+#[test]
+fn fat_zero_unallocated_overflow() {
+    let (mut io, _, mut target) = prepare(DiskType::FatZero, 3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    if let Error::IoError(err) = io.write(&source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
+}
+
+#[test]
+fn thin_random_allocated_0_full() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, 9, 9, 9]);
+}
+
+#[test]
+fn thin_random_allocated_0_part() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, RND[0], 9, 9, 9]);
+}
+
+#[test]
+fn thin_random_allocated_0_more() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, 9, 9, 9]);
+}
+
+#[test]
+fn thin_random_allocated_1_full() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, 3]);
+}
+
+#[test]
+fn thin_random_allocated_1_part() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, RND[0]]);
+}
+
+#[test]
+fn thin_random_allocated_1_more() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, 3]);
+}
+
+#[test]
+fn thin_random_allocated_overflow() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    if let Error::IoError(err) = io.write(&source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
+}
+
+#[test]
+fn thin_random_unallocated_0_full() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3]);
+}
+
+#[test]
+fn thin_random_unallocated_0_part() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, RND[0]]);
+}
+
+#[test]
+fn thin_random_unallocated_0_more() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3]);
+}
+
+#[test]
+fn thin_random_unallocated_1_full() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [RND[0], RND[1], RND[2], 1, 2, 3]);
+}
+
+#[test]
+fn thin_random_unallocated_1_part() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [RND[0], RND[1], RND[2], 1, 2, RND[0]]);
+}
+
+#[test]
+fn thin_random_unallocated_1_more() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [RND[0], RND[1], RND[2], 1, 2, 3]);
+}
+
+#[test]
+fn thin_random_unallocated_overflow() {
+    let (mut io, _, mut target) = prepare(DiskType::ThinRandom, 3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    if let Error::IoError(err) = io.write(&source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
+}
+
+#[test]
+fn fat_random_allocated_0_full() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, 9, 9, 9]);
+}
+
+#[test]
+fn fat_random_allocated_0_part() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, RND[0], 9, 9, 9]);
+}
+
+#[test]
+fn fat_random_allocated_0_more() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, 9, 9, 9]);
+}
+
+#[test]
+fn fat_random_allocated_1_full() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, 3]);
+}
+
+#[test]
+fn fat_random_allocated_1_part() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, RND[0]]);
+}
+
+#[test]
+fn fat_random_allocated_1_more() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [9, 9, 9, 1, 2, 3]);
+}
+
+#[test]
+fn fat_random_allocated_overflow() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![9; 6]);
+    let source = [1, 2, 3];
+
+    if let Error::IoError(err) = io.write(&source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
+}
+
+#[test]
+fn fat_random_unallocated_0_full() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, RND[0], RND[1], RND[2]]);
+}
+
+#[test]
+fn fat_random_unallocated_0_part() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, RND[0], RND[0], RND[1], RND[2]]);
+}
+
+#[test]
+fn fat_random_unallocated_0_more() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target.into_inner(), [1, 2, 3, RND[0], RND[1], RND[2]]);
+}
+
+#[test]
+fn fat_random_unallocated_1_full() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![]);
+    let source = [1, 2, 3];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [RND[0], RND[1], RND[2], 1, 2, 3]);
+}
+
+#[test]
+fn fat_random_unallocated_1_part() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![]);
+    let source = [1, 2];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [RND[0], RND[1], RND[2], 1, 2, RND[0]]);
+}
+
+#[test]
+fn fat_random_unallocated_1_more() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![]);
+    let source = [1, 2, 3, 4];
+
+    assert_eq!(io.write(&source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target.into_inner(), [RND[0], RND[1], RND[2], 1, 2, 3]);
+}
+
+#[test]
+fn fat_random_unallocated_overflow() {
+    let (mut io, _, mut target) = prepare(DiskType::FatRandom, 3, 2, vec![]);
     let source = [1, 2, 3];
 
     if let Error::IoError(err) = io.write(&source, &mut target, 2).unwrap_err() {

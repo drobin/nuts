@@ -24,6 +24,7 @@ use std::io::{Cursor, ErrorKind, Seek, SeekFrom};
 
 use crate::error::Error;
 use crate::io::IO;
+use crate::rand::RND;
 use crate::types::DiskType;
 
 fn mk_fake_file() -> std::io::Cursor<Vec<u8>> {
@@ -32,128 +33,514 @@ fn mk_fake_file() -> std::io::Cursor<Vec<u8>> {
     c
 }
 
-fn prepare(bsize: u32, blocks: u64, tlen: usize) -> (IO, Cursor<Vec<u8>>, Vec<u8>) {
+fn prepare(
+    dtype: DiskType,
+    bsize: u32,
+    blocks: u64,
+    tlen: usize,
+) -> (IO, Cursor<Vec<u8>>, Vec<u8>) {
     let mut source = mk_fake_file();
-    let io = IO::new(bsize, blocks, DiskType::ThinZero, &mut source).unwrap();
+    let io = IO::new(bsize, blocks, dtype, &mut source).unwrap();
 
     (io, source, vec![b'x'; tlen])
 }
 
 #[test]
-fn allocated_0_full() {
-    let (io, mut source, mut target) = prepare(3, 2, 3);
+fn thin_zero_allocated_0_full() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 3, 2, 3);
 
     assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 3);
     assert_eq!(target, [1, 2, 3]);
 }
 
 #[test]
-fn allocated_1_full() {
-    let (io, mut source, mut target) = prepare(3, 2, 3);
+fn thin_zero_allocated_1_full() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 3, 2, 3);
 
     assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 3);
     assert_eq!(target, [4, 5, 6]);
 }
 
 #[test]
-fn allocated_0_part() {
-    let (io, mut source, mut target) = prepare(3, 2, 2);
+fn thin_zero_allocated_0_part() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 3, 2, 2);
 
     assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 2);
     assert_eq!(target, [1, 2]);
 }
 
 #[test]
-fn allocated_1_part() {
-    let (io, mut source, mut target) = prepare(3, 2, 2);
+fn thin_zero_allocated_1_part() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 3, 2, 2);
 
     assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 2);
     assert_eq!(target, [4, 5]);
 }
 
 #[test]
-fn allocated_0_bigger() {
-    let (io, mut source, mut target) = prepare(3, 2, 4);
+fn thin_zero_allocated_0_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 3, 2, 4);
 
     assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 3);
     assert_eq!(target, [1, 2, 3, b'x']);
 }
 
 #[test]
-fn allocated_1_bigger() {
-    let (io, mut source, mut target) = prepare(3, 2, 4);
+fn thin_zero_allocated_1_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 3, 2, 4);
 
     assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 3);
     assert_eq!(target, [4, 5, 6, b'x']);
 }
 
 #[test]
-fn unallocated_1_full() {
-    let (io, mut source, mut target) = prepare(6, 3, 6);
+fn thin_zero_unallocated_1_full() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 6, 3, 6);
 
     assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 6);
     assert_eq!(target, [0; 6]);
 }
 
 #[test]
-fn unallocated_2_full() {
-    let (io, mut source, mut target) = prepare(6, 3, 6);
+fn thin_zero_unallocated_2_full() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 6, 3, 6);
 
     assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 6);
     assert_eq!(target, [0; 6]);
 }
 
 #[test]
-fn unallocated_1_part() {
-    let (io, mut source, mut target) = prepare(6, 3, 5);
+fn thin_zero_unallocated_1_part() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 6, 3, 5);
 
     assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 5);
     assert_eq!(target, [0; 5]);
 }
 
 #[test]
-fn unallocated_2_part() {
-    let (io, mut source, mut target) = prepare(6, 3, 5);
+fn thin_zero_unallocated_2_part() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 6, 3, 5);
 
     assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 5);
     assert_eq!(target, [0; 5]);
 }
 
 #[test]
-fn unallocated_1_bigger() {
-    let (io, mut source, mut target) = prepare(6, 3, 7);
+fn thin_zero_unallocated_1_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 6, 3, 7);
 
     assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 6);
     assert_eq!(target, [0, 0, 0, 0, 0, 0, b'x']);
 }
 
 #[test]
-fn unallocated_2_bigger() {
-    let (io, mut source, mut target) = prepare(6, 3, 7);
+fn thin_zero_unallocated_2_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 6, 3, 7);
 
     assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 6);
     assert_eq!(target, [0, 0, 0, 0, 0, 0, b'x']);
 }
 
 #[test]
-fn bsize_0_block_0() {
-    let (io, mut source, mut target) = prepare(0, 2, 3);
+fn thin_zero_bsize_0_block_0() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 0, 2, 3);
 
     assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 0);
     assert_eq!(target, [b'x'; 3]);
 }
 
 #[test]
-fn bsize_0_block_1() {
-    let (io, mut source, mut target) = prepare(0, 2, 3);
+fn thin_zero_bsize_0_block_1() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 0, 2, 3);
 
     assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 0);
     assert_eq!(target, [b'x'; 3]);
 }
 
 #[test]
-fn no_such_block() {
-    let (io, mut source, mut target) = prepare(3, 2, 3);
+fn thin_zero_no_such_block() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinZero, 3, 2, 3);
+
+    if let Error::IoError(err) = io.read(&mut source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
+}
+
+#[test]
+fn fat_zero_allocated_0_full() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 3, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target, [1, 2, 3]);
+}
+
+#[test]
+fn fat_zero_allocated_1_full() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 3, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target, [4, 5, 6]);
+}
+
+#[test]
+fn fat_zero_allocated_0_part() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 3, 2, 2);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 2);
+    assert_eq!(target, [1, 2]);
+}
+
+#[test]
+fn fat_zero_allocated_1_part() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 3, 2, 2);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 2);
+    assert_eq!(target, [4, 5]);
+}
+
+#[test]
+fn fat_zero_allocated_0_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 3, 2, 4);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target, [1, 2, 3, b'x']);
+}
+
+#[test]
+fn fat_zero_allocated_1_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 3, 2, 4);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target, [4, 5, 6, b'x']);
+}
+
+#[test]
+fn fat_zero_unallocated_1_full() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 6, 3, 6);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 6);
+    assert_eq!(target, [0; 6]);
+}
+
+#[test]
+fn fat_zero_unallocated_2_full() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 6, 3, 6);
+
+    assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 6);
+    assert_eq!(target, [0; 6]);
+}
+
+#[test]
+fn fat_zero_unallocated_1_part() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 6, 3, 5);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 5);
+    assert_eq!(target, [0; 5]);
+}
+
+#[test]
+fn fat_zero_unallocated_2_part() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 6, 3, 5);
+
+    assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 5);
+    assert_eq!(target, [0; 5]);
+}
+
+#[test]
+fn fat_zero_unallocated_1_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 6, 3, 7);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 6);
+    assert_eq!(target, [0, 0, 0, 0, 0, 0, b'x']);
+}
+
+#[test]
+fn fat_zero_unallocated_2_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 6, 3, 7);
+
+    assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 6);
+    assert_eq!(target, [0, 0, 0, 0, 0, 0, b'x']);
+}
+
+#[test]
+fn fat_zero_bsize_0_block_0() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 0, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 0);
+    assert_eq!(target, [b'x'; 3]);
+}
+
+#[test]
+fn fat_zero_bsize_0_block_1() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 0, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 0);
+    assert_eq!(target, [b'x'; 3]);
+}
+
+#[test]
+fn fat_zero_no_such_block() {
+    let (io, mut source, mut target) = prepare(DiskType::FatZero, 3, 2, 3);
+
+    if let Error::IoError(err) = io.read(&mut source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
+}
+
+#[test]
+fn thin_random_allocated_0_full() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 3, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target, [1, 2, 3]);
+}
+
+#[test]
+fn thin_random_allocated_1_full() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 3, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target, [4, 5, 6]);
+}
+
+#[test]
+fn thin_random_allocated_0_part() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 3, 2, 2);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 2);
+    assert_eq!(target, [1, 2]);
+}
+
+#[test]
+fn thin_random_allocated_1_part() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 3, 2, 2);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 2);
+    assert_eq!(target, [4, 5]);
+}
+
+#[test]
+fn thin_random_allocated_0_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 3, 2, 4);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target, [1, 2, 3, b'x']);
+}
+
+#[test]
+fn thin_random_allocated_1_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 3, 2, 4);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target, [4, 5, 6, b'x']);
+}
+
+#[test]
+fn thin_random_unallocated_1_full() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 6, 3, 6);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 6);
+    assert_eq!(target, &RND[..6]);
+}
+
+#[test]
+fn thin_random_unallocated_2_full() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 6, 3, 6);
+
+    assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 6);
+    assert_eq!(target, &RND[..6]);
+}
+
+#[test]
+fn thin_random_unallocated_1_part() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 6, 3, 5);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 5);
+    assert_eq!(target, &RND[..5]);
+}
+
+#[test]
+fn thin_random_unallocated_2_part() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 6, 3, 5);
+
+    assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 5);
+    assert_eq!(target, &RND[..5]);
+}
+
+#[test]
+fn thin_random_unallocated_1_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 6, 3, 7);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 6);
+    assert_eq!(
+        target,
+        [RND[0], RND[1], RND[2], RND[3], RND[4], RND[5], b'x']
+    );
+}
+
+#[test]
+fn thin_random_unallocated_2_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 6, 3, 7);
+
+    assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 6);
+    assert_eq!(
+        target,
+        [RND[0], RND[1], RND[2], RND[3], RND[4], RND[5], b'x']
+    );
+}
+
+#[test]
+fn thin_random_bsize_0_block_0() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 0, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 0);
+    assert_eq!(target, [b'x'; 3]);
+}
+
+#[test]
+fn thin_random_bsize_0_block_1() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 0, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 0);
+    assert_eq!(target, [b'x'; 3]);
+}
+
+#[test]
+fn thin_random_no_such_block() {
+    let (io, mut source, mut target) = prepare(DiskType::ThinRandom, 3, 2, 3);
+
+    if let Error::IoError(err) = io.read(&mut source, &mut target, 2).unwrap_err() {
+        assert_eq!(err.kind(), ErrorKind::Other);
+    } else {
+        panic!("invalid error");
+    }
+}
+
+#[test]
+fn fat_random_allocated_0_full() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 3, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target, [1, 2, 3]);
+}
+
+#[test]
+fn fat_random_allocated_1_full() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 3, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target, [4, 5, 6]);
+}
+
+#[test]
+fn fat_random_allocated_0_part() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 3, 2, 2);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 2);
+    assert_eq!(target, [1, 2]);
+}
+
+#[test]
+fn fat_random_allocated_1_part() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 3, 2, 2);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 2);
+    assert_eq!(target, [4, 5]);
+}
+
+#[test]
+fn fat_random_allocated_0_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 3, 2, 4);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 3);
+    assert_eq!(target, [1, 2, 3, b'x']);
+}
+
+#[test]
+fn fat_random_allocated_1_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 3, 2, 4);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 3);
+    assert_eq!(target, [4, 5, 6, b'x']);
+}
+
+#[test]
+fn fat_random_unallocated_1_full() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 6, 3, 6);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 6);
+    assert_eq!(target, &RND[..6]);
+}
+
+#[test]
+fn fat_random_unallocated_2_full() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 6, 3, 6);
+
+    assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 6);
+    assert_eq!(target, &RND[..6]);
+}
+
+#[test]
+fn fat_random_unallocated_1_part() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 6, 3, 5);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 5);
+    assert_eq!(target, &RND[..5]);
+}
+
+#[test]
+fn fat_random_unallocated_2_part() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 6, 3, 5);
+
+    assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 5);
+    assert_eq!(target, &RND[..5]);
+}
+
+#[test]
+fn fat_random_unallocated_1_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 6, 3, 7);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 6);
+    assert_eq!(
+        target,
+        [RND[0], RND[1], RND[2], RND[3], RND[4], RND[5], b'x']
+    );
+}
+
+#[test]
+fn fat_random_unallocated_2_bigger() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 6, 3, 7);
+
+    assert_eq!(io.read(&mut source, &mut target, 2).unwrap(), 6);
+    assert_eq!(
+        target,
+        [RND[0], RND[1], RND[2], RND[3], RND[4], RND[5], b'x']
+    );
+}
+
+#[test]
+fn fat_random_bsize_0_block_0() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 0, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 0).unwrap(), 0);
+    assert_eq!(target, [b'x'; 3]);
+}
+
+#[test]
+fn fat_random_bsize_0_block_1() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 0, 2, 3);
+
+    assert_eq!(io.read(&mut source, &mut target, 1).unwrap(), 0);
+    assert_eq!(target, [b'x'; 3]);
+}
+
+#[test]
+fn fat_random_no_such_block() {
+    let (io, mut source, mut target) = prepare(DiskType::FatRandom, 3, 2, 3);
 
     if let Error::IoError(err) = io.read(&mut source, &mut target, 2).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::Other);

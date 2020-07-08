@@ -89,6 +89,11 @@ pub enum Error {
 
     /// Not enough space available to write into a target.
     NoSpace,
+
+    /// An error occured while generating some data.
+    ///
+    /// It has a message, that describes the failure.
+    Rand(String),
 }
 
 impl From<std::io::Error> for Error {

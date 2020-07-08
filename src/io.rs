@@ -27,6 +27,7 @@ use log::debug;
 use std::io::{ErrorKind, Read, Seek, SeekFrom, Write};
 
 use crate::error::Error;
+use crate::rand;
 use crate::result::Result;
 use crate::types::DiskType;
 
@@ -89,9 +90,13 @@ impl IO {
 
         self.seek(target, self.ablocks)?;
 
-        let data = vec![0; self.bsize as usize];
+        let mut data = vec![0; self.bsize as usize];
 
         for _i in 0..count {
+            if self.dtype == DiskType::FatRandom || self.dtype == DiskType::ThinRandom {
+                rand::random(&mut data)?;
+            }
+
             target.write_all(&data)?;
             self.ablocks += 1;
         }
@@ -123,8 +128,15 @@ impl IO {
             // Read an existing but unallocated block.
             // Fill the target buffer with data which fits to the dtype.
 
-            for e in buf.iter_mut() {
-                *e = 0;
+            match self.dtype {
+                DiskType::FatZero | DiskType::ThinZero => {
+                    for e in buf.iter_mut() {
+                        *e = 0;
+                    }
+                }
+                DiskType::FatRandom | DiskType::ThinRandom => {
+                    rand::random(buf)?;
+                }
             }
         }
 
@@ -142,8 +154,17 @@ impl IO {
         let pad_len = self.bsize as usize - len;
 
         let buf = source.get(0..len).unwrap();
-        let pad = &vec![0; pad_len][..];
-        let block = [buf, pad].concat();
+
+        let pad = match self.dtype {
+            DiskType::FatZero | DiskType::ThinZero => vec![0; pad_len],
+            DiskType::FatRandom | DiskType::ThinRandom => {
+                let mut rnd: Vec<u8> = vec![0; pad_len];
+                rand::random(&mut rnd[..])?;
+                rnd
+            }
+        };
+
+        let block = [buf, &pad[..]].concat();
 
         self.seek(target, id)?;
         target.write_all(&block)?;

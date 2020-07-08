@@ -20,13 +20,27 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub(crate) mod binary;
-pub mod container;
-pub mod error;
-pub(crate) mod header;
-pub(crate) mod io;
-pub(crate) mod rand;
-pub mod result;
-pub(crate) mod secret;
-pub mod types;
-pub(crate) mod wkey;
+use crate::error::Error;
+use crate::result::Result;
+
+#[cfg(not(test))]
+pub fn random(target: &mut [u8]) -> Result<()> {
+    ::openssl::rand::rand_bytes(target)
+        .map(|_| ())
+        .or_else(|err| {
+            let msg = format!("{}", err);
+            Err(Error::Rand(msg))
+        })
+}
+
+#[cfg(test)]
+pub const RND: [u8; 16] = [
+    33, 155, 95, 60, 65, 96, 253, 183, 93, 150, 39, 110, 253, 132, 24, 187,
+];
+
+#[cfg(test)]
+pub fn random(target: &mut [u8]) -> Result<()> {
+    assert!(target.len() <= RND.len());
+    target.clone_from_slice(&RND[..target.len()]);
+    Ok(())
+}

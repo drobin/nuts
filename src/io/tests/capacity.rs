@@ -23,6 +23,7 @@
 use std::io::{Cursor, Seek, SeekFrom};
 
 use crate::io::IO;
+use crate::rand::RND;
 use crate::types::DiskType;
 
 fn mk_fake_file(vec: Vec<u8>) -> Cursor<Vec<u8>> {
@@ -188,7 +189,7 @@ fn thin_random_empty_1_block() {
 
     io.ensure_capacity(&mut f, 1).unwrap();
     assert_eq!(io.ablocks, 1);
-    assert_eq!(f.into_inner(), [0; 4]);
+    assert_eq!(f.into_inner(), &RND[0..4]);
 }
 
 #[test]
@@ -197,7 +198,10 @@ fn thin_random_empty_2_blocks() {
 
     io.ensure_capacity(&mut f, 2).unwrap();
     assert_eq!(io.ablocks, 2);
-    assert_eq!(f.into_inner(), [0; 8]);
+    assert_eq!(
+        f.into_inner(),
+        [RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3]]
+    );
 }
 
 #[test]
@@ -206,7 +210,13 @@ fn thin_random_empty_3_blocks() {
 
     io.ensure_capacity(&mut f, 3).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -215,7 +225,13 @@ fn thin_random_empty_overflow() {
 
     io.ensure_capacity(&mut f, 3).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -233,7 +249,7 @@ fn thin_random_half_1_block() {
 
     io.ensure_capacity(&mut f, 1).unwrap();
     assert_eq!(io.ablocks, 1);
-    assert_eq!(f.into_inner(), [0; 4]);
+    assert_eq!(f.into_inner(), &RND[0..4]);
 }
 
 #[test]
@@ -242,7 +258,10 @@ fn thin_random_half_2_blocks() {
 
     io.ensure_capacity(&mut f, 2).unwrap();
     assert_eq!(io.ablocks, 2);
-    assert_eq!(f.into_inner(), [0; 8]);
+    assert_eq!(
+        f.into_inner(),
+        [RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3]]
+    );
 }
 
 #[test]
@@ -251,7 +270,13 @@ fn thin_random_half_3_blocks() {
 
     io.ensure_capacity(&mut f, 3).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -260,7 +285,13 @@ fn thin_random_half_overflow() {
 
     io.ensure_capacity(&mut f, 3).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -287,7 +318,7 @@ fn thin_random_one_half_2_blocks() {
 
     io.ensure_capacity(&mut f, 2).unwrap();
     assert_eq!(io.ablocks, 2);
-    assert_eq!(f.into_inner(), [9, 9, 9, 9, 0, 0, 0, 0]);
+    assert_eq!(f.into_inner(), [9, 9, 9, 9, RND[0], RND[1], RND[2], RND[3]]);
 }
 
 #[test]
@@ -296,7 +327,10 @@ fn thin_random_one_half_3_blocks() {
 
     io.ensure_capacity(&mut f, 4).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [9, 9, 9, 9, 0, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(
+        f.into_inner(),
+        [9, 9, 9, 9, RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3]]
+    );
 }
 
 #[test]
@@ -305,7 +339,10 @@ fn thin_random_one_half_overflow() {
 
     io.ensure_capacity(&mut f, 4).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [9, 9, 9, 9, 0, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(
+        f.into_inner(),
+        [9, 9, 9, 9, RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3]]
+    );
 }
 
 #[test]
@@ -467,7 +504,13 @@ fn fat_random_empty_1_block() {
 
     io.ensure_capacity(&mut f, 1).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -476,7 +519,13 @@ fn fat_random_empty_2_blocks() {
 
     io.ensure_capacity(&mut f, 2).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -485,7 +534,13 @@ fn fat_random_empty_3_blocks() {
 
     io.ensure_capacity(&mut f, 3).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -494,7 +549,13 @@ fn fat_random_empty_overflow() {
 
     io.ensure_capacity(&mut f, 3).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -512,7 +573,13 @@ fn fat_random_half_1_block() {
 
     io.ensure_capacity(&mut f, 1).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -521,7 +588,13 @@ fn fat_random_half_2_blocks() {
 
     io.ensure_capacity(&mut f, 2).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -530,7 +603,13 @@ fn fat_random_half_3_blocks() {
 
     io.ensure_capacity(&mut f, 3).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -539,7 +618,13 @@ fn fat_random_half_overflow() {
 
     io.ensure_capacity(&mut f, 3).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [0; 12]);
+    assert_eq!(
+        f.into_inner(),
+        [
+            RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2],
+            RND[3]
+        ]
+    );
 }
 
 #[test]
@@ -557,7 +642,10 @@ fn fat_random_one_half_1_block() {
 
     io.ensure_capacity(&mut f, 1).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [9, 9, 9, 9, 0, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(
+        f.into_inner(),
+        [9, 9, 9, 9, RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3]]
+    );
 }
 
 #[test]
@@ -566,7 +654,10 @@ fn fat_random_one_half_2_blocks() {
 
     io.ensure_capacity(&mut f, 2).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [9, 9, 9, 9, 0, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(
+        f.into_inner(),
+        [9, 9, 9, 9, RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3]]
+    );
 }
 
 #[test]
@@ -575,7 +666,10 @@ fn fat_random_one_half_3_blocks() {
 
     io.ensure_capacity(&mut f, 3).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [9, 9, 9, 9, 0, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(
+        f.into_inner(),
+        [9, 9, 9, 9, RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3]]
+    );
 }
 
 #[test]
@@ -584,7 +678,10 @@ fn fat_random_one_half_overflow() {
 
     io.ensure_capacity(&mut f, 3).unwrap();
     assert_eq!(io.ablocks, 3);
-    assert_eq!(f.into_inner(), [9, 9, 9, 9, 0, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(
+        f.into_inner(),
+        [9, 9, 9, 9, RND[0], RND[1], RND[2], RND[3], RND[0], RND[1], RND[2], RND[3]]
+    );
 }
 
 #[test]
