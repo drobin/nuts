@@ -20,17 +20,34 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use crate::rand::RND;
 use crate::secret::Secret;
-use crate::types::{DiskType, BLOCK_MIN_SIZE};
+use crate::types::{Cipher, DiskType, Options, BLOCK_MIN_SIZE};
 
 #[test]
-fn ok() {
-    let secret = Secret::new();
+fn cipher_none() {
+    let options = Options::default_with_cipher(Cipher::None);
+    let secret = Secret::create(&options).unwrap();
+
     assert_eq!(secret.dtype, DiskType::FatRandom);
     assert_eq!(secret.bsize, BLOCK_MIN_SIZE);
-    assert_eq!(secret.blocks, 0);
+    assert_eq!(secret.blocks, 2048);
     assert!(secret.master_key.is_empty());
     assert!(secret.master_iv.is_empty());
     assert!(secret.hmac_key.is_empty());
+    assert!(secret.userdata.is_empty());
+}
+
+#[test]
+fn cipher_aes128_ctr() {
+    let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    let secret = Secret::create(&options).unwrap();
+
+    assert_eq!(secret.dtype, DiskType::FatRandom);
+    assert_eq!(secret.bsize, BLOCK_MIN_SIZE);
+    assert_eq!(secret.blocks, 2048);
+    assert_eq!(secret.master_key, &RND[..16]);
+    assert_eq!(secret.master_iv, &RND[..16]);
+    assert_eq!(secret.hmac_key, &RND[..20]);
     assert!(secret.userdata.is_empty());
 }

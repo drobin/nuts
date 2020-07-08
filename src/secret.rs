@@ -29,8 +29,9 @@ use std::ops;
 
 use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
+use crate::rand;
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType, BLOCK_MIN_SIZE};
+use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
 
 macro_rules! reset_slice {
     ($buf:expr) => {
@@ -51,16 +52,26 @@ pub struct Secret {
 }
 
 impl Secret {
-    pub fn new() -> Secret {
-        Secret {
-            dtype: DiskType::FatRandom,
-            bsize: BLOCK_MIN_SIZE,
-            blocks: 0,
-            master_key: vec![],
-            master_iv: vec![],
-            hmac_key: vec![],
+    pub fn create(options: &Options) -> Result<Secret> {
+        let key_size = options.cipher.key_size() as usize;
+        let iv_size = options.cipher.iv_size() as usize;
+        let hmac_size = options.md.map_or_else(|| 0, |d| d.size()) as usize;
+
+        let mut secret = Secret {
+            dtype: options.dtype,
+            bsize: options.bsize(),
+            blocks: options.blocks(),
+            master_key: vec![0; key_size],
+            master_iv: vec![0; iv_size],
+            hmac_key: vec![0; hmac_size],
             userdata: vec![],
-        }
+        };
+
+        rand::random(&mut secret.master_key)?;
+        rand::random(&mut secret.master_iv)?;
+        rand::random(&mut secret.hmac_key)?;
+
+        Ok(secret)
     }
 
     pub fn read(source: &[u8]) -> Result<(Secret, u32)> {

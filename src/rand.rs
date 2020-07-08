@@ -20,6 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(not(test))]
 use crate::error::Error;
 use crate::result::Result;
 
@@ -34,8 +35,9 @@ pub fn random(target: &mut [u8]) -> Result<()> {
 }
 
 #[cfg(test)]
-pub const RND: [u8; 16] = [
-    33, 155, 95, 60, 65, 96, 253, 183, 93, 150, 39, 110, 253, 132, 24, 187,
+pub const RND: [u8; 32] = [
+    33, 155, 95, 60, 65, 96, 253, 183, 93, 150, 39, 110, 253, 132, 24, 187, 194, 29, 136, 183, 170,
+    65, 174, 63, 126, 229, 61, 66, 15, 128, 146, 43,
 ];
 
 #[cfg(test)]

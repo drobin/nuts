@@ -39,7 +39,7 @@ pub struct Container {
 impl Container {
     pub fn create(path: &str, options: &Options) -> Result<Container> {
         let mut header = Container::create_header(options);
-        let secret = Container::create_secret(options);
+        let secret = Secret::create(options)?;
 
         debug!("header: {:?}", header);
         debug!("secret: {:?}", secret);
@@ -96,18 +96,6 @@ impl Container {
         // TODO generate keys if applicable
 
         header
-    }
-
-    fn create_secret(options: &Options) -> Secret {
-        let mut secret = Secret::new();
-
-        secret.dtype = options.dtype;
-        secret.bsize = options.bsize();
-        secret.blocks = options.blocks();
-
-        // TODO generate keys if applicable
-
-        secret
     }
 
     fn dump_header(header: &Header, io: &mut IO, fd: &mut File) -> Result<u32> {
