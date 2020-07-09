@@ -20,18 +20,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use ::openssl as ossl;
+
 #[cfg(not(test))]
 use crate::error::Error;
 use crate::result::Result;
 
 #[cfg(not(test))]
 pub fn random(target: &mut [u8]) -> Result<()> {
-    ::openssl::rand::rand_bytes(target)
-        .map(|_| ())
-        .or_else(|err| {
-            let msg = format!("{}", err);
-            Err(Error::Rand(msg))
-        })
+    ossl::rand::rand_bytes(target).map(|_| ()).or_else(|err| {
+        let msg = format!("{}", err);
+        Err(Error::Rand(msg))
+    })
 }
 
 #[cfg(test)]

@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::rand::RND;
+use crate::openssl::RND;
 use crate::secret::Secret;
 use crate::types::{Cipher, DiskType, Options, BLOCK_MIN_SIZE};
 

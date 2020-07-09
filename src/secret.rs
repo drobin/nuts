@@ -29,7 +29,7 @@ use std::ops;
 
 use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
-use crate::rand;
+use crate::openssl;
 use crate::result::Result;
 use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
 
@@ -67,9 +67,9 @@ impl Secret {
             userdata: vec![],
         };
 
-        rand::random(&mut secret.master_key)?;
-        rand::random(&mut secret.master_iv)?;
-        rand::random(&mut secret.hmac_key)?;
+        openssl::random(&mut secret.master_key)?;
+        openssl::random(&mut secret.master_iv)?;
+        openssl::random(&mut secret.hmac_key)?;
 
         Ok(secret)
     }

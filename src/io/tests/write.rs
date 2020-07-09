@@ -24,7 +24,7 @@ use std::io::{Cursor, ErrorKind};
 
 use crate::error::Error;
 use crate::io::IO;
-use crate::rand::RND;
+use crate::openssl::RND;
 use crate::types::DiskType;
 
 fn prepare(

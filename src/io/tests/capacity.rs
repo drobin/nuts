@@ -23,7 +23,7 @@
 use std::io::{Cursor, Seek, SeekFrom};
 
 use crate::io::IO;
-use crate::rand::RND;
+use crate::openssl::RND;
 use crate::types::DiskType;
 
 fn mk_fake_file(vec: Vec<u8>) -> Cursor<Vec<u8>> {

@@ -24,7 +24,7 @@ use std::io::{Cursor, ErrorKind, Seek, SeekFrom};
 
 use crate::error::Error;
 use crate::io::IO;
-use crate::rand::RND;
+use crate::openssl::RND;
 use crate::types::DiskType;
 
 fn mk_fake_file() -> std::io::Cursor<Vec<u8>> {
