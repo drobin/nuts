@@ -94,6 +94,14 @@ pub enum Error {
     ///
     /// It has a message, that describes the failure.
     Rand(String),
+
+    /// An error occured while generating or verifying an HMAC.
+    ///
+    /// It has a message, that describes the failure.
+    Hmac(String),
+
+    /// An hmac mismatch was detected.
+    HmacMismatch,
 }
 
 impl From<std::io::Error> for Error {
