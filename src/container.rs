@@ -25,6 +25,7 @@ use std::fs::File;
 
 use crate::header::Header;
 use crate::io::IO;
+use crate::openssl::HMAC;
 use crate::result::Result;
 use crate::secret::Secret;
 use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
@@ -33,32 +34,21 @@ pub struct Container {
     cipher: Cipher,
     digest: Option<Digest>,
     io: IO,
-    fd: File,
 }
 
 impl Container {
     pub fn create(path: &str, options: &Options) -> Result<Container> {
-        let mut header = Container::create_header(options)?;
-        let secret = Secret::create(options)?;
-
-        debug!("header: {:?}", header);
-        debug!("secret: {:?}", secret);
-
-        header.validate()?;
-        secret.validate(header.cipher, header.digest)?;
+        let header = Container::create_header(options)?;
 
         let mut fd = File::create(path)?;
         let mut io = IO::new(options.bsize(), options.blocks(), options.dtype, &mut fd)?;
 
-        io.ensure_capacity(&mut fd, 1)?;
-        Container::dump_secret(&secret, &mut header)?;
         Container::dump_header(&header, &mut io, &mut fd)?;
 
         let container = Container {
             cipher: options.cipher,
             digest: options.md,
             io,
-            fd,
         };
 
         debug!(
@@ -71,14 +61,7 @@ impl Container {
 
     pub fn open(path: &str) -> Result<Container> {
         let mut fd = File::open(path)?;
-        let header = Container::open_header(&mut fd)?;
-        let secret = Container::open_secret(&header)?;
-
-        debug!("header: {:?}", header);
-        debug!("secret: {:?}", secret);
-
-        header.validate()?;
-        secret.validate(header.cipher, header.digest)?;
+        let (header, secret) = Container::open_header(&mut fd)?;
 
         let io = IO::new(secret.bsize, secret.blocks, secret.dtype, &mut fd)?;
 
@@ -86,16 +69,29 @@ impl Container {
             cipher: header.cipher,
             digest: header.digest,
             io,
-            fd,
         })
     }
 
     fn create_header(options: &Options) -> Result<Header> {
-        let header = Header::create(options);
+        let mut header = Header::create(options)?;
+        let secret = Secret::create(options)?;
 
-        // TODO generate keys if applicable
+        Container::dump_secret(&secret, &mut header)?;
 
-        header
+        if let Some(digest) = header.digest {
+            let hmac = HMAC::create(digest, b"123", &header.secret)?;
+
+            header.hmac.clear();
+            header.hmac.extend_from_slice(&hmac);
+        }
+
+        debug!("secret: {:?}", secret);
+        debug!("header: {:?}", header);
+
+        secret.validate(header.cipher, header.digest)?;
+        header.validate()?;
+
+        Ok(header)
     }
 
     fn dump_header(header: &Header, io: &mut IO, fd: &mut File) -> Result<u32> {
@@ -125,7 +121,7 @@ impl Container {
         result
     }
 
-    fn open_header(fd: &mut File) -> Result<Header> {
+    fn open_header(fd: &mut File) -> Result<(Header, Secret)> {
         // Create a temp. block with bsize = BLOCK_MIN_SIZE.
         // This is enough to read the header.
         // Binary header is dumped into `buf`.
@@ -136,11 +132,21 @@ impl Container {
         io.read(fd, &mut buf, 0)?;
 
         // Parse the header.
-        Header::read(&buf).map(|(header, _)| header)
-    }
+        let header = Header::read(&buf).map(|(header, _)| header)?;
+        header.validate()?;
 
-    fn open_secret(header: &Header) -> Result<Secret> {
-        Secret::read(&header.secret).map(|(secret, _)| secret)
+        // Parse the secret.
+        let secret = Secret::read(&header.secret).map(|(secret, _)| secret)?;
+        secret.validate(header.cipher, header.digest)?;
+
+        debug!("secret: {:?}", secret);
+        debug!("header: {:?}", header);
+
+        if let Some(digest) = header.digest {
+            HMAC::verify(digest, b"123", &header.secret, &header.hmac)?;
+        }
+
+        Ok((header, secret))
     }
 
     pub fn cipher(&self) -> Cipher {
