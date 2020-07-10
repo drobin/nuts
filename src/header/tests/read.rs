@@ -21,8 +21,8 @@
 // IN THE SOFTWARE.
 
 use crate::header::Header;
-use crate::types::{Cipher, Digest, WrappingKey};
-use crate::wkey::WrappingKeyData;
+use crate::types::{Cipher, Digest};
+use crate::wkey::{Pbkdf2Data, WrappingKeyData};
 
 struct Data {
     magic: [u8; 7],
@@ -188,13 +188,10 @@ fn wrapping_key_pbkdf2() {
     assert_eq!(offset, 41);
     assert_eq!(
         header.wrapping_key,
-        Some(WrappingKeyData {
-            wkey: WrappingKey::Pbkdf2 {
-                iterations: 4711,
-                salt_len: 7
-            },
-            pbkdf2: Some(vec![1, 2, 3, 4, 5, 6, 7])
-        })
+        Some(WrappingKeyData::Pbkdf2(Pbkdf2Data {
+            iterations: 4711,
+            salt: vec![1, 2, 3, 4, 5, 6, 7]
+        }))
     );
 }
 

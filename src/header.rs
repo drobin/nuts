@@ -263,17 +263,11 @@ fn write_wrapping_key(
 ) -> Result<()> {
     match data {
         Some(data) => {
-            let WrappingKey::Pbkdf2 {
-                iterations,
-                salt_len,
-            } = data.wkey;
-
-            let salt = data.pbkdf2.as_ref().unwrap();
-            assert_eq!(salt_len, salt.len() as u32);
+            let WrappingKeyData::Pbkdf2(value) = data;
 
             binary::write_u8(target, offset, 1)?;
-            binary::write_u32(target, offset, iterations)?;
-            binary::write_vec(target, offset, &salt)?;
+            binary::write_u32(target, offset, value.iterations)?;
+            binary::write_vec(target, offset, &value.salt)?;
 
             Ok(())
         }

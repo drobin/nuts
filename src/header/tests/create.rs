@@ -22,8 +22,8 @@
 
 use crate::header::Header;
 use crate::openssl::RND;
-use crate::types::{Cipher, Digest, Options, WrappingKey};
-use crate::wkey::WrappingKeyData;
+use crate::types::{Cipher, Digest, Options};
+use crate::wkey::{Pbkdf2Data, WrappingKeyData};
 
 #[test]
 fn cipher_none() {
@@ -48,13 +48,10 @@ fn cipher_aes128_ctr() {
     assert_eq!(header.digest, Some(Digest::Sha1));
     assert_eq!(
         header.wrapping_key,
-        Some(WrappingKeyData {
-            wkey: WrappingKey::Pbkdf2 {
-                iterations: 65536,
-                salt_len: 16
-            },
-            pbkdf2: Some(RND[..16].to_vec())
-        })
+        Some(WrappingKeyData::Pbkdf2(Pbkdf2Data {
+            iterations: 65536,
+            salt: RND[..16].to_vec()
+        }))
     );
     assert!(header.hmac.is_empty());
     assert!(header.secret.is_empty());

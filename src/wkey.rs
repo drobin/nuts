@@ -22,40 +22,38 @@
 
 use std::fmt;
 
-use crate::types::WrappingKey;
+#[derive(PartialEq)]
+pub struct Pbkdf2Data {
+    pub iterations: u32,
+    pub salt: Vec<u8>,
+}
 
 #[derive(PartialEq)]
-pub struct WrappingKeyData {
-    pub wkey: WrappingKey,
-    pub pbkdf2: Option<Vec<u8>>,
+pub enum WrappingKeyData {
+    Pbkdf2(Pbkdf2Data),
 }
 
 impl WrappingKeyData {
     pub fn pbkdf2(iterations: u32, salt: &Vec<u8>) -> WrappingKeyData {
-        let wkey = WrappingKey::Pbkdf2 {
+        let value = Pbkdf2Data {
             iterations,
-            salt_len: salt.len() as u32,
+            salt: salt.to_vec(),
         };
-        WrappingKeyData {
-            wkey,
-            pbkdf2: Some(salt.to_vec()),
-        }
+
+        WrappingKeyData::Pbkdf2(value)
     }
 }
 
 impl fmt::Debug for WrappingKeyData {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let pbkdf2 = self.pbkdf2.as_ref().map_or_else(
-            || None,
-            |p| {
-                let s = format!("<{} bytes>", p.len());
-                Some(s)
-            },
-        );
-
-        fmt.debug_struct("WrappingKeyData")
-            .field("wkey", &self.wkey)
-            .field("pbkdf2", &pbkdf2)
-            .finish()
+        match self {
+            WrappingKeyData::Pbkdf2(value) => {
+                let salt = format!("<{} bytes>", value.salt.len());
+                fmt.debug_struct("Pbkdf2Data")
+                    .field("iterations", &value.iterations)
+                    .field("salt", &salt)
+                    .finish()
+            }
+        }
     }
 }
