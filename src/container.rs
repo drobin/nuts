@@ -20,156 +20,73 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use log::debug;
-use std::fs::File;
+pub(crate) mod inner;
 
-use crate::header::Header;
-use crate::io::IO;
-use crate::openssl::HMAC;
+use crate::container::inner::Inner;
+use crate::error::Error;
 use crate::result::Result;
-use crate::secret::Secret;
-use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
+use crate::types::{Cipher, Digest, DiskType, Options};
 
 pub struct Container {
-    cipher: Cipher,
-    digest: Option<Digest>,
-    io: IO,
+    inner: Option<Inner>,
 }
 
 impl Container {
-    pub fn create(path: &str, options: &Options) -> Result<Container> {
-        let header = Container::create_header(options)?;
-
-        let mut fd = File::create(path)?;
-        let mut io = IO::new(options.bsize(), options.blocks(), options.dtype, &mut fd)?;
-
-        Container::dump_header(&header, &mut io, &mut fd)?;
-
-        let container = Container {
-            cipher: options.cipher,
-            digest: options.md,
-            io,
-        };
-
-        debug!(
-            "allocating container, dtype = {}, bsize = {}, blocks = {}",
-            container.io.dtype, container.io.bsize, container.io.blocks
-        );
-
-        Ok(container)
+    pub fn new() -> Container {
+        Container { inner: None }
     }
 
-    pub fn open(path: &str) -> Result<Container> {
-        let mut fd = File::open(path)?;
-        let (header, secret) = Container::open_header(&mut fd)?;
-
-        let io = IO::new(secret.bsize, secret.blocks, secret.dtype, &mut fd)?;
-
-        Ok(Container {
-            cipher: header.cipher,
-            digest: header.digest,
-            io,
-        })
-    }
-
-    fn create_header(options: &Options) -> Result<Header> {
-        let mut header = Header::create(options)?;
-        let secret = Secret::create(options)?;
-
-        Container::dump_secret(&secret, &mut header)?;
-
-        if let Some(digest) = header.digest {
-            let hmac = HMAC::create(digest, b"123", &header.secret)?;
-
-            header.hmac.clear();
-            header.hmac.extend_from_slice(&hmac);
+    pub fn create(&mut self, path: &str, options: &Options) -> Result<()> {
+        if self.inner.is_none() {
+            self.inner = Some(Inner::create(path, options)?);
+            Ok(())
+        } else {
+            Err(Error::Opened)
         }
-
-        debug!("secret: {:?}", secret);
-        debug!("header: {:?}", header);
-
-        secret.validate(header.cipher, header.digest)?;
-        header.validate()?;
-
-        Ok(header)
     }
 
-    fn dump_header(header: &Header, io: &mut IO, fd: &mut File) -> Result<u32> {
-        let mut buf = [0; BLOCK_MIN_SIZE as usize];
-
-        let offset = header.write(&mut buf)?;
-        let end = offset as usize;
-
-        io.write(&buf[..end], fd, 0)
-    }
-
-    fn dump_secret(secret: &Secret, header: &mut Header) -> Result<u32> {
-        let mut buf = [0; BLOCK_MIN_SIZE as usize];
-        let result = secret.write(&mut buf);
-
-        if let Ok(offset) = result {
-            let end = offset as usize;
-            header.secret.clear();
-            header.secret.extend_from_slice(&buf[..end]);
+    pub fn open(&mut self, path: &str) -> Result<()> {
+        if self.inner.is_none() {
+            self.inner = Some(Inner::open(path)?);
+            Ok(())
+        } else {
+            Err(Error::Opened)
         }
-
-        // In any case clear the buffer, which contains the secret.
-        for elem in buf.iter_mut() {
-            *elem = 0;
-        }
-
-        result
     }
 
-    fn open_header(fd: &mut File) -> Result<(Header, Secret)> {
-        // Create a temp. block with bsize = BLOCK_MIN_SIZE.
-        // This is enough to read the header.
-        // Binary header is dumped into `buf`.
-        let io = IO::new(BLOCK_MIN_SIZE, 1, DiskType::ThinZero, fd)?;
-
-        // Read the binary header into `buf`.
-        let mut buf = [0; BLOCK_MIN_SIZE as usize];
-        io.read(fd, &mut buf, 0)?;
-
-        // Parse the header.
-        let header = Header::read(&buf).map(|(header, _)| header)?;
-        header.validate()?;
-
-        // Parse the secret.
-        let secret = Secret::read(&header.secret).map(|(secret, _)| secret)?;
-        secret.validate(header.cipher, header.digest)?;
-
-        debug!("secret: {:?}", secret);
-        debug!("header: {:?}", header);
-
-        if let Some(digest) = header.digest {
-            HMAC::verify(digest, b"123", &header.secret, &header.hmac)?;
-        }
-
-        Ok((header, secret))
+    pub fn cipher(&self) -> Result<Cipher> {
+        self.inner
+            .as_ref()
+            .map_or(Err(Error::Closed), |inner| Ok(inner.header.cipher))
     }
 
-    pub fn cipher(&self) -> Cipher {
-        self.cipher
+    pub fn digest(&self) -> Result<Option<Digest>> {
+        self.inner
+            .as_ref()
+            .map_or(Err(Error::Closed), |inner| Ok(inner.header.digest))
     }
 
-    pub fn digest(&self) -> Option<Digest> {
-        self.digest
+    pub fn dtype(&self) -> Result<DiskType> {
+        self.inner
+            .as_ref()
+            .map_or(Err(Error::Closed), |inner| Ok(inner.secret.dtype))
     }
 
-    pub fn dtype(&self) -> DiskType {
-        self.io.dtype
+    pub fn bsize(&self) -> Result<u32> {
+        self.inner
+            .as_ref()
+            .map_or(Err(Error::Closed), |inner| Ok(inner.secret.bsize))
     }
 
-    pub fn bsize(&self) -> u32 {
-        self.io.bsize
+    pub fn blocks(&self) -> Result<u64> {
+        self.inner
+            .as_ref()
+            .map_or(Err(Error::Closed), |inner| Ok(inner.secret.blocks))
     }
 
-    pub fn blocks(&self) -> u64 {
-        self.io.blocks
-    }
-
-    pub fn ablocks(&self) -> u64 {
-        self.io.ablocks
+    pub fn ablocks(&self) -> Result<u64> {
+        self.inner
+            .as_ref()
+            .map_or(Err(Error::Closed), |inner| Ok(inner.io.ablocks))
     }
 }

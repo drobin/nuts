@@ -158,17 +158,20 @@ fn info(sub: &ArgMatches) -> Result<()> {
     update_logger(sub);
 
     let path = sub.value_of("PATH").unwrap();
-    let container = Container::open(path)?;
+    let mut container = Container::new();
+
+    container.open(path)?;
+
     let digest = container
-        .digest()
+        .digest()?
         .map_or_else(|| String::from("none"), |d| d.to_string());
 
-    say!(sub, "cipher:           {}", container.cipher());
+    say!(sub, "cipher:           {}", container.cipher()?);
     say!(sub, "digest:           {}", digest);
-    say!(sub, "disk type:        {}", container.dtype());
-    say!(sub, "block size:       {}", container.bsize());
-    say!(sub, "blocks:           {}", container.blocks());
-    say!(sub, "allocated blocks: {}", container.ablocks());
+    say!(sub, "disk type:        {}", container.dtype()?);
+    say!(sub, "block size:       {}", container.bsize()?);
+    say!(sub, "blocks:           {}", container.blocks()?);
+    say!(sub, "allocated blocks: {}", container.ablocks()?);
 
     Ok(())
 }
@@ -234,17 +237,20 @@ fn create(sub: &ArgMatches) -> Result<()> {
         }
     }
 
-    let container = Container::create(path, &options)?;
+    let mut container = Container::new();
+
+    container.create(path, &options)?;
+
     let digest = container
-        .digest()
+        .digest()?
         .map_or_else(|| String::from("none"), |d| d.to_string());
 
-    say!(sub, "cipher:           {}", container.cipher());
+    say!(sub, "cipher:           {}", container.cipher()?);
     say!(sub, "digest:           {}", digest);
-    say!(sub, "disk type:        {}", container.dtype());
-    say!(sub, "block size:       {}", container.bsize());
-    say!(sub, "blocks:           {}", container.blocks());
-    say!(sub, "allocated blocks: {}", container.ablocks());
+    say!(sub, "disk type:        {}", container.dtype()?);
+    say!(sub, "block size:       {}", container.bsize()?);
+    say!(sub, "blocks:           {}", container.blocks()?);
+    say!(sub, "allocated blocks: {}", container.ablocks()?);
 
     Ok(())
 }

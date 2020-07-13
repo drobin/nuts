@@ -67,6 +67,22 @@ pub enum InvalHeaderKind {
 /// Collection of error-codes.
 #[derive(Debug)]
 pub enum Error {
+    /// The container is open but it is expected to be closed.
+    ///
+    /// The error is raised by [`Container::create()`] and
+    /// [`Container::open()`] if the container is already open.
+    ///
+    /// [`Container::create()`]: ../container/struct.Container.html#method.create
+    /// [`Container::open()`]: ../container/struct.Container.html#method.open
+    Opened,
+
+    /// The container is closed but it is expected to be open.
+    ///
+    /// You try to perform an operation on a closed [`Container`].
+    ///
+    /// [`Container`]: ../container/struct.Container.html
+    Closed,
+
     /// An IO error has occured.
     ///
     /// The related [`std::error::Error`] is passed to the variant.
@@ -102,6 +118,8 @@ pub enum Error {
 
     /// An hmac mismatch was detected.
     HmacMismatch,
+
+    WrappingKey(String),
 }
 
 impl From<std::io::Error> for Error {
