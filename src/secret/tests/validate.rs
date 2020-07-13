@@ -97,28 +97,6 @@ fn blocks_0() {
 }
 
 #[test]
-fn cipher_some_master_key_lt_key_size() {
-    let mut secret = ok_secret();
-    secret.master_key.pop();
-
-    let err = secret
-        .validate(Cipher::Aes128Ctr, Some(Digest::Sha1))
-        .unwrap_err();
-    assert_eq!(format!("{:?}", err), "InvalHeader(InvalMasterKey)");
-}
-
-#[test]
-fn cipher_some_master_iv_lt_iv_size() {
-    let mut secret = ok_secret();
-    secret.master_iv.pop();
-
-    let err = secret
-        .validate(Cipher::Aes128Ctr, Some(Digest::Sha1))
-        .unwrap_err();
-    assert_eq!(format!("{:?}", err), "InvalHeader(InvalMasterIv)");
-}
-
-#[test]
 fn bsize_512() {
     let mut secret = ok_secret();
     secret.bsize = 512;
@@ -159,7 +137,29 @@ fn blocks_2() {
 }
 
 #[test]
-fn digest_some_hmac_key_lt_digest_size() {
+fn cipher_some_master_key_inval_size() {
+    let mut secret = ok_secret();
+    secret.master_key.pop();
+
+    let err = secret
+        .validate(Cipher::Aes128Ctr, Some(Digest::Sha1))
+        .unwrap_err();
+    assert_eq!(format!("{:?}", err), "InvalHeader(InvalMasterKey)");
+}
+
+#[test]
+fn cipher_some_master_iv_inval_size() {
+    let mut secret = ok_secret();
+    secret.master_iv.pop();
+
+    let err = secret
+        .validate(Cipher::Aes128Ctr, Some(Digest::Sha1))
+        .unwrap_err();
+    assert_eq!(format!("{:?}", err), "InvalHeader(InvalMasterIv)");
+}
+
+#[test]
+fn cipher_some_hmac_key_inval_size() {
     let mut secret = ok_secret();
     secret.hmac_key.pop();
 
@@ -170,35 +170,50 @@ fn digest_some_hmac_key_lt_digest_size() {
 }
 
 #[test]
-fn digest_some_hmac_key_eq_digest_size() {
-    let secret = ok_secret();
-
-    secret
-        .validate(Cipher::Aes128Ctr, Some(Digest::Sha1))
-        .unwrap();
-}
-
-#[test]
-fn cipher_none_keys_ignored() {
-    let secret = ok_secret();
-    secret.validate(Cipher::None, None).unwrap();
-}
-
-#[test]
-fn cipher_none_empty_keys() {
-    let mut secret = ok_secret();
-    secret.master_key.clear();
-    secret.master_iv.clear();
-    secret.hmac_key.clear();
-
-    secret.validate(Cipher::None, None).unwrap();
-}
-
-#[test]
 fn cipher_some_keys_accepted() {
     let secret = ok_secret();
 
     secret
         .validate(Cipher::Aes128Ctr, Some(Digest::Sha1))
         .unwrap();
+}
+
+#[test]
+fn cipher_none_master_key_rejected() {
+    let mut secret = ok_secret();
+    secret.master_iv.clear();
+    secret.hmac_key.clear();
+
+    let err = secret.validate(Cipher::None, None).unwrap_err();
+    assert_eq!(format!("{:?}", err), "InvalHeader(InvalMasterKey)");
+}
+
+#[test]
+fn cipher_none_master_iv_rejected() {
+    let mut secret = ok_secret();
+    secret.master_key.clear();
+    secret.hmac_key.clear();
+
+    let err = secret.validate(Cipher::None, None).unwrap_err();
+    assert_eq!(format!("{:?}", err), "InvalHeader(InvalMasterIv)");
+}
+
+#[test]
+fn cipher_none_hmac_key_rejected() {
+    let mut secret = ok_secret();
+    secret.master_key.clear();
+    secret.master_iv.clear();
+
+    let err = secret.validate(Cipher::None, None).unwrap_err();
+    assert_eq!(format!("{:?}", err), "InvalHeader(InvalHmacKey)");
+}
+
+#[test]
+fn cipher_none_empty_keys_ok() {
+    let mut secret = ok_secret();
+    secret.master_key.clear();
+    secret.master_iv.clear();
+    secret.hmac_key.clear();
+
+    secret.validate(Cipher::None, None).unwrap();
 }

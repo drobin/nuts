@@ -23,7 +23,7 @@
 #[cfg(test)]
 mod tests;
 
-use log::{error, warn};
+use log::error;
 use std::fmt;
 use std::ops;
 
@@ -151,7 +151,7 @@ impl Secret {
     }
 
     fn validate_master_key(&self, cipher: Cipher) -> Result<()> {
-        if self.master_key.len() < cipher.key_size() as usize {
+        if self.master_key.len() != cipher.key_size() as usize {
             error!(
                 "invalid master key, len: {}, expected: {} ({})",
                 self.master_key.len(),
@@ -160,21 +160,12 @@ impl Secret {
             );
             Err(Error::InvalHeader(InvalHeaderKind::InvalMasterKey))
         } else {
-            if self.master_key.len() != cipher.key_size() as usize {
-                warn!(
-                    "lost master key, len: {}, min: {} ({})",
-                    self.master_key.len(),
-                    cipher.key_size(),
-                    cipher
-                );
-            }
-
             Ok(())
         }
     }
 
     fn validate_master_iv(&self, cipher: Cipher) -> Result<()> {
-        if self.master_iv.len() < cipher.iv_size() as usize {
+        if self.master_iv.len() != cipher.iv_size() as usize {
             error!(
                 "invalid master iv, len: {}, expected: {} ({})",
                 self.master_iv.len(),
@@ -184,15 +175,6 @@ impl Secret {
 
             Err(Error::InvalHeader(InvalHeaderKind::InvalMasterIv))
         } else {
-            if self.master_iv.len() != cipher.iv_size() as usize {
-                warn!(
-                    "lost master iv, len: {}, min: {} ({})",
-                    self.master_iv.len(),
-                    cipher.iv_size(),
-                    cipher
-                );
-            }
-
             Ok(())
         }
     }
@@ -203,7 +185,7 @@ impl Secret {
             None => 0,
         };
 
-        if self.hmac_key.len() < size {
+        if self.hmac_key.len() != size {
             error!(
                 "invalid hmac key, len: {}, expected: {} ({})",
                 self.hmac_key.len(),
@@ -213,15 +195,6 @@ impl Secret {
 
             Err(Error::InvalHeader(InvalHeaderKind::InvalHmacKey))
         } else {
-            if self.hmac_key.len() != size {
-                warn!(
-                    "lost hmac key, len: {}, min: {} ({})",
-                    self.hmac_key.len(),
-                    size,
-                    digest_to_string(digest)
-                );
-            }
-
             Ok(())
         }
     }
