@@ -23,7 +23,7 @@
 #[cfg(test)]
 mod tests;
 
-use log::{error, warn};
+use log::error;
 use std::fmt;
 
 use crate::binary;
@@ -146,7 +146,7 @@ impl Header {
             None => 0,
         };
 
-        if self.hmac.len() < size {
+        if self.hmac.len() != size {
             error!(
                 "invalid hmac, len: {}, expected: {} ({})",
                 self.hmac.len(),
@@ -156,15 +156,6 @@ impl Header {
 
             Err(Error::InvalHeader(InvalHeaderKind::InvalHmac))
         } else {
-            if self.hmac.len() != size {
-                warn!(
-                    "lost hmac, len: {}, min: {} ({})",
-                    self.hmac.len(),
-                    size,
-                    digest_to_string(self.digest)
-                );
-            }
-
             Ok(())
         }
     }
