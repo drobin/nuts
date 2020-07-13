@@ -24,7 +24,13 @@
 mod create;
 
 #[cfg(test)]
+mod hmac;
+
+#[cfg(test)]
 mod read;
+
+#[cfg(test)]
+mod secret;
 
 #[cfg(test)]
 mod validate;

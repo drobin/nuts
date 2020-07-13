@@ -30,7 +30,8 @@ use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
 use crate::openssl;
 use crate::result::Result;
-use crate::types::{Cipher, Digest, Options, WrappingKey};
+use crate::secret::Secret;
+use crate::types::{Cipher, Digest, Options, WrappingKey, BLOCK_MIN_SIZE};
 use crate::wkey::WrappingKeyData;
 
 const MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
@@ -92,6 +93,10 @@ impl Header {
         Ok((header, offset))
     }
 
+    pub fn read_secret(&self) -> Result<(Secret, u32)> {
+        Secret::read(&self.secret)
+    }
+
     pub fn write(&self, target: &mut [u8]) -> Result<u32> {
         let mut offset: u32 = 0;
 
@@ -106,12 +111,49 @@ impl Header {
         Ok(offset)
     }
 
+    pub fn write_secret(&mut self, secret: &Secret) -> Result<u32> {
+        let mut buf = [0; BLOCK_MIN_SIZE as usize];
+        let result = secret.write(&mut buf);
+
+        if let Ok(offset) = result {
+            let end = offset as usize;
+            self.secret.clear();
+            self.secret.extend(&buf[..end]);
+        }
+
+        // In any case clear the buffer, which contains the secret.
+        for elem in buf.iter_mut() {
+            *elem = 0;
+        }
+
+        result
+    }
+
     pub fn validate(&self) -> Result<()> {
         Header::validate_revision(self.revision)?;
         self.validate_digest()?;
         self.validate_hmac()?;
 
         Ok(())
+    }
+
+    pub fn create_hmac(&mut self, secret: &Secret) -> Result<()> {
+        if let Some(md) = self.digest {
+            let hmac = openssl::HMAC::create(md, &secret.hmac_key, &self.secret)?;
+
+            self.hmac.clear();
+            self.hmac.extend(hmac.iter());
+        }
+
+        Ok(())
+    }
+
+    pub fn verify_hmac(&self, secret: &Secret) -> Result<()> {
+        if let Some(md) = self.digest {
+            openssl::HMAC::verify(md, &secret.hmac_key, &self.secret, &self.hmac)
+        } else {
+            Ok(())
+        }
     }
 
     fn validate_revision(revision: u8) -> Result<()> {

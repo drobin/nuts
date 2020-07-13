@@ -25,7 +25,6 @@ use std::fs::File;
 
 use crate::header::Header;
 use crate::io::IO;
-use crate::openssl::HMAC;
 use crate::result::Result;
 use crate::secret::Secret;
 use crate::types::{DiskType, Options, BLOCK_MIN_SIZE};
@@ -73,14 +72,8 @@ impl Inner {
     fn create_header(secret: &Secret, options: &Options) -> Result<Header> {
         let mut header = Header::create(options)?;
 
-        Inner::dump_secret(&secret, &mut header)?;
-
-        if let Some(digest) = header.digest {
-            let hmac = HMAC::create(digest, b"123", &header.secret)?;
-
-            header.hmac.clear();
-            header.hmac.extend(hmac.iter());
-        }
+        header.write_secret(secret)?;
+        header.create_hmac(&secret)?;
 
         secret.validate(header.cipher, header.digest)?;
         header.validate()?;
@@ -97,45 +90,21 @@ impl Inner {
         io.write(&buf[..end], fd, 0)
     }
 
-    fn dump_secret(secret: &Secret, header: &mut Header) -> Result<u32> {
-        let mut buf = [0; BLOCK_MIN_SIZE as usize];
-        let result = secret.write(&mut buf);
-
-        if let Ok(offset) = result {
-            let end = offset as usize;
-            header.secret.clear();
-            header.secret.extend_from_slice(&buf[..end]);
-        }
-
-        // In any case clear the buffer, which contains the secret.
-        for elem in buf.iter_mut() {
-            *elem = 0;
-        }
-
-        result
-    }
-
     fn open_header(fd: &mut File) -> Result<(Header, Secret)> {
         // Create a temp. block with bsize = BLOCK_MIN_SIZE.
         // This is enough to read the header.
-        // Binary header is dumped into `buf`.
         let io = IO::new(BLOCK_MIN_SIZE, 1, DiskType::ThinZero, fd)?;
 
         // Read the binary header into `buf`.
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
         io.read(fd, &mut buf, 0)?;
 
-        // Parse the header.
         let header = Header::read(&buf).map(|(header, _)| header)?;
+        let secret = header.read_secret().map(|(secret, _)| secret)?;
+
         header.validate()?;
-
-        // Parse the secret.
-        let secret = Secret::read(&header.secret).map(|(secret, _)| secret)?;
         secret.validate(header.cipher, header.digest)?;
-
-        if let Some(digest) = header.digest {
-            HMAC::verify(digest, b"123", &header.secret, &header.hmac)?;
-        }
+        header.verify_hmac(&secret)?;
 
         Ok((header, secret))
     }

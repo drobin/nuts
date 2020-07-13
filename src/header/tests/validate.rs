@@ -70,7 +70,7 @@ fn cipher_some_digest_none() {
 }
 
 #[test]
-fn digest_none_empty_hmac() {
+fn cipher_none_empty_hmac_accepted() {
     let mut header = ok_header();
     header.cipher = Cipher::None;
     header.digest = None;
@@ -80,16 +80,17 @@ fn digest_none_empty_hmac() {
 }
 
 #[test]
-fn digest_none_hmac_ignored() {
+fn cipher_none_hmac_rejected() {
     let mut header = ok_header();
     header.cipher = Cipher::None;
     header.digest = None;
 
-    header.validate().unwrap();
+    let err = header.validate().unwrap_err();
+    assert_eq!(format!("{:?}", err), "InvalHeader(InvalHmac)");
 }
 
 #[test]
-fn digest_some_empty_hmac() {
+fn cipher_some_empty_hmac() {
     let mut header = ok_header();
     header.hmac.clear();
 
@@ -98,18 +99,10 @@ fn digest_some_empty_hmac() {
 }
 
 #[test]
-fn digest_some_hmac_too_small() {
+fn cipher_some_hmac_inval_size() {
     let mut header = ok_header();
     header.hmac.pop();
 
     let err = header.validate().unwrap_err();
     assert_eq!(format!("{:?}", err), "InvalHeader(InvalHmac)");
-}
-
-#[test]
-fn digest_some_hmac_too_big_ignored() {
-    let mut header = ok_header();
-    header.hmac.push(b'x');
-
-    header.validate().unwrap();
 }
