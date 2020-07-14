@@ -56,7 +56,10 @@ fn ok() {
         target[10..22],
         [1, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3]
     ); // pbkdf2
-    assert_eq!(target[22..32], [0x00, 0x00, 0x00, 0x06, 13, 14, 15, 16, 17, 18]); // iv
+    assert_eq!(
+        target[22..32],
+        [0x00, 0x00, 0x00, 0x06, 13, 14, 15, 16, 17, 18]
+    ); // iv
     assert_eq!(target[32..40], [0x00, 0x00, 0x00, 0x04, 4, 5, 6, 7]); // hmac
     assert_eq!(target[40..49], [0x00, 0x00, 0x00, 0x05, 8, 9, 10, 11, 12]); // secret
 }
@@ -144,7 +147,10 @@ fn iv_non_empty() {
     let (header, mut target) = setup();
 
     assert_eq!(header.write(&mut target).unwrap(), 49);
-    assert_eq!(target[22..32], [0x00, 0x00, 0x00, 0x06, 13, 14, 15, 16, 17, 18]);
+    assert_eq!(
+        target[22..32],
+        [0x00, 0x00, 0x00, 0x06, 13, 14, 15, 16, 17, 18]
+    );
 }
 
 #[test]

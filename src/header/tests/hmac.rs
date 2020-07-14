@@ -30,7 +30,7 @@ fn cipher_none_create_hmac() {
     let secret = Secret::create(&options).unwrap();
     let mut header = Header::create(&options).unwrap();
 
-    header.create_hmac(&secret).unwrap();
+    header.create_hmac(&secret, &[]).unwrap();
     assert!(header.hmac.is_empty());
 }
 
@@ -40,7 +40,7 @@ fn cipher_some_create_hmac() {
     let secret = Secret::create(&options).unwrap();
     let mut header = Header::create(&options).unwrap();
 
-    header.create_hmac(&secret).unwrap();
+    header.create_hmac(&secret, &[9; 16]).unwrap();
     assert_eq!(header.hmac.len() as u32, options.md.unwrap().size());
 }
 
@@ -50,7 +50,7 @@ fn cipher_none_verify_hmac() {
     let secret = Secret::create(&options).unwrap();
     let header = Header::create(&options).unwrap();
 
-    header.verify_hmac(&secret).unwrap();
+    header.verify_hmac(&secret, &[]).unwrap();
 }
 
 #[test]
@@ -59,8 +59,8 @@ fn cipher_some_verify_hmac() {
     let secret = Secret::create(&options).unwrap();
     let mut header = Header::create(&options).unwrap();
 
-    header.create_hmac(&secret).unwrap();
-    header.verify_hmac(&secret).unwrap();
+    header.create_hmac(&secret, &[9; 16]).unwrap();
+    header.verify_hmac(&secret, &[9; 16]).unwrap();
 }
 
 #[test]
@@ -69,9 +69,9 @@ fn cipher_some_verify_hmac_failed() {
     let secret = Secret::create(&options).unwrap();
     let mut header = Header::create(&options).unwrap();
 
-    header.create_hmac(&secret).unwrap();
+    header.create_hmac(&secret, &[9; 16]).unwrap();
     *header.hmac.get_mut(0).unwrap() += 1;
 
-    let err = header.verify_hmac(&secret).unwrap_err();
+    let err = header.verify_hmac(&secret, &[9; 16]).unwrap_err();
     assert_eq!(format!("{:?}", err), "HmacMismatch");
 }

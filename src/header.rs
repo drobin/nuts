@@ -23,7 +23,7 @@
 #[cfg(test)]
 mod tests;
 
-use log::error;
+use log::{debug, error};
 use std::fmt;
 
 use crate::binary;
@@ -100,8 +100,14 @@ impl Header {
         Ok((header, offset))
     }
 
-    pub fn read_secret(&self) -> Result<(Secret, u32)> {
-        Secret::read(&self.secret)
+    pub fn read_secret(&self, wrapping_key: &[u8]) -> Result<(Secret, u32)> {
+        let plain_secret =
+            openssl::cipher(self.cipher, false, &self.secret, wrapping_key, &self.iv)?;
+        let (secret, offset) = Secret::read(&plain_secret)?;
+
+        self.verify_hmac(&secret, &plain_secret)?;
+
+        Ok((secret, offset))
     }
 
     pub fn write(&self, target: &mut [u8]) -> Result<u32> {
@@ -119,22 +125,38 @@ impl Header {
         Ok(offset)
     }
 
-    pub fn write_secret(&mut self, secret: &Secret) -> Result<u32> {
+    pub fn write_secret(&mut self, secret: &Secret, wrapping_key: &[u8]) -> Result<u32> {
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
-        let result = secret.write(&mut buf);
+        let offset = secret.write(&mut buf)?;
 
-        if let Ok(offset) = result {
-            let end = offset as usize;
-            self.secret.clear();
-            self.secret.extend(&buf[..end]);
-        }
+        let plain_secret = &buf[..offset as usize];
+        let result = self.write_plain_secret(secret, plain_secret, wrapping_key);
 
-        // In any case clear the buffer, which contains the secret.
+        // In any case clear the buffer, which contains the plain secret.
         for elem in buf.iter_mut() {
             *elem = 0;
         }
 
-        result
+        if result.is_ok() {
+            Ok(offset)
+        } else {
+            Err(result.unwrap_err())
+        }
+    }
+
+    fn write_plain_secret(
+        &mut self,
+        secret: &Secret,
+        plain_secret: &[u8],
+        wrapping_key: &[u8],
+    ) -> Result<()> {
+        let cipher_secret =
+            openssl::cipher(self.cipher, true, &plain_secret, wrapping_key, &self.iv)?;
+
+        self.secret.clear();
+        self.secret.extend(&cipher_secret);
+
+        self.create_hmac(secret, plain_secret)
     }
 
     pub fn validate(&self) -> Result<()> {
@@ -146,21 +168,29 @@ impl Header {
         Ok(())
     }
 
-    pub fn create_hmac(&mut self, secret: &Secret) -> Result<()> {
+    fn create_hmac(&mut self, secret: &Secret, plain_secret: &[u8]) -> Result<()> {
         if let Some(md) = self.digest {
-            let hmac = openssl::HMAC::create(md, &secret.hmac_key, &self.secret)?;
+            let hmac = openssl::HMAC::create(md, &secret.hmac_key, plain_secret)?;
 
             self.hmac.clear();
             self.hmac.extend(hmac.iter());
+
+            debug!("HMAC created, {} bytes", md.size());
+        } else {
+            debug!("HMAC creation skipped");
         }
 
         Ok(())
     }
 
-    pub fn verify_hmac(&self, secret: &Secret) -> Result<()> {
+    fn verify_hmac(&self, secret: &Secret, plain_secret: &[u8]) -> Result<()> {
         if let Some(md) = self.digest {
-            openssl::HMAC::verify(md, &secret.hmac_key, &self.secret, &self.hmac)
+            openssl::HMAC::verify(md, &secret.hmac_key, plain_secret, &self.hmac).and_then(|()| {
+                debug!("HMAC verified");
+                Ok(())
+            })
         } else {
+            debug!("HMAC verification skipped");
             Ok(())
         }
     }

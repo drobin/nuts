@@ -72,8 +72,7 @@ impl Inner {
     fn create_header(secret: &Secret, options: &Options) -> Result<Header> {
         let mut header = Header::create(options)?;
 
-        header.write_secret(secret)?;
-        header.create_hmac(&secret)?;
+        header.write_secret(secret, &[9; 16])?;
 
         secret.validate(header.cipher, header.digest)?;
         header.validate()?;
@@ -100,11 +99,10 @@ impl Inner {
         io.read(fd, &mut buf, 0)?;
 
         let header = Header::read(&buf).map(|(header, _)| header)?;
-        let secret = header.read_secret().map(|(secret, _)| secret)?;
+        let secret = header.read_secret(&[9; 16]).map(|(secret, _)| secret)?;
 
         header.validate()?;
         secret.validate(header.cipher, header.digest)?;
-        header.verify_hmac(&secret)?;
 
         Ok((header, secret))
     }
