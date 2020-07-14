@@ -120,6 +120,11 @@ pub enum Error {
     HmacMismatch,
 
     WrappingKey(String),
+
+    /// An error occured while encrypting/decrypting data.
+    ///
+    /// It has a message, that describes the failure.
+    Crypto(String),
 }
 
 impl From<std::io::Error> for Error {

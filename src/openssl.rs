@@ -78,8 +78,95 @@ impl HMAC {
     }
 }
 
+pub fn cipher(
+    cipher: Cipher,
+    encrypt: bool,
+    input: &[u8],
+    key: &[u8],
+    iv: &[u8],
+) -> Result<Vec<u8>> {
+    let mut output = Vec::with_capacity(input.len());
+
+    if let Some(ossl_cipher) = cipher_to_openssl(cipher) {
+        if input.len() % ossl_cipher.block_size() != 0 {
+            let msg = format!(
+                "length of input {} mut be a multiple of block-size {}",
+                input.len(),
+                ossl_cipher.block_size()
+            );
+            error!("{}", msg);
+            return Err(Error::Crypto(msg));
+        }
+
+        let key = key.get(..ossl_cipher.key_len()).ok_or_else(|| {
+            let msg = format!(
+                "key too short, at least {} bytes needed but got {}",
+                ossl_cipher.key_len(),
+                key.len()
+            );
+            error!("{}", msg);
+            Error::Crypto(msg)
+        })?;
+
+        let iv = if let Some(len) = ossl_cipher.iv_len() {
+            iv.get(..len).ok_or_else(|| {
+                let msg = format!(
+                    "iv too short, at least {} bytes needed but got {}",
+                    len,
+                    iv.len()
+                );
+                error!("{}", msg);
+                Error::Crypto(msg)
+            })?
+        } else {
+            panic!("no support for a cipher without iv");
+        };
+
+        let mode = if encrypt {
+            ossl::symm::Mode::Encrypt
+        } else {
+            ossl::symm::Mode::Decrypt
+        };
+
+        output.resize(input.len(), 0);
+
+        let mut encrypter =
+            ossl::symm::Crypter::new(ossl_cipher, mode, key, Some(iv)).or_else(cipher_as_error)?;
+        encrypter.pad(false);
+
+        let count = encrypter
+            .update(input, &mut output)
+            .or_else(cipher_as_error)?;
+
+        assert_eq!(count, output.len());
+    } else {
+        assert_eq!(cipher, Cipher::None);
+        output.extend(input);
+    };
+
+    if encrypt {
+        debug!("{} bytes encrypted, cipher: {}", output.len(), cipher);
+    } else {
+        debug!("{} bytes decrypted, cipher: {}", output.len(), cipher);
+    }
+
+    Ok(output)
+}
+
+fn cipher_as_error<T>(stack: ossl::error::ErrorStack) -> Result<T> {
+    let msg = format!("{}", stack);
+    Err(Error::Crypto(msg))
+}
+
 fn digest_to_openssl(digest: Digest) -> ossl::hash::MessageDigest {
     match digest {
         Digest::Sha1 => ::openssl::hash::MessageDigest::sha1(),
+    }
+}
+
+fn cipher_to_openssl(cipher: Cipher) -> Option<ossl::symm::Cipher> {
+    match cipher {
+        Cipher::Aes128Ctr => Some(ossl::symm::Cipher::aes_128_ctr()),
+        Cipher::None => None,
     }
 }

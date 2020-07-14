@@ -21,4 +21,7 @@
 // IN THE SOFTWARE.
 
 #[cfg(test)]
+mod cipher;
+
+#[cfg(test)]
 mod hmac;
