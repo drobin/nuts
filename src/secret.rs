@@ -214,10 +214,22 @@ impl ops::Drop for Secret {
 
 impl fmt::Debug for Secret {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let master_key = format!("<{} bytes>", self.master_key.len());
-        let master_iv = format!("<{} bytes>", self.master_iv.len());
-        let hmac_key = format!("<{} bytes>", self.hmac_key.len());
-        let userdata = format!("<{} bytes>", self.userdata.len());
+        let (master_key, master_iv, hmac_key, userdata) =
+            if cfg!(feature = "debug-plain-keys") && cfg!(debug_assertions) {
+                (
+                    format!("{:?}", self.master_key),
+                    format!("{:?}", self.master_iv),
+                    format!("{:?}", self.hmac_key),
+                    format!("{:?}", self.userdata),
+                )
+            } else {
+                (
+                    format!("<{} bytes>", self.master_key.len()),
+                    format!("<{} bytes>", self.master_iv.len()),
+                    format!("<{} bytes>", self.hmac_key.len()),
+                    format!("<{} bytes>", self.userdata.len()),
+                )
+            };
 
         fmt.debug_struct("Secret")
             .field("dtype", &self.dtype)

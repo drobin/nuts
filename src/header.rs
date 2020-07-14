@@ -229,9 +229,19 @@ impl Header {
 
 impl fmt::Debug for Header {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let iv = format!("<{} bytes>", self.iv.len());
-        let hmac = format!("<{} bytes>", self.hmac.len());
-        let secret = format!("<{} bytes>", self.secret.len());
+        let (iv, hmac, secret) = if cfg!(feature = "debug-plain-keys") && cfg!(debug_assertions) {
+            (
+                format!("{:?}", self.iv),
+                format!("{:?}", self.hmac),
+                format!("{:?}", self.secret),
+            )
+        } else {
+            (
+                format!("<{} bytes>", self.iv.len()),
+                format!("<{} bytes>", self.hmac.len()),
+                format!("<{} bytes>", self.secret.len()),
+            )
+        };
 
         fmt.debug_struct("Header")
             .field("revision", &self.revision)
