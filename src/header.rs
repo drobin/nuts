@@ -41,6 +41,7 @@ pub struct Header {
     pub cipher: Cipher,
     pub digest: Option<Digest>,
     pub wrapping_key: Option<WrappingKeyData>,
+    pub iv: Vec<u8>,
     pub hmac: Vec<u8>,
     pub secret: Vec<u8>,
 }
@@ -60,11 +61,15 @@ impl Header {
             None => None,
         };
 
+        let mut iv = vec![0; options.cipher.iv_size() as usize];
+        openssl::random(&mut iv)?;
+
         Ok(Header {
             revision: 1,
             cipher: options.cipher,
             digest: options.md,
             wrapping_key: wkey_data,
+            iv: iv,
             hmac: Vec::new(),
             secret: Vec::new(),
         })
@@ -78,6 +83,7 @@ impl Header {
         let cipher = binary::read_u8_as(source, &mut offset, u8_to_cipher)?;
         let digest = binary::read_u8_as(source, &mut offset, u8_to_digest)?;
         let wrapping_key = read_wrapping_key(source, &mut offset)?;
+        let iv = binary::read_vec(source, &mut offset)?;
         let hmac = binary::read_vec(source, &mut offset)?;
         let secret = binary::read_vec(source, &mut offset)?;
 
@@ -86,6 +92,7 @@ impl Header {
             cipher,
             digest,
             wrapping_key,
+            iv,
             hmac,
             secret,
         };
@@ -105,6 +112,7 @@ impl Header {
         binary::write_u8_as(target, &mut offset, self.cipher, cipher_to_u8)?;
         binary::write_u8_as(target, &mut offset, self.digest, digest_to_u8)?;
         write_wrapping_key(target, &mut offset, &self.wrapping_key)?;
+        binary::write_vec(target, &mut offset, &self.iv)?;
         binary::write_vec(target, &mut offset, &self.hmac)?;
         binary::write_vec(target, &mut offset, &self.secret)?;
 
@@ -132,6 +140,7 @@ impl Header {
     pub fn validate(&self) -> Result<()> {
         Header::validate_revision(self.revision)?;
         self.validate_digest()?;
+        self.validate_iv()?;
         self.validate_hmac()?;
 
         Ok(())
@@ -182,6 +191,21 @@ impl Header {
         }
     }
 
+    fn validate_iv(&self) -> Result<()> {
+        if self.iv.len() != self.cipher.iv_size() as usize {
+            error!(
+                "invalid iv, len: {}, expected: {} ({})",
+                self.iv.len(),
+                self.cipher.iv_size(),
+                self.cipher
+            );
+
+            Err(Error::InvalHeader(InvalHeaderKind::InvalIv))
+        } else {
+            Ok(())
+        }
+    }
+
     fn validate_hmac(&self) -> Result<()> {
         let size = match self.digest {
             Some(md) => md.size() as usize,
@@ -205,6 +229,7 @@ impl Header {
 
 impl fmt::Debug for Header {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let iv = format!("<{} bytes>", self.iv.len());
         let hmac = format!("<{} bytes>", self.hmac.len());
         let secret = format!("<{} bytes>", self.secret.len());
 
@@ -213,6 +238,7 @@ impl fmt::Debug for Header {
             .field("cipher", &self.cipher)
             .field("digest", &self.digest)
             .field("wrapping_key", &self.wrapping_key)
+            .field("iv", &iv)
             .field("hmac", &hmac)
             .field("secret", &secret)
             .finish()

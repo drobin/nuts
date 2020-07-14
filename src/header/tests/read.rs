@@ -31,6 +31,8 @@ struct Data {
     digest: u8,
     wkey: [u8; 16],
     wkey_size: usize,
+    iv: [u8; 8],
+    iv_size: usize,
     hmac: [u8; 8],
     hmac_size: usize,
     secret: [u8; 8],
@@ -44,6 +46,8 @@ const OK_DATA: Data = Data {
     digest: 1,
     wkey: [1, 0, 0, 0x12, 0x67, 0, 0, 0, 0x07, 1, 2, 3, 4, 5, 6, 7],
     wkey_size: 16,
+    iv: [0, 0, 0, 2, 8, 9, 0, 0],
+    iv_size: 6,
     hmac: [0, 0, 0, 3, 1, 2, 3, 0],
     hmac_size: 7,
     secret: [0, 0, 0, 4, 4, 5, 6, 7],
@@ -58,6 +62,7 @@ fn mk_data(d: &Data) -> Vec<u8> {
     data.push(d.cipher);
     data.push(d.digest);
     data.extend_from_slice(&d.wkey[0..d.wkey_size]);
+    data.extend_from_slice(&d.iv[0..d.iv_size]);
     data.extend_from_slice(&d.hmac[0..d.hmac_size]);
     data.extend_from_slice(&d.secret[0..d.secret_size]);
 
@@ -74,7 +79,7 @@ fn mk_data_size(d: &Data, size: usize) -> Vec<u8> {
 
 #[test]
 fn incomplete() {
-    for i in 1..41 {
+    for i in 1..47 {
         let data = mk_data_size(&OK_DATA, i);
         let err = format!("{:?}", Header::read(&data).unwrap_err());
         assert_eq!(err, "NoData");
@@ -110,7 +115,7 @@ fn cipher_none() {
         ..OK_DATA
     });
     let (header, offset) = Header::read(&data).unwrap();
-    assert_eq!(offset, 41);
+    assert_eq!(offset, 47);
     assert_eq!(header.cipher, Cipher::None);
 }
 
@@ -121,7 +126,7 @@ fn cipher_aes128_ctr() {
         ..OK_DATA
     });
     let (header, offset) = Header::read(&data).unwrap();
-    assert_eq!(offset, 41);
+    assert_eq!(offset, 47);
     assert_eq!(header.cipher, Cipher::Aes128Ctr);
 }
 
@@ -143,7 +148,7 @@ fn digest_none() {
         ..OK_DATA
     });
     let (header, offset) = Header::read(&data).unwrap();
-    assert_eq!(offset, 41);
+    assert_eq!(offset, 47);
     assert!(header.digest.is_none());
 }
 
@@ -154,7 +159,7 @@ fn digest_sha1() {
         ..OK_DATA
     });
     let (header, offset) = Header::read(&data).unwrap();
-    assert_eq!(offset, 41);
+    assert_eq!(offset, 47);
     assert_eq!(header.digest.unwrap(), Digest::Sha1);
 }
 
@@ -177,7 +182,7 @@ fn wrapping_key_none() {
         ..OK_DATA
     });
     let (header, offset) = Header::read(&data).unwrap();
-    assert_eq!(offset, 26);
+    assert_eq!(offset, 32);
     assert!(header.wrapping_key.is_none());
 }
 
@@ -185,7 +190,7 @@ fn wrapping_key_none() {
 fn wrapping_key_pbkdf2() {
     let data = mk_data(&OK_DATA);
     let (header, offset) = Header::read(&data).unwrap();
-    assert_eq!(offset, 41);
+    assert_eq!(offset, 47);
     assert_eq!(
         header.wrapping_key,
         Some(WrappingKeyData::Pbkdf2(Pbkdf2Data {
@@ -207,6 +212,26 @@ fn bad_wrapping_key() {
 }
 
 #[test]
+fn iv_empty() {
+    let data = mk_data(&Data {
+        iv: [0; 8],
+        iv_size: 4,
+        ..OK_DATA
+    });
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 45);
+    assert!(header.iv.is_empty());
+}
+
+#[test]
+fn iv_non_empty() {
+    let data = mk_data(&OK_DATA);
+    let (header, offset) = Header::read(&data).unwrap();
+    assert_eq!(offset, 47);
+    assert_eq!(header.iv, vec![8, 9]);
+}
+
+#[test]
 fn hmac_empty() {
     let data = mk_data(&Data {
         hmac: [0; 8],
@@ -214,7 +239,7 @@ fn hmac_empty() {
         ..OK_DATA
     });
     let (header, offset) = Header::read(&data).unwrap();
-    assert_eq!(offset, 38);
+    assert_eq!(offset, 44);
     assert!(header.hmac.is_empty());
 }
 
@@ -222,7 +247,7 @@ fn hmac_empty() {
 fn hmac_non_empty() {
     let data = mk_data(&OK_DATA);
     let (header, offset) = Header::read(&data).unwrap();
-    assert_eq!(offset, 41);
+    assert_eq!(offset, 47);
     assert_eq!(header.hmac, vec![1, 2, 3]);
 }
 
@@ -234,7 +259,7 @@ fn secret_empty() {
         ..OK_DATA
     });
     let (header, offset) = Header::read(&data).unwrap();
-    assert_eq!(offset, 37);
+    assert_eq!(offset, 43);
     assert!(header.secret.is_empty());
 }
 
@@ -242,6 +267,6 @@ fn secret_empty() {
 fn secret_non_empty() {
     let data = mk_data(&OK_DATA);
     let (header, offset) = Header::read(&data).unwrap();
-    assert_eq!(offset, 41);
+    assert_eq!(offset, 47);
     assert_eq!(header.secret, vec![4, 5, 6, 7]);
 }

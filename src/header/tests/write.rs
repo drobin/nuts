@@ -33,6 +33,7 @@ fn ok_header() -> Header {
             iterations: 4711,
             salt: vec![1, 2, 3],
         })),
+        iv: vec![13, 14, 15, 16, 17, 18],
         hmac: vec![4, 5, 6, 7],
         secret: vec![8, 9, 10, 11, 12],
     }
@@ -46,7 +47,7 @@ fn setup() -> (Header, [u8; 64]) {
 fn ok() {
     let (header, mut target) = setup();
 
-    assert_eq!(header.write(&mut target).unwrap(), 39);
+    assert_eq!(header.write(&mut target).unwrap(), 49);
     assert_eq!(target[0..7], [b'n', b'u', b't', b's', b'-', b'i', b'o']); // magic
     assert_eq!(target[7], 1); // revision
     assert_eq!(target[8], 1); // cipher
@@ -55,15 +56,16 @@ fn ok() {
         target[10..22],
         [1, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3]
     ); // pbkdf2
-    assert_eq!(target[22..30], [0x00, 0x00, 0x00, 0x04, 4, 5, 6, 7]); // hmac
-    assert_eq!(target[30..39], [0x00, 0x00, 0x00, 0x05, 8, 9, 10, 11, 12]); // secret
+    assert_eq!(target[22..32], [0x00, 0x00, 0x00, 0x06, 13, 14, 15, 16, 17, 18]); // iv
+    assert_eq!(target[32..40], [0x00, 0x00, 0x00, 0x04, 4, 5, 6, 7]); // hmac
+    assert_eq!(target[40..49], [0x00, 0x00, 0x00, 0x05, 8, 9, 10, 11, 12]); // secret
 }
 
 #[test]
 fn no_space() {
     let (header, mut target) = setup();
 
-    for i in 1..39 {
+    for i in 1..49 {
         let err = format!(
             "{:?}",
             header.write(&mut target.get_mut(..i).unwrap()).unwrap_err()
@@ -77,7 +79,7 @@ fn cipher_none() {
     let (mut header, mut target) = setup();
     header.cipher = Cipher::None;
 
-    assert_eq!(header.write(&mut target).unwrap(), 39);
+    assert_eq!(header.write(&mut target).unwrap(), 49);
     assert_eq!(target[8], 0);
 }
 
@@ -86,7 +88,7 @@ fn cipher_aes128_ctr() {
     let (mut header, mut target) = setup();
     header.cipher = Cipher::Aes128Ctr;
 
-    assert_eq!(header.write(&mut target).unwrap(), 39);
+    assert_eq!(header.write(&mut target).unwrap(), 49);
     assert_eq!(target[8], 1);
 }
 
@@ -95,7 +97,7 @@ fn digest_none() {
     let (mut header, mut target) = setup();
     header.digest = None;
 
-    assert_eq!(header.write(&mut target).unwrap(), 39);
+    assert_eq!(header.write(&mut target).unwrap(), 49);
     assert_eq!(target[9], 0xff);
 }
 
@@ -104,7 +106,7 @@ fn digest_sha1() {
     let (mut header, mut target) = setup();
     header.digest = Some(Digest::Sha1);
 
-    assert_eq!(header.write(&mut target).unwrap(), 39);
+    assert_eq!(header.write(&mut target).unwrap(), 49);
     assert_eq!(target[9], 1);
 }
 
@@ -113,7 +115,7 @@ fn wrapping_key_none() {
     let (mut header, mut target) = setup();
     header.wrapping_key = None;
 
-    assert_eq!(header.write(&mut target).unwrap(), 28);
+    assert_eq!(header.write(&mut target).unwrap(), 38);
     assert_eq!(target[10], 0xff);
 }
 
@@ -121,7 +123,7 @@ fn wrapping_key_none() {
 fn wrapping_key_pbkdf2() {
     let (header, mut target) = setup();
 
-    assert_eq!(header.write(&mut target).unwrap(), 39);
+    assert_eq!(header.write(&mut target).unwrap(), 49);
     assert_eq!(
         target[10..22],
         [1, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3]
@@ -129,20 +131,37 @@ fn wrapping_key_pbkdf2() {
 }
 
 #[test]
+fn iv_empty() {
+    let (mut header, mut target) = setup();
+    header.iv.clear();
+
+    assert_eq!(header.write(&mut target).unwrap(), 43);
+    assert_eq!(target[22..26], [0x00, 0x00, 0x00, 0x00]);
+}
+
+#[test]
+fn iv_non_empty() {
+    let (header, mut target) = setup();
+
+    assert_eq!(header.write(&mut target).unwrap(), 49);
+    assert_eq!(target[22..32], [0x00, 0x00, 0x00, 0x06, 13, 14, 15, 16, 17, 18]);
+}
+
+#[test]
 fn hmac_empty() {
     let (mut header, mut target) = setup();
     header.hmac.clear();
 
-    assert_eq!(header.write(&mut target).unwrap(), 35);
-    assert_eq!(target[22..26], [0x00, 0x00, 0x00, 0x00]);
+    assert_eq!(header.write(&mut target).unwrap(), 45);
+    assert_eq!(target[32..36], [0x00, 0x00, 0x00, 0x00]);
 }
 
 #[test]
 fn hmac_non_empty() {
     let (header, mut target) = setup();
 
-    assert_eq!(header.write(&mut target).unwrap(), 39);
-    assert_eq!(target[22..30], [0x00, 0x00, 0x00, 0x04, 4, 5, 6, 7]);
+    assert_eq!(header.write(&mut target).unwrap(), 49);
+    assert_eq!(target[32..40], [0x00, 0x00, 0x00, 0x04, 4, 5, 6, 7]);
 }
 
 #[test]
@@ -150,14 +169,14 @@ fn secret_empty() {
     let (mut header, mut target) = setup();
     header.secret.clear();
 
-    assert_eq!(header.write(&mut target).unwrap(), 34);
-    assert_eq!(target[30..34], [0x00, 0x00, 0x00, 0x00]);
+    assert_eq!(header.write(&mut target).unwrap(), 44);
+    assert_eq!(target[40..44], [0x00, 0x00, 0x00, 0x00]);
 }
 
 #[test]
 fn secret_non_empty() {
     let (header, mut target) = setup();
 
-    assert_eq!(header.write(&mut target).unwrap(), 39);
-    assert_eq!(target[30..39], [0x00, 0x00, 0x00, 0x05, 8, 9, 10, 11, 12]);
+    assert_eq!(header.write(&mut target).unwrap(), 49);
+    assert_eq!(target[40..49], [0x00, 0x00, 0x00, 0x05, 8, 9, 10, 11, 12]);
 }
