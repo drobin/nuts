@@ -20,49 +20,33 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::fmt;
-
-use crate::openssl;
-use crate::result::Result;
+use crate::error::Error;
+use crate::openssl::pbkdf2;
 use crate::types::Digest;
 
-#[derive(PartialEq)]
-pub struct Pbkdf2Data {
-    pub iterations: u32,
-    pub salt: Vec<u8>,
+#[test]
+fn digest_some() {
+    let wkey = pbkdf2(b"123", b"123", 1, Digest::Sha1).unwrap();
+    assert_eq!(
+        wkey,
+        [58, 68, 159, 34, 207, 49, 175, 62, 2, 158, 184, 166, 204, 23, 216, 35, 160, 87, 69, 60]
+    );
 }
 
-#[derive(PartialEq)]
-pub enum WrappingKeyData {
-    Pbkdf2(Pbkdf2Data),
-}
-
-impl WrappingKeyData {
-    pub fn pbkdf2(iterations: u32, salt: &Vec<u8>) -> WrappingKeyData {
-        let value = Pbkdf2Data {
-            iterations,
-            salt: salt.to_vec(),
-        };
-
-        WrappingKeyData::Pbkdf2(value)
-    }
-
-    pub fn key(&self, password: &[u8], digest: Digest) -> Result<Vec<u8>> {
-        let WrappingKeyData::Pbkdf2(value) = self;
-        openssl::pbkdf2(password, &value.salt, value.iterations, digest)
+#[test]
+fn empty_password() {
+    if let Error::WrappingKey(msg) = pbkdf2(b"", b"123", 1, Digest::Sha1).unwrap_err() {
+        assert_eq!(msg, "invalid password, cannot be empty");
+    } else {
+        panic!("invalid error");
     }
 }
 
-impl fmt::Debug for WrappingKeyData {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            WrappingKeyData::Pbkdf2(value) => {
-                let salt = format!("<{} bytes>", value.salt.len());
-                fmt.debug_struct("Pbkdf2Data")
-                    .field("iterations", &value.iterations)
-                    .field("salt", &salt)
-                    .finish()
-            }
-        }
+#[test]
+fn empty_salt() {
+    if let Error::WrappingKey(msg) = pbkdf2(b"123", b"", 1, Digest::Sha1).unwrap_err() {
+        assert_eq!(msg, "invalid salt, cannot be empty");
+    } else {
+        panic!("invalid error");
     }
 }

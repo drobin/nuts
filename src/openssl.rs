@@ -24,10 +24,11 @@
 mod tests;
 
 use ::openssl as ossl;
+use log::{debug, error};
 
 use crate::error::Error;
 use crate::result::Result;
-use crate::types::Digest;
+use crate::types::{Cipher, Digest};
 
 #[cfg(not(test))]
 pub fn random(target: &mut [u8]) -> Result<()> {
@@ -76,6 +77,31 @@ impl HMAC {
         let msg = format!("{}", stack);
         Err(Error::Hmac(msg))
     }
+}
+
+pub fn pbkdf2(pass: &[u8], salt: &[u8], iterations: u32, digest: Digest) -> Result<Vec<u8>> {
+    if pass.is_empty() {
+        let msg = format!("invalid password, cannot be empty");
+        error!("{}", msg);
+        return Err(Error::WrappingKey(msg));
+    }
+
+    if salt.is_empty() {
+        let msg = format!("invalid salt, cannot be empty");
+        error!("{}", msg);
+        return Err(Error::WrappingKey(msg));
+    }
+
+    let hash = digest_to_openssl(digest);
+    let mut key = vec![0; digest.size() as usize];
+
+    ossl::pkcs5::pbkdf2_hmac(pass, salt, iterations as usize, hash, &mut key).or_else(|stack| {
+        let msg = format!("{}", stack);
+        error!("{}", msg);
+        Err(Error::WrappingKey(msg))
+    })?;
+
+    Ok(key)
 }
 
 pub fn cipher(
