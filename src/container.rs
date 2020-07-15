@@ -22,23 +22,34 @@
 
 pub(crate) mod inner;
 
+use std::ops;
+
 use crate::container::inner::Inner;
 use crate::error::Error;
 use crate::result::Result;
 use crate::types::{Cipher, Digest, DiskType, Options};
 
 pub struct Container {
+    password: Option<Vec<u8>>,
     inner: Option<Inner>,
 }
 
 impl Container {
     pub fn new() -> Container {
-        Container { inner: None }
+        Container {
+            password: None,
+            inner: None,
+        }
+    }
+
+    pub fn set_password(&mut self, password: &[u8]) {
+        self.password = Some(password.to_vec());
     }
 
     pub fn create(&mut self, path: &str, options: &Options) -> Result<()> {
         if self.inner.is_none() {
-            self.inner = Some(Inner::create(path, options)?);
+            let password = self.password.as_ref().map(|p| p.as_slice());
+            self.inner = Some(Inner::create(path, password, options)?);
             Ok(())
         } else {
             Err(Error::Opened)
@@ -47,7 +58,8 @@ impl Container {
 
     pub fn open(&mut self, path: &str) -> Result<()> {
         if self.inner.is_none() {
-            self.inner = Some(Inner::open(path)?);
+            let password = self.password.as_ref().map(|p| p.as_slice());
+            self.inner = Some(Inner::open(path, password)?);
             Ok(())
         } else {
             Err(Error::Opened)
@@ -88,5 +100,15 @@ impl Container {
         self.inner
             .as_ref()
             .map_or(Err(Error::Closed), |inner| Ok(inner.io.ablocks))
+    }
+}
+
+impl ops::Drop for Container {
+    fn drop(&mut self) {
+        if let Some(vec) = self.password.as_mut() {
+            for e in vec.iter_mut() {
+                *e = 0;
+            }
+        }
     }
 }

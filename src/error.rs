@@ -109,6 +109,9 @@ pub enum Error {
     /// Not enough space available to write into a target.
     NoSpace,
 
+    /// A password is needed by the current cipher.
+    NoPassword,
+
     /// An error occured while generating some data.
     ///
     /// It has a message, that describes the failure.

@@ -23,6 +23,7 @@
 use log::debug;
 use std::fs::File;
 
+use crate::error::{Error, InvalHeaderKind};
 use crate::header::Header;
 use crate::io::IO;
 use crate::result::Result;
@@ -36,9 +37,9 @@ pub struct Inner {
 }
 
 impl Inner {
-    pub fn create(path: &str, options: &Options) -> Result<Inner> {
+    pub fn create(path: &str, password: Option<&[u8]>, options: &Options) -> Result<Inner> {
         let secret = Secret::create(options)?;
-        let header = Inner::create_header(&secret, options)?;
+        let header = Inner::create_header(&secret, password, options)?;
 
         debug!("secret: {:?}", secret);
         debug!("header: {:?}", header);
@@ -58,9 +59,9 @@ impl Inner {
         Ok(inner)
     }
 
-    pub fn open(path: &str) -> Result<Inner> {
+    pub fn open(path: &str, password: Option<&[u8]>) -> Result<Inner> {
         let mut fd = File::open(path)?;
-        let (header, secret) = Inner::open_header(&mut fd)?;
+        let (header, secret) = Inner::open_header(&mut fd, password)?;
         let io = IO::new(secret.bsize, secret.blocks, secret.dtype, &mut fd)?;
 
         debug!("secret: {:?}", secret);
@@ -69,11 +70,15 @@ impl Inner {
         Ok(Inner { header, secret, io })
     }
 
-    fn create_header(secret: &Secret, options: &Options) -> Result<Header> {
+    fn create_header(
+        secret: &Secret,
+        password: Option<&[u8]>,
+        options: &Options,
+    ) -> Result<Header> {
         let mut header = Header::create(options)?;
+        let wrapping_key = Inner::calculate_wrapping_key(&header, password)?;
 
-        header.write_secret(secret, &[9; 16])?;
-
+        header.write_secret(secret, &wrapping_key)?;
         secret.validate(header.cipher, header.digest)?;
         header.validate()?;
 
@@ -89,7 +94,7 @@ impl Inner {
         io.write(&buf[..end], fd, 0)
     }
 
-    fn open_header(fd: &mut File) -> Result<(Header, Secret)> {
+    fn open_header(fd: &mut File, password: Option<&[u8]>) -> Result<(Header, Secret)> {
         // Create a temp. block with bsize = BLOCK_MIN_SIZE.
         // This is enough to read the header.
         let io = IO::new(BLOCK_MIN_SIZE, 1, DiskType::ThinZero, fd)?;
@@ -99,11 +104,31 @@ impl Inner {
         io.read(fd, &mut buf, 0)?;
 
         let header = Header::read(&buf).map(|(header, _)| header)?;
-        let secret = header.read_secret(&[9; 16]).map(|(secret, _)| secret)?;
+        let wrapping_key = Inner::calculate_wrapping_key(&header, password)?;
+
+        let secret = header
+            .read_secret(&wrapping_key)
+            .map(|(secret, _)| secret)?;
 
         header.validate()?;
         secret.validate(header.cipher, header.digest)?;
 
         Ok((header, secret))
+    }
+
+    fn calculate_wrapping_key(header: &Header, password: Option<&[u8]>) -> Result<Vec<u8>> {
+        let wrapping_key = if let Some(wkey) = header.wrapping_key.as_ref() {
+            let digest = header
+                .digest
+                .ok_or(Error::InvalHeader(InvalHeaderKind::InvalDigest))?;
+            let password = password.ok_or(Error::NoPassword)?;
+            wkey.key(password, digest)?
+        } else {
+            vec![]
+        };
+
+        debug!("wrapping_key calculated, {} bytes", wrapping_key.len());
+
+        Ok(wrapping_key)
     }
 }
