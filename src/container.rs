@@ -20,14 +20,22 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub(crate) mod inner;
-
+use log::debug;
+use std::fs::File;
 use std::ops;
 
-use crate::container::inner::Inner;
-use crate::error::Error;
+use crate::error::{Error, InvalHeaderKind};
+use crate::header::Header;
+use crate::io::IO;
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType, Options};
+use crate::secret::Secret;
+use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
+
+struct Inner {
+    pub header: Header,
+    pub secret: Secret,
+    pub io: IO,
+}
 
 pub struct Container {
     password: Option<Vec<u8>>,
@@ -49,7 +57,26 @@ impl Container {
     pub fn create(&mut self, path: &str, options: &Options) -> Result<()> {
         if self.inner.is_none() {
             let password = self.password.as_ref().map(|p| p.as_slice());
-            self.inner = Some(Inner::create(path, password, options)?);
+            let secret = Secret::create(options)?;
+            let header = Container::create_header(&secret, password, options)?;
+
+            debug!("secret: {:?}", secret);
+            debug!("header: {:?}", header);
+
+            let mut fd = File::create(path)?;
+            let mut io = IO::new(options.bsize(), options.blocks(), options.dtype, &mut fd)?;
+
+            Container::dump_header(&header, &mut io, &mut fd)?;
+
+            let inner = Inner { header, secret, io };
+
+            debug!(
+                "allocating container, dtype = {}, bsize = {}, blocks = {}",
+                inner.io.dtype, inner.io.bsize, inner.io.blocks
+            );
+
+            self.inner = Some(inner);
+
             Ok(())
         } else {
             Err(Error::Opened)
@@ -59,7 +86,15 @@ impl Container {
     pub fn open(&mut self, path: &str) -> Result<()> {
         if self.inner.is_none() {
             let password = self.password.as_ref().map(|p| p.as_slice());
-            self.inner = Some(Inner::open(path, password)?);
+            let mut fd = File::open(path)?;
+            let (header, secret) = Container::open_header(&mut fd, password)?;
+            let io = IO::new(secret.bsize, secret.blocks, secret.dtype, &mut fd)?;
+
+            debug!("secret: {:?}", secret);
+            debug!("header: {:?}", header);
+
+            self.inner = Some(Inner { header, secret, io });
+
             Ok(())
         } else {
             Err(Error::Opened)
@@ -100,6 +135,68 @@ impl Container {
         self.inner
             .as_ref()
             .map_or(Err(Error::Closed), |inner| Ok(inner.io.ablocks))
+    }
+
+    fn create_header(
+        secret: &Secret,
+        password: Option<&[u8]>,
+        options: &Options,
+    ) -> Result<Header> {
+        let mut header = Header::create(options)?;
+        let wrapping_key = Container::calculate_wrapping_key(&header, password)?;
+
+        header.write_secret(secret, &wrapping_key)?;
+        secret.validate(header.cipher, header.digest)?;
+        header.validate()?;
+
+        Ok(header)
+    }
+
+    fn dump_header(header: &Header, io: &mut IO, fd: &mut File) -> Result<u32> {
+        let mut buf = [0; BLOCK_MIN_SIZE as usize];
+
+        let offset = header.write(&mut buf)?;
+        let end = offset as usize;
+
+        io.write(&buf[..end], fd, 0)
+    }
+
+    fn open_header(fd: &mut File, password: Option<&[u8]>) -> Result<(Header, Secret)> {
+        // Create a temp. block with bsize = BLOCK_MIN_SIZE.
+        // This is enough to read the header.
+        let io = IO::new(BLOCK_MIN_SIZE, 1, DiskType::ThinZero, fd)?;
+
+        // Read the binary header into `buf`.
+        let mut buf = [0; BLOCK_MIN_SIZE as usize];
+        io.read(fd, &mut buf, 0)?;
+
+        let header = Header::read(&buf).map(|(header, _)| header)?;
+        let wrapping_key = Container::calculate_wrapping_key(&header, password)?;
+
+        let secret = header
+            .read_secret(&wrapping_key)
+            .map(|(secret, _)| secret)?;
+
+        header.validate()?;
+        secret.validate(header.cipher, header.digest)?;
+
+        Ok((header, secret))
+    }
+
+    fn calculate_wrapping_key(header: &Header, password: Option<&[u8]>) -> Result<Vec<u8>> {
+        let wrapping_key = if let Some(wkey) = header.wrapping_key.as_ref() {
+            let digest = header
+                .digest
+                .ok_or(Error::InvalHeader(InvalHeaderKind::InvalDigest))?;
+            let password = password.ok_or(Error::NoPassword)?;
+            wkey.key(password, digest)?
+        } else {
+            vec![]
+        };
+
+        debug!("wrapping_key calculated, {} bytes", wrapping_key.len());
+
+        Ok(wrapping_key)
     }
 }
 
