@@ -29,6 +29,8 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
 use log::LevelFilter;
 
+use rpassword::read_password_from_tty;
+
 use nuts::container::Container;
 use nuts::error::Error;
 use nuts::result::Result;
@@ -132,6 +134,11 @@ macro_rules! say {
     };
 }
 
+fn ask_for_password() -> Result<Vec<u8>> {
+    let password = read_password_from_tty(Some("Enter a password:"))?;
+    Ok(password.as_bytes().to_vec())
+}
+
 fn main() -> Result<()> {
     init_logger();
 
@@ -160,7 +167,7 @@ fn info(sub: &ArgMatches) -> Result<()> {
     let path = sub.value_of("PATH").unwrap();
     let mut container = Container::new();
 
-    container.set_password_callback(|| Ok(vec![1, 2, 3]));
+    container.set_password_callback(ask_for_password);
     container.open(path)?;
 
     let digest = container
@@ -240,7 +247,7 @@ fn create(sub: &ArgMatches) -> Result<()> {
 
     let mut container = Container::new();
 
-    container.set_password_callback(|| Ok(vec![1, 2, 3]));
+    container.set_password_callback(ask_for_password);
     container.create(path, &options)?;
 
     let digest = container
