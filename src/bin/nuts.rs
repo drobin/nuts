@@ -160,7 +160,7 @@ fn info(sub: &ArgMatches) -> Result<()> {
     let path = sub.value_of("PATH").unwrap();
     let mut container = Container::new();
 
-    container.set_password(b"123");
+    container.set_password_callback(|| Ok(vec![1, 2, 3]));
     container.open(path)?;
 
     let digest = container
@@ -240,7 +240,7 @@ fn create(sub: &ArgMatches) -> Result<()> {
 
     let mut container = Container::new();
 
-    container.set_password(b"123");
+    container.set_password_callback(|| Ok(vec![1, 2, 3]));
     container.create(path, &options)?;
 
     let digest = container

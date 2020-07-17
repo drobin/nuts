@@ -22,7 +22,6 @@
 
 use log::debug;
 use std::fs::File;
-use std::ops;
 
 use crate::error::{Error, InvalHeaderKind};
 use crate::header::Header;
@@ -30,6 +29,7 @@ use crate::io::IO;
 use crate::result::Result;
 use crate::secret::Secret;
 use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
+use crate::utils::SecureVec;
 
 struct Inner {
     pub header: Header,
@@ -38,27 +38,26 @@ struct Inner {
 }
 
 pub struct Container {
-    password: Option<Vec<u8>>,
+    callback: Option<Box<dyn Fn() -> Result<Vec<u8>>>>,
     inner: Option<Inner>,
 }
 
 impl Container {
     pub fn new() -> Container {
         Container {
-            password: None,
+            callback: None,
             inner: None,
         }
     }
 
-    pub fn set_password(&mut self, password: &[u8]) {
-        self.password = Some(password.to_vec());
+    pub fn set_password_callback(&mut self, callback: impl Fn() -> Result<Vec<u8>> + 'static) {
+        self.callback = Some(Box::new(callback));
     }
 
     pub fn create(&mut self, path: &str, options: &Options) -> Result<()> {
         if self.inner.is_none() {
-            let password = self.password.as_ref().map(|p| p.as_slice());
             let secret = Secret::create(options)?;
-            let header = Container::create_header(&secret, password, options)?;
+            let header = self.create_header(&secret, options)?;
 
             debug!("secret: {:?}", secret);
             debug!("header: {:?}", header);
@@ -85,9 +84,8 @@ impl Container {
 
     pub fn open(&mut self, path: &str) -> Result<()> {
         if self.inner.is_none() {
-            let password = self.password.as_ref().map(|p| p.as_slice());
             let mut fd = File::open(path)?;
-            let (header, secret) = Container::open_header(&mut fd, password)?;
+            let (header, secret) = self.open_header(&mut fd)?;
             let io = IO::new(secret.bsize, secret.blocks, secret.dtype, &mut fd)?;
 
             debug!("secret: {:?}", secret);
@@ -137,13 +135,9 @@ impl Container {
             .map_or(Err(Error::Closed), |inner| Ok(inner.io.ablocks))
     }
 
-    fn create_header(
-        secret: &Secret,
-        password: Option<&[u8]>,
-        options: &Options,
-    ) -> Result<Header> {
+    fn create_header(&self, secret: &Secret, options: &Options) -> Result<Header> {
         let mut header = Header::create(options)?;
-        let wrapping_key = Container::calculate_wrapping_key(&header, password)?;
+        let wrapping_key = self.get_wrapping_key(&header)?;
 
         header.write_secret(secret, &wrapping_key)?;
         secret.validate(header.cipher, header.digest)?;
@@ -161,7 +155,7 @@ impl Container {
         io.write(&buf[..end], fd, 0)
     }
 
-    fn open_header(fd: &mut File, password: Option<&[u8]>) -> Result<(Header, Secret)> {
+    fn open_header(&self, fd: &mut File) -> Result<(Header, Secret)> {
         // Create a temp. block with bsize = BLOCK_MIN_SIZE.
         // This is enough to read the header.
         let io = IO::new(BLOCK_MIN_SIZE, 1, DiskType::ThinZero, fd)?;
@@ -171,7 +165,7 @@ impl Container {
         io.read(fd, &mut buf, 0)?;
 
         let header = Header::read(&buf).map(|(header, _)| header)?;
-        let wrapping_key = Container::calculate_wrapping_key(&header, password)?;
+        let wrapping_key = self.get_wrapping_key(&header)?;
 
         let secret = header
             .read_secret(&wrapping_key)
@@ -183,13 +177,14 @@ impl Container {
         Ok((header, secret))
     }
 
-    fn calculate_wrapping_key(header: &Header, password: Option<&[u8]>) -> Result<Vec<u8>> {
+    fn get_wrapping_key(&self, header: &Header) -> Result<Vec<u8>> {
         let wrapping_key = if let Some(wkey) = header.wrapping_key.as_ref() {
             let digest = header
                 .digest
                 .ok_or(Error::InvalHeader(InvalHeaderKind::InvalDigest))?;
-            let password = password.ok_or(Error::NoPassword)?;
-            wkey.key(password, digest)?
+            let callback = self.callback.as_ref().ok_or(Error::NoPassword)?;
+            let password = SecureVec::new((callback)()?);
+            wkey.key(&password, digest)?
         } else {
             vec![]
         };
@@ -197,15 +192,5 @@ impl Container {
         debug!("wrapping_key calculated, {} bytes", wrapping_key.len());
 
         Ok(wrapping_key)
-    }
-}
-
-impl ops::Drop for Container {
-    fn drop(&mut self) {
-        if let Some(vec) = self.password.as_mut() {
-            for e in vec.iter_mut() {
-                *e = 0;
-            }
-        }
     }
 }
