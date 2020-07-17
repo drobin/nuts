@@ -20,14 +20,54 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub(crate) mod binary;
-pub mod container;
-pub mod error;
-pub(crate) mod header;
-pub(crate) mod io;
-pub(crate) mod openssl;
-pub mod result;
-pub(crate) mod secret;
-pub mod types;
-pub(crate) mod utils;
-pub(crate) mod wkey;
+use std::ops::{Deref, DerefMut};
+
+pub struct SecureVec<T>
+where
+    T: std::default::Default,
+{
+    inner: Vec<T>,
+}
+
+impl<T> SecureVec<T>
+where
+    T: std::default::Default,
+{
+    pub fn new(vec: Vec<T>) -> SecureVec<T> {
+        SecureVec { inner: vec }
+    }
+}
+
+impl<T> Drop for SecureVec<T>
+where
+    T: std::default::Default,
+{
+    fn drop(&mut self) {
+        self.inner
+            .resize_with(self.inner.capacity(), Default::default);
+
+        for elem in self.inner.iter_mut() {
+            *elem = Default::default();
+        }
+    }
+}
+
+impl<T> Deref for SecureVec<T>
+where
+    T: std::default::Default,
+{
+    type Target = Vec<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T> DerefMut for SecureVec<T>
+where
+    T: std::default::Default,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
