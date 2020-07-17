@@ -50,6 +50,25 @@ impl Container {
         }
     }
 
+    /// Assigns a password callback to the container.
+    ///
+    /// A password is needed, when encryption is enabled for the container.
+    /// Based on the password a wrapping key is generated, which encrypts the
+    /// secret part of the header. If encryption is enabled but no password
+    /// callback is assigned, an [`Error::NoPassword`] error is raised. If
+    /// encryption is disabled, no password is needed and an assigned callback
+    /// is never called.
+    ///
+    /// The callback returns a [`Vec<u8>`] wrapped into a [`Result`]. On
+    /// success the callback returns the password (represented as an
+    /// [`Vec<u8>`]) wrapped into an [`Ok`]. On any failure an [`Err`] value
+    /// must be returned.
+    ///
+    /// [`Vec<u8>`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
+    /// [`Error::NoPassword`]: ../error/enum.Error.html#variant.NoPassword
+    /// [`Result`]: ../result/type.Result.html
+    /// [`Ok`]: https://doc.rust-lang.org/std/result/enum.Result.html#variant.Ok
+    /// [`Err`]: https://doc.rust-lang.org/std/result/enum.Result.html#variant.Err
     pub fn set_password_callback(&mut self, callback: impl Fn() -> Result<Vec<u8>> + 'static) {
         self.callback = Some(Box::new(callback));
     }
@@ -99,36 +118,109 @@ impl Container {
         }
     }
 
+    /// Returns the [`Cipher`] used by the container.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed.
+    ///
+    /// [`Cipher`]: ../types/enum.Cipher.html
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn cipher(&self) -> Result<Cipher> {
         self.inner
             .as_ref()
             .map_or(Err(Error::Closed), |inner| Ok(inner.header.cipher))
     }
 
+    /// Returns the [`Digest`] used by the container.
+    ///
+    /// If encryption is enabled (the cipher is set to something other than
+    /// [`Cipher::None`]), the digest is wrapped into a [`Some`] value. If the
+    /// cipher is set to [`Cipher::None`], no digest is used and a [`None`]
+    /// value is returned.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed.
+    ///
+    /// [`Digest`]: ../types/enum.Digest.html
+    /// [`Cipher::None`]: ../types/enum.Cipher.html#variant.None
+    /// [`Some`]: https://doc.rust-lang.org/std/option/enum.Option.html#Some.v
+    /// [`None`]: https://doc.rust-lang.org/std/option/enum.Option.html#None.v
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn digest(&self) -> Result<Option<Digest>> {
         self.inner
             .as_ref()
             .map_or(Err(Error::Closed), |inner| Ok(inner.header.digest))
     }
 
+    /// Returns the [`DiskType`] used by the container.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed.
+    ///
+    /// [`DiskType`]: ../types/enum.DiskType.html
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn dtype(&self) -> Result<DiskType> {
         self.inner
             .as_ref()
             .map_or(Err(Error::Closed), |inner| Ok(inner.secret.dtype))
     }
 
+    /// Returns the block size of the container.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed.
+    ///
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn bsize(&self) -> Result<u32> {
         self.inner
             .as_ref()
             .map_or(Err(Error::Closed), |inner| Ok(inner.secret.bsize))
     }
 
+    /// Returns the number of blocks which can be allocated for the container.
+    ///
+    /// Multiplied with the [`block size`] it gives you the size of the
+    /// container.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed.
+    ///
+    /// [`block size`]: #method.bsize
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn blocks(&self) -> Result<u64> {
         self.inner
             .as_ref()
             .map_or(Err(Error::Closed), |inner| Ok(inner.secret.blocks))
     }
 
+    /// Returns the number of currently allocated blocks of the container.
+    ///
+    /// This is the number of blocks, which are physically available. It
+    /// depends on the [`DiskType`] of the container. If you have a fat
+    /// container, then all blocks are allocated during creation of the
+    /// container, and the number of allocated blocks is equal to the
+    /// [`number of blocks`]. If you have a thin container, then the number of
+    /// allocated block can be increased during the lifetime of the container -
+    /// depending on which blocks are written.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed.
+    ///
+    /// [`DiskType`]: ../types/enum.DiskType.html
+    /// [`number of blocks`]: #method.blocks
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn ablocks(&self) -> Result<u64> {
         self.inner
             .as_ref()
