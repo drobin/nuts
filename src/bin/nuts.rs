@@ -168,7 +168,7 @@ fn info(sub: &ArgMatches) -> Result<()> {
     let mut container = Container::new();
 
     container.set_password_callback(ask_for_password);
-    container.open(path)?;
+    container.open(path, None)?;
 
     let digest = container
         .digest()?

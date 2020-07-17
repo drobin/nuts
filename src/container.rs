@@ -101,7 +101,39 @@ impl Container {
         }
     }
 
-    pub fn open(&mut self, path: &str) -> Result<()> {
+    /// Opens an existing container.
+    ///
+    /// Opens a container, which is stored in a file located in `path`.
+    ///
+    /// The first physical block contains the header, which stores all relevant
+    /// data needed to open the container. If encryption is turned on, then you
+    /// will be asked for a password over the [`password callback`].
+    ///
+    /// If [`Some`] userdata is passed to the method, the wrapped vector is
+    /// filled with the userdata stored in the header. If no userdata are
+    /// stored in the container, the wrapped vector will be empty. If a
+    /// [`None`] value is passed to the `userdata` argument, the userdata
+    /// stored in the header are ignored.
+    ///
+    /// # Errors
+    ///
+    /// The container must be closed before calling this method. If you call
+    /// this method on an open container, an [`Error::Opened`] error is
+    /// returned.
+    ///
+    /// If encryption is enabled but no password callback is assigned or the
+    /// assigned callback returns an error, an [`Error::NoPassword`] error is
+    /// returned.
+    ///
+    /// Further errors are listed in the [`Error`] type.
+    ///
+    /// [`password callback`]: #method.set_password_callback
+    /// [`Some`]: https://doc.rust-lang.org/std/option/enum.Option.html#Some.v
+    /// [`None`]: https://doc.rust-lang.org/std/option/enum.Option.html#None.v
+    /// [`Error`]: ../error/enum.Error.html
+    /// [`Error::Opened`]: ../error/enum.Error.html#variant.Opened
+    /// [`Error::NoPassword`]: ../error/enum.Error.html#variant.NoPassword
+    pub fn open(&mut self, path: &str, userdata: Option<&mut Vec<u8>>) -> Result<()> {
         if self.inner.is_none() {
             let mut fd = File::open(path)?;
             let (header, secret) = self.open_header(&mut fd)?;
@@ -109,6 +141,11 @@ impl Container {
 
             debug!("secret: {:?}", secret);
             debug!("header: {:?}", header);
+
+            if let Some(userdata) = userdata {
+                userdata.clear();
+                userdata.extend(&secret.userdata);
+            };
 
             self.inner = Some(Inner { header, secret, io });
 
