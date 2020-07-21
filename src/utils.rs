@@ -20,6 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
+use std::fmt;
 use std::ops::{Deref, DerefMut};
 
 pub struct SecureVec<T>
@@ -69,5 +73,41 @@ where
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
+    }
+}
+
+impl<T> PartialEq<Vec<T>> for SecureVec<T>
+where
+    T: std::default::Default + PartialEq,
+{
+    fn eq(&self, other: &Vec<T>) -> bool {
+        self.inner.eq(other)
+    }
+}
+
+impl<T> PartialEq<[T]> for SecureVec<T>
+where
+    T: std::default::Default + PartialEq,
+{
+    fn eq(&self, other: &[T]) -> bool {
+        self.inner.eq(&other)
+    }
+}
+
+impl<T> PartialEq<&[T]> for SecureVec<T>
+where
+    T: std::default::Default + PartialEq,
+{
+    fn eq(&self, other: &&[T]) -> bool {
+        self.inner.eq(other)
+    }
+}
+
+impl<T> fmt::Debug for SecureVec<T>
+where
+    T: fmt::Debug + std::default::Default,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&self.inner, f)
     }
 }

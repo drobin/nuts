@@ -21,13 +21,4 @@
 // IN THE SOFTWARE.
 
 #[cfg(test)]
-mod create;
-
-#[cfg(test)]
-mod read;
-
-#[cfg(test)]
-mod validate;
-
-#[cfg(test)]
-mod write;
+mod secure_vec;

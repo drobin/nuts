@@ -90,9 +90,9 @@ fn ok() {
     assert_eq!(secret.dtype, DiskType::FatZero);
     assert_eq!(secret.bsize, 512);
     assert_eq!(secret.blocks, 4711);
-    assert_eq!(secret.master_key, [1]);
-    assert_eq!(secret.master_iv, [2, 3]);
-    assert_eq!(secret.hmac_key, [4, 5, 6]);
+    assert_eq!(secret.master_key, vec![1]);
+    assert_eq!(secret.master_iv, vec![2, 3]);
+    assert_eq!(secret.hmac_key, vec![4, 5, 6]);
     assert_eq!(secret.userdata, [7, 8, 9, 10]);
 }
 

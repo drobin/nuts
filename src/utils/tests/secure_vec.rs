@@ -20,14 +20,46 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod create;
+use crate::utils::SecureVec;
 
-#[cfg(test)]
-mod read;
+#[test]
+fn no_args() {
+    let v: SecureVec<u8> = secure_vec!();
+    assert!(v.is_empty());
+}
 
-#[cfg(test)]
-mod validate;
+#[test]
+fn empty() {
+    let v: SecureVec<u8> = secure_vec![];
+    assert!(v.is_empty());
+}
 
-#[cfg(test)]
-mod write;
+#[test]
+fn from_empty_array() {
+    let v = secure_vec![9; 0];
+    assert!(v.is_empty());
+}
+
+#[test]
+fn from_array() {
+    let v = secure_vec![9; 3];
+    assert_eq!(v, vec![9, 9, 9]);
+}
+
+#[test]
+fn from_elems() {
+    let v = secure_vec![9, 9, 9];
+    assert_eq!(v, vec![9, 9, 9]);
+}
+
+#[test]
+fn from_empty_vec() {
+    let v: SecureVec<u8> = SecureVec::new(vec![]);
+    assert!(v.is_empty());
+}
+
+#[test]
+fn from_vec() {
+    let v: SecureVec<u8> = SecureVec::new(vec![9; 3]);
+    assert_eq!(v, vec![9, 9, 9]);
+}

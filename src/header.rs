@@ -126,37 +126,19 @@ impl Header {
     }
 
     pub fn write_secret(&mut self, secret: &Secret, wrapping_key: &[u8]) -> Result<u32> {
-        let mut buf = [0; BLOCK_MIN_SIZE as usize];
+        let mut buf = secure_vec![0; BLOCK_MIN_SIZE as usize];
         let offset = secret.write(&mut buf)?;
 
         let plain_secret = &buf[..offset as usize];
-        let result = self.write_plain_secret(secret, plain_secret, wrapping_key);
-
-        // In any case clear the buffer, which contains the plain secret.
-        for elem in buf.iter_mut() {
-            *elem = 0;
-        }
-
-        if result.is_ok() {
-            Ok(offset)
-        } else {
-            Err(result.unwrap_err())
-        }
-    }
-
-    fn write_plain_secret(
-        &mut self,
-        secret: &Secret,
-        plain_secret: &[u8],
-        wrapping_key: &[u8],
-    ) -> Result<()> {
         let cipher_secret =
             openssl::cipher(self.cipher, true, &plain_secret, wrapping_key, &self.iv)?;
 
         self.secret.clear();
         self.secret.extend(&cipher_secret);
 
-        self.create_hmac(secret, plain_secret)
+        self.create_hmac(secret, plain_secret)?;
+
+        Ok(offset)
     }
 
     pub fn validate(&self) -> Result<()> {

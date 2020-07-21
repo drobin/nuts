@@ -77,9 +77,9 @@ fn cipher_none_write_secret() {
         dtype: DiskType::FatRandom,
         bsize: 1,
         blocks: 2,
-        master_key: vec![1],
-        master_iv: vec![2, 3],
-        hmac_key: vec![4, 5, 6],
+        master_key: secure_vec![1],
+        master_iv: secure_vec![2, 3],
+        hmac_key: secure_vec![4, 5, 6],
         userdata: vec![7, 8, 9, 10],
     };
 
@@ -103,9 +103,9 @@ fn cipher_some_write_secret() {
         dtype: DiskType::FatRandom,
         bsize: 1,
         blocks: 2,
-        master_key: vec![1],
-        master_iv: vec![2, 3],
-        hmac_key: vec![4, 5, 6],
+        master_key: secure_vec![1],
+        master_iv: secure_vec![2, 3],
+        hmac_key: secure_vec![4, 5, 6],
         userdata: vec![7, 8, 9, 10],
     };
 

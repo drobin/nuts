@@ -25,29 +25,21 @@ mod tests;
 
 use log::error;
 use std::fmt;
-use std::ops;
 
 use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
 use crate::openssl;
 use crate::result::Result;
 use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
-
-macro_rules! reset_slice {
-    ($buf:expr) => {
-        for e in $buf.iter_mut() {
-            *e = 0;
-        }
-    };
-}
+use crate::utils::SecureVec;
 
 pub struct Secret {
     pub dtype: DiskType,
     pub bsize: u32,
     pub blocks: u64,
-    pub master_key: Vec<u8>,
-    pub master_iv: Vec<u8>,
-    pub hmac_key: Vec<u8>,
+    pub master_key: SecureVec<u8>,
+    pub master_iv: SecureVec<u8>,
+    pub hmac_key: SecureVec<u8>,
     pub userdata: Vec<u8>,
 }
 
@@ -61,9 +53,9 @@ impl Secret {
             dtype: options.dtype,
             bsize: options.bsize(),
             blocks: options.blocks(),
-            master_key: vec![0; key_size],
-            master_iv: vec![0; iv_size],
-            hmac_key: vec![0; hmac_size],
+            master_key: secure_vec![0; key_size],
+            master_iv: secure_vec![0; iv_size],
+            hmac_key: secure_vec![0; hmac_size],
             userdata: vec![],
         };
 
@@ -89,9 +81,9 @@ impl Secret {
             dtype,
             bsize,
             blocks,
-            master_key,
-            master_iv,
-            hmac_key,
+            master_key: SecureVec::new(master_key),
+            master_iv: SecureVec::new(master_iv),
+            hmac_key: SecureVec::new(hmac_key),
             userdata,
         };
 
@@ -197,18 +189,6 @@ impl Secret {
         } else {
             Ok(())
         }
-    }
-
-    fn zero(&mut self) {
-        reset_slice!(self.master_key);
-        reset_slice!(self.master_iv);
-        reset_slice!(self.hmac_key);
-    }
-}
-
-impl ops::Drop for Secret {
-    fn drop(&mut self) {
-        self.zero();
     }
 }
 
