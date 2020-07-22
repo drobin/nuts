@@ -20,13 +20,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[macro_use]
-pub mod macros;
+use std::convert::TryFrom;
+use std::result::Result;
 
-pub mod actions;
-pub mod logger;
-pub mod utils;
-
-pub mod contrib {
-    pub mod clap;
+pub fn is_size<T>(s: String) -> Result<(), String>
+where
+    T: TryFrom<u64>,
+{
+    crate::tool::utils::to_size::<T>(&s).map(|_| ())
 }

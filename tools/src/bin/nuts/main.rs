@@ -31,13 +31,6 @@ use nuts::container::Container;
 use nuts::result::Result;
 use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
-pub fn is_size<T>(s: String) -> std::result::Result<(), String>
-where
-    T: std::convert::TryFrom<u64>,
-{
-    tool::utils::to_size::<T>(&s).map(|_| ())
-}
-
 fn ask_for_password() -> Result<Vec<u8>> {
     let password = read_password_from_tty(Some("Enter a password:"))?;
     Ok(password.as_bytes().to_vec())
