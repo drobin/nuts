@@ -25,7 +25,7 @@ use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 use nuts::container::Container;
 use nuts::result::Result;
 
-use crate::tool as tool;
+use crate::tool;
 
 pub fn make<'a, 'b>() -> App<'a, 'b> {
     let userdata_help = "If set, dumps the userdata stored in the header.";
@@ -51,24 +51,24 @@ pub fn make<'a, 'b>() -> App<'a, 'b> {
 }
 
 pub fn run(sub: &ArgMatches) -> Result<()> {
-  tool::logger::update(sub);
+    tool::logger::update(sub);
 
-  let path = sub.value_of("PATH").unwrap();
-  let mut container = Container::new();
+    let path = sub.value_of("PATH").unwrap();
+    let mut container = Container::new();
 
-  container.set_password_callback(tool::utils::ask_for_password);
-  container.open(path, None)?;
+    container.set_password_callback(tool::utils::ask_for_password);
+    container.open(path, None)?;
 
-  let digest = container
-      .digest()?
-      .map_or_else(|| String::from("none"), |d| d.to_string());
+    let digest = container
+        .digest()?
+        .map_or_else(|| String::from("none"), |d| d.to_string());
 
-  say!(sub, "cipher:           {}", container.cipher()?);
-  say!(sub, "digest:           {}", digest);
-  say!(sub, "disk type:        {}", container.dtype()?);
-  say!(sub, "block size:       {}", container.bsize()?);
-  say!(sub, "blocks:           {}", container.blocks()?);
-  say!(sub, "allocated blocks: {}", container.ablocks()?);
+    say!(sub, "cipher:           {}", container.cipher()?);
+    say!(sub, "digest:           {}", digest);
+    say!(sub, "disk type:        {}", container.dtype()?);
+    say!(sub, "block size:       {}", container.bsize()?);
+    say!(sub, "blocks:           {}", container.blocks()?);
+    say!(sub, "allocated blocks: {}", container.ablocks()?);
 
-  Ok(())
+    Ok(())
 }

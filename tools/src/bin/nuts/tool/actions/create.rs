@@ -20,7 +20,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-{
+use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
+
+use nuts::container::Container;
+use nuts::result::Result;
+use nuts::types::{Cipher, DiskType, Options, WrappingKey};
+
+use crate::tool;
+
+pub fn make<'a, 'b>() -> App<'a, 'b> {
     let general_args = tool::actions::general_args();
 
     let block_size_help = "Set the block-size to SIZE. Default is 512.";
@@ -39,7 +47,12 @@
         .about("Creates a nuts-volume.")
         .version(crate_version!())
         .arg(Arg::with_name("PATH").required(true).index(1))
-        .arg(Arg::with_name("SIZE").required(true).index(2).validator(tool::contrib::clap::is_size::<u64>))
+        .arg(
+            Arg::with_name("SIZE")
+                .required(true)
+                .index(2)
+                .validator(tool::contrib::clap::is_size::<u64>),
+        )
         .args(&general_args)
         .arg(
             Arg::with_name("block-size")
@@ -82,4 +95,84 @@
                 .long("overwrite")
                 .help(&overwrite_help),
         )
+}
+
+pub fn run(sub: &ArgMatches) -> Result<()> {
+    tool::logger::update(sub);
+
+    let cipher = if let Some(cipher) = sub.value_of("cipher") {
+        Cipher::from_string(cipher)?
+    } else {
+        Cipher::Aes128Ctr
+    };
+
+    let path = sub.value_of("PATH").unwrap();
+    let size = tool::utils::to_size::<u64>(sub.value_of("SIZE").unwrap()).unwrap();
+    let mut options = Options::default_with_cipher(cipher);
+
+    let bsize = match sub.value_of("block-size") {
+        Some(bsize) => tool::utils::to_size::<u32>(bsize).unwrap(),
+        None => options.bsize(),
+    };
+    let blocks = size / bsize as u64;
+
+    options.update_sizes(bsize, blocks)?;
+
+    if let Some(dtype) = sub.value_of("disk-type") {
+        options.dtype = DiskType::from_string(dtype)?;
+    }
+
+    if let Some(iterations) = sub.value_of("iterations") {
+        match options.wkey {
+            Some(WrappingKey::Pbkdf2 {
+                iterations: _,
+                salt_len,
+            }) => {
+                let iterations = iterations.parse::<u32>().unwrap();
+                options.wkey = Some(WrappingKey::Pbkdf2 {
+                    iterations,
+                    salt_len,
+                });
+            }
+            None => {
+                panic!("unexpected wrapping key");
+            }
+        }
+    }
+
+    if let Some(salt_len) = sub.value_of("salt-length") {
+        match options.wkey {
+            Some(WrappingKey::Pbkdf2 {
+                iterations,
+                salt_len: _,
+            }) => {
+                let salt_len = salt_len.parse::<u32>().unwrap();
+                options.wkey = Some(WrappingKey::Pbkdf2 {
+                    iterations,
+                    salt_len,
+                });
+            }
+            None => {
+                panic!("unexpected wrapping key");
+            }
+        }
+    }
+
+    let mut container = Container::new();
+
+    container.set_password_callback(tool::utils::ask_for_password);
+    container.create(path, &options)?;
+
+    let digest = container
+        .digest()?
+        .map_or_else(|| String::from("none"), |d| d.to_string());
+
+    say!(sub, "cipher:           {}", container.cipher()?);
+    say!(sub, "digest:           {}", digest);
+    say!(sub, "disk type:        {}", container.dtype()?);
+    say!(sub, "block size:       {}", container.bsize()?);
+    say!(sub, "blocks:           {}", container.blocks()?);
+    say!(sub, "allocated blocks: {}", container.ablocks()?);
+
+    Ok(())
 }
