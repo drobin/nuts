@@ -20,10 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+mod tool;
+
 use clap::{crate_name, crate_version};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
-
-use log::LevelFilter;
 
 use rpassword::read_password_from_tty;
 
@@ -31,37 +31,6 @@ use nuts::container::Container;
 use nuts::error::Error;
 use nuts::result::Result;
 use nuts::types::{Cipher, DiskType, Options, WrappingKey};
-
-struct NutsLogger;
-
-impl log::Log for NutsLogger {
-    fn enabled(&self, _metadata: &log::Metadata) -> bool {
-        true
-    }
-
-    fn log(&self, record: &log::Record) {
-        if !self.enabled(record.metadata()) {
-            return;
-        }
-
-        println!(
-            "{}:{} -- {}",
-            record.level(),
-            record.target(),
-            record.args()
-        );
-    }
-
-    fn flush(&self) {}
-}
-
-static LOGGER: NutsLogger = NutsLogger;
-
-pub fn init_logger() {
-    log::set_logger(&LOGGER)
-        .map(|()| log::set_max_level(LevelFilter::Info))
-        .unwrap();
-}
 
 pub fn to_size<T>(s: &str) -> Result<T>
 where
@@ -104,14 +73,6 @@ where
     }
 }
 
-pub fn update_logger(sub: &ArgMatches) {
-    if sub.is_present("quiet") {
-        log::set_max_level(LevelFilter::Off);
-    } else if sub.is_present("verbose") {
-        log::set_max_level(LevelFilter::Trace);
-    }
-}
-
 macro_rules! say {
     ($sub:expr) => {
         if !$sub.is_present("quiet") {
@@ -136,7 +97,7 @@ fn ask_for_password() -> Result<Vec<u8>> {
 }
 
 fn main() -> Result<()> {
-    init_logger();
+    tool::logger::init();
 
     let info_command = include!("info.sub");
     let create_command = include!("create.sub");
@@ -158,7 +119,7 @@ fn main() -> Result<()> {
 }
 
 fn info(sub: &ArgMatches) -> Result<()> {
-    update_logger(sub);
+    tool::logger::update(sub);
 
     let path = sub.value_of("PATH").unwrap();
     let mut container = Container::new();
@@ -181,7 +142,7 @@ fn info(sub: &ArgMatches) -> Result<()> {
 }
 
 fn create(sub: &ArgMatches) -> Result<()> {
-    update_logger(sub);
+    tool::logger::update(sub);
 
     let cipher = if let Some(cipher) = sub.value_of("cipher") {
         Cipher::from_string(cipher)?
