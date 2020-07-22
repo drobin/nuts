@@ -20,17 +20,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-{
-    let general_args = tool::actions::general_args();
+use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 
+use nuts::container::Container;
+use nuts::result::Result;
+
+use crate::tool as tool;
+
+pub fn make<'a, 'b>() -> App<'a, 'b> {
     let userdata_help = "If set, dumps the userdata stored in the header.";
-    let format_help = "Specifies the format of the userdata dump. Can be one of string, hex. Default is string.";
+    let format_help =
+        "Specifies the format of the userdata dump. Can be one of string, hex. Default is string.";
 
     SubCommand::with_name("info")
         .about("Shows information about a nuts-volume.")
         .version(crate_version!())
         .arg(Arg::with_name("PATH").required(true).index(1))
-        .args(&general_args)
+        .args(&super::general_args())
         .arg(
             Arg::with_name("userdata")
                 .long("userdata")
@@ -42,4 +48,27 @@
                 .value_name("FORMAT")
                 .help(format_help),
         )
+}
+
+pub fn run(sub: &ArgMatches) -> Result<()> {
+  tool::logger::update(sub);
+
+  let path = sub.value_of("PATH").unwrap();
+  let mut container = Container::new();
+
+  container.set_password_callback(tool::utils::ask_for_password);
+  container.open(path, None)?;
+
+  let digest = container
+      .digest()?
+      .map_or_else(|| String::from("none"), |d| d.to_string());
+
+  say!(sub, "cipher:           {}", container.cipher()?);
+  say!(sub, "digest:           {}", digest);
+  say!(sub, "disk type:        {}", container.dtype()?);
+  say!(sub, "block size:       {}", container.bsize()?);
+  say!(sub, "blocks:           {}", container.blocks()?);
+  say!(sub, "allocated blocks: {}", container.ablocks()?);
+
+  Ok(())
 }

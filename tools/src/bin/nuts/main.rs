@@ -32,7 +32,7 @@ use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 fn main() -> Result<()> {
     tool::logger::init();
 
-    let info_command = include!("info.sub");
+    let info_command = tool::actions::info::make();
     let create_command = include!("create.sub");
 
     let matches = App::new(crate_name!())
@@ -43,35 +43,12 @@ fn main() -> Result<()> {
         .get_matches();
 
     if let Some(sub) = matches.subcommand_matches("info") {
-        info(sub)
+        tool::actions::info::run(sub)
     } else if let Some(sub) = matches.subcommand_matches("create") {
         create(sub)
     } else {
         Ok(())
     }
-}
-
-fn info(sub: &ArgMatches) -> Result<()> {
-    tool::logger::update(sub);
-
-    let path = sub.value_of("PATH").unwrap();
-    let mut container = Container::new();
-
-    container.set_password_callback(tool::utils::ask_for_password);
-    container.open(path, None)?;
-
-    let digest = container
-        .digest()?
-        .map_or_else(|| String::from("none"), |d| d.to_string());
-
-    say!(sub, "cipher:           {}", container.cipher()?);
-    say!(sub, "digest:           {}", digest);
-    say!(sub, "disk type:        {}", container.dtype()?);
-    say!(sub, "block size:       {}", container.bsize()?);
-    say!(sub, "blocks:           {}", container.blocks()?);
-    say!(sub, "allocated blocks: {}", container.ablocks()?);
-
-    Ok(())
 }
 
 fn create(sub: &ArgMatches) -> Result<()> {
