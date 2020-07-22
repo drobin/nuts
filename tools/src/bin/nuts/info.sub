@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 {
-    let general_args = include!("general.args");
+    let general_args = tool::actions::general_args();
 
     let userdata_help = "If set, dumps the userdata stored in the header.";
     let format_help = "Specifies the format of the userdata dump. Can be one of string, hex. Default is string.";

@@ -20,7 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-vec![
-    Arg::from_usage("-v, --verbose 'Turn on verbose logging.'"),
-    Arg::from_usage("-q, --quiet 'Be quiet, don't print any output.'"),
-]
+use clap::Arg;
+
+pub fn general_args<'a, 'b>() -> Vec<Arg<'a, 'b>> {
+    vec![
+        Arg::from_usage("-v, --verbose 'Turn on verbose logging.'"),
+        Arg::from_usage("-q, --quiet 'Be quiet, don't print any output.'"),
+    ]
+}

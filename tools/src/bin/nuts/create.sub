@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 {
-    let general_args = include!("general.args");
+    let general_args = tool::actions::general_args();
 
     let block_size_help = "Set the block-size to SIZE. Default is 512.";
     let cipher_help = "Set the cipher to CIPHER. Can be one of: \

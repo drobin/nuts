@@ -20,5 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[macro_use]
 pub mod macros;
+
+pub mod actions;
 pub mod logger;
