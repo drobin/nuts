@@ -20,9 +20,35 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[macro_use]
-pub mod macros;
+use std::convert::TryFrom;
+use std::result::Result;
 
-pub mod actions;
-pub mod logger;
-pub mod utils;
+pub fn to_size<T>(s: &str) -> Result<T, String>
+where
+    T: TryFrom<u64>,
+{
+    let s = s.trim_matches(char::is_whitespace).to_lowercase();
+
+    let (s, factor) = if s.ends_with("kb") {
+        (&s[..s.len() - 2], 1024)
+    } else if s.ends_with("mb") {
+        (&s[..s.len() - 2], 1024 * 1024)
+    } else if s.ends_with("gb") {
+        (&s[..s.len() - 2], 1024 * 1024 * 1024)
+    } else {
+        (&s[..], 1)
+    };
+
+    let size = s.parse::<u64>().or_else(|err| {
+        let msg = format!("{}", err);
+        Err(msg)
+    })?;
+
+    match T::try_from(factor * size) {
+        Ok(n) => Ok(n),
+        Err(_) => {
+            let msg = format!("size {} is too large", size);
+            Err(msg)
+        }
+    }
+}
