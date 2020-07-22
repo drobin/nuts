@@ -23,7 +23,6 @@
 use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 
 use nuts::container::Container;
-use nuts::result::Result;
 
 use crate::tool;
 
@@ -50,7 +49,7 @@ pub fn make<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-pub fn run(sub: &ArgMatches) -> Result<()> {
+pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     tool::logger::update(sub);
 
     let path = sub.value_of("PATH").unwrap();

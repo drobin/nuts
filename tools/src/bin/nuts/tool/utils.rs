@@ -21,11 +21,12 @@
 // IN THE SOFTWARE.
 
 use std::convert::TryFrom;
-use std::result::Result;
 
 use rpassword::read_password_from_tty;
 
-pub fn to_size<T>(s: &str) -> Result<T, String>
+use crate::tool;
+
+pub fn to_size<T>(s: &str) -> tool::result::Result<T>
 where
     T: TryFrom<u64>,
 {
@@ -41,16 +42,13 @@ where
         (&s[..], 1)
     };
 
-    let size = s.parse::<u64>().or_else(|err| {
-        let msg = format!("{}", err);
-        Err(msg)
-    })?;
+    let size = s.parse::<u64>()?;
 
     match T::try_from(factor * size) {
         Ok(n) => Ok(n),
         Err(_) => {
             let msg = format!("size {} is too large", size);
-            Err(msg)
+            Err(tool::result::Error::new(&msg))
         }
     }
 }

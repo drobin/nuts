@@ -20,29 +20,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod tool;
+#[derive(Debug)]
+pub struct Error {
+    msg: String,
+}
 
-use clap::{crate_name, crate_version};
-use clap::{App, AppSettings};
-
-fn main() -> tool::result::Result<()> {
-    tool::logger::init();
-
-    let info_command = tool::actions::info::make();
-    let create_command = tool::actions::create::make();
-
-    let matches = App::new(crate_name!())
-        .version(crate_version!())
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .subcommand(info_command)
-        .subcommand(create_command)
-        .get_matches();
-
-    if let Some(sub) = matches.subcommand_matches("info") {
-        tool::actions::info::run(sub)
-    } else if let Some(sub) = matches.subcommand_matches("create") {
-        tool::actions::create::run(sub)
-    } else {
-        Ok(())
+impl Error {
+    pub fn new<T>(source: &T) -> Error
+    where
+        T: ToString,
+    {
+        Error {
+            msg: source.to_string(),
+        }
     }
 }
+
+impl From<nuts::error::Error> for Error {
+    fn from(error: nuts::error::Error) -> Self {
+        let msg = format!("{:?}", error);
+        Error::new(&msg)
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Self {
+        Error::new(&error)
+    }
+}
+
+impl From<String> for Error {
+    fn from(error: String) -> Self {
+        Error::new(&error)
+    }
+}
+
+impl From<std::num::ParseIntError> for Error {
+    fn from(error: std::num::ParseIntError) -> Self {
+        Error::new(&error)
+    }
+}
+
+pub type Result<T> = std::result::Result<T, Error>;

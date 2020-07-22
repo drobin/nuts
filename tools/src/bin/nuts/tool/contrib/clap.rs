@@ -27,5 +27,11 @@ pub fn is_size<T>(s: String) -> Result<(), String>
 where
     T: TryFrom<u64>,
 {
-    crate::tool::utils::to_size::<T>(&s).map(|_| ())
+    match crate::tool::utils::to_size::<T>(&s) {
+        Ok(_) => Ok(()),
+        Err(error) => {
+            let msg = format!("{:?}", error);
+            Err(msg)
+        }
+    }
 }

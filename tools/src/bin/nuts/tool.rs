@@ -25,6 +25,7 @@ pub mod macros;
 
 pub mod actions;
 pub mod logger;
+pub mod result;
 pub mod utils;
 
 pub mod contrib {

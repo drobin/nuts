@@ -23,7 +23,6 @@
 use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 
 use nuts::container::Container;
-use nuts::result::Result;
 use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
 use crate::tool;
@@ -97,7 +96,7 @@ pub fn make<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-pub fn run(sub: &ArgMatches) -> Result<()> {
+pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     tool::logger::update(sub);
 
     let cipher = if let Some(cipher) = sub.value_of("cipher") {
@@ -107,11 +106,11 @@ pub fn run(sub: &ArgMatches) -> Result<()> {
     };
 
     let path = sub.value_of("PATH").unwrap();
-    let size = tool::utils::to_size::<u64>(sub.value_of("SIZE").unwrap()).unwrap();
+    let size = tool::utils::to_size::<u64>(sub.value_of("SIZE").unwrap())?;
     let mut options = Options::default_with_cipher(cipher);
 
     let bsize = match sub.value_of("block-size") {
-        Some(bsize) => tool::utils::to_size::<u32>(bsize).unwrap(),
+        Some(bsize) => tool::utils::to_size::<u32>(bsize)?,
         None => options.bsize(),
     };
     let blocks = size / bsize as u64;
@@ -128,7 +127,7 @@ pub fn run(sub: &ArgMatches) -> Result<()> {
                 iterations: _,
                 salt_len,
             }) => {
-                let iterations = iterations.parse::<u32>().unwrap();
+                let iterations = iterations.parse::<u32>()?;
                 options.wkey = Some(WrappingKey::Pbkdf2 {
                     iterations,
                     salt_len,
