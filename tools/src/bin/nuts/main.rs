@@ -20,10 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-extern crate clap;
-extern crate log;
-extern crate nuts;
-
 use clap::{crate_name, crate_version};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 

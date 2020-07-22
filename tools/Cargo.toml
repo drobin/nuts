@@ -20,6 +20,22 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-[workspace]
+[package]
+name = "tools"
+version = "0.1.0"
+authors = ["Robin Doer <robin@robind.de>"]
+edition = "2018"
 
-members = [ "nuts", "tools" ]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nuts = { path = "../nuts" }
+log = "0.4"
+clap = "2.33.1"
+rpassword = "4.0"
+
+[[bin]]
+name = "nuts"
+test = false
+doctest = false
+doc = false
