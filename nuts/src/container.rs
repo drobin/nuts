@@ -43,6 +43,14 @@ pub struct Container {
 }
 
 impl Container {
+    /// Creates a new closed container.
+    ///
+    /// You need to call [`create()`] or [`open()`] to open the container. An
+    /// operation on a closed container will raise an [`Error::Closed`] error.
+    ///
+    /// [`create()`]: #method.create
+    /// [`open()`]: #method.open
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn new() -> Container {
         Container {
             callback: None,
@@ -73,6 +81,39 @@ impl Container {
         self.callback = Some(Box::new(callback));
     }
 
+    /// Creates a new container.
+    ///
+    /// The new container is initialized with the given `options` and stored in
+    /// a file located at `path`. In case of an invalid option, the container
+    /// is not created.
+    ///
+    /// If encryption is turned on, you will be asked for a password over the
+    /// [`password callback`]. The returned password is then used for
+    /// encryption of the secure part of the header.
+    ///
+    /// **Note**, that you cannot overwrite an existing file! Passing an
+    /// exising file to `path` will abort the operation.
+    ///
+    /// The header with the (possibly encrypted) secret is created and stored
+    /// in the first block of the container. The header contains all
+    /// information you need to open the container again.
+    ///
+    /// # Errors
+    ///
+    /// The container must be closed before calling this method. If you call
+    /// this method on an open container, an [`Error::Opened`] error is
+    /// returned.
+    ///
+    /// If encryption is enabled but no password callback is assigned or the
+    /// assigned callback returns an error, an [`Error::NoPassword`] error is
+    /// returned.
+    ///
+    /// Further errors are listed in the [`Error`] type.
+    ///
+    /// [`password callback`]: #method.set_password_callback
+    /// [`Error`]: ../error/enum.Error.html
+    /// [`Error::Opened`]: ../error/enum.Error.html#variant.Opened
+    /// [`Error::NoPassword`]: ../error/enum.Error.html#variant.NoPassword
     pub fn create(&mut self, path: &str, options: &Options) -> Result<()> {
         if self.inner.is_none() {
             let secret = Secret::create(options)?;
