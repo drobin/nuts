@@ -20,5 +20,21 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod macros;
-pub mod logger;
+#[macro_export]
+macro_rules! say {
+  ($sub:expr) => {
+      if !$sub.is_present("quiet") {
+          println!();
+      }
+  };
+  ($sub:expr, $arg:expr) => {
+      if !$sub.is_present("quiet") {
+          println!($arg);
+      }
+  };
+  ($sub:expr $(,$arg:expr)*) => {
+      if !$sub.is_present("quiet") {
+          println!($($arg,)*);
+      }
+  };
+}

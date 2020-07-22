@@ -73,24 +73,6 @@ where
     }
 }
 
-macro_rules! say {
-    ($sub:expr) => {
-        if !$sub.is_present("quiet") {
-            println!();
-        }
-    };
-    ($sub:expr, $arg:expr) => {
-        if !$sub.is_present("quiet") {
-            println!($arg);
-        }
-    };
-    ($sub:expr $(,$arg:expr)*) => {
-        if !$sub.is_present("quiet") {
-            println!($($arg,)*);
-        }
-    };
-}
-
 fn ask_for_password() -> Result<Vec<u8>> {
     let password = read_password_from_tty(Some("Enter a password:"))?;
     Ok(password.as_bytes().to_vec())
