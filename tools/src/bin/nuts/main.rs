@@ -25,16 +25,9 @@ mod tool;
 use clap::{crate_name, crate_version};
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
-use rpassword::read_password_from_tty;
-
 use nuts::container::Container;
 use nuts::result::Result;
 use nuts::types::{Cipher, DiskType, Options, WrappingKey};
-
-fn ask_for_password() -> Result<Vec<u8>> {
-    let password = read_password_from_tty(Some("Enter a password:"))?;
-    Ok(password.as_bytes().to_vec())
-}
 
 fn main() -> Result<()> {
     tool::logger::init();
@@ -64,7 +57,7 @@ fn info(sub: &ArgMatches) -> Result<()> {
     let path = sub.value_of("PATH").unwrap();
     let mut container = Container::new();
 
-    container.set_password_callback(ask_for_password);
+    container.set_password_callback(tool::utils::ask_for_password);
     container.open(path, None)?;
 
     let digest = container
@@ -144,7 +137,7 @@ fn create(sub: &ArgMatches) -> Result<()> {
 
     let mut container = Container::new();
 
-    container.set_password_callback(ask_for_password);
+    container.set_password_callback(tool::utils::ask_for_password);
     container.create(path, &options)?;
 
     let digest = container

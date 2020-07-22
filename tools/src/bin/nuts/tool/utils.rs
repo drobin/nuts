@@ -23,6 +23,8 @@
 use std::convert::TryFrom;
 use std::result::Result;
 
+use rpassword::read_password_from_tty;
+
 pub fn to_size<T>(s: &str) -> Result<T, String>
 where
     T: TryFrom<u64>,
@@ -51,4 +53,9 @@ where
             Err(msg)
         }
     }
+}
+
+pub fn ask_for_password() -> nuts::result::Result<Vec<u8>> {
+    let password = read_password_from_tty(Some("Enter a password:"))?;
+    Ok(password.as_bytes().to_vec())
 }
