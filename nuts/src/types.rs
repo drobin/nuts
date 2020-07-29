@@ -23,6 +23,8 @@
 #[cfg(test)]
 mod tests;
 
+use openssl::{hash, symm};
+
 use crate::error::Error;
 use crate::result::Result;
 
@@ -101,6 +103,13 @@ impl Cipher {
             }
         }
     }
+
+    pub(crate) fn to_openssl(&self) -> Option<symm::Cipher> {
+        match self {
+            Cipher::Aes128Ctr => Some(symm::Cipher::aes_128_ctr()),
+            Cipher::None => None,
+        }
+    }
 }
 
 impl std::fmt::Display for Cipher {
@@ -162,6 +171,12 @@ impl Digest {
                 let message = format!("invalid digest: {}", str);
                 Err(Error::InvalArg(message))
             }
+        }
+    }
+
+    pub(crate) fn to_openssl(&self) -> hash::MessageDigest {
+        match self {
+            Digest::Sha1 => hash::MessageDigest::sha1(),
         }
     }
 }

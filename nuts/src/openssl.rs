@@ -55,7 +55,7 @@ pub enum HMAC {}
 
 impl HMAC {
     pub fn create(digest: Digest, key: &[u8], data: &[u8]) -> Result<Vec<u8>> {
-        let md = digest_to_openssl(digest);
+        let md = digest.to_openssl();
         let key = ossl::pkey::PKey::hmac(key).or_else(HMAC::as_error)?;
         let mut signer = ossl::sign::Signer::new(md, &key).or_else(HMAC::as_error)?;
 
@@ -92,7 +92,7 @@ pub fn pbkdf2(pass: &[u8], salt: &[u8], iterations: u32, digest: Digest) -> Resu
         return Err(Error::WrappingKey(msg));
     }
 
-    let hash = digest_to_openssl(digest);
+    let hash = digest.to_openssl();
     let mut key = vec![0; digest.size() as usize];
 
     ossl::pkcs5::pbkdf2_hmac(pass, salt, iterations as usize, hash, &mut key).or_else(|stack| {
@@ -113,7 +113,7 @@ pub fn cipher(
 ) -> Result<Vec<u8>> {
     let mut output = Vec::with_capacity(input.len());
 
-    if let Some(ossl_cipher) = cipher_to_openssl(cipher) {
+    if let Some(ossl_cipher) = cipher.to_openssl() {
         if input.len() % ossl_cipher.block_size() != 0 {
             let msg = format!(
                 "length of input {} mut be a multiple of block-size {}",
@@ -184,15 +184,3 @@ fn cipher_as_error<T>(stack: ossl::error::ErrorStack) -> Result<T> {
     Err(Error::Crypto(msg))
 }
 
-fn digest_to_openssl(digest: Digest) -> ossl::hash::MessageDigest {
-    match digest {
-        Digest::Sha1 => ::openssl::hash::MessageDigest::sha1(),
-    }
-}
-
-fn cipher_to_openssl(cipher: Cipher) -> Option<ossl::symm::Cipher> {
-    match cipher {
-        Cipher::Aes128Ctr => Some(ossl::symm::Cipher::aes_128_ctr()),
-        Cipher::None => None,
-    }
-}
