@@ -20,19 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod tests;
+#[cfg(not(test))]
+use ::openssl::rand;
 
-use ::openssl as ossl;
-use log::{debug, error};
-
-use crate::error::Error;
 use crate::result::Result;
-use crate::types::Cipher;
 
 #[cfg(not(test))]
 pub fn random(target: &mut [u8]) -> Result<()> {
-    ossl::rand::rand_bytes(target).map(|_| ())?;
+    rand::rand_bytes(target).map(|_| ())?;
     Ok(())
 }
 
@@ -47,75 +42,4 @@ pub fn random(target: &mut [u8]) -> Result<()> {
     assert!(target.len() <= RND.len());
     target.clone_from_slice(&RND[..target.len()]);
     Ok(())
-}
-
-pub fn cipher(
-    cipher: Cipher,
-    encrypt: bool,
-    input: &[u8],
-    key: &[u8],
-    iv: &[u8],
-) -> Result<Vec<u8>> {
-    let mut output = Vec::with_capacity(input.len());
-
-    if let Some(ossl_cipher) = cipher.to_openssl() {
-        if input.len() % ossl_cipher.block_size() != 0 {
-            let msg = format!(
-                "length of input {} mut be a multiple of block-size {}",
-                input.len(),
-                ossl_cipher.block_size()
-            );
-            error!("{}", msg);
-            return Err(Error::InvalArg(msg));
-        }
-
-        let key = key.get(..ossl_cipher.key_len()).ok_or_else(|| {
-            let msg = format!(
-                "key too short, at least {} bytes needed but got {}",
-                ossl_cipher.key_len(),
-                key.len()
-            );
-            error!("{}", msg);
-            Error::InvalArg(msg)
-        })?;
-
-        let iv = if let Some(len) = ossl_cipher.iv_len() {
-            iv.get(..len).ok_or_else(|| {
-                let msg = format!(
-                    "iv too short, at least {} bytes needed but got {}",
-                    len,
-                    iv.len()
-                );
-                error!("{}", msg);
-                Error::InvalArg(msg)
-            })?
-        } else {
-            panic!("no support for a cipher without iv");
-        };
-
-        let mode = if encrypt {
-            ossl::symm::Mode::Encrypt
-        } else {
-            ossl::symm::Mode::Decrypt
-        };
-
-        output.resize(input.len(), 0);
-
-        let mut encrypter = ossl::symm::Crypter::new(ossl_cipher, mode, key, Some(iv))?;
-        encrypter.pad(false);
-
-        let count = encrypter.update(input, &mut output)?;
-        assert_eq!(count, output.len());
-    } else {
-        assert_eq!(cipher, Cipher::None);
-        output.extend(input);
-    };
-
-    if encrypt {
-        debug!("{} bytes encrypted, cipher: {}", output.len(), cipher);
-    } else {
-        debug!("{} bytes decrypted, cipher: {}", output.len(), cipher);
-    }
-
-    Ok(output)
 }
