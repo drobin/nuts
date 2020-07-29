@@ -28,7 +28,7 @@ use log::{debug, error};
 
 use crate::error::Error;
 use crate::result::Result;
-use crate::types::{Cipher, Digest};
+use crate::types::Cipher;
 
 #[cfg(not(test))]
 pub fn random(target: &mut [u8]) -> Result<()> {
@@ -47,29 +47,6 @@ pub fn random(target: &mut [u8]) -> Result<()> {
     assert!(target.len() <= RND.len());
     target.clone_from_slice(&RND[..target.len()]);
     Ok(())
-}
-
-pub enum HMAC {}
-
-impl HMAC {
-    pub fn create(digest: Digest, key: &[u8], data: &[u8]) -> Result<Vec<u8>> {
-        let md = digest.to_openssl();
-        let key = ossl::pkey::PKey::hmac(key)?;
-        let mut signer = ossl::sign::Signer::new(md, &key)?;
-
-        let hmac = signer.sign_oneshot_to_vec(data)?;
-        Ok(hmac)
-    }
-
-    pub fn verify(digest: Digest, key: &[u8], data: &[u8], hmac: &[u8]) -> Result<()> {
-        let hmac2 = HMAC::create(digest, key, data)?;
-
-        if ossl::memcmp::eq(hmac, &hmac2) {
-            Ok(())
-        } else {
-            Err(Error::HmacMismatch)
-        }
-    }
 }
 
 pub fn cipher(

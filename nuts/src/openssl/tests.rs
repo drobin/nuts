@@ -22,6 +22,3 @@
 
 #[cfg(test)]
 mod cipher;
-
-#[cfg(test)]
-mod hmac;

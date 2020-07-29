@@ -23,6 +23,9 @@
 #[cfg(test)]
 mod tests;
 
+use ::openssl::memcmp;
+use ::openssl::pkey::PKey;
+use ::openssl::sign::Signer;
 use log::{debug, error};
 use std::fmt;
 
@@ -152,10 +155,12 @@ impl Header {
 
     fn create_hmac(&mut self, secret: &Secret, plain_secret: &[u8]) -> Result<()> {
         if let Some(md) = self.digest {
-            let hmac = openssl::HMAC::create(md, &secret.hmac_key, plain_secret)?;
+            let pkey = PKey::hmac(&secret.hmac_key)?;
+            let mut signer = Signer::new(md.to_openssl(), &pkey)?;
 
-            self.hmac.clear();
-            self.hmac.extend(hmac.iter());
+            self.hmac.resize(md.size() as usize, 0);
+            let len = signer.sign_oneshot(&mut self.hmac, plain_secret)?;
+            assert_eq!(len, md.size() as usize);
 
             debug!("HMAC created, {} bytes", md.size());
         } else {
@@ -167,10 +172,17 @@ impl Header {
 
     fn verify_hmac(&self, secret: &Secret, plain_secret: &[u8]) -> Result<()> {
         if let Some(md) = self.digest {
-            openssl::HMAC::verify(md, &secret.hmac_key, plain_secret, &self.hmac).and_then(|()| {
+            let pkey = PKey::hmac(&secret.hmac_key)?;
+            let mut signer = Signer::new(md.to_openssl(), &pkey)?;
+
+            let hmac = signer.sign_oneshot_to_vec(plain_secret)?;
+
+            if memcmp::eq(&hmac, &self.hmac) {
                 debug!("HMAC verified");
                 Ok(())
-            })
+            } else {
+                Err(Error::HmacMismatch)
+            }
         } else {
             debug!("HMAC verification skipped");
             Ok(())
