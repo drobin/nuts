@@ -32,10 +32,8 @@ use crate::types::{Cipher, Digest};
 
 #[cfg(not(test))]
 pub fn random(target: &mut [u8]) -> Result<()> {
-    ossl::rand::rand_bytes(target).map(|_| ()).or_else(|err| {
-        let msg = format!("{}", err);
-        Err(Error::Rand(msg))
-    })
+    ossl::rand::rand_bytes(target).map(|_| ())?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -56,10 +54,10 @@ pub enum HMAC {}
 impl HMAC {
     pub fn create(digest: Digest, key: &[u8], data: &[u8]) -> Result<Vec<u8>> {
         let md = digest.to_openssl();
-        let key = ossl::pkey::PKey::hmac(key).or_else(HMAC::as_error)?;
-        let mut signer = ossl::sign::Signer::new(md, &key).or_else(HMAC::as_error)?;
+        let key = ossl::pkey::PKey::hmac(key)?;
+        let mut signer = ossl::sign::Signer::new(md, &key)?;
 
-        let hmac = signer.sign_oneshot_to_vec(data).or_else(HMAC::as_error)?;
+        let hmac = signer.sign_oneshot_to_vec(data)?;
         Ok(hmac)
     }
 
@@ -72,34 +70,25 @@ impl HMAC {
             Err(Error::HmacMismatch)
         }
     }
-
-    fn as_error<T>(stack: ossl::error::ErrorStack) -> Result<T> {
-        let msg = format!("{}", stack);
-        Err(Error::Hmac(msg))
-    }
 }
 
 pub fn pbkdf2(pass: &[u8], salt: &[u8], iterations: u32, digest: Digest) -> Result<Vec<u8>> {
     if pass.is_empty() {
         let msg = format!("invalid password, cannot be empty");
         error!("{}", msg);
-        return Err(Error::WrappingKey(msg));
+        return Err(Error::InvalArg(msg));
     }
 
     if salt.is_empty() {
         let msg = format!("invalid salt, cannot be empty");
         error!("{}", msg);
-        return Err(Error::WrappingKey(msg));
+        return Err(Error::InvalArg(msg));
     }
 
     let hash = digest.to_openssl();
     let mut key = vec![0; digest.size() as usize];
 
-    ossl::pkcs5::pbkdf2_hmac(pass, salt, iterations as usize, hash, &mut key).or_else(|stack| {
-        let msg = format!("{}", stack);
-        error!("{}", msg);
-        Err(Error::WrappingKey(msg))
-    })?;
+    ossl::pkcs5::pbkdf2_hmac(pass, salt, iterations as usize, hash, &mut key)?;
 
     Ok(key)
 }
@@ -121,7 +110,7 @@ pub fn cipher(
                 ossl_cipher.block_size()
             );
             error!("{}", msg);
-            return Err(Error::Crypto(msg));
+            return Err(Error::InvalArg(msg));
         }
 
         let key = key.get(..ossl_cipher.key_len()).ok_or_else(|| {
@@ -131,7 +120,7 @@ pub fn cipher(
                 key.len()
             );
             error!("{}", msg);
-            Error::Crypto(msg)
+            Error::InvalArg(msg)
         })?;
 
         let iv = if let Some(len) = ossl_cipher.iv_len() {
@@ -142,7 +131,7 @@ pub fn cipher(
                     iv.len()
                 );
                 error!("{}", msg);
-                Error::Crypto(msg)
+                Error::InvalArg(msg)
             })?
         } else {
             panic!("no support for a cipher without iv");
@@ -156,14 +145,10 @@ pub fn cipher(
 
         output.resize(input.len(), 0);
 
-        let mut encrypter =
-            ossl::symm::Crypter::new(ossl_cipher, mode, key, Some(iv)).or_else(cipher_as_error)?;
+        let mut encrypter = ossl::symm::Crypter::new(ossl_cipher, mode, key, Some(iv))?;
         encrypter.pad(false);
 
-        let count = encrypter
-            .update(input, &mut output)
-            .or_else(cipher_as_error)?;
-
+        let count = encrypter.update(input, &mut output)?;
         assert_eq!(count, output.len());
     } else {
         assert_eq!(cipher, Cipher::None);
@@ -178,9 +163,3 @@ pub fn cipher(
 
     Ok(output)
 }
-
-fn cipher_as_error<T>(stack: ossl::error::ErrorStack) -> Result<T> {
-    let msg = format!("{}", stack);
-    Err(Error::Crypto(msg))
-}
-

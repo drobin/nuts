@@ -35,7 +35,7 @@ fn digest_some() {
 
 #[test]
 fn empty_password() {
-    if let Error::WrappingKey(msg) = pbkdf2(b"", b"123", 1, Digest::Sha1).unwrap_err() {
+    if let Error::InvalArg(msg) = pbkdf2(b"", b"123", 1, Digest::Sha1).unwrap_err() {
         assert_eq!(msg, "invalid password, cannot be empty");
     } else {
         panic!("invalid error");
@@ -44,7 +44,7 @@ fn empty_password() {
 
 #[test]
 fn empty_salt() {
-    if let Error::WrappingKey(msg) = pbkdf2(b"123", b"", 1, Digest::Sha1).unwrap_err() {
+    if let Error::InvalArg(msg) = pbkdf2(b"123", b"", 1, Digest::Sha1).unwrap_err() {
         assert_eq!(msg, "invalid salt, cannot be empty");
     } else {
         panic!("invalid error");

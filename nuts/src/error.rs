@@ -112,29 +112,21 @@ pub enum Error {
     /// A password is needed by the current cipher.
     NoPassword,
 
-    /// An error occured while generating some data.
-    ///
-    /// It has a message, that describes the failure.
-    Rand(String),
-
-    /// An error occured while generating or verifying an HMAC.
-    ///
-    /// It has a message, that describes the failure.
-    Hmac(String),
+    /// An error occured in the unterlaying OpenSSL library.
+    OpenSSL(openssl::error::ErrorStack),
 
     /// An hmac mismatch was detected.
     HmacMismatch,
-
-    WrappingKey(String),
-
-    /// An error occured while encrypting/decrypting data.
-    ///
-    /// It has a message, that describes the failure.
-    Crypto(String),
 }
 
 impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {
         Error::IoError(error)
+    }
+}
+
+impl From<openssl::error::ErrorStack> for Error {
+    fn from(error: openssl::error::ErrorStack) -> Self {
+        Error::OpenSSL(error)
     }
 }
