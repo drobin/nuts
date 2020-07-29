@@ -20,9 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
+use log::error;
+use openssl::pkcs5;
 use std::fmt;
 
-use crate::openssl;
+use crate::error::Error;
 use crate::result::Result;
 use crate::types::Digest;
 
@@ -48,8 +53,32 @@ impl WrappingKeyData {
     }
 
     pub fn key(&self, password: &[u8], digest: Digest) -> Result<Vec<u8>> {
+        if password.is_empty() {
+            let msg = format!("invalid password, cannot be empty");
+            error!("{}", msg);
+            return Err(Error::InvalArg(msg));
+        }
+
         let WrappingKeyData::Pbkdf2(value) = self;
-        openssl::pbkdf2(password, &value.salt, value.iterations, digest)
+
+        if value.salt.is_empty() {
+            let msg = format!("invalid salt, cannot be empty");
+            error!("{}", msg);
+            return Err(Error::InvalArg(msg));
+        }
+
+        let hash = digest.to_openssl();
+        let mut key = vec![0; digest.size() as usize];
+
+        pkcs5::pbkdf2_hmac(
+            password,
+            &value.salt,
+            value.iterations as usize,
+            hash,
+            &mut key,
+        )?;
+
+        Ok(key)
     }
 }
 

@@ -72,27 +72,6 @@ impl HMAC {
     }
 }
 
-pub fn pbkdf2(pass: &[u8], salt: &[u8], iterations: u32, digest: Digest) -> Result<Vec<u8>> {
-    if pass.is_empty() {
-        let msg = format!("invalid password, cannot be empty");
-        error!("{}", msg);
-        return Err(Error::InvalArg(msg));
-    }
-
-    if salt.is_empty() {
-        let msg = format!("invalid salt, cannot be empty");
-        error!("{}", msg);
-        return Err(Error::InvalArg(msg));
-    }
-
-    let hash = digest.to_openssl();
-    let mut key = vec![0; digest.size() as usize];
-
-    ossl::pkcs5::pbkdf2_hmac(pass, salt, iterations as usize, hash, &mut key)?;
-
-    Ok(key)
-}
-
 pub fn cipher(
     cipher: Cipher,
     encrypt: bool,

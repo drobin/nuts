@@ -25,6 +25,3 @@ mod cipher;
 
 #[cfg(test)]
 mod hmac;
-
-#[cfg(test)]
-mod pbkdf2;

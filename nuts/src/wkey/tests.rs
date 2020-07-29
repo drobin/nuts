@@ -21,12 +21,14 @@
 // IN THE SOFTWARE.
 
 use crate::error::Error;
-use crate::openssl::pbkdf2;
 use crate::types::Digest;
+use crate::wkey::WrappingKeyData;
 
 #[test]
-fn digest_some() {
-    let wkey = pbkdf2(b"123", b"123", 1, Digest::Sha1).unwrap();
+fn pbkdf2_digest_some() {
+    let wkd = WrappingKeyData::pbkdf2(1, &vec![b'1', b'2', b'3']);
+    let wkey = wkd.key(b"123", Digest::Sha1).unwrap();
+
     assert_eq!(
         wkey,
         [58, 68, 159, 34, 207, 49, 175, 62, 2, 158, 184, 166, 204, 23, 216, 35, 160, 87, 69, 60]
@@ -34,8 +36,10 @@ fn digest_some() {
 }
 
 #[test]
-fn empty_password() {
-    if let Error::InvalArg(msg) = pbkdf2(b"", b"123", 1, Digest::Sha1).unwrap_err() {
+fn pbkdf2_empty_password() {
+    let wkd = WrappingKeyData::pbkdf2(1, &vec![b'1', b'2', b'3']);
+
+    if let Error::InvalArg(msg) = wkd.key(b"", Digest::Sha1).unwrap_err() {
         assert_eq!(msg, "invalid password, cannot be empty");
     } else {
         panic!("invalid error");
@@ -43,8 +47,10 @@ fn empty_password() {
 }
 
 #[test]
-fn empty_salt() {
-    if let Error::InvalArg(msg) = pbkdf2(b"123", b"", 1, Digest::Sha1).unwrap_err() {
+fn pbkdf2_empty_salt() {
+    let wkd = WrappingKeyData::pbkdf2(1, &vec![]);
+
+    if let Error::InvalArg(msg) = wkd.key(b"123", Digest::Sha1).unwrap_err() {
         assert_eq!(msg, "invalid salt, cannot be empty");
     } else {
         panic!("invalid error");
