@@ -27,7 +27,7 @@ use log::debug;
 use std::io::{ErrorKind, Read, Seek, SeekFrom, Write};
 
 use crate::error::Error;
-use crate::openssl;
+use crate::rand::random;
 use crate::result::Result;
 use crate::types::DiskType;
 
@@ -94,7 +94,7 @@ impl IO {
 
         for _i in 0..count {
             if self.dtype == DiskType::FatRandom || self.dtype == DiskType::ThinRandom {
-                openssl::random(&mut data)?;
+                random(&mut data)?;
             }
 
             target.write_all(&data)?;
@@ -135,7 +135,7 @@ impl IO {
                     }
                 }
                 DiskType::FatRandom | DiskType::ThinRandom => {
-                    openssl::random(buf)?;
+                    random(buf)?;
                 }
             }
         }
@@ -159,7 +159,7 @@ impl IO {
             DiskType::FatZero | DiskType::ThinZero => vec![0; pad_len],
             DiskType::FatRandom | DiskType::ThinRandom => {
                 let mut rnd: Vec<u8> = vec![0; pad_len];
-                openssl::random(&mut rnd[..])?;
+                random(&mut rnd[..])?;
                 rnd
             }
         };

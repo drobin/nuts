@@ -28,7 +28,7 @@ pub mod container;
 pub mod error;
 pub(crate) mod header;
 pub(crate) mod io;
-pub(crate) mod openssl;
+pub(crate) mod rand;
 pub mod result;
 pub(crate) mod secret;
 pub mod types;

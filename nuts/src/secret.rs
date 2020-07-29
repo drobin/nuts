@@ -28,7 +28,7 @@ use std::fmt;
 
 use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
-use crate::openssl;
+use crate::rand::random;
 use crate::result::Result;
 use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
 use crate::utils::SecureVec;
@@ -59,9 +59,9 @@ impl Secret {
             userdata: vec![],
         };
 
-        openssl::random(&mut secret.master_key)?;
-        openssl::random(&mut secret.master_iv)?;
-        openssl::random(&mut secret.hmac_key)?;
+        random(&mut secret.master_key)?;
+        random(&mut secret.master_iv)?;
+        random(&mut secret.hmac_key)?;
 
         Ok(secret)
     }

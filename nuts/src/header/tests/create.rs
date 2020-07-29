@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use crate::header::Header;
-use crate::openssl::RND;
+use crate::rand::RND;
 use crate::types::{Cipher, Digest, Options};
 use crate::wkey::{Pbkdf2Data, WrappingKeyData};
 

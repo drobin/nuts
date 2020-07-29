@@ -32,7 +32,7 @@ use std::fmt;
 
 use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
-use crate::openssl;
+use crate::rand::random;
 use crate::result::Result;
 use crate::secret::Secret;
 use crate::types::{Cipher, Digest, Options, WrappingKey, BLOCK_MIN_SIZE};
@@ -58,7 +58,7 @@ impl Header {
                 salt_len,
             }) => {
                 let mut salt = vec![0; salt_len as usize];
-                openssl::random(&mut salt)?;
+                random(&mut salt)?;
 
                 Some(WrappingKeyData::pbkdf2(iterations, &salt))
             }
@@ -66,7 +66,7 @@ impl Header {
         };
 
         let mut iv = vec![0; options.cipher.iv_size() as usize];
-        openssl::random(&mut iv)?;
+        random(&mut iv)?;
 
         Ok(Header {
             revision: 1,
