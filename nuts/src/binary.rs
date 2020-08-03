@@ -37,15 +37,6 @@ pub fn read_array<'a>(data: &'a [u8], offset: &mut u32, size: u32) -> Result<&'a
     Ok(slice)
 }
 
-pub fn read_array_as<'a, T>(
-    data: &'a [u8],
-    offset: &mut u32,
-    size: u32,
-    convert: AsFunc<&'a [u8], T>,
-) -> Result<T> {
-    read_array(data, offset, size).and_then(|slice| convert(slice))
-}
-
 pub fn read_vec(data: &[u8], offset: &mut u32) -> Result<Vec<u8>> {
     let size = read_u32(data, offset)?;
     let vec = read_array(data, offset, size)?;

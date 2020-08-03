@@ -23,6 +23,8 @@
 #[cfg(test)]
 mod tests;
 
+pub(crate) mod ser;
+
 use ::openssl::memcmp;
 use ::openssl::pkey::PKey;
 use ::openssl::sign::Signer;
@@ -32,6 +34,7 @@ use std::fmt;
 
 use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
+use crate::header::ser::ReadHeader;
 use crate::rand::random;
 use crate::result::Result;
 use crate::secret::Secret;
@@ -80,16 +83,16 @@ impl Header {
     }
 
     pub fn read(source: &[u8]) -> Result<(Header, u32)> {
-        let mut offset = 0;
+        let mut slice: &[u8] = &source;
 
-        binary::read_array_as(source, &mut offset, 7, validate_magic)?;
-        let revision = binary::read_u8_as(source, &mut offset, u8_to_revision)?;
-        let cipher = binary::read_u8_as(source, &mut offset, u8_to_cipher)?;
-        let digest = binary::read_u8_as(source, &mut offset, u8_to_digest)?;
-        let wrapping_key = read_wrapping_key(source, &mut offset)?;
-        let iv = binary::read_vec(source, &mut offset)?;
-        let hmac = binary::read_vec(source, &mut offset)?;
-        let secret = binary::read_vec(source, &mut offset)?;
+        slice.read_magic()?;
+        let revision = slice.read_revision()?;
+        let cipher = slice.read_cipher()?;
+        let digest = slice.read_digest()?;
+        let wrapping_key = slice.read_wrapping_key()?;
+        let iv = slice.read_vec()?;
+        let hmac = slice.read_vec()?;
+        let secret = slice.read_vec()?;
 
         let header = Header {
             revision,
@@ -101,7 +104,8 @@ impl Header {
             secret,
         };
 
-        Ok((header, offset))
+        let offset = source.len() - slice.len();
+        Ok((header, offset as u32))
     }
 
     pub fn read_secret(&self, wrapping_key: &[u8]) -> Result<(Secret, u32)> {
@@ -356,36 +360,11 @@ impl fmt::Debug for Header {
     }
 }
 
-fn validate_magic(slice: &[u8]) -> Result<()> {
-    if slice == MAGIC {
-        Ok(())
-    } else {
-        error!("invalid magic: {:x?}", slice);
-        Err(Error::InvalHeader(InvalHeaderKind::InvalMagic))
-    }
-}
-
-fn u8_to_revision(revision: u8) -> Result<u8> {
-    if revision == 1 {
-        Ok(revision)
-    } else {
-        Err(Error::InvalHeader(InvalHeaderKind::InvalRevision))
-    }
-}
-
 fn revision_to_u8(revision: u8) -> Result<u8> {
     if revision == 1 {
         Ok(revision)
     } else {
         Err(Error::InvalHeader(InvalHeaderKind::InvalRevision))
-    }
-}
-
-fn u8_to_cipher(i: u8) -> Result<Cipher> {
-    match i {
-        0 => Ok(Cipher::None),
-        1 => Ok(Cipher::Aes128Ctr),
-        _ => Err(Error::InvalHeader(InvalHeaderKind::InvalCipher)),
     }
 }
 
@@ -396,33 +375,10 @@ fn cipher_to_u8(cipher: Cipher) -> Result<u8> {
     }
 }
 
-fn u8_to_digest(i: u8) -> Result<Option<Digest>> {
-    match i {
-        1 => Ok(Some(Digest::Sha1)),
-        0xFF => Ok(None),
-        _ => Err(Error::InvalHeader(InvalHeaderKind::InvalDigest)),
-    }
-}
-
 fn digest_to_u8(digest: Option<Digest>) -> Result<u8> {
     match digest {
         Some(Digest::Sha1) => Ok(1),
         None => Ok(0xFF),
-    }
-}
-
-fn read_wrapping_key(data: &[u8], offset: &mut u32) -> Result<Option<WrappingKeyData>> {
-    let algorithm = binary::read_u8(data, offset)?;
-
-    match algorithm {
-        1 => {
-            let iterations = binary::read_u32(data, offset)?;
-            let salt = binary::read_vec(data, offset)?;
-
-            Ok(Some(WrappingKeyData::pbkdf2(iterations, &salt)))
-        }
-        0xFF => Ok(None),
-        _ => Err(Error::InvalHeader(InvalHeaderKind::InvalWrappingKey)),
     }
 }
 
