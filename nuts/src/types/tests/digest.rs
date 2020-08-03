@@ -24,8 +24,13 @@ use crate::error::Error;
 use crate::types::Digest;
 
 #[test]
+fn from_string_none() {
+    assert_eq!(Digest::from_string("none").unwrap(), None);
+}
+
+#[test]
 fn from_string_sha1() {
-    assert_eq!(Digest::from_string("sha1").unwrap(), Digest::Sha1);
+    assert_eq!(Digest::from_string("sha1").unwrap(), Some(Digest::Sha1));
 }
 
 #[test]
