@@ -23,7 +23,9 @@
 #[cfg(test)]
 mod tests;
 
+use byteorder::{ByteOrder, NetworkEndian};
 use log::debug;
+use std::io;
 use std::io::{ErrorKind, Read, Seek, SeekFrom, Write};
 
 use crate::error::Error;
@@ -31,7 +33,7 @@ use crate::rand::random;
 use crate::result::Result;
 use crate::types::DiskType;
 
-pub struct IO {
+pub(crate) struct IO {
     pub bsize: u32,
     pub blocks: u64,
     pub ablocks: u64,
@@ -200,3 +202,177 @@ impl IO {
         }
     }
 }
+
+/// Trait that supports reading of basic datatypes.
+///
+/// The `ReadBasics` is extended from [`Read`] and reads `u8`, `u32` and `u64`
+/// values from the underlying [`Read`] trait. The numbers are stored in
+/// network byte order (big endian).
+///
+/// The trait is enabled to all types that implements [`Read`].
+///
+/// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+pub trait ReadBasics: Read {
+    /// Reads an `u8` value from the underlying [`Read`] trait.
+    ///
+    /// Note that since this reads a single byte, no byte order conversions are
+    /// used. It is included for completeness.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as [`Read::read_exact`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nuts::io::ReadBasics;
+    /// use std::io::Cursor;
+    ///
+    /// let mut reader = Cursor::new(vec![6]);
+    /// assert_eq!(reader.read_u8().unwrap(), 6);
+    /// ```
+    ///
+    /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+    /// [`Read::read_exact`]: https://doc.rust-lang.org/std/io/trait.Read.html#method.read_exact
+    fn read_u8(&mut self) -> io::Result<u8> {
+        let mut buf = [0; 1];
+
+        self.read_exact(&mut buf)?;
+        Ok(buf[0])
+    }
+
+    /// Read an `u32` value from the underlying [`Read`] trait.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as [`Read::read_exact`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nuts::io::ReadBasics;
+    /// use std::io::Cursor;
+    ///
+    /// let mut reader = Cursor::new(vec![0x00, 0x00, 0x12, 0x67]);
+    /// assert_eq!(reader.read_u32().unwrap(), 4711);
+    /// ```
+    ///
+    /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+    /// [`Read::read_exact`]: https://doc.rust-lang.org/std/io/trait.Read.html#method.read_exact
+    fn read_u32(&mut self) -> io::Result<u32> {
+        let mut buf = [0; 4];
+
+        self.read_exact(&mut buf)?;
+        Ok(NetworkEndian::read_u32(&buf))
+    }
+
+    /// Read an `u64` value from the underlying [`Read`] trait.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as [`Read::read_exact`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nuts::io::ReadBasics;
+    /// use std::io::Cursor;
+    ///
+    /// let mut reader = Cursor::new(vec![0x00, 0x03, 0x43, 0x95, 0x4d, 0x60, 0x86, 0x83]);
+    /// assert_eq!(reader.read_u64().unwrap(), 918733457491587);
+    /// ```
+    ///
+    /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+    /// [`Read::read_exact`]: https://doc.rust-lang.org/std/io/trait.Read.html#method.read_exact
+    fn read_u64(&mut self) -> io::Result<u64> {
+        let mut buf = [0; 8];
+
+        self.read_exact(&mut buf)?;
+        Ok(NetworkEndian::read_u64(&mut buf))
+    }
+}
+
+/// Trait that supports reading extended datatypes.
+///
+/// The `ReadExt` is extended from [`Read`] and reads arrays and [`Vec`]s with
+/// `u8` values from the underlying [`Read`] trait. All the data are stored in
+/// network byte order (big endian).
+///
+/// The trait is enabled to all types that implements [`Read`].
+///
+/// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+/// [`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
+pub trait ReadExt: ReadBasics {
+    /// Reads an fixed sized array (containing `u8` values) from the the
+    /// underlying [`Read`] trait.
+    ///
+    /// The array is returned as an [`Vec`] and has a size of `size` bytes.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as [`Read::read_exact`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nuts::io::ReadExt;
+    /// use std::io::Cursor;
+    ///
+    /// let mut reader = Cursor::new(vec![0x01, 0x02, 0x03]);
+    /// assert_eq!(reader.read_array(3).unwrap(), [1, 2, 3]);
+    /// ```
+    ///
+    /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+    /// [`Read::read_exact`]: https://doc.rust-lang.org/std/io/trait.Read.html#method.read_exact
+    /// [`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
+    fn read_array(&mut self, size: u32) -> io::Result<Vec<u8>> {
+        let mut arr = vec![0; size as usize];
+
+        for elem in arr.iter_mut() {
+            *elem = self.read_u8()?;
+        }
+
+        Ok(arr)
+    }
+
+    /// Reads a [`Vec`] (containing `u8` values) from the the underlying
+    /// [`Read`] trait.
+    ///
+    /// The vector has a dynamic size and is additionally encoded in the
+    /// [`Read`] stream.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as [`Read::read_exact`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nuts::io::ReadExt;
+    /// use std::io::Cursor;
+    ///
+    /// let mut reader = Cursor::new(vec![0x00, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03]);
+    /// assert_eq!(reader.read_vec().unwrap(), [1, 2, 3]);
+    /// ```
+    ///
+    /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+    /// [`Read::read_exact`]: https://doc.rust-lang.org/std/io/trait.Read.html#method.read_exact
+    /// [`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
+    fn read_vec(&mut self) -> io::Result<Vec<u8>> {
+        self.read_u32().and_then(|u| self.read_array(u))
+    }
+}
+
+/// All types that implement [`Read`] get methods defined in [`ReadBasics`] for
+/// free.
+///
+/// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+/// [`ReadBasics`]: trait.ReadBasics.html
+impl<R: Read + ?Sized> ReadBasics for R {}
+
+/// All types that implement [`Read`] get methods defined in [`ReadExt`] for
+/// free.
+///
+/// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+/// [`ReadExt`]: trait.ReadExt.html
+impl<R: Read + ?Sized> ReadExt for R {}

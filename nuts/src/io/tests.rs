@@ -30,4 +30,10 @@ mod new;
 mod read;
 
 #[cfg(test)]
+mod read_basics;
+
+#[cfg(test)]
+mod read_ext;
+
+#[cfg(test)]
 mod write;
