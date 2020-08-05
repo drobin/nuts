@@ -21,4 +21,7 @@
 // IN THE SOFTWARE.
 
 #[cfg(test)]
+mod header_reader;
+
+#[cfg(test)]
 mod read;

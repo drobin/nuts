@@ -23,62 +23,29 @@
 #[cfg(test)]
 mod tests;
 
-use byteorder::{ByteOrder, NetworkEndian};
 use log::error;
+use std::cmp;
 use std::io::Read;
 
 use crate::error::{Error, InvalHeaderKind};
+use crate::io::{ReadBasics, ReadExt};
 use crate::result::Result;
 use crate::types::{Cipher, Digest, DiskType};
 use crate::wkey::WrappingKeyData;
 
 const MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
 
-fn map_error<T>(err: std::io::Error) -> Result<T> {
-    if err.kind() == std::io::ErrorKind::UnexpectedEof {
-        Err(Error::NoData)
-    } else {
-        Err(Error::IoError(err))
-    }
+pub struct HeaderReader<'a> {
+    pub data: &'a [u8],
+    pub offs: usize,
 }
 
-pub trait ReadHeader: Read {
-    fn read_u8(&mut self) -> Result<u8> {
-        let mut buf = [0; 1];
-
-        self.read_exact(&mut buf).or_else(map_error)?;
-        Ok(buf[0])
+impl<'a> HeaderReader<'a> {
+    pub fn new(data: &[u8]) -> HeaderReader {
+        HeaderReader { data, offs: 0 }
     }
 
-    fn read_u32(&mut self) -> Result<u32> {
-        let mut buf = [0; 4];
-
-        self.read_exact(&mut buf).or_else(map_error)?;
-        Ok(NetworkEndian::read_u32(&buf))
-    }
-
-    fn read_u64(&mut self) -> Result<u64> {
-        let mut buf = [0; 8];
-
-        self.read_exact(&mut buf).or_else(map_error)?;
-        Ok(NetworkEndian::read_u64(&mut buf))
-    }
-
-    fn read_array(&mut self, size: u32) -> Result<Vec<u8>> {
-        let mut arr = vec![0; size as usize];
-
-        for elem in arr.iter_mut() {
-            *elem = self.read_u8()?;
-        }
-
-        Ok(arr)
-    }
-
-    fn read_vec(&mut self) -> Result<Vec<u8>> {
-        self.read_u32().and_then(|u| self.read_array(u))
-    }
-
-    fn read_revision(&mut self) -> Result<u8> {
+    pub fn read_revision(&mut self) -> Result<u8> {
         let revision = self.read_u8()?;
 
         if revision == 1 {
@@ -88,7 +55,7 @@ pub trait ReadHeader: Read {
         }
     }
 
-    fn read_magic(&mut self) -> Result<()> {
+    pub fn read_magic(&mut self) -> Result<()> {
         let magic = self.read_array(MAGIC.len() as u32)?;
 
         if magic == MAGIC {
@@ -99,7 +66,7 @@ pub trait ReadHeader: Read {
         }
     }
 
-    fn read_cipher(&mut self) -> Result<Cipher> {
+    pub fn read_cipher(&mut self) -> Result<Cipher> {
         match self.read_u8()? {
             0 => Ok(Cipher::None),
             1 => Ok(Cipher::Aes128Ctr),
@@ -107,7 +74,7 @@ pub trait ReadHeader: Read {
         }
     }
 
-    fn read_digest(&mut self) -> Result<Option<Digest>> {
+    pub fn read_digest(&mut self) -> Result<Option<Digest>> {
         match self.read_u8()? {
             1 => Ok(Some(Digest::Sha1)),
             0xFF => Ok(None),
@@ -115,7 +82,7 @@ pub trait ReadHeader: Read {
         }
     }
 
-    fn read_dtype(&mut self) -> Result<DiskType> {
+    pub fn read_dtype(&mut self) -> Result<DiskType> {
         match self.read_u8()? {
             0 => Ok(DiskType::FatZero),
             1 => Ok(DiskType::FatRandom),
@@ -125,7 +92,7 @@ pub trait ReadHeader: Read {
         }
     }
 
-    fn read_wrapping_key(&mut self) -> Result<Option<WrappingKeyData>> {
+    pub fn read_wrapping_key(&mut self) -> Result<Option<WrappingKeyData>> {
         match self.read_u8()? {
             1 => {
                 let iterations = self.read_u32()?;
@@ -139,5 +106,17 @@ pub trait ReadHeader: Read {
     }
 }
 
-// The u8-slice get methods defined in `ReadHeader`.
-impl ReadHeader for &[u8] {}
+impl<'a> Read for HeaderReader<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let remaining = self.data.len() - self.offs;
+        let nbytes = cmp::min(buf.len(), remaining);
+
+        let source = self.data.get(self.offs..self.offs + nbytes).unwrap();
+        let target = buf.get_mut(..nbytes).unwrap();
+
+        target.copy_from_slice(source);
+        self.offs += nbytes;
+
+        Ok(nbytes)
+    }
+}

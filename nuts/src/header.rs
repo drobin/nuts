@@ -34,7 +34,8 @@ use std::fmt;
 
 use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
-use crate::header::ser::ReadHeader;
+use crate::header::ser::HeaderReader;
+use crate::io::ReadExt;
 use crate::rand::random;
 use crate::result::Result;
 use crate::secret::Secret;
@@ -83,16 +84,16 @@ impl Header {
     }
 
     pub fn read(source: &[u8]) -> Result<(Header, u32)> {
-        let mut slice: &[u8] = &source;
+        let mut reader = HeaderReader::new(source);
 
-        slice.read_magic()?;
-        let revision = slice.read_revision()?;
-        let cipher = slice.read_cipher()?;
-        let digest = slice.read_digest()?;
-        let wrapping_key = slice.read_wrapping_key()?;
-        let iv = slice.read_vec()?;
-        let hmac = slice.read_vec()?;
-        let secret = slice.read_vec()?;
+        reader.read_magic()?;
+        let revision = reader.read_revision()?;
+        let cipher = reader.read_cipher()?;
+        let digest = reader.read_digest()?;
+        let wrapping_key = reader.read_wrapping_key()?;
+        let iv = reader.read_vec()?;
+        let hmac = reader.read_vec()?;
+        let secret = reader.read_vec()?;
 
         let header = Header {
             revision,
@@ -104,8 +105,7 @@ impl Header {
             secret,
         };
 
-        let offset = source.len() - slice.len();
-        Ok((header, offset as u32))
+        Ok((header, reader.offs as u32))
     }
 
     pub fn read_secret(&self, wrapping_key: &[u8]) -> Result<(Secret, u32)> {

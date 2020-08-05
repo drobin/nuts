@@ -20,6 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::io::ErrorKind;
+
+use crate::error::Error;
 use crate::header::Header;
 use crate::types::{Cipher, Digest};
 use crate::wkey::{Pbkdf2Data, WrappingKeyData};
@@ -81,8 +84,11 @@ fn mk_data_size(d: &Data, size: usize) -> Vec<u8> {
 fn incomplete() {
     for i in 1..47 {
         let data = mk_data_size(&OK_DATA, i);
-        let err = format!("{:?}", Header::read(&data).unwrap_err());
-        assert_eq!(err, "NoData");
+        if let Error::IoError(err) = Header::read(&data).unwrap_err() {
+            assert_eq!(err.kind(), ErrorKind::UnexpectedEof);
+        } else {
+            panic!("invalid error");
+        }
     }
 }
 
