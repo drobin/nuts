@@ -20,26 +20,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod capacity;
+use std::io::Cursor;
 
-#[cfg(test)]
-mod new;
+use crate::io::WriteExt;
 
-#[cfg(test)]
-mod read;
+#[test]
+fn array_empty() {
+    let mut c = Cursor::new(vec![]);
 
-#[cfg(test)]
-mod read_basics;
+    c.write_array(&[]).unwrap();
+    assert_eq!(c.get_ref(), &[]);
+}
 
-#[cfg(test)]
-mod read_ext;
+#[test]
+fn array_non_empty() {
+    let mut c = Cursor::new(vec![]);
 
-#[cfg(test)]
-mod write;
+    c.write_array(&[1, 2, 3]).unwrap();
+    assert_eq!(c.get_ref(), &[1, 2, 3]);
+}
 
-#[cfg(test)]
-mod write_basics;
+#[test]
+fn vec_empty() {
+    let mut c = Cursor::new(vec![]);
 
-#[cfg(test)]
-mod write_ext;
+    c.write_vec(&[]).unwrap();
+    assert_eq!(c.get_ref(), &[0x00, 0x00, 0x00, 0x00]);
+}
+
+#[test]
+fn vec_non_empty() {
+    let mut c = Cursor::new(vec![]);
+
+    c.write_vec(&[1, 2, 3]).unwrap();
+    assert_eq!(c.get_ref(), &[0x00, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03]);
+}

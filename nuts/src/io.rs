@@ -363,6 +363,170 @@ pub trait ReadExt: ReadBasics {
     }
 }
 
+/// Trait that supports writing of basic datatypes.
+///
+/// The `WriteBasics` trait is extended from [`Write`] and writes `u8`, `u32`
+/// and `u64` values into the underlying [`Write`] trait. The numbers are
+/// stored in network byte order (big endian).
+///
+/// The trait is enabled to all types that implements [`Write`].
+///
+/// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
+pub trait WriteBasics: Write {
+    /// Writes an `u8` value into the underlying [`Write`] trait.
+    ///
+    /// Note that since this writes a single byte, no byte order conversions
+    /// are used. It is included for completeness.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as [`Write::write_all`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nuts::io::WriteBasics;
+    /// use std::io::Cursor;
+    ///
+    /// let mut writer = Cursor::new(vec![]);
+    ///
+    /// writer.write_u8(6).unwrap();
+    /// assert_eq!(writer.into_inner(), [6]);
+    /// ```
+    ///
+    /// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
+    /// [`Write::write_all`]: https://doc.rust-lang.org/std/io/trait.Write.html#method.write_all
+    fn write_u8(&mut self, n: u8) -> io::Result<()> {
+        self.write_all(&[n])
+    }
+
+    /// Writes an `u32` value into the underlying [`Write`] trait.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as [`Write::write_all`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nuts::io::WriteBasics;
+    /// use std::io::Cursor;
+    ///
+    /// let mut writer = Cursor::new(vec![]);
+    ///
+    /// writer.write_u32(4711).unwrap();
+    /// assert_eq!(writer.into_inner(), [0x00, 0x00, 0x12, 0x67]);
+    /// ```
+    ///
+    /// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
+    /// [`Write::write_all`]: https://doc.rust-lang.org/std/io/trait.Write.html#method.write_all
+    fn write_u32(&mut self, n: u32) -> io::Result<()> {
+        let mut buf = [0; 4];
+
+        NetworkEndian::write_u32(&mut buf, n);
+        self.write_all(&buf)
+    }
+
+    /// Writes an `u64` value into the underlying [`Write`] trait.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as [`Write::write_all`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nuts::io::WriteBasics;
+    /// use std::io::Cursor;
+    ///
+    /// let mut writer = Cursor::new(vec![]);
+    ///
+    /// writer.write_u64(918733457491587).unwrap();
+    /// assert_eq!(writer.into_inner(), [0x00, 0x03, 0x43, 0x95, 0x4d, 0x60, 0x86, 0x83]);
+    /// ```
+    ///
+    /// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
+    /// [`Write::write_all`]: https://doc.rust-lang.org/std/io/trait.Write.html#method.write_all
+    fn write_u64(&mut self, n: u64) -> io::Result<()> {
+        let mut buf = [0; 8];
+
+        NetworkEndian::write_u64(&mut buf, n);
+        self.write_all(&buf)
+    }
+}
+
+/// Trait that supports writing extended datatypes.
+///
+/// The `WriteExt` trait is extended from [`Write`] and writes arrays and
+/// [`Vec`]s with `u8` values into the underlying [`Write`] trait. All the data
+/// are stored in network byte order (big endian).
+///
+/// The trait is enabled to all types that implements [`Write`].
+///
+/// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
+/// [`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
+pub trait WriteExt: WriteBasics {
+    /// Writes an fixed sized array (containing `u8` values) into the the
+    /// underlying [`Write`] trait.
+    ///
+    /// The array to be written is passed to the method as an slice.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as [`Write::write_all`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nuts::io::WriteExt;
+    /// use std::io::Cursor;
+    ///
+    /// let mut writer = Cursor::new(vec![]);
+    ///
+    /// writer.write_array(&[1, 2, 3]).unwrap();
+    /// assert_eq!(writer.into_inner(), [1, 2, 3]);
+    /// ```
+    ///
+    /// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
+    /// [`Write::write_all`]: https://doc.rust-lang.org/std/io/trait.Write.html#method.write_all
+    fn write_array(&mut self, arr: &[u8]) -> io::Result<()> {
+        for elem in arr.iter() {
+            self.write_u8(*elem)?;
+        }
+
+        Ok(())
+    }
+
+    /// Writes a vector (containing `u8` values) into the the underlying
+    /// [`Write`] trait.
+    ///
+    /// The vector has a dynamic size and is additionally encoded in the
+    /// [`Write`] stream.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as [`Write::write_all`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nuts::io::WriteExt;
+    /// use std::io::Cursor;
+    ///
+    /// let mut writer = Cursor::new(vec![]);
+    ///
+    /// writer.write_vec(&[1, 2, 3]);
+    /// assert_eq!(writer.into_inner(), [0x00, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03]);
+    /// ```
+    ///
+    /// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
+    /// [`Write::write_all`]: https://doc.rust-lang.org/std/io/trait.Write.html#method.write_all
+    fn write_vec(&mut self, vec: &[u8]) -> io::Result<()> {
+        self.write_u32(vec.len() as u32)
+            .and_then(|()| self.write_array(vec))
+    }
+}
+
 /// All types that implement [`Read`] get methods defined in [`ReadBasics`] for
 /// free.
 ///
@@ -376,3 +540,17 @@ impl<R: Read + ?Sized> ReadBasics for R {}
 /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
 /// [`ReadExt`]: trait.ReadExt.html
 impl<R: Read + ?Sized> ReadExt for R {}
+
+/// All types that implement [`Write`] get methods defined in [`WriteBasics`] for
+/// free.
+///
+/// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
+/// [`WriteBasics`]: trait.WriteBasics.html
+impl<W: Write + ?Sized> WriteBasics for W {}
+
+/// All types that implement [`Write`] get methods defined in [`WriteExt`] for
+/// free.
+///
+/// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
+/// [`WriteExt`]: trait.WriteExt.html
+impl<W: Write + ?Sized> WriteExt for W {}

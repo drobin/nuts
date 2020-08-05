@@ -20,26 +20,33 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod capacity;
+use std::io::Cursor;
 
-#[cfg(test)]
-mod new;
+use crate::io::WriteBasics;
 
-#[cfg(test)]
-mod read;
+#[test]
+fn u8() {
+    let mut c = Cursor::new(vec![]);
 
-#[cfg(test)]
-mod read_basics;
+    c.write_u8(6).unwrap();
+    assert_eq!(c.get_ref(), &[6]);
+}
 
-#[cfg(test)]
-mod read_ext;
+#[test]
+fn u32() {
+    let mut c = Cursor::new(vec![]);
 
-#[cfg(test)]
-mod write;
+    c.write_u32(4711).unwrap();
+    assert_eq!(c.get_ref(), &[0x00, 0x00, 0x12, 0x67]);
+}
 
-#[cfg(test)]
-mod write_basics;
+#[test]
+fn u64() {
+    let mut c = Cursor::new(vec![]);
 
-#[cfg(test)]
-mod write_ext;
+    c.write_u64(1_326_049_953_023_858_032).unwrap();
+    assert_eq!(
+        c.get_ref(),
+        &[0x12, 0x67, 0x13, 0x68, 0x14, 0x69, 0x15, 0x70]
+    );
+}
