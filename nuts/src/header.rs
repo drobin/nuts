@@ -32,17 +32,14 @@ use ::openssl::symm::{Crypter, Mode};
 use log::{debug, error};
 use std::fmt;
 
-use crate::binary;
 use crate::error::{Error, InvalHeaderKind};
-use crate::header::ser::HeaderReader;
-use crate::io::ReadExt;
+use crate::header::ser::{HeaderReader, HeaderWriter};
+use crate::io::{ReadExt, WriteExt};
 use crate::rand::random;
 use crate::result::Result;
 use crate::secret::Secret;
 use crate::types::{Cipher, Digest, Options, WrappingKey, BLOCK_MIN_SIZE};
 use crate::wkey::WrappingKeyData;
-
-const MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
 
 pub struct Header {
     pub revision: u8,
@@ -120,18 +117,18 @@ impl Header {
     }
 
     pub fn write(&self, target: &mut [u8]) -> Result<u32> {
-        let mut offset: u32 = 0;
+        let mut writer = HeaderWriter::new(target);
 
-        binary::write_array(target, &mut offset, &MAGIC)?;
-        binary::write_u8_as(target, &mut offset, self.revision, revision_to_u8)?;
-        binary::write_u8_as(target, &mut offset, self.cipher, cipher_to_u8)?;
-        binary::write_u8_as(target, &mut offset, self.digest, digest_to_u8)?;
-        write_wrapping_key(target, &mut offset, &self.wrapping_key)?;
-        binary::write_vec(target, &mut offset, &self.iv)?;
-        binary::write_vec(target, &mut offset, &self.hmac)?;
-        binary::write_vec(target, &mut offset, &self.secret)?;
+        writer.write_magic()?;
+        writer.write_revision(self.revision)?;
+        writer.write_cipher(self.cipher)?;
+        writer.write_digest(self.digest)?;
+        writer.write_wrapping_key(self.wrapping_key.as_ref())?;
+        writer.write_vec(&self.iv)?;
+        writer.write_vec(&self.hmac)?;
+        writer.write_vec(&self.secret)?;
 
-        Ok(offset)
+        Ok(writer.offs as u32)
     }
 
     pub fn write_secret(&mut self, secret: &Secret, wrapping_key: &[u8]) -> Result<u32> {
@@ -357,51 +354,6 @@ impl fmt::Debug for Header {
             .field("hmac", &hmac)
             .field("secret", &secret)
             .finish()
-    }
-}
-
-fn revision_to_u8(revision: u8) -> Result<u8> {
-    if revision == 1 {
-        Ok(revision)
-    } else {
-        Err(Error::InvalHeader(InvalHeaderKind::InvalRevision))
-    }
-}
-
-fn cipher_to_u8(cipher: Cipher) -> Result<u8> {
-    match cipher {
-        Cipher::None => Ok(0),
-        Cipher::Aes128Ctr => Ok(1),
-    }
-}
-
-fn digest_to_u8(digest: Option<Digest>) -> Result<u8> {
-    match digest {
-        Some(Digest::Sha1) => Ok(1),
-        None => Ok(0xFF),
-    }
-}
-
-fn write_wrapping_key(
-    target: &mut [u8],
-    offset: &mut u32,
-    data: &Option<WrappingKeyData>,
-) -> Result<()> {
-    match data {
-        Some(data) => {
-            let WrappingKeyData::Pbkdf2(value) = data;
-
-            binary::write_u8(target, offset, 1)?;
-            binary::write_u32(target, offset, value.iterations)?;
-            binary::write_vec(target, offset, &value.salt)?;
-
-            Ok(())
-        }
-        None => {
-            binary::write_u8(target, offset, 0xFF)?;
-
-            Ok(())
-        }
     }
 }
 

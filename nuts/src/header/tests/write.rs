@@ -20,6 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::io::ErrorKind;
+
+use crate::error::Error;
 use crate::header::Header;
 use crate::types::{Cipher, Digest};
 use crate::wkey::{Pbkdf2Data, WrappingKeyData};
@@ -69,11 +72,11 @@ fn no_space() {
     let (header, mut target) = setup();
 
     for i in 1..49 {
-        let err = format!(
-            "{:?}",
-            header.write(&mut target.get_mut(..i).unwrap()).unwrap_err()
-        );
-        assert_eq!(err, "NoSpace");
+        if let Error::IoError(err) = header.write(&mut target.get_mut(..i).unwrap()).unwrap_err() {
+            assert_eq!(err.kind(), ErrorKind::WriteZero);
+        } else {
+            panic!("invalid error");
+        }
     }
 }
 

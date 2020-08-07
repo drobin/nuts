@@ -25,10 +25,10 @@ mod tests;
 
 use log::error;
 use std::cmp;
-use std::io::Read;
+use std::io::{Read, Write};
 
 use crate::error::{Error, InvalHeaderKind};
-use crate::io::{ReadBasics, ReadExt};
+use crate::io::{ReadBasics, ReadExt, WriteBasics, WriteExt};
 use crate::result::Result;
 use crate::types::{Cipher, Digest, DiskType};
 use crate::wkey::WrappingKeyData;
@@ -118,5 +118,91 @@ impl<'a> Read for HeaderReader<'a> {
         self.offs += nbytes;
 
         Ok(nbytes)
+    }
+}
+
+pub struct HeaderWriter<'a> {
+    pub data: &'a mut [u8],
+    pub offs: usize,
+}
+
+impl<'a> HeaderWriter<'a> {
+    pub fn new(data: &mut [u8]) -> HeaderWriter {
+        HeaderWriter { data, offs: 0 }
+    }
+
+    pub fn write_revision(&mut self, revision: u8) -> Result<()> {
+        Ok(self.write_u8(revision)?)
+    }
+
+    pub fn write_magic(&mut self) -> Result<()> {
+        Ok(self.write_array(&MAGIC)?)
+    }
+
+    pub fn write_cipher(&mut self, cipher: Cipher) -> Result<()> {
+        let n = match cipher {
+            Cipher::None => 0,
+            Cipher::Aes128Ctr => 1,
+        };
+
+        Ok(self.write_u8(n)?)
+    }
+
+    pub fn write_digest(&mut self, digest: Option<Digest>) -> Result<()> {
+        let n = match digest {
+            Some(Digest::Sha1) => 1,
+            None => 0xFF,
+        };
+
+        Ok(self.write_u8(n)?)
+    }
+
+    pub fn write_dtype(&mut self, dtype: DiskType) -> Result<()> {
+        let n = match dtype {
+            DiskType::FatZero => 0,
+            DiskType::FatRandom => 1,
+            DiskType::ThinZero => 2,
+            DiskType::ThinRandom => 3,
+        };
+
+        Ok(self.write_u8(n)?)
+    }
+
+    pub fn write_wrapping_key(&mut self, wkey: Option<&WrappingKeyData>) -> Result<()> {
+        match wkey {
+            Some(data) => {
+                let WrappingKeyData::Pbkdf2(value) = data;
+
+                self.write_u8(1)?;
+                self.write_u32(value.iterations)?;
+                self.write_vec(&value.salt)?;
+
+                Ok(())
+            }
+            None => {
+                self.write_u8(0xFF)?;
+
+                Ok(())
+            }
+        }
+    }
+}
+
+impl<'a> Write for HeaderWriter<'a> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let remaining = self.data.len() - self.offs;
+        let nbytes = cmp::min(buf.len(), remaining);
+
+        let source = buf.get(..nbytes).unwrap();
+        let target = self.data.get_mut(self.offs..self.offs + nbytes).unwrap();
+
+        target.copy_from_slice(source);
+        self.offs += nbytes;
+
+        Ok(nbytes)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }

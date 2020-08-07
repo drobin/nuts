@@ -24,4 +24,10 @@
 mod header_reader;
 
 #[cfg(test)]
+mod header_writer;
+
+#[cfg(test)]
 mod read;
+
+#[cfg(test)]
+mod write;
