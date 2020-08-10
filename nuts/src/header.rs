@@ -46,7 +46,7 @@ pub struct Header {
     pub cipher: Cipher,
     pub digest: Option<Digest>,
     pub wrapping_key: Option<WrappingKeyData>,
-    pub iv: Vec<u8>,
+    pub wrapping_iv: Vec<u8>,
     pub hmac: Vec<u8>,
     pub secret: Vec<u8>,
 }
@@ -74,7 +74,7 @@ impl Header {
             cipher: options.cipher,
             digest: options.md,
             wrapping_key: wkey_data,
-            iv: iv,
+            wrapping_iv: iv,
             hmac: Vec::new(),
             secret: Vec::new(),
         })
@@ -88,7 +88,7 @@ impl Header {
         let cipher = reader.read_cipher()?;
         let digest = reader.read_digest()?;
         let wrapping_key = reader.read_wrapping_key()?;
-        let iv = reader.read_vec()?;
+        let wrapping_iv = reader.read_vec()?;
         let hmac = reader.read_vec()?;
         let secret = reader.read_vec()?;
 
@@ -97,7 +97,7 @@ impl Header {
             cipher,
             digest,
             wrapping_key,
-            iv,
+            wrapping_iv,
             hmac,
             secret,
         };
@@ -124,7 +124,7 @@ impl Header {
         writer.write_cipher(self.cipher)?;
         writer.write_digest(self.digest)?;
         writer.write_wrapping_key(self.wrapping_key.as_ref())?;
-        writer.write_vec(&self.iv)?;
+        writer.write_vec(&self.wrapping_iv)?;
         writer.write_vec(&self.hmac)?;
         writer.write_vec(&self.secret)?;
 
@@ -151,7 +151,7 @@ impl Header {
             plain_secret,
             &mut self.secret,
             wrapping_key,
-            &self.iv,
+            &self.wrapping_iv,
         )
     }
 
@@ -162,7 +162,7 @@ impl Header {
             &self.secret,
             plain_secret,
             wrapping_key,
-            &self.iv,
+            &self.wrapping_iv,
         )
     }
 
@@ -225,7 +225,7 @@ impl Header {
     pub fn validate(&self) -> Result<()> {
         Header::validate_revision(self.revision)?;
         self.validate_digest()?;
-        self.validate_iv()?;
+        self.validate_wrapping_iv()?;
         self.validate_hmac()?;
 
         Ok(())
@@ -293,11 +293,11 @@ impl Header {
         }
     }
 
-    fn validate_iv(&self) -> Result<()> {
-        if self.iv.len() != self.cipher.iv_size() as usize {
+    fn validate_wrapping_iv(&self) -> Result<()> {
+        if self.wrapping_iv.len() != self.cipher.iv_size() as usize {
             error!(
                 "invalid iv, len: {}, expected: {} ({})",
-                self.iv.len(),
+                self.wrapping_iv.len(),
                 self.cipher.iv_size(),
                 self.cipher
             );
@@ -331,26 +331,27 @@ impl Header {
 
 impl fmt::Debug for Header {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let (iv, hmac, secret) = if cfg!(feature = "debug-plain-keys") && cfg!(debug_assertions) {
-            (
-                format!("{:?}", self.iv),
-                format!("{:?}", self.hmac),
-                format!("{:?}", self.secret),
-            )
-        } else {
-            (
-                format!("<{} bytes>", self.iv.len()),
-                format!("<{} bytes>", self.hmac.len()),
-                format!("<{} bytes>", self.secret.len()),
-            )
-        };
+        let (wrapping_iv, hmac, secret) =
+            if cfg!(feature = "debug-plain-keys") && cfg!(debug_assertions) {
+                (
+                    format!("{:?}", self.wrapping_iv),
+                    format!("{:?}", self.hmac),
+                    format!("{:?}", self.secret),
+                )
+            } else {
+                (
+                    format!("<{} bytes>", self.wrapping_iv.len()),
+                    format!("<{} bytes>", self.hmac.len()),
+                    format!("<{} bytes>", self.secret.len()),
+                )
+            };
 
         fmt.debug_struct("Header")
             .field("revision", &self.revision)
             .field("cipher", &self.cipher)
             .field("digest", &self.digest)
             .field("wrapping_key", &self.wrapping_key)
-            .field("iv", &iv)
+            .field("wrapping_iv", &wrapping_iv)
             .field("hmac", &hmac)
             .field("secret", &secret)
             .finish()

@@ -34,8 +34,8 @@ struct Data {
     digest: u8,
     wkey: [u8; 16],
     wkey_size: usize,
-    iv: [u8; 8],
-    iv_size: usize,
+    wrapping_iv: [u8; 8],
+    wrapping_iv_size: usize,
     hmac: [u8; 8],
     hmac_size: usize,
     secret: [u8; 8],
@@ -49,8 +49,8 @@ const OK_DATA: Data = Data {
     digest: 1,
     wkey: [1, 0, 0, 0x12, 0x67, 0, 0, 0, 0x07, 1, 2, 3, 4, 5, 6, 7],
     wkey_size: 16,
-    iv: [0, 0, 0, 2, 8, 9, 0, 0],
-    iv_size: 6,
+    wrapping_iv: [0, 0, 0, 2, 8, 9, 0, 0],
+    wrapping_iv_size: 6,
     hmac: [0, 0, 0, 3, 1, 2, 3, 0],
     hmac_size: 7,
     secret: [0, 0, 0, 4, 4, 5, 6, 7],
@@ -65,7 +65,7 @@ fn mk_data(d: &Data) -> Vec<u8> {
     data.push(d.cipher);
     data.push(d.digest);
     data.extend_from_slice(&d.wkey[0..d.wkey_size]);
-    data.extend_from_slice(&d.iv[0..d.iv_size]);
+    data.extend_from_slice(&d.wrapping_iv[0..d.wrapping_iv_size]);
     data.extend_from_slice(&d.hmac[0..d.hmac_size]);
     data.extend_from_slice(&d.secret[0..d.secret_size]);
 
@@ -218,23 +218,23 @@ fn bad_wrapping_key() {
 }
 
 #[test]
-fn iv_empty() {
+fn wrapping_iv_empty() {
     let data = mk_data(&Data {
-        iv: [0; 8],
-        iv_size: 4,
+        wrapping_iv: [0; 8],
+        wrapping_iv_size: 4,
         ..OK_DATA
     });
     let (header, offset) = Header::read(&data).unwrap();
     assert_eq!(offset, 45);
-    assert!(header.iv.is_empty());
+    assert!(header.wrapping_iv.is_empty());
 }
 
 #[test]
-fn iv_non_empty() {
+fn wrapping_iv_non_empty() {
     let data = mk_data(&OK_DATA);
     let (header, offset) = Header::read(&data).unwrap();
     assert_eq!(offset, 47);
-    assert_eq!(header.iv, vec![8, 9]);
+    assert_eq!(header.wrapping_iv, vec![8, 9]);
 }
 
 #[test]

@@ -36,7 +36,7 @@ fn ok_header() -> Header {
             iterations: 4711,
             salt: vec![1, 2, 3],
         })),
-        iv: vec![13, 14, 15, 16, 17, 18],
+        wrapping_iv: vec![13, 14, 15, 16, 17, 18],
         hmac: vec![4, 5, 6, 7],
         secret: vec![8, 9, 10, 11, 12],
     }
@@ -137,16 +137,16 @@ fn wrapping_key_pbkdf2() {
 }
 
 #[test]
-fn iv_empty() {
+fn wrapping_iv_empty() {
     let (mut header, mut target) = setup();
-    header.iv.clear();
+    header.wrapping_iv.clear();
 
     assert_eq!(header.write(&mut target).unwrap(), 43);
     assert_eq!(target[22..26], [0x00, 0x00, 0x00, 0x00]);
 }
 
 #[test]
-fn iv_non_empty() {
+fn wrapping_iv_non_empty() {
     let (header, mut target) = setup();
 
     assert_eq!(header.write(&mut target).unwrap(), 49);

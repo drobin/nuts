@@ -33,7 +33,7 @@ fn ok_header() -> Header {
             iterations: 4711,
             salt: vec![1, 2, 3],
         })),
-        iv: vec![
+        wrapping_iv: vec![
             24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
         ],
         hmac: vec![
@@ -77,7 +77,7 @@ fn cipher_none_empty_hmac_iv_accepted() {
     let mut header = ok_header();
     header.cipher = Cipher::None;
     header.digest = None;
-    header.iv.clear();
+    header.wrapping_iv.clear();
     header.hmac.clear();
 
     header.validate().unwrap();
@@ -88,7 +88,7 @@ fn cipher_none_hmac_rejected() {
     let mut header = ok_header();
     header.cipher = Cipher::None;
     header.digest = None;
-    header.iv.clear();
+    header.wrapping_iv.clear();
 
     let err = header.validate().unwrap_err();
     assert_eq!(format!("{:?}", err), "InvalHeader(InvalHmac)");
@@ -124,18 +124,18 @@ fn cipher_some_hmac_inval_size() {
 }
 
 #[test]
-fn cipher_some_empty_iv() {
+fn cipher_some_empty_wrapping_iv() {
     let mut header = ok_header();
-    header.iv.clear();
+    header.wrapping_iv.clear();
 
     let err = header.validate().unwrap_err();
     assert_eq!(format!("{:?}", err), "InvalHeader(InvalIv)");
 }
 
 #[test]
-fn cipher_some_iv_inval_size() {
+fn cipher_some_wrapping_iv_inval_size() {
     let mut header = ok_header();
-    header.iv.pop();
+    header.wrapping_iv.pop();
 
     let err = header.validate().unwrap_err();
     assert_eq!(format!("{:?}", err), "InvalHeader(InvalIv)");

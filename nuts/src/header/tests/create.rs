@@ -34,7 +34,7 @@ fn cipher_none() {
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.digest, None);
     assert_eq!(header.wrapping_key, None);
-    assert!(header.iv.is_empty());
+    assert!(header.wrapping_iv.is_empty());
     assert!(header.hmac.is_empty());
     assert!(header.secret.is_empty());
 }
@@ -54,7 +54,7 @@ fn cipher_aes128_ctr() {
             salt: RND[..16].to_vec()
         }))
     );
-    assert_eq!(header.iv, &RND[..16]);
+    assert_eq!(header.wrapping_iv, &RND[..16]);
     assert!(header.hmac.is_empty());
     assert!(header.secret.is_empty());
 }
