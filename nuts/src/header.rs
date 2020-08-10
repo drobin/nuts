@@ -28,7 +28,6 @@ pub(crate) mod ser;
 use ::openssl::memcmp;
 use ::openssl::pkey::PKey;
 use ::openssl::sign::Signer;
-use ::openssl::symm::{Crypter, Mode};
 use log::{debug, error};
 use std::fmt;
 
@@ -144,10 +143,7 @@ impl Header {
 
     fn encrypt(&mut self, plain_secret: &[u8], wrapping_key: &[u8]) -> Result<()> {
         self.secret.resize(plain_secret.len(), 0);
-
-        Header::crypt(
-            Mode::Encrypt,
-            self.cipher,
+        self.cipher.encrypt(
             plain_secret,
             &mut self.secret,
             wrapping_key,
@@ -156,70 +152,8 @@ impl Header {
     }
 
     fn decrypt(&self, plain_secret: &mut [u8], wrapping_key: &[u8]) -> Result<()> {
-        Header::crypt(
-            Mode::Decrypt,
-            self.cipher,
-            &self.secret,
-            plain_secret,
-            wrapping_key,
-            &self.wrapping_iv,
-        )
-    }
-
-    fn crypt(
-        mode: Mode,
-        cipher: Cipher,
-        input: &[u8],
-        output: &mut [u8],
-        key: &[u8],
-        iv: &[u8],
-    ) -> Result<()> {
-        if let Some(cipher) = cipher.to_openssl() {
-            if input.len() % cipher.block_size() != 0 {
-                let msg = format!(
-                    "length of input {} mut be a multiple of block-size {}",
-                    input.len(),
-                    cipher.block_size()
-                );
-                error!("{}", msg);
-                return Err(Error::InvalArg(msg));
-            }
-
-            let key = key.get(..cipher.key_len()).ok_or_else(|| {
-                let msg = format!(
-                    "key too short, at least {} bytes needed but got {}",
-                    cipher.key_len(),
-                    key.len()
-                );
-                error!("{}", msg);
-                Error::InvalArg(msg)
-            })?;
-
-            let iv = if let Some(len) = cipher.iv_len() {
-                iv.get(..len).ok_or_else(|| {
-                    let msg = format!(
-                        "iv too short, at least {} bytes needed but got {}",
-                        len,
-                        iv.len()
-                    );
-                    error!("{}", msg);
-                    Error::InvalArg(msg)
-                })?
-            } else {
-                panic!("no support for a cipher without iv");
-            };
-
-            let mut crypter = Crypter::new(cipher, mode, key, Some(iv))?;
-            crypter.pad(false);
-
-            let count = crypter.update(input, output)?;
-            assert_eq!(count, output.len());
-        } else {
-            assert_eq!(cipher, Cipher::None);
-            output.copy_from_slice(input);
-        }
-
-        Ok(())
+        self.cipher
+            .decrypt(&self.secret, plain_secret, wrapping_key, &self.wrapping_iv)
     }
 
     pub fn validate(&self) -> Result<()> {

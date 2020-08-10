@@ -23,6 +23,8 @@
 #[cfg(test)]
 mod tests;
 
+use ::openssl::symm::{Crypter, Mode};
+use log::error;
 use openssl::{hash, symm};
 
 use crate::error::Error;
@@ -102,6 +104,98 @@ impl Cipher {
                 Err(Error::InvalArg(message))
             }
         }
+    }
+
+    pub(crate) fn encrypt(
+        &self,
+        input: &[u8],
+        output: &mut [u8],
+        key: &[u8],
+        iv: &[u8],
+    ) -> Result<()> {
+        self.crypt(Mode::Encrypt, input, output, key, iv)
+    }
+
+    pub(crate) fn decrypt(
+        &self,
+        input: &[u8],
+        output: &mut [u8],
+        key: &[u8],
+        iv: &[u8],
+    ) -> Result<()> {
+        self.crypt(Mode::Decrypt, input, output, key, iv)
+    }
+
+    fn crypt(
+        &self,
+        mode: Mode,
+        input: &[u8],
+        output: &mut [u8],
+        key: &[u8],
+        iv: &[u8],
+    ) -> Result<()> {
+        if let Some(cipher) = self.to_openssl() {
+            Cipher::crypt_with_cipher(cipher, mode, input, output, key, iv)
+        } else {
+            assert_eq!(self, &Cipher::None);
+            Cipher::crypt_none(input, output)
+        }
+    }
+
+    fn crypt_with_cipher(
+        cipher: symm::Cipher,
+        mode: Mode,
+        input: &[u8],
+        output: &mut [u8],
+        key: &[u8],
+        iv: &[u8],
+    ) -> Result<()> {
+        if input.len() % cipher.block_size() != 0 {
+            let msg = format!(
+                "length of input {} mut be a multiple of block-size {}",
+                input.len(),
+                cipher.block_size()
+            );
+            error!("{}", msg);
+            return Err(Error::InvalArg(msg));
+        }
+
+        let key = key.get(..cipher.key_len()).ok_or_else(|| {
+            let msg = format!(
+                "key too short, at least {} bytes needed but got {}",
+                cipher.key_len(),
+                key.len()
+            );
+            error!("{}", msg);
+            Error::InvalArg(msg)
+        })?;
+
+        let iv = if let Some(len) = cipher.iv_len() {
+            iv.get(..len).ok_or_else(|| {
+                let msg = format!(
+                    "iv too short, at least {} bytes needed but got {}",
+                    len,
+                    iv.len()
+                );
+                error!("{}", msg);
+                Error::InvalArg(msg)
+            })?
+        } else {
+            panic!("no support for a cipher without iv");
+        };
+
+        let mut crypter = Crypter::new(cipher, mode, key, Some(iv))?;
+        crypter.pad(false);
+
+        let count = crypter.update(input, output)?;
+        assert_eq!(count, output.len());
+
+        Ok(())
+    }
+
+    fn crypt_none(input: &[u8], output: &mut [u8]) -> Result<()> {
+        output.copy_from_slice(input);
+        Ok(())
     }
 
     pub(crate) fn to_openssl(&self) -> Option<symm::Cipher> {
