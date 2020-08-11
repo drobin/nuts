@@ -24,8 +24,7 @@ use std::io::ErrorKind;
 
 use crate::error::Error;
 use crate::header::Header;
-use crate::types::{Cipher, Digest};
-use crate::wkey::{Pbkdf2Data, WrappingKeyData};
+use crate::types::{Cipher, Digest, WrappingKeyData};
 
 struct Data {
     magic: [u8; 7],
@@ -189,7 +188,7 @@ fn wrapping_key_none() {
     });
     let (header, offset) = Header::read(&data).unwrap();
     assert_eq!(offset, 32);
-    assert!(header.wrapping_key.is_none());
+    assert!(header.wrapping_key_data.is_none());
 }
 
 #[test]
@@ -198,11 +197,11 @@ fn wrapping_key_pbkdf2() {
     let (header, offset) = Header::read(&data).unwrap();
     assert_eq!(offset, 47);
     assert_eq!(
-        header.wrapping_key,
-        Some(WrappingKeyData::Pbkdf2(Pbkdf2Data {
+        header.wrapping_key_data,
+        Some(WrappingKeyData::Pbkdf2 {
             iterations: 4711,
             salt: vec![1, 2, 3, 4, 5, 6, 7]
-        }))
+        })
     );
 }
 

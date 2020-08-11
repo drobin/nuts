@@ -24,8 +24,7 @@ use std::io::ErrorKind;
 
 use crate::error::Error;
 use crate::header::ser::HeaderWriter;
-use crate::types::{Cipher, Digest, DiskType};
-use crate::wkey::{Pbkdf2Data, WrappingKeyData};
+use crate::types::{Cipher, Digest, DiskType, WrappingKeyData};
 
 #[test]
 fn revision_no_space() {
@@ -202,10 +201,10 @@ fn wrapping_key_none_ok() {
 fn wrapping_key_pbkdf2_no_space() {
     let mut data = [b'x'; 11];
     let mut writer = HeaderWriter::new(&mut data);
-    let wkey = WrappingKeyData::Pbkdf2(Pbkdf2Data {
+    let wkey = WrappingKeyData::Pbkdf2 {
         iterations: 65536,
         salt: vec![1, 2, 3],
-    });
+    };
 
     if let Error::IoError(err) = writer.write_wrapping_key(Some(&wkey)).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::WriteZero);
@@ -218,10 +217,10 @@ fn wrapping_key_pbkdf2_no_space() {
 fn wrapping_key_pbkdf2_ok() {
     let mut data = [b'x'; 13];
     let mut writer = HeaderWriter::new(&mut data);
-    let wkey = WrappingKeyData::Pbkdf2(Pbkdf2Data {
+    let wkey = WrappingKeyData::Pbkdf2 {
         iterations: 65536,
         salt: vec![1, 2, 3],
-    });
+    };
 
     writer.write_wrapping_key(Some(&wkey)).unwrap();
     assert_eq!(

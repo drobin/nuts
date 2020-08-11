@@ -31,3 +31,6 @@ mod disk_type;
 
 #[cfg(test)]
 mod options;
+
+#[cfg(test)]
+mod wrapping_key_data;

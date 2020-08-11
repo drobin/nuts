@@ -26,7 +26,7 @@ use crate::types::{Cipher, DiskType, Options, BLOCK_MIN_SIZE};
 
 #[test]
 fn cipher_none() {
-    let options = Options::default_with_cipher(Cipher::None);
+    let options = Options::default_with_cipher(Cipher::None).unwrap();
     let secret = Secret::create(&options).unwrap();
 
     assert_eq!(secret.dtype, DiskType::FatRandom);
@@ -40,7 +40,7 @@ fn cipher_none() {
 
 #[test]
 fn cipher_aes128_ctr() {
-    let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
     let secret = Secret::create(&options).unwrap();
 
     assert_eq!(secret.dtype, DiskType::FatRandom);

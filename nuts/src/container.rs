@@ -347,20 +347,20 @@ impl Container {
         Ok((header, secret))
     }
 
-    fn get_wrapping_key(&self, header: &Header) -> Result<Vec<u8>> {
-        let wrapping_key = if let Some(wkey) = header.wrapping_key.as_ref() {
+    fn get_wrapping_key(&self, header: &Header) -> Result<SecureVec<u8>> {
+        let wkey = if let Some(wkey_data) = header.wrapping_key_data.as_ref() {
             let digest = header
                 .digest
                 .ok_or(Error::InvalHeader(InvalHeaderKind::InvalDigest))?;
             let callback = self.callback.as_ref().ok_or(Error::NoPassword)?;
             let password = SecureVec::new((callback)()?);
-            wkey.key(&password, digest)?
+            wkey_data.create_wrapping_key(&password, digest)?
         } else {
-            vec![]
+            secure_vec![]
         };
 
-        debug!("wrapping_key calculated, {} bytes", wrapping_key.len());
+        debug!("wrapping_key calculated, {} bytes", wkey.len());
 
-        Ok(wrapping_key)
+        Ok(wkey)
     }
 }

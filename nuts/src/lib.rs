@@ -33,4 +33,3 @@ pub mod result;
 pub(crate) mod secret;
 pub mod types;
 pub(crate) mod utils;
-pub(crate) mod wkey;

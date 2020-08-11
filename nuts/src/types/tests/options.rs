@@ -20,11 +20,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::types::{Cipher, Digest, DiskType, Options, WrappingKey};
+use crate::rand::RND;
+use crate::types::{Cipher, Digest, DiskType, Options, WrappingKeyData};
 
 #[test]
 fn update_sites_ok() {
-    let mut options = Options::default();
+    let mut options = Options::default().unwrap();
     assert!(options.update_sizes(1024, 2).is_ok());
     assert_eq!(options.bsize, 1024);
     assert_eq!(options.blocks, 2);
@@ -33,33 +34,33 @@ fn update_sites_ok() {
 #[test]
 #[should_panic(expected = "Invalid block size, got 1 but must be at least 512.")]
 fn update_sites_bsize_too_small() {
-    let mut options = Options::default();
+    let mut options = Options::default().unwrap();
     options.update_sizes(1, 2).unwrap();
 }
 
 #[test]
 #[should_panic(expected = "Invalid block size, got 513 but must be a multiple of 512.")]
 fn update_sites_bsize_inval() {
-    let mut options = Options::default();
+    let mut options = Options::default().unwrap();
     options.update_sizes(513, 2).unwrap();
 }
 
 #[test]
 #[should_panic(expected = "Invalid number of blocks, got 0, expected > 0.")]
 fn update_sites_blocks_inval() {
-    let mut options = Options::default();
+    let mut options = Options::default().unwrap();
     options.update_sizes(512, 0).unwrap();
 }
 
 #[test]
 fn default() {
-    let options = Options::default();
+    let options = Options::default().unwrap();
     assert_eq!(options.dtype, DiskType::FatRandom);
     assert_eq!(
         options.wkey,
-        Some(WrappingKey::Pbkdf2 {
+        Some(WrappingKeyData::Pbkdf2 {
             iterations: 65536,
-            salt_len: 16
+            salt: RND[..16].to_vec()
         })
     );
     assert_eq!(options.cipher, Cipher::Aes128Ctr);
@@ -70,7 +71,7 @@ fn default() {
 
 #[test]
 fn default_with_cipher_none() {
-    let options = Options::default_with_cipher(Cipher::None);
+    let options = Options::default_with_cipher(Cipher::None).unwrap();
     assert_eq!(options.dtype, DiskType::FatRandom);
     assert_eq!(options.wkey, None);
     assert_eq!(options.cipher, Cipher::None);
@@ -81,13 +82,13 @@ fn default_with_cipher_none() {
 
 #[test]
 fn default_with_cipher_aes128_ctr() {
-    let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
     assert_eq!(options.dtype, DiskType::FatRandom);
     assert_eq!(
         options.wkey,
-        Some(WrappingKey::Pbkdf2 {
+        Some(WrappingKeyData::Pbkdf2 {
             iterations: 65536,
-            salt_len: 16
+            salt: RND[..16].to_vec(),
         })
     );
     assert_eq!(options.cipher, Cipher::Aes128Ctr);
@@ -102,9 +103,9 @@ fn defaut_with_sizes_ok() {
     assert_eq!(options.dtype, DiskType::FatRandom);
     assert_eq!(
         options.wkey,
-        Some(WrappingKey::Pbkdf2 {
+        Some(WrappingKeyData::Pbkdf2 {
             iterations: 65536,
-            salt_len: 16
+            salt: RND[..16].to_vec()
         })
     );
     assert_eq!(options.cipher, Cipher::Aes128Ctr);

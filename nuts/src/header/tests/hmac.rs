@@ -26,7 +26,7 @@ use crate::types::{Cipher, Options};
 
 #[test]
 fn cipher_none_create_hmac() {
-    let options = Options::default_with_cipher(Cipher::None);
+    let options = Options::default_with_cipher(Cipher::None).unwrap();
     let secret = Secret::create(&options).unwrap();
     let mut header = Header::create(&options).unwrap();
 
@@ -36,7 +36,7 @@ fn cipher_none_create_hmac() {
 
 #[test]
 fn cipher_some_create_hmac() {
-    let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
     let secret = Secret::create(&options).unwrap();
     let mut header = Header::create(&options).unwrap();
 
@@ -46,7 +46,7 @@ fn cipher_some_create_hmac() {
 
 #[test]
 fn cipher_none_verify_hmac() {
-    let options = Options::default_with_cipher(Cipher::None);
+    let options = Options::default_with_cipher(Cipher::None).unwrap();
     let secret = Secret::create(&options).unwrap();
     let header = Header::create(&options).unwrap();
 
@@ -55,7 +55,7 @@ fn cipher_none_verify_hmac() {
 
 #[test]
 fn cipher_some_verify_hmac() {
-    let options = Options::default_with_cipher(Cipher::None);
+    let options = Options::default_with_cipher(Cipher::None).unwrap();
     let secret = Secret::create(&options).unwrap();
     let mut header = Header::create(&options).unwrap();
 
@@ -65,7 +65,7 @@ fn cipher_some_verify_hmac() {
 
 #[test]
 fn cipher_some_verify_hmac_failed() {
-    let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
     let secret = Secret::create(&options).unwrap();
     let mut header = Header::create(&options).unwrap();
 

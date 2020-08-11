@@ -23,7 +23,7 @@
 use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 
 use nuts::container::Container;
-use nuts::types::{Cipher, DiskType, Options, WrappingKey};
+use nuts::types::{Cipher, DiskType, Options, WrappingKeyData};
 
 use crate::tool;
 
@@ -107,7 +107,7 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
 
     let path = sub.value_of("PATH").unwrap();
     let size = tool::utils::to_size::<u64>(sub.value_of("SIZE").unwrap())?;
-    let mut options = Options::default_with_cipher(cipher);
+    let mut options = Options::default_with_cipher(cipher)?;
 
     let bsize = match sub.value_of("block-size") {
         Some(bsize) => tool::utils::to_size::<u32>(bsize)?,
@@ -121,41 +121,17 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
         options.dtype = DiskType::from_string(dtype)?;
     }
 
-    if let Some(iterations) = sub.value_of("iterations") {
-        match options.wkey {
-            Some(WrappingKey::Pbkdf2 {
-                iterations: _,
-                salt_len,
-            }) => {
-                let iterations = iterations.parse::<u32>()?;
-                options.wkey = Some(WrappingKey::Pbkdf2 {
-                    iterations,
-                    salt_len,
-                });
-            }
-            None => {
-                panic!("unexpected wrapping key");
-            }
-        }
-    }
+    let iterations = match sub.value_of("iterations") {
+        Some(s) => s.parse::<u32>()?,
+        None => 65536,
+    };
 
-    if let Some(salt_len) = sub.value_of("salt-length") {
-        match options.wkey {
-            Some(WrappingKey::Pbkdf2 {
-                iterations,
-                salt_len: _,
-            }) => {
-                let salt_len = salt_len.parse::<u32>().unwrap();
-                options.wkey = Some(WrappingKey::Pbkdf2 {
-                    iterations,
-                    salt_len,
-                });
-            }
-            None => {
-                panic!("unexpected wrapping key");
-            }
-        }
-    }
+    let salt_len = match sub.value_of("salt-length") {
+        Some(s) => s.parse::<u32>()?,
+        None => 16,
+    };
+
+    options.wkey = Some(WrappingKeyData::generate_pbkdf2(iterations, salt_len)?);
 
     let mut container = Container::new();
 

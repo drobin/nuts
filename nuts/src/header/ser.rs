@@ -30,8 +30,7 @@ use std::io::{Read, Write};
 use crate::error::{Error, InvalHeaderKind};
 use crate::io::{ReadBasics, ReadExt, WriteBasics, WriteExt};
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType};
-use crate::wkey::WrappingKeyData;
+use crate::types::{Cipher, Digest, DiskType, WrappingKeyData};
 
 const MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
 
@@ -171,11 +170,11 @@ impl<'a> HeaderWriter<'a> {
     pub fn write_wrapping_key(&mut self, wkey: Option<&WrappingKeyData>) -> Result<()> {
         match wkey {
             Some(data) => {
-                let WrappingKeyData::Pbkdf2(value) = data;
+                let WrappingKeyData::Pbkdf2 { iterations, salt } = data;
 
                 self.write_u8(1)?;
-                self.write_u32(value.iterations)?;
-                self.write_vec(&value.salt)?;
+                self.write_u32(*iterations)?;
+                self.write_vec(salt)?;
 
                 Ok(())
             }

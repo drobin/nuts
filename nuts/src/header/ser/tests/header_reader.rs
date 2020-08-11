@@ -24,8 +24,7 @@ use std::io::{ErrorKind, Read};
 
 use crate::error::Error;
 use crate::header::ser::HeaderReader;
-use crate::types::{Cipher, Digest, DiskType};
-use crate::wkey::{Pbkdf2Data, WrappingKeyData};
+use crate::types::{Cipher, Digest, DiskType, WrappingKeyData};
 
 fn read_remaining(reader: &mut HeaderReader) -> Vec<u8> {
     let mut v = vec![];
@@ -355,10 +354,10 @@ fn wrapping_key_pbkdf2_complete() {
     let wkey = reader.read_wrapping_key().unwrap();
     assert_eq!(
         wkey,
-        Some(WrappingKeyData::Pbkdf2(Pbkdf2Data {
+        Some(WrappingKeyData::Pbkdf2 {
             iterations: 65536,
             salt: vec![1, 2, 3]
-        }))
+        })
     );
     assert_eq!(read_remaining(&mut reader), []);
 }
@@ -373,10 +372,10 @@ fn wrapping_key_pbkdf2_remaining() {
     let wkey = reader.read_wrapping_key().unwrap();
     assert_eq!(
         wkey,
-        Some(WrappingKeyData::Pbkdf2(Pbkdf2Data {
+        Some(WrappingKeyData::Pbkdf2 {
             iterations: 65536,
             salt: vec![1, 2, 3]
-        }))
+        })
     );
     assert_eq!(read_remaining(&mut reader), [b'x']);
 }

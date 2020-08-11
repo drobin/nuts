@@ -24,18 +24,17 @@ use std::io::ErrorKind;
 
 use crate::error::Error;
 use crate::header::Header;
-use crate::types::{Cipher, Digest};
-use crate::wkey::{Pbkdf2Data, WrappingKeyData};
+use crate::types::{Cipher, Digest, WrappingKeyData};
 
 fn ok_header() -> Header {
     Header {
         revision: 1,
         cipher: Cipher::Aes128Ctr,
         digest: Some(Digest::Sha1),
-        wrapping_key: Some(WrappingKeyData::Pbkdf2(Pbkdf2Data {
+        wrapping_key_data: Some(WrappingKeyData::Pbkdf2 {
             iterations: 4711,
             salt: vec![1, 2, 3],
-        })),
+        }),
         wrapping_iv: vec![13, 14, 15, 16, 17, 18],
         hmac: vec![4, 5, 6, 7],
         secret: vec![8, 9, 10, 11, 12],
@@ -119,7 +118,7 @@ fn digest_sha1() {
 #[test]
 fn wrapping_key_none() {
     let (mut header, mut target) = setup();
-    header.wrapping_key = None;
+    header.wrapping_key_data = None;
 
     assert_eq!(header.write(&mut target).unwrap(), 38);
     assert_eq!(target[10], 0xff);

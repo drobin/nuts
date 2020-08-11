@@ -22,18 +22,17 @@
 
 use crate::header::Header;
 use crate::rand::RND;
-use crate::types::{Cipher, Digest, Options};
-use crate::wkey::{Pbkdf2Data, WrappingKeyData};
+use crate::types::{Cipher, Digest, Options, WrappingKeyData};
 
 #[test]
 fn cipher_none() {
-    let options = Options::default_with_cipher(Cipher::None);
+    let options = Options::default_with_cipher(Cipher::None).unwrap();
     let header = Header::create(&options).unwrap();
 
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.digest, None);
-    assert_eq!(header.wrapping_key, None);
+    assert_eq!(header.wrapping_key_data, None);
     assert!(header.wrapping_iv.is_empty());
     assert!(header.hmac.is_empty());
     assert!(header.secret.is_empty());
@@ -41,18 +40,18 @@ fn cipher_none() {
 
 #[test]
 fn cipher_aes128_ctr() {
-    let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
     let header = Header::create(&options).unwrap();
 
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::Aes128Ctr);
     assert_eq!(header.digest, Some(Digest::Sha1));
     assert_eq!(
-        header.wrapping_key,
-        Some(WrappingKeyData::Pbkdf2(Pbkdf2Data {
+        header.wrapping_key_data,
+        Some(WrappingKeyData::Pbkdf2 {
             iterations: 65536,
             salt: RND[..16].to_vec()
-        }))
+        })
     );
     assert_eq!(header.wrapping_iv, &RND[..16]);
     assert!(header.hmac.is_empty());

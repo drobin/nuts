@@ -21,18 +21,17 @@
 // IN THE SOFTWARE.
 
 use crate::header::Header;
-use crate::types::{Cipher, Digest};
-use crate::wkey::{Pbkdf2Data, WrappingKeyData};
+use crate::types::{Cipher, Digest, WrappingKeyData};
 
 fn ok_header() -> Header {
     Header {
         revision: 1,
         cipher: Cipher::Aes128Ctr,
         digest: Some(Digest::Sha1),
-        wrapping_key: Some(WrappingKeyData::Pbkdf2(Pbkdf2Data {
+        wrapping_key_data: Some(WrappingKeyData::Pbkdf2 {
             iterations: 4711,
             salt: vec![1, 2, 3],
-        })),
+        }),
         wrapping_iv: vec![
             24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
         ],

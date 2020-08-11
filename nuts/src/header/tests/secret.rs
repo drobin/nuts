@@ -26,7 +26,7 @@ use crate::types::{Cipher, DiskType, Options};
 
 #[test]
 fn cipher_none_read_secret() {
-    let options = Options::default_with_cipher(Cipher::None);
+    let options = Options::default_with_cipher(Cipher::None).unwrap();
     let mut header = Header::create(&options).unwrap();
 
     header.secret = vec![
@@ -47,7 +47,7 @@ fn cipher_none_read_secret() {
 
 #[test]
 fn cipher_some_read_secret() {
-    let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
     let mut header = Header::create(&options).unwrap();
 
     header.secret = vec![
@@ -72,7 +72,7 @@ fn cipher_some_read_secret() {
 
 #[test]
 fn cipher_none_write_secret() {
-    let options = Options::default_with_cipher(Cipher::None);
+    let options = Options::default_with_cipher(Cipher::None).unwrap();
     let secret = Secret {
         dtype: DiskType::FatRandom,
         bsize: 1,
@@ -98,7 +98,7 @@ fn cipher_none_write_secret() {
 
 #[test]
 fn cipher_some_write_secret() {
-    let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
     let secret = Secret {
         dtype: DiskType::FatRandom,
         bsize: 1,

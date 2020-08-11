@@ -25,10 +25,14 @@ mod tests;
 
 use ::openssl::symm::{Crypter, Mode};
 use log::error;
+use openssl::pkcs5;
 use openssl::{hash, symm};
+use std::fmt;
 
 use crate::error::Error;
+use crate::rand::random;
 use crate::result::Result;
+use crate::utils::SecureVec;
 
 /// Supported cipher algorithms.
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -287,19 +291,131 @@ impl std::fmt::Display for Digest {
 
 /// Supported wrapping key algorithms.
 ///
+/// Defines data used to calculate a wrapping key.
+///
+/// The wrapping key is created used by an algorithm defined as a variant of
+/// this enum. The variants holds fields to customize the algorithm.
+///
 /// Based on a password provided by the user one of the algorithms are used to
 /// calculate a wrapping key. The wrapping key then is used for encryption of
 /// the secret in the header of the container.
-#[derive(PartialEq, Clone, Copy, Debug)]
-pub enum WrappingKey {
+#[derive(PartialEq)]
+pub enum WrappingKeyData {
     /// PBKDF2
     Pbkdf2 {
         /// Number of iterations used by PBKDF2.
         iterations: u32,
 
-        /// Length of salt value generated for PBKDF2.
-        salt_len: u32,
+        /// A salt value used by PBKDF2.
+        salt: Vec<u8>,
     },
+}
+
+impl WrappingKeyData {
+    /// Creates a `WrappingKeyData` instance for the PBKDF2 algorithm.
+    ///
+    /// The `iterations` and the `salt` values are used to customize the PBKDF2
+    /// algorithm.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use nuts::types::*;
+    ///
+    /// let WrappingKeyData::Pbkdf2 { iterations, salt } = WrappingKeyData::pbkdf2(5, &[1, 2, 3]);
+    ///
+    /// assert_eq!(iterations, 5);
+    /// assert_eq!(salt, [1, 2, 3]);
+    /// ```
+    pub fn pbkdf2(iterations: u32, salt: &[u8]) -> WrappingKeyData {
+        WrappingKeyData::Pbkdf2 {
+            iterations,
+            salt: salt.to_vec(),
+        }
+    }
+
+    /// Generates a `WrappingKeyData` instance for the PBKDF2 algorithm.
+    ///
+    /// The `iterations` value is used to customize the PBKDF2 algorithm.
+    /// For the [`salt`] `salt_len` bytes of random data are generated.
+    ///
+    /// # Errors
+    ///
+    /// This method will return an [`Error::OpenSSL`] error if there was an
+    /// error generating the random data.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use nuts::types::*;
+    ///
+    /// let WrappingKeyData::Pbkdf2 { iterations, salt } =
+    /// WrappingKeyData::generate_pbkdf2(5, 3).unwrap();
+    ///
+    /// assert_eq!(iterations, 5);
+    /// assert_eq!(salt.len(), 3); // salt filled with random data
+    /// ```
+    ///
+    /// [`salt`]: #variant.Pbkdf2.field.salt
+    /// [`Error::OpenSSL`]: ../error/enum.Error.html#variant.OpenSSL
+    pub fn generate_pbkdf2(iterations: u32, salt_len: u32) -> Result<WrappingKeyData> {
+        let mut salt = vec![0; salt_len as usize];
+        random(&mut salt)?;
+
+        Ok(WrappingKeyData::Pbkdf2 { iterations, salt })
+    }
+
+    pub(crate) fn create_wrapping_key(
+        &self,
+        password: &[u8],
+        digest: Digest,
+    ) -> Result<SecureVec<u8>> {
+        if password.is_empty() {
+            let msg = format!("invalid password, cannot be empty");
+            error!("{}", msg);
+            return Err(Error::InvalArg(msg));
+        }
+
+        let WrappingKeyData::Pbkdf2 { iterations, salt } = self;
+
+        if salt.is_empty() {
+            let msg = format!("invalid salt, cannot be empty");
+            error!("{}", msg);
+            return Err(Error::InvalArg(msg));
+        }
+
+        let hash = digest.to_openssl();
+        let mut key = secure_vec![0; digest.size() as usize];
+
+        pkcs5::pbkdf2_hmac(password, salt, *iterations as usize, hash, &mut key)?;
+
+        Ok(key)
+    }
+}
+
+impl Clone for WrappingKeyData {
+    fn clone(&self) -> Self {
+        let WrappingKeyData::Pbkdf2 { iterations, salt } = self;
+
+        WrappingKeyData::Pbkdf2 {
+            iterations: iterations.clone(),
+            salt: salt.to_vec(),
+        }
+    }
+}
+
+impl fmt::Debug for WrappingKeyData {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            WrappingKeyData::Pbkdf2 { iterations, salt } => {
+                let salt = format!("<{} bytes>", salt.len());
+                fmt.debug_struct("Pbkdf2")
+                    .field("iterations", &iterations)
+                    .field("salt", &salt)
+                    .finish()
+            }
+        }
+    }
 }
 
 /// Container disk types.
@@ -406,7 +522,7 @@ pub struct Options {
     pub dtype: DiskType,
 
     /// The wrapping key algorithm.
-    pub wkey: Option<WrappingKey>,
+    pub wkey: Option<WrappingKeyData>,
 
     /// Cipher used by the container.
     pub cipher: Cipher,
@@ -429,22 +545,19 @@ impl Options {
     /// ```rust
     /// use nuts::types::*;
     ///
-    /// let options = Options::default();
+    /// let options = Options::default().unwrap();
+    ///
+    /// let WrappingKeyData::Pbkdf2 { iterations, salt } = options.wkey.as_ref().unwrap();
+    /// assert_eq!(*iterations, 65536);
+    /// assert_eq!(salt.len(), 16); // salt is filled with random data
     ///
     /// assert_eq!(options.dtype, DiskType::FatRandom);
-    /// assert_eq!(
-    ///     options.wkey,
-    ///     Some(WrappingKey::Pbkdf2 {
-    ///         iterations: 65536,
-    ///         salt_len: 16
-    ///     })
-    /// );
     /// assert_eq!(options.cipher, Cipher::Aes128Ctr);
     /// assert_eq!(options.md, Some(Digest::Sha1));
     /// assert_eq!(options.bsize(), 512);
     /// assert_eq!(options.blocks(), 2048);
     /// ```
-    pub fn default() -> Options {
+    pub fn default() -> Result<Options> {
         Options::default_with_cipher(Cipher::Aes128Ctr)
     }
 
@@ -458,16 +571,8 @@ impl Options {
     /// ```rust
     /// use nuts::types::*;
     ///
-    /// let options = Options::default_with_cipher(Cipher::Aes128Ctr);
+    /// let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
     ///
-    /// assert_eq!(options.dtype, DiskType::FatRandom);
-    /// assert_eq!(
-    ///     options.wkey,
-    ///     Some(WrappingKey::Pbkdf2 {
-    ///         iterations: 65536,
-    ///         salt_len: 16
-    ///     })
-    /// );
     /// assert_eq!(options.cipher, Cipher::Aes128Ctr);
     /// assert_eq!(options.md, Some(Digest::Sha1));
     /// assert_eq!(options.bsize(), 512);
@@ -477,7 +582,7 @@ impl Options {
     /// ```rust
     /// use nuts::types::*;
     ///
-    /// let options = Options::default_with_cipher(Cipher::None);
+    /// let options = Options::default_with_cipher(Cipher::None).unwrap();
     ///
     /// assert_eq!(options.dtype, DiskType::FatRandom);
     /// assert_eq!(options.wkey, None);
@@ -489,7 +594,7 @@ impl Options {
     ///
     /// [`Cipher::None`]: enum.Cipher.html#variant.None
     /// [`Option::None`]: https://doc.rust-lang.org/std/option/enum.Option.html#variant.None
-    pub fn default_with_cipher(cipher: Cipher) -> Options {
+    pub fn default_with_cipher(cipher: Cipher) -> Result<Options> {
         let options = Options {
             dtype: DiskType::FatRandom,
             cipher: Cipher::None,
@@ -500,17 +605,14 @@ impl Options {
         };
 
         if cipher != Cipher::None {
-            Options {
+            Ok(Options {
                 cipher: cipher,
                 md: Some(Digest::Sha1),
-                wkey: Some(WrappingKey::Pbkdf2 {
-                    iterations: 65536,
-                    salt_len: 16,
-                }),
+                wkey: Some(WrappingKeyData::generate_pbkdf2(65536, 16)?),
                 ..options
-            }
+            })
         } else {
-            options
+            Ok(options)
         }
     }
 
@@ -530,20 +632,18 @@ impl Options {
     ///
     /// let options = Options::default_with_sizes(1024, 2).unwrap();
     ///
+    /// let WrappingKeyData::Pbkdf2 { iterations, salt } = options.wkey.as_ref().unwrap();
+    /// assert_eq!(*iterations, 65536);
+    /// assert_eq!(salt.len(), 16); // salt is filled with random data
+    ///
     /// assert_eq!(options.dtype, DiskType::FatRandom);
-    /// assert_eq!(
-    ///     options.wkey,
-    ///     Some(WrappingKey::Pbkdf2 {
-    ///         iterations: 65536,
-    ///         salt_len: 16
-    ///     })
-    /// );
     /// assert_eq!(options.cipher, Cipher::Aes128Ctr);
     /// assert_eq!(options.md, Some(Digest::Sha1));
     /// assert_eq!(options.bsize(), 1024);
     /// assert_eq!(options.blocks(), 2);
+    /// ```
     pub fn default_with_sizes(bsize: u32, blocks: u64) -> Result<Options> {
-        let mut options = Options::default();
+        let mut options = Options::default()?;
         options.update_sizes(bsize, blocks)?;
         Ok(options)
     }
@@ -580,7 +680,7 @@ impl Options {
     /// ```rust
     /// use nuts::types::Options;
     ///
-    /// let mut options = Options::default();
+    /// let mut options = Options::default().unwrap();
     ///
     /// assert!(options.update_sizes(1024, 2).is_ok());
     /// assert_eq!(options.bsize(), 1024);

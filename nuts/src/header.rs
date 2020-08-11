@@ -37,14 +37,13 @@ use crate::io::{ReadExt, WriteExt};
 use crate::rand::random;
 use crate::result::Result;
 use crate::secret::Secret;
-use crate::types::{Cipher, Digest, Options, WrappingKey, BLOCK_MIN_SIZE};
-use crate::wkey::WrappingKeyData;
+use crate::types::{Cipher, Digest, Options, WrappingKeyData, BLOCK_MIN_SIZE};
 
 pub struct Header {
     pub revision: u8,
     pub cipher: Cipher,
     pub digest: Option<Digest>,
-    pub wrapping_key: Option<WrappingKeyData>,
+    pub wrapping_key_data: Option<WrappingKeyData>,
     pub wrapping_iv: Vec<u8>,
     pub hmac: Vec<u8>,
     pub secret: Vec<u8>,
@@ -52,28 +51,15 @@ pub struct Header {
 
 impl Header {
     pub fn create(options: &Options) -> Result<Header> {
-        let wkey_data = match options.wkey {
-            Some(WrappingKey::Pbkdf2 {
-                iterations,
-                salt_len,
-            }) => {
-                let mut salt = vec![0; salt_len as usize];
-                random(&mut salt)?;
-
-                Some(WrappingKeyData::pbkdf2(iterations, &salt))
-            }
-            None => None,
-        };
-
-        let mut iv = vec![0; options.cipher.iv_size() as usize];
-        random(&mut iv)?;
+        let mut wrapping_iv = vec![0; options.cipher.iv_size() as usize];
+        random(&mut wrapping_iv)?;
 
         Ok(Header {
             revision: 1,
             cipher: options.cipher,
             digest: options.md,
-            wrapping_key: wkey_data,
-            wrapping_iv: iv,
+            wrapping_key_data: options.wkey.clone(),
+            wrapping_iv,
             hmac: Vec::new(),
             secret: Vec::new(),
         })
@@ -86,7 +72,7 @@ impl Header {
         let revision = reader.read_revision()?;
         let cipher = reader.read_cipher()?;
         let digest = reader.read_digest()?;
-        let wrapping_key = reader.read_wrapping_key()?;
+        let wrapping_key_data = reader.read_wrapping_key()?;
         let wrapping_iv = reader.read_vec()?;
         let hmac = reader.read_vec()?;
         let secret = reader.read_vec()?;
@@ -95,7 +81,7 @@ impl Header {
             revision,
             cipher,
             digest,
-            wrapping_key,
+            wrapping_key_data,
             wrapping_iv,
             hmac,
             secret,
@@ -122,7 +108,7 @@ impl Header {
         writer.write_revision(self.revision)?;
         writer.write_cipher(self.cipher)?;
         writer.write_digest(self.digest)?;
-        writer.write_wrapping_key(self.wrapping_key.as_ref())?;
+        writer.write_wrapping_key(self.wrapping_key_data.as_ref())?;
         writer.write_vec(&self.wrapping_iv)?;
         writer.write_vec(&self.hmac)?;
         writer.write_vec(&self.secret)?;
@@ -284,7 +270,7 @@ impl fmt::Debug for Header {
             .field("revision", &self.revision)
             .field("cipher", &self.cipher)
             .field("digest", &self.digest)
-            .field("wrapping_key", &self.wrapping_key)
+            .field("wrapping_key_data", &self.wrapping_key_data)
             .field("wrapping_iv", &wrapping_iv)
             .field("hmac", &hmac)
             .field("secret", &secret)
