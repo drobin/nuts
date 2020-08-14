@@ -31,3 +31,33 @@ macro_rules! secure_vec {
         crate::utils::SecureVec::new(vec![$($x),+])
     );
 }
+
+#[cfg(test)]
+macro_rules! assert_error {
+    ($kind:expr, $elem:expr) => {
+        let err = $elem.unwrap_err();
+        assert_eq!(format!("{:?}", err), format!("{:?}", $kind));
+    };
+}
+
+#[cfg(test)]
+macro_rules! assert_io_error {
+    ($kind:expr, $elem:expr) => {
+        if let crate::error::Error::IoError(err) = $elem.unwrap_err() {
+            assert_eq!(err.kind(), $kind);
+        } else {
+            panic!("invalid error");
+        }
+    };
+}
+
+#[cfg(test)]
+macro_rules! assert_inval_header {
+    ($kind:expr, $elem:expr) => {
+        let err = $elem.unwrap_err();
+        assert_eq!(
+            format!("{:?}", err),
+            format!("{:?}", crate::error::Error::InvalHeader($kind))
+        );
+    };
+}

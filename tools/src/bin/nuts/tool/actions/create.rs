@@ -121,17 +121,24 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
         options.dtype = DiskType::from_string(dtype)?;
     }
 
-    let iterations = match sub.value_of("iterations") {
-        Some(s) => s.parse::<u32>()?,
-        None => 65536,
-    };
+    if let Some(wkey_data) = options.wkey.as_ref() {
+        let WrappingKeyData::Pbkdf2 {
+            iterations: default_iterations,
+            salt: default_salt,
+        } = wkey_data;
 
-    let salt_len = match sub.value_of("salt-length") {
-        Some(s) => s.parse::<u32>()?,
-        None => 16,
-    };
+        let iterations = match sub.value_of("iterations") {
+            Some(s) => s.parse::<u32>()?,
+            None => *default_iterations,
+        };
 
-    options.wkey = Some(WrappingKeyData::generate_pbkdf2(iterations, salt_len)?);
+        let salt_len = match sub.value_of("salt-length") {
+            Some(s) => s.parse::<u32>()?,
+            None => default_salt.len() as u32,
+        };
+
+        options.wkey = Some(WrappingKeyData::generate_pbkdf2(iterations, salt_len)?);
+    };
 
     let mut container = Container::new();
 

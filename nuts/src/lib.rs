@@ -23,13 +23,11 @@
 #[macro_use]
 pub(crate) mod macros;
 
-pub(crate) mod binary;
 pub mod container;
 pub mod error;
 pub(crate) mod header;
 pub mod io;
 pub(crate) mod rand;
 pub mod result;
-pub(crate) mod secret;
 pub mod types;
 pub(crate) mod utils;

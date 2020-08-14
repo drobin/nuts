@@ -34,8 +34,6 @@ fn cipher_none() {
     assert_eq!(header.digest, None);
     assert_eq!(header.wrapping_key_data, None);
     assert!(header.wrapping_iv.is_empty());
-    assert!(header.hmac.is_empty());
-    assert!(header.secret.is_empty());
 }
 
 #[test]
@@ -54,6 +52,4 @@ fn cipher_aes128_ctr() {
         })
     );
     assert_eq!(header.wrapping_iv, &RND[..16]);
-    assert!(header.hmac.is_empty());
-    assert!(header.secret.is_empty());
 }

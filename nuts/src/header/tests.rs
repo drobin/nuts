@@ -24,16 +24,13 @@
 mod create;
 
 #[cfg(test)]
-mod hmac;
+mod read_aes128_ctr;
 
 #[cfg(test)]
-mod read;
+mod read_none;
 
 #[cfg(test)]
-mod secret;
+mod write_aes128_ctr;
 
 #[cfg(test)]
-mod validate;
-
-#[cfg(test)]
-mod write;
+mod write_none;
