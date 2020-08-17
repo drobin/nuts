@@ -24,6 +24,7 @@ use std::io::ErrorKind;
 
 use crate::error::InvalHeaderKind;
 use crate::header::Header;
+use crate::result::Result;
 use crate::types::{Cipher, Digest, DiskType, WrappingKeyData, BLOCK_MIN_SIZE};
 
 const ENCODED_SIZE: u32 = 56;
@@ -31,6 +32,8 @@ const ENCODED_SECRET: [u8; 37] = [
     0, 0, 0, 33, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 18, 103, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 4, 7, 8, 9, 10,
 ];
+
+const NONE: Option<fn() -> Result<Vec<u8>>> = None;
 
 fn ok_header() -> Header {
     Header {
@@ -57,7 +60,29 @@ fn setup() -> (Header, [u8; 256]) {
 fn ok() {
     let (header, mut target) = setup();
 
-    assert_eq!(header.write(&mut target, b"123").unwrap(), ENCODED_SIZE);
+    assert_eq!(header.write(&mut target, NONE).unwrap(), ENCODED_SIZE);
+    assert_eq!(target[0..7], [b'n', b'u', b't', b's', b'-', b'i', b'o']); // magic
+    assert_eq!(target[7], 1); // revision
+    assert_eq!(target[8], 0); // cipher
+    assert_eq!(target[9], 0xFF); // digest
+    assert_eq!(target[10], 0xFF); // pbkdf2
+    assert_eq!(target[11..15], [0x00, 0x00, 0x00, 0x00]); // wrapping_iv
+    assert_eq!(target[15..19], [0x00, 0x00, 0x00, 0x00]); // hmac
+    assert_eq!(target[19..51], ENCODED_SECRET[..32]); // secret, part I
+    assert_eq!(&target[51..56], &ENCODED_SECRET[32..]); // secret, part II
+}
+
+#[test]
+fn ok_ignored_callback() {
+    let (header, mut target) = setup();
+    let callback = || {
+        panic!("should never be reached");
+    };
+
+    assert_eq!(
+        header.write(&mut target, Some(callback)).unwrap(),
+        ENCODED_SIZE
+    );
     assert_eq!(target[0..7], [b'n', b'u', b't', b's', b'-', b'i', b'o']); // magic
     assert_eq!(target[7], 1); // revision
     assert_eq!(target[8], 0); // cipher
@@ -76,7 +101,7 @@ fn no_space() {
     for i in 1..ENCODED_SIZE as usize {
         assert_io_error!(
             ErrorKind::WriteZero,
-            header.write(&mut target.get_mut(..i).unwrap(), b"123")
+            header.write(&mut target.get_mut(..i).unwrap(), NONE)
         );
     }
 }
@@ -86,7 +111,7 @@ fn digest_none() {
     let (mut header, mut target) = setup();
     header.digest = None;
 
-    assert_eq!(header.write(&mut target, b"123").unwrap(), ENCODED_SIZE);
+    assert_eq!(header.write(&mut target, NONE).unwrap(), ENCODED_SIZE);
     assert_eq!(target[9], 0xFF);
 }
 
@@ -97,7 +122,7 @@ fn digest_sha1() {
 
     assert_inval_header!(
         InvalHeaderKind::InvalDigest,
-        header.write(&mut target, b"123")
+        header.write(&mut target, NONE)
     );
 }
 
@@ -106,7 +131,7 @@ fn wrapping_key_data_none() {
     let (mut header, mut target) = setup();
     header.wrapping_key_data = None;
 
-    assert_eq!(header.write(&mut target, b"123").unwrap(), ENCODED_SIZE);
+    assert_eq!(header.write(&mut target, NONE).unwrap(), ENCODED_SIZE);
     assert_eq!(target[10], 0xFF);
 }
 
@@ -120,7 +145,7 @@ fn wrapping_key_data_pbkdf2() {
 
     assert_inval_header!(
         InvalHeaderKind::InvalWrappingKey,
-        header.write(&mut target, b"123")
+        header.write(&mut target, NONE)
     );
 }
 
@@ -129,14 +154,14 @@ fn wrapping_iv_not_empty() {
     let (mut header, mut target) = setup();
     header.wrapping_iv.insert(0, b'x');
 
-    assert_inval_header!(InvalHeaderKind::InvalIv, header.write(&mut target, b"123"));
+    assert_inval_header!(InvalHeaderKind::InvalIv, header.write(&mut target, NONE));
 }
 
 #[test]
 fn wrapping_iv_empty() {
     let (header, mut target) = setup();
 
-    assert_eq!(header.write(&mut target, b"123").unwrap(), ENCODED_SIZE);
+    assert_eq!(header.write(&mut target, NONE).unwrap(), ENCODED_SIZE);
     assert_eq!(target[11..15], [0x00, 0x00, 0x00, 0x00]);
 }
 
@@ -147,7 +172,7 @@ fn bsize_lt_512() {
 
     assert_inval_header!(
         InvalHeaderKind::InvalBlockSize,
-        header.write(&mut target, b"123")
+        header.write(&mut target, NONE)
     );
 }
 
@@ -158,7 +183,7 @@ fn bsize_inval_modulo() {
 
     assert_inval_header!(
         InvalHeaderKind::InvalBlockSize,
-        header.write(&mut target, b"123")
+        header.write(&mut target, NONE)
     );
 }
 
@@ -167,7 +192,7 @@ fn bsize_512() {
     let (mut header, mut target) = setup();
     header.bsize = 512;
 
-    assert_eq!(header.write(&mut target, b"123").unwrap(), ENCODED_SIZE);
+    assert_eq!(header.write(&mut target, NONE).unwrap(), ENCODED_SIZE);
 }
 
 #[test]
@@ -175,7 +200,7 @@ fn bsize_1024() {
     let (mut header, mut target) = setup();
     header.bsize = 1024;
 
-    assert_eq!(header.write(&mut target, b"123").unwrap(), ENCODED_SIZE);
+    assert_eq!(header.write(&mut target, NONE).unwrap(), ENCODED_SIZE);
 }
 
 #[test]
@@ -185,7 +210,7 @@ fn blocks_0() {
 
     assert_inval_header!(
         InvalHeaderKind::InvalBlocks,
-        header.write(&mut target, b"123")
+        header.write(&mut target, NONE)
     );
 }
 
@@ -194,7 +219,7 @@ fn blocks_1() {
     let (mut header, mut target) = setup();
     header.blocks = 1;
 
-    assert_eq!(header.write(&mut target, b"123").unwrap(), ENCODED_SIZE);
+    assert_eq!(header.write(&mut target, NONE).unwrap(), ENCODED_SIZE);
 }
 
 #[test]
@@ -202,7 +227,7 @@ fn blocks_2() {
     let (mut header, mut target) = setup();
     header.blocks = 2;
 
-    assert_eq!(header.write(&mut target, b"123").unwrap(), ENCODED_SIZE);
+    assert_eq!(header.write(&mut target, NONE).unwrap(), ENCODED_SIZE);
 }
 
 #[test]
@@ -212,7 +237,7 @@ fn master_key_not_empty() {
 
     assert_inval_header!(
         InvalHeaderKind::InvalMasterKey,
-        header.write(&mut target, b"123")
+        header.write(&mut target, NONE)
     );
 }
 
@@ -223,7 +248,7 @@ fn master_iv_not_empty() {
 
     assert_inval_header!(
         InvalHeaderKind::InvalMasterIv,
-        header.write(&mut target, b"123")
+        header.write(&mut target, NONE)
     );
 }
 
@@ -234,7 +259,7 @@ fn hmac_key_inval_size() {
 
     assert_inval_header!(
         InvalHeaderKind::InvalHmacKey,
-        header.write(&mut target, b"123")
+        header.write(&mut target, NONE)
     );
 }
 
@@ -243,5 +268,5 @@ fn empty_userdata() {
     let (mut header, mut target) = setup();
     header.userdata.clear();
 
-    assert_eq!(header.write(&mut target, b"123").unwrap(), ENCODED_SIZE - 4);
+    assert_eq!(header.write(&mut target, NONE).unwrap(), ENCODED_SIZE - 4);
 }

@@ -29,7 +29,12 @@ use crate::error::{Error, InvalHeaderKind};
 use crate::header::ser::HeaderWriter;
 use crate::header::Header;
 use crate::io::{WriteBasics, WriteExt};
+use crate::result::Result;
 use crate::types::{Cipher, Digest, DiskType, WrappingKeyData, BLOCK_MIN_SIZE};
+
+fn callback() -> Result<Vec<u8>> {
+    Ok(vec![b'1', b'2', b'3'])
+}
 
 fn mk_secret(
     dtype: u8,
@@ -139,7 +144,7 @@ fn mk_data(d: &Data) -> Vec<u8> {
 #[test]
 fn ok() {
     let data = mk_data(&ok_data());
-    let (header, nbytes) = Header::read(&data, b"123").unwrap();
+    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
 
     assert_eq!(nbytes, 155);
     assert_eq!(header.revision, 1);
@@ -166,10 +171,21 @@ fn ok() {
 }
 
 #[test]
+fn missing_callback() {
+    let data = mk_data(&ok_data());
+    let none: Option<fn() -> Result<Vec<u8>>> = None;
+
+    assert_error!(Error::NoPassword, Header::read(&data, none));
+}
+
+#[test]
 fn incomplete() {
     for i in 1..155 {
         let data = &mk_data(&ok_data())[..i];
-        assert_io_error!(ErrorKind::UnexpectedEof, Header::read(&data, b"123"));
+        assert_io_error!(
+            ErrorKind::UnexpectedEof,
+            Header::read(&data, Some(callback))
+        );
     }
 }
 
@@ -180,7 +196,10 @@ fn bad_magic() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalMagic, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalMagic,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -190,7 +209,10 @@ fn bad_revision() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalRevision, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalRevision,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -200,7 +222,10 @@ fn bad_cipher() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalCipher, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalCipher,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -210,7 +235,10 @@ fn bad_digest() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalDigest, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalDigest,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -220,7 +248,10 @@ fn digest_none() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalDigest, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalDigest,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -232,7 +263,7 @@ fn bad_wrapping_key_data() {
 
     assert_inval_header!(
         InvalHeaderKind::InvalWrappingKey,
-        Header::read(&data, b"123")
+        Header::read(&data, Some(callback))
     );
 }
 
@@ -245,7 +276,7 @@ fn wrapping_key_data_none() {
 
     assert_inval_header!(
         InvalHeaderKind::InvalWrappingKey,
-        Header::read(&data, b"123")
+        Header::read(&data, Some(callback))
     );
 }
 
@@ -256,7 +287,10 @@ fn wrapping_iv_inval_size() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalIv, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalIv,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -268,7 +302,10 @@ fn bad_hmac() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalHmac, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalHmac,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -280,7 +317,7 @@ fn bad_hmac_mismatch() {
         ..ok_data()
     });
 
-    assert_error!(Error::HmacMismatch, Header::read(&data, b"123"));
+    assert_error!(Error::HmacMismatch, Header::read(&data, Some(callback)));
 }
 
 #[test]
@@ -300,7 +337,10 @@ fn bad_dtype() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalDiskType, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalDiskType,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -319,7 +359,10 @@ fn bsize_lt_512() {
         secret,
         ..ok_data()
     });
-    assert_inval_header!(InvalHeaderKind::InvalBlockSize, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalBlockSize,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -338,7 +381,10 @@ fn bsize_inval_modulo() {
         secret,
         ..ok_data()
     });
-    assert_inval_header!(InvalHeaderKind::InvalBlockSize, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalBlockSize,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -358,7 +404,7 @@ fn bsize_512() {
         ..ok_data()
     });
 
-    let (header, nbytes) = Header::read(&data, b"123").unwrap();
+    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
     assert_eq!(nbytes, 155);
     assert_eq!(header.bsize, 512);
 }
@@ -380,7 +426,7 @@ fn bsize_1024() {
         ..ok_data()
     });
 
-    let (header, nbytes) = Header::read(&data, b"123").unwrap();
+    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
     assert_eq!(nbytes, 155);
     assert_eq!(header.bsize, 1024);
 }
@@ -401,7 +447,10 @@ fn blocks_0() {
         secret,
         ..ok_data()
     });
-    assert_inval_header!(InvalHeaderKind::InvalBlocks, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalBlocks,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -420,7 +469,7 @@ fn blocks_1() {
         secret,
         ..ok_data()
     });
-    let (header, nbytes) = Header::read(&data, b"123").unwrap();
+    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
     assert_eq!(nbytes, 155);
     assert_eq!(header.blocks, 1);
 }
@@ -441,7 +490,7 @@ fn blocks_2() {
         secret,
         ..ok_data()
     });
-    let (header, nbytes) = Header::read(&data, b"123").unwrap();
+    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
     assert_eq!(nbytes, 155);
     assert_eq!(header.blocks, 2);
 }
@@ -463,7 +512,10 @@ fn master_key_inval_size() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalMasterKey, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalMasterKey,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -483,7 +535,10 @@ fn master_iv_inval_size() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalMasterIv, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalMasterIv,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -503,7 +558,10 @@ fn hmac_key_inval_size() {
         ..ok_data()
     });
 
-    assert_inval_header!(InvalHeaderKind::InvalHmacKey, Header::read(&data, b"123"));
+    assert_inval_header!(
+        InvalHeaderKind::InvalHmacKey,
+        Header::read(&data, Some(callback))
+    );
 }
 
 #[test]
@@ -523,7 +581,7 @@ fn empty_userdata() {
         ..ok_data()
     });
 
-    let (header, nbytes) = Header::read(&data, b"123").unwrap();
+    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
     assert_eq!(nbytes, 155 - 4);
     assert_eq!(header.userdata, []);
 }

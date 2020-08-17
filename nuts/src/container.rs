@@ -120,7 +120,7 @@ impl Container {
             let mut fd = File::create(path)?;
             let mut io = IO::new(header.bsize, header.blocks, header.dtype, &mut fd)?;
 
-            Container::dump_header(&header, &mut io, &mut fd)?;
+            self.dump_header(&header, &mut io, &mut fd)?;
 
             let inner = Inner { header, io };
 
@@ -308,15 +308,15 @@ impl Container {
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
         io.read(fd, &mut buf, 0)?;
 
-        let header = Header::read(&buf, b"123").map(|(header, _)| header)?;
+        let header = Header::read(&buf, self.callback.as_ref()).map(|(header, _)| header)?;
 
         Ok(header)
     }
 
-    fn dump_header(header: &Header, io: &mut IO, fd: &mut File) -> Result<u32> {
+    fn dump_header(&self, header: &Header, io: &mut IO, fd: &mut File) -> Result<u32> {
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
-        let offset = header.write(&mut buf, b"123")?;
+        let offset = header.write(&mut buf, self.callback.as_ref())?;
         let end = offset as usize;
 
         io.write(&buf[..end], fd, 0)

@@ -45,13 +45,13 @@ pub struct Header {
     pub digest: Option<Digest>,
     pub wrapping_key_data: Option<WrappingKeyData>,
     pub wrapping_iv: Vec<u8>,
-    pub dtype: DiskType,            // part of secret
-    pub bsize: u32,                 // part of secret
-    pub blocks: u64,                // part of secret
-    pub master_key: SecureVec<u8>,  // part of secret
-    pub master_iv: SecureVec<u8>,   // /part of secret
-    pub hmac_key: SecureVec<u8>,    // part of secret
-    pub userdata: Vec<u8>,          // part of secret
+    pub dtype: DiskType,           // part of secret
+    pub bsize: u32,                // part of secret
+    pub blocks: u64,               // part of secret
+    pub master_key: SecureVec<u8>, // part of secret
+    pub master_iv: SecureVec<u8>,  // part of secret
+    pub hmac_key: SecureVec<u8>,   // part of secret
+    pub userdata: Vec<u8>,         // part of secret
 }
 
 impl Header {
@@ -96,7 +96,10 @@ impl Header {
         })
     }
 
-    pub fn read(source: &[u8], password: &[u8]) -> Result<(Header, u32)> {
+    pub fn read(
+        source: &[u8],
+        callback: Option<impl Fn() -> Result<Vec<u8>>>,
+    ) -> Result<(Header, u32)> {
         let mut header = Header::new();
 
         let (hmac, cipher_secret, offset) = header.read_header(source)?;
@@ -106,7 +109,7 @@ impl Header {
         header.validate(false)?;
 
         let mut plain_secret = secure_vec![0; cipher_secret.len()];
-        let wrapping_key = header.create_wrapping_key(password)?;
+        let wrapping_key = header.create_wrapping_key(callback)?;
 
         header.cipher.decrypt(
             &cipher_secret,
@@ -152,7 +155,11 @@ impl Header {
         Ok(())
     }
 
-    pub fn write(&self, target: &mut [u8], password: &[u8]) -> Result<u32> {
+    pub fn write(
+        &self,
+        target: &mut [u8],
+        callback: Option<impl Fn() -> Result<Vec<u8>>>,
+    ) -> Result<u32> {
         self.validate(true)?;
 
         let mut plain_secret = secure_vec![0; BLOCK_MIN_SIZE as usize];
@@ -160,7 +167,7 @@ impl Header {
 
         plain_secret.resize(secret_size, 0);
 
-        let wrapping_key = self.create_wrapping_key(password)?;
+        let wrapping_key = self.create_wrapping_key(callback)?;
         let mut cipher_secret = vec![0; secret_size];
 
         self.cipher.encrypt(
@@ -203,13 +210,18 @@ impl Header {
         Ok(writer.offs)
     }
 
-    fn create_wrapping_key(&self, password: &[u8]) -> Result<SecureVec<u8>> {
+    fn create_wrapping_key(
+        &self,
+        callback: Option<impl Fn() -> Result<Vec<u8>>>,
+    ) -> Result<SecureVec<u8>> {
         let wrapping_key = match self.wrapping_key_data.as_ref() {
             Some(wkey_data) => {
                 let digest = self
                     .digest
                     .ok_or(Error::InvalHeader(InvalHeaderKind::InvalDigest))?;
-                wkey_data.create_wrapping_key(password, digest)?
+                let callback = callback.ok_or(Error::NoPassword)?;
+                let password = SecureVec::new((callback)()?);
+                wkey_data.create_wrapping_key(&password, digest)?
             }
             None => secure_vec![],
         };
