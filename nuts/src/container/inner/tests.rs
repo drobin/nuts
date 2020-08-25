@@ -21,13 +21,13 @@
 // IN THE SOFTWARE.
 
 #[cfg(test)]
-mod read_basics;
+mod create;
 
 #[cfg(test)]
-mod read_ext;
+mod open;
 
 #[cfg(test)]
-mod write_basics;
+mod read_block;
 
 #[cfg(test)]
-mod write_ext;
+mod write_block;

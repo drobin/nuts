@@ -20,19 +20,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+pub(crate) mod inner;
+
 use log::debug;
-use std::fs::File;
+use std::path::Path;
 
+use crate::container::inner::Inner;
 use crate::error::Error;
-use crate::header::Header;
-use crate::io::IO;
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType, Options, BLOCK_MIN_SIZE};
-
-struct Inner {
-    pub header: Header,
-    pub io: IO,
-}
+use crate::types::{Cipher, Digest, DiskType, Options};
 
 pub struct Container {
     callback: Option<Box<dyn Fn() -> Result<Vec<u8>>>>,
@@ -111,22 +107,13 @@ impl Container {
     /// [`Error`]: ../error/enum.Error.html
     /// [`Error::Opened`]: ../error/enum.Error.html#variant.Opened
     /// [`Error::NoPassword`]: ../error/enum.Error.html#variant.NoPassword
-    pub fn create(&mut self, path: &str, options: &Options) -> Result<()> {
+    pub fn create(&mut self, path: impl AsRef<Path>, options: &Options) -> Result<()> {
         if self.inner.is_none() {
-            let header = Header::create(options)?;
-
-            debug!("header: {:?}", header);
-
-            let mut fd = File::create(path)?;
-            let mut io = IO::new(header.bsize, header.blocks, header.dtype, &mut fd)?;
-
-            self.dump_header(&header, &mut io, &mut fd)?;
-
-            let inner = Inner { header, io };
+            let inner = Inner::create(&path, options, self.callback.as_ref())?;
 
             debug!(
                 "allocating container, dtype = {}, bsize = {}, blocks = {}",
-                inner.io.dtype, inner.io.bsize, inner.io.blocks
+                inner.header.dtype, inner.header.bsize, inner.header.blocks
             );
 
             self.inner = Some(inner);
@@ -169,20 +156,16 @@ impl Container {
     /// [`Error`]: ../error/enum.Error.html
     /// [`Error::Opened`]: ../error/enum.Error.html#variant.Opened
     /// [`Error::NoPassword`]: ../error/enum.Error.html#variant.NoPassword
-    pub fn open(&mut self, path: &str, userdata: Option<&mut Vec<u8>>) -> Result<()> {
+    pub fn open(&mut self, path: impl AsRef<Path>, userdata: Option<&mut Vec<u8>>) -> Result<()> {
         if self.inner.is_none() {
-            let mut fd = File::open(path)?;
-            let header = self.open_header(&mut fd)?;
-            let io = IO::new(header.bsize, header.blocks, header.dtype, &mut fd)?;
-
-            debug!("header: {:?}", header);
+            let inner = Inner::open(&path, self.callback.as_ref())?;
 
             if let Some(userdata) = userdata {
                 userdata.clear();
-                userdata.extend(&header.userdata);
+                userdata.extend(&inner.header.userdata);
             };
 
-            self.inner = Some(Inner { header, io });
+            self.inner = Some(inner);
 
             Ok(())
         } else {
@@ -296,29 +279,6 @@ impl Container {
     pub fn ablocks(&self) -> Result<u64> {
         self.inner
             .as_ref()
-            .map_or(Err(Error::Closed), |inner| Ok(inner.io.ablocks))
-    }
-
-    fn open_header(&self, fd: &mut File) -> Result<Header> {
-        // Create a temp. block with bsize = BLOCK_MIN_SIZE.
-        // This is enough to read the header.
-        let io = IO::new(BLOCK_MIN_SIZE, 1, DiskType::ThinZero, fd)?;
-
-        // Read the binary header into `buf`.
-        let mut buf = [0; BLOCK_MIN_SIZE as usize];
-        io.read(fd, &mut buf, 0)?;
-
-        let header = Header::read(&buf, self.callback.as_ref()).map(|(header, _)| header)?;
-
-        Ok(header)
-    }
-
-    fn dump_header(&self, header: &Header, io: &mut IO, fd: &mut File) -> Result<u32> {
-        let mut buf = [0; BLOCK_MIN_SIZE as usize];
-
-        let offset = header.write(&mut buf, self.callback.as_ref())?;
-        let end = offset as usize;
-
-        io.write(&buf[..end], fd, 0)
+            .map_or(Err(Error::Closed), |inner| Ok(inner.ablocks))
     }
 }
