@@ -114,7 +114,7 @@ fn ok() {
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.digest, None);
-    assert_eq!(header.wrapping_key_data, None);
+    assert_eq!(header.wrapping_key, None);
     assert_eq!(header.wrapping_iv, []);
     assert_eq!(header.dtype, DiskType::FatZero);
     assert_eq!(header.bsize, 512);
@@ -137,7 +137,7 @@ fn ok_ignored_callback() {
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.digest, None);
-    assert_eq!(header.wrapping_key_data, None);
+    assert_eq!(header.wrapping_key, None);
     assert_eq!(header.wrapping_iv, []);
     assert_eq!(header.dtype, DiskType::FatZero);
     assert_eq!(header.bsize, 512);

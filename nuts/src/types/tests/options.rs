@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use crate::rand::RND;
-use crate::types::{Cipher, Digest, DiskType, Options, WrappingKeyData};
+use crate::types::{Cipher, Digest, DiskType, Options, WrappingKey};
 
 #[test]
 fn update_sites_ok() {
@@ -58,7 +58,7 @@ fn default() {
     assert_eq!(options.dtype, DiskType::FatRandom);
     assert_eq!(
         options.wkey,
-        Some(WrappingKeyData::Pbkdf2 {
+        Some(WrappingKey::Pbkdf2 {
             iterations: 65536,
             salt: RND[..16].to_vec()
         })
@@ -86,7 +86,7 @@ fn default_with_cipher_aes128_ctr() {
     assert_eq!(options.dtype, DiskType::FatRandom);
     assert_eq!(
         options.wkey,
-        Some(WrappingKeyData::Pbkdf2 {
+        Some(WrappingKey::Pbkdf2 {
             iterations: 65536,
             salt: RND[..16].to_vec(),
         })
@@ -103,7 +103,7 @@ fn defaut_with_sizes_ok() {
     assert_eq!(options.dtype, DiskType::FatRandom);
     assert_eq!(
         options.wkey,
-        Some(WrappingKeyData::Pbkdf2 {
+        Some(WrappingKey::Pbkdf2 {
             iterations: 65536,
             salt: RND[..16].to_vec()
         })

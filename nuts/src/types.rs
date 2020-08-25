@@ -300,7 +300,7 @@ impl std::fmt::Display for Digest {
 /// calculate a wrapping key. The wrapping key then is used for encryption of
 /// the secret in the header of the container.
 #[derive(PartialEq)]
-pub enum WrappingKeyData {
+pub enum WrappingKey {
     /// PBKDF2
     Pbkdf2 {
         /// Number of iterations used by PBKDF2.
@@ -311,8 +311,8 @@ pub enum WrappingKeyData {
     },
 }
 
-impl WrappingKeyData {
-    /// Creates a `WrappingKeyData` instance for the PBKDF2 algorithm.
+impl WrappingKey {
+    /// Creates a `WrappingKey` instance for the PBKDF2 algorithm.
     ///
     /// The `iterations` and the `salt` values are used to customize the PBKDF2
     /// algorithm.
@@ -322,19 +322,19 @@ impl WrappingKeyData {
     /// ```rust
     /// use nuts::types::*;
     ///
-    /// let WrappingKeyData::Pbkdf2 { iterations, salt } = WrappingKeyData::pbkdf2(5, &[1, 2, 3]);
+    /// let WrappingKey::Pbkdf2 { iterations, salt } = WrappingKey::pbkdf2(5, &[1, 2, 3]);
     ///
     /// assert_eq!(iterations, 5);
     /// assert_eq!(salt, [1, 2, 3]);
     /// ```
-    pub fn pbkdf2(iterations: u32, salt: &[u8]) -> WrappingKeyData {
-        WrappingKeyData::Pbkdf2 {
+    pub fn pbkdf2(iterations: u32, salt: &[u8]) -> WrappingKey {
+        WrappingKey::Pbkdf2 {
             iterations,
             salt: salt.to_vec(),
         }
     }
 
-    /// Generates a `WrappingKeyData` instance for the PBKDF2 algorithm.
+    /// Generates a `WrappingKey` instance for the PBKDF2 algorithm.
     ///
     /// The `iterations` value is used to customize the PBKDF2 algorithm.
     /// For the [`salt`] `salt_len` bytes of random data are generated.
@@ -349,8 +349,8 @@ impl WrappingKeyData {
     /// ```rust
     /// use nuts::types::*;
     ///
-    /// let WrappingKeyData::Pbkdf2 { iterations, salt } =
-    /// WrappingKeyData::generate_pbkdf2(5, 3).unwrap();
+    /// let WrappingKey::Pbkdf2 { iterations, salt } =
+    /// WrappingKey::generate_pbkdf2(5, 3).unwrap();
     ///
     /// assert_eq!(iterations, 5);
     /// assert_eq!(salt.len(), 3); // salt filled with random data
@@ -358,11 +358,11 @@ impl WrappingKeyData {
     ///
     /// [`salt`]: #variant.Pbkdf2.field.salt
     /// [`Error::OpenSSL`]: ../error/enum.Error.html#variant.OpenSSL
-    pub fn generate_pbkdf2(iterations: u32, salt_len: u32) -> Result<WrappingKeyData> {
+    pub fn generate_pbkdf2(iterations: u32, salt_len: u32) -> Result<WrappingKey> {
         let mut salt = vec![0; salt_len as usize];
         random(&mut salt)?;
 
-        Ok(WrappingKeyData::Pbkdf2 { iterations, salt })
+        Ok(WrappingKey::Pbkdf2 { iterations, salt })
     }
 
     pub(crate) fn create_wrapping_key(
@@ -376,7 +376,7 @@ impl WrappingKeyData {
             return Err(Error::InvalArg(msg));
         }
 
-        let WrappingKeyData::Pbkdf2 { iterations, salt } = self;
+        let WrappingKey::Pbkdf2 { iterations, salt } = self;
 
         if salt.is_empty() {
             let msg = format!("invalid salt, cannot be empty");
@@ -393,21 +393,21 @@ impl WrappingKeyData {
     }
 }
 
-impl Clone for WrappingKeyData {
+impl Clone for WrappingKey {
     fn clone(&self) -> Self {
-        let WrappingKeyData::Pbkdf2 { iterations, salt } = self;
+        let WrappingKey::Pbkdf2 { iterations, salt } = self;
 
-        WrappingKeyData::Pbkdf2 {
+        WrappingKey::Pbkdf2 {
             iterations: iterations.clone(),
             salt: salt.to_vec(),
         }
     }
 }
 
-impl fmt::Debug for WrappingKeyData {
+impl fmt::Debug for WrappingKey {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            WrappingKeyData::Pbkdf2 { iterations, salt } => {
+            WrappingKey::Pbkdf2 { iterations, salt } => {
                 let salt = format!("<{} bytes>", salt.len());
                 fmt.debug_struct("Pbkdf2")
                     .field("iterations", &iterations)
@@ -522,7 +522,7 @@ pub struct Options {
     pub dtype: DiskType,
 
     /// The wrapping key algorithm.
-    pub wkey: Option<WrappingKeyData>,
+    pub wkey: Option<WrappingKey>,
 
     /// Cipher used by the container.
     pub cipher: Cipher,
@@ -547,7 +547,7 @@ impl Options {
     ///
     /// let options = Options::default().unwrap();
     ///
-    /// let WrappingKeyData::Pbkdf2 { iterations, salt } = options.wkey.as_ref().unwrap();
+    /// let WrappingKey::Pbkdf2 { iterations, salt } = options.wkey.as_ref().unwrap();
     /// assert_eq!(*iterations, 65536);
     /// assert_eq!(salt.len(), 16); // salt is filled with random data
     ///
@@ -608,7 +608,7 @@ impl Options {
             Ok(Options {
                 cipher: cipher,
                 md: Some(Digest::Sha1),
-                wkey: Some(WrappingKeyData::generate_pbkdf2(65536, 16)?),
+                wkey: Some(WrappingKey::generate_pbkdf2(65536, 16)?),
                 ..options
             })
         } else {
@@ -632,7 +632,7 @@ impl Options {
     ///
     /// let options = Options::default_with_sizes(1024, 2).unwrap();
     ///
-    /// let WrappingKeyData::Pbkdf2 { iterations, salt } = options.wkey.as_ref().unwrap();
+    /// let WrappingKey::Pbkdf2 { iterations, salt } = options.wkey.as_ref().unwrap();
     /// assert_eq!(*iterations, 65536);
     /// assert_eq!(salt.len(), 16); // salt is filled with random data
     ///

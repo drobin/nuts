@@ -36,14 +36,14 @@ use crate::header::ser::{HeaderReader, HeaderWriter};
 use crate::io::{ReadBasics, ReadExt, WriteBasics, WriteExt};
 use crate::rand::random;
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType, Options, WrappingKeyData, BLOCK_MIN_SIZE};
+use crate::types::{Cipher, Digest, DiskType, Options, WrappingKey, BLOCK_MIN_SIZE};
 use crate::utils::SecureVec;
 
 pub struct Header {
     pub revision: u8,
     pub cipher: Cipher,
     pub digest: Option<Digest>,
-    pub wrapping_key_data: Option<WrappingKeyData>,
+    pub wrapping_key: Option<WrappingKey>,
     pub wrapping_iv: Vec<u8>,
     pub dtype: DiskType,           // part of secret
     pub bsize: u32,                // part of secret
@@ -60,7 +60,7 @@ impl Header {
             revision: 0,
             cipher: Cipher::None,
             digest: None,
-            wrapping_key_data: None,
+            wrapping_key: None,
             wrapping_iv: vec![],
             dtype: DiskType::FatZero,
             bsize: 0,
@@ -84,7 +84,7 @@ impl Header {
             revision: 1,
             cipher: options.cipher,
             digest: options.md,
-            wrapping_key_data: options.wkey.clone(),
+            wrapping_key: options.wkey.clone(),
             wrapping_iv,
             dtype: options.dtype,
             bsize: options.bsize(),
@@ -132,7 +132,7 @@ impl Header {
         self.revision = reader.read_revision()?;
         self.cipher = reader.read_cipher()?;
         self.digest = reader.read_digest()?;
-        self.wrapping_key_data = reader.read_wrapping_key()?;
+        self.wrapping_key = reader.read_wrapping_key()?;
         self.wrapping_iv = reader.read_vec()?;
 
         let hmac = reader.read_vec()?;
@@ -188,7 +188,7 @@ impl Header {
         writer.write_revision(self.revision)?;
         writer.write_cipher(self.cipher)?;
         writer.write_digest(self.digest)?;
-        writer.write_wrapping_key(self.wrapping_key_data.as_ref())?;
+        writer.write_wrapping_key(self.wrapping_key.as_ref())?;
         writer.write_vec(&self.wrapping_iv)?;
         writer.write_vec(hmac)?;
         writer.write_vec(secret)?;
@@ -214,7 +214,7 @@ impl Header {
         &self,
         callback: Option<impl Fn() -> Result<Vec<u8>>>,
     ) -> Result<SecureVec<u8>> {
-        let wrapping_key = match self.wrapping_key_data.as_ref() {
+        let wrapping_key = match self.wrapping_key.as_ref() {
             Some(wkey_data) => {
                 let digest = self
                     .digest
@@ -323,15 +323,15 @@ impl Header {
     }
 
     fn validate_wrapping_key_data(&self) -> Result<()> {
-        if self.cipher == Cipher::None && self.wrapping_key_data.is_some() {
+        if self.cipher == Cipher::None && self.wrapping_key.is_some() {
             error!(
                 "invalid wrapping key data {:?} for cipher {}",
-                self.wrapping_key_data.as_ref().unwrap(),
+                self.wrapping_key.as_ref().unwrap(),
                 self.cipher
             );
 
             Err(Error::InvalHeader(InvalHeaderKind::InvalWrappingKey))
-        } else if self.cipher != Cipher::None && self.wrapping_key_data.is_none() {
+        } else if self.cipher != Cipher::None && self.wrapping_key.is_none() {
             error!("invalid wrapping key data None for cipher {}", self.cipher);
             Err(Error::InvalHeader(InvalHeaderKind::InvalWrappingKey))
         } else {
@@ -447,7 +447,7 @@ impl fmt::Debug for Header {
             .field("revision", &self.revision)
             .field("cipher", &self.cipher)
             .field("digest", &self.digest)
-            .field("wrapping_key_data", &self.wrapping_key_data)
+            .field("wrapping_key", &self.wrapping_key)
             .field("wrapping_iv", &wrapping_iv)
             .field("dtype", &self.dtype)
             .field("bsize", &self.bsize)

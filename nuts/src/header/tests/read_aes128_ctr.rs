@@ -30,7 +30,7 @@ use crate::header::ser::HeaderWriter;
 use crate::header::Header;
 use crate::io::{WriteBasics, WriteExt};
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType, WrappingKeyData, BLOCK_MIN_SIZE};
+use crate::types::{Cipher, Digest, DiskType, WrappingKey, BLOCK_MIN_SIZE};
 
 fn callback() -> Result<Vec<u8>> {
     Ok(vec![b'1', b'2', b'3'])
@@ -63,7 +63,7 @@ fn mk_secret(
     plain_secret.resize(nbytes, 0);
 
     // encrypt into secret
-    let wkey = WrappingKeyData::Pbkdf2 {
+    let wkey = WrappingKey::Pbkdf2 {
         iterations: 4711,
         salt: vec![1, 2, 3],
     }
@@ -151,8 +151,8 @@ fn ok() {
     assert_eq!(header.cipher, Cipher::Aes128Ctr);
     assert_eq!(header.digest, Some(Digest::Sha1));
     assert_eq!(
-        header.wrapping_key_data,
-        Some(WrappingKeyData::Pbkdf2 {
+        header.wrapping_key,
+        Some(WrappingKey::Pbkdf2 {
             iterations: 4711,
             salt: vec![1, 2, 3]
         })

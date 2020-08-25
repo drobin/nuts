@@ -30,7 +30,7 @@ use std::io::{Read, Write};
 use crate::error::{Error, InvalHeaderKind};
 use crate::io::{ReadBasics, ReadExt, WriteBasics, WriteExt};
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType, WrappingKeyData};
+use crate::types::{Cipher, Digest, DiskType, WrappingKey};
 
 const MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
 
@@ -91,13 +91,13 @@ impl<'a> HeaderReader<'a> {
         }
     }
 
-    pub fn read_wrapping_key(&mut self) -> Result<Option<WrappingKeyData>> {
+    pub fn read_wrapping_key(&mut self) -> Result<Option<WrappingKey>> {
         match self.read_u8()? {
             1 => {
                 let iterations = self.read_u32()?;
                 let salt = self.read_vec()?;
 
-                Ok(Some(WrappingKeyData::pbkdf2(iterations, &salt)))
+                Ok(Some(WrappingKey::pbkdf2(iterations, &salt)))
             }
             0xFF => Ok(None),
             _ => Err(Error::InvalHeader(InvalHeaderKind::InvalWrappingKey)),
@@ -167,10 +167,10 @@ impl<'a> HeaderWriter<'a> {
         Ok(self.write_u8(n)?)
     }
 
-    pub fn write_wrapping_key(&mut self, wkey: Option<&WrappingKeyData>) -> Result<()> {
+    pub fn write_wrapping_key(&mut self, wkey: Option<&WrappingKey>) -> Result<()> {
         match wkey {
             Some(data) => {
-                let WrappingKeyData::Pbkdf2 { iterations, salt } = data;
+                let WrappingKey::Pbkdf2 { iterations, salt } = data;
 
                 self.write_u8(1)?;
                 self.write_u32(*iterations)?;

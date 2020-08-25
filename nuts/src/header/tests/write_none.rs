@@ -25,7 +25,7 @@ use std::io::ErrorKind;
 use crate::error::InvalHeaderKind;
 use crate::header::Header;
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType, WrappingKeyData, BLOCK_MIN_SIZE};
+use crate::types::{Cipher, Digest, DiskType, WrappingKey, BLOCK_MIN_SIZE};
 
 const ENCODED_SIZE: u32 = 56;
 const ENCODED_SECRET: [u8; 37] = [
@@ -40,7 +40,7 @@ fn ok_header() -> Header {
         revision: 1,
         cipher: Cipher::None,
         digest: None,
-        wrapping_key_data: None,
+        wrapping_key: None,
         wrapping_iv: vec![],
         dtype: DiskType::FatRandom,
         bsize: BLOCK_MIN_SIZE,
@@ -129,7 +129,7 @@ fn digest_sha1() {
 #[test]
 fn wrapping_key_data_none() {
     let (mut header, mut target) = setup();
-    header.wrapping_key_data = None;
+    header.wrapping_key = None;
 
     assert_eq!(header.write(&mut target, NONE).unwrap(), ENCODED_SIZE);
     assert_eq!(target[10], 0xFF);
@@ -138,7 +138,7 @@ fn wrapping_key_data_none() {
 #[test]
 fn wrapping_key_data_pbkdf2() {
     let (mut header, mut target) = setup();
-    header.wrapping_key_data = Some(WrappingKeyData::Pbkdf2 {
+    header.wrapping_key = Some(WrappingKey::Pbkdf2 {
         iterations: 4711,
         salt: vec![1, 2, 3],
     });

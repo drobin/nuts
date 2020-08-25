@@ -24,7 +24,7 @@ use std::io::ErrorKind;
 
 use crate::error::Error;
 use crate::header::ser::HeaderWriter;
-use crate::types::{Cipher, Digest, DiskType, WrappingKeyData};
+use crate::types::{Cipher, Digest, DiskType, WrappingKey};
 
 #[test]
 fn revision_no_space() {
@@ -201,7 +201,7 @@ fn wrapping_key_none_ok() {
 fn wrapping_key_pbkdf2_no_space() {
     let mut data = [b'x'; 11];
     let mut writer = HeaderWriter::new(&mut data);
-    let wkey = WrappingKeyData::Pbkdf2 {
+    let wkey = WrappingKey::Pbkdf2 {
         iterations: 65536,
         salt: vec![1, 2, 3],
     };
@@ -217,7 +217,7 @@ fn wrapping_key_pbkdf2_no_space() {
 fn wrapping_key_pbkdf2_ok() {
     let mut data = [b'x'; 13];
     let mut writer = HeaderWriter::new(&mut data);
-    let wkey = WrappingKeyData::Pbkdf2 {
+    let wkey = WrappingKey::Pbkdf2 {
         iterations: 65536,
         salt: vec![1, 2, 3],
     };

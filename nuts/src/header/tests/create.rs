@@ -22,7 +22,7 @@
 
 use crate::header::Header;
 use crate::rand::RND;
-use crate::types::{Cipher, Digest, Options, WrappingKeyData};
+use crate::types::{Cipher, Digest, Options, WrappingKey};
 
 #[test]
 fn cipher_none() {
@@ -32,7 +32,7 @@ fn cipher_none() {
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.digest, None);
-    assert_eq!(header.wrapping_key_data, None);
+    assert_eq!(header.wrapping_key, None);
     assert!(header.wrapping_iv.is_empty());
 }
 
@@ -45,8 +45,8 @@ fn cipher_aes128_ctr() {
     assert_eq!(header.cipher, Cipher::Aes128Ctr);
     assert_eq!(header.digest, Some(Digest::Sha1));
     assert_eq!(
-        header.wrapping_key_data,
-        Some(WrappingKeyData::Pbkdf2 {
+        header.wrapping_key,
+        Some(WrappingKey::Pbkdf2 {
             iterations: 65536,
             salt: RND[..16].to_vec()
         })

@@ -23,7 +23,7 @@
 use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 
 use nuts::container::Container;
-use nuts::types::{Cipher, DiskType, Options, WrappingKeyData};
+use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
 use crate::tool;
 
@@ -122,7 +122,7 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     }
 
     if let Some(wkey_data) = options.wkey.as_ref() {
-        let WrappingKeyData::Pbkdf2 {
+        let WrappingKey::Pbkdf2 {
             iterations: default_iterations,
             salt: default_salt,
         } = wkey_data;
@@ -137,7 +137,7 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
             None => default_salt.len() as u32,
         };
 
-        options.wkey = Some(WrappingKeyData::generate_pbkdf2(iterations, salt_len)?);
+        options.wkey = Some(WrappingKey::generate_pbkdf2(iterations, salt_len)?);
     };
 
     let mut container = Container::new();

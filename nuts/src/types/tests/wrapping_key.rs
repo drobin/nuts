@@ -22,11 +22,11 @@
 
 use crate::error::Error;
 use crate::rand::RND;
-use crate::types::{Digest, WrappingKeyData};
+use crate::types::{Digest, WrappingKey};
 
 #[test]
 fn pbkdf2() {
-    let WrappingKeyData::Pbkdf2 { iterations, salt } = WrappingKeyData::pbkdf2(5, &[1, 2, 3]);
+    let WrappingKey::Pbkdf2 { iterations, salt } = WrappingKey::pbkdf2(5, &[1, 2, 3]);
 
     assert_eq!(iterations, 5);
     assert_eq!(salt, [1, 2, 3]);
@@ -34,8 +34,7 @@ fn pbkdf2() {
 
 #[test]
 fn generate_pbkdf2_empty_salt() {
-    let WrappingKeyData::Pbkdf2 { iterations, salt } =
-        WrappingKeyData::generate_pbkdf2(5, 0).unwrap();
+    let WrappingKey::Pbkdf2 { iterations, salt } = WrappingKey::generate_pbkdf2(5, 0).unwrap();
 
     assert_eq!(iterations, 5);
     assert_eq!(salt, []);
@@ -43,8 +42,7 @@ fn generate_pbkdf2_empty_salt() {
 
 #[test]
 fn generate_pbkdf2_with_salt() {
-    let WrappingKeyData::Pbkdf2 { iterations, salt } =
-        WrappingKeyData::generate_pbkdf2(5, 3).unwrap();
+    let WrappingKey::Pbkdf2 { iterations, salt } = WrappingKey::generate_pbkdf2(5, 3).unwrap();
 
     assert_eq!(iterations, 5);
     assert_eq!(salt.len(), 3); // salt filled with random data
@@ -53,7 +51,7 @@ fn generate_pbkdf2_with_salt() {
 
 #[test]
 fn pbkdf2_create_wrapping_key_empty_password() {
-    let wkey_data = WrappingKeyData::Pbkdf2 {
+    let wkey_data = WrappingKey::Pbkdf2 {
         iterations: 1,
         salt: vec![1, 2, 3],
     };
@@ -70,7 +68,7 @@ fn pbkdf2_create_wrapping_key_empty_password() {
 
 #[test]
 fn pbkdf2_create_wrapping_key_empty_salt() {
-    let wkey_data = WrappingKeyData::Pbkdf2 {
+    let wkey_data = WrappingKey::Pbkdf2 {
         iterations: 1,
         salt: vec![],
     };
@@ -87,7 +85,7 @@ fn pbkdf2_create_wrapping_key_empty_salt() {
 
 #[test]
 fn pbkdf2_create_wrapping_key() {
-    let wkey_data = WrappingKeyData::Pbkdf2 {
+    let wkey_data = WrappingKey::Pbkdf2 {
         iterations: 1,
         salt: vec![1, 2, 3],
     };
