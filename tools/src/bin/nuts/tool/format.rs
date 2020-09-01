@@ -20,15 +20,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[macro_use]
-pub mod macros;
+pub enum Format {
+    String,
+    Hex,
+}
 
-pub mod actions;
-pub mod format;
-pub mod logger;
-pub mod result;
-pub mod utils;
+impl Format {
+    pub fn to_string(&self) -> String {
+        match self {
+            Format::String => String::from("string"),
+            Format::Hex => String::from("hex"),
+        }
+    }
 
-pub mod contrib {
-    pub mod clap;
+    pub fn from_string(s: &str) -> Result<Format, String> {
+        match s {
+            "string" => Ok(Format::String),
+            "hex" => Ok(Format::Hex),
+            _ => Err(format!("invalid format: {}", s)),
+        }
+    }
+
+    pub fn default() -> Format {
+        Format::String
+    }
+
+    pub fn validate(s: String) -> Result<(), String> {
+        Format::from_string(&s).map(|_| ())
+    }
 }

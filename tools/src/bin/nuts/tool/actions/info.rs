@@ -20,34 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
+use clap::ArgMatches;
 
 use nuts::container::Container;
 
 use crate::tool;
-
-pub fn make<'a, 'b>() -> App<'a, 'b> {
-    let userdata_help = "If set, dumps the userdata stored in the header.";
-    let format_help =
-        "Specifies the format of the userdata dump. Can be one of string, hex. Default is string.";
-
-    SubCommand::with_name("info")
-        .about("Shows information about a nuts-volume.")
-        .version(crate_version!())
-        .arg(Arg::with_name("PATH").required(true).index(1))
-        .args(&super::general_args())
-        .arg(
-            Arg::with_name("userdata")
-                .long("userdata")
-                .help(userdata_help),
-        )
-        .arg(
-            Arg::with_name("format")
-                .long("format")
-                .value_name("FORMAT")
-                .help(format_help),
-        )
-}
 
 pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     tool::logger::update(sub);

@@ -20,81 +20,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
+use clap::ArgMatches;
 
 use nuts::container::Container;
 use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
 use crate::tool;
-
-pub fn make<'a, 'b>() -> App<'a, 'b> {
-    let general_args = tool::actions::general_args();
-
-    let block_size_help = "Set the block-size to SIZE. Default is 512.";
-    let cipher_help = "Set the cipher to CIPHER. Can be one of: \
-        none, aes128-ctr. Default is aes128-ctr.";
-    let disk_type_help = "Set the disk-type to DISK. \
-        Can be one of: fat-zero, fat-random, thin-zero, thin-random. \
-        Default is fat-random.";
-    let iterations_help = "Sets the number of iterations of the PBKDF2 algorithm to N. \
-        Default is 65536.";
-    let salt_length_help = "Sets the length of the salt used by the PBKDF2 algorithm to N. \
-        Default is 16.";
-    let overwrite_help = "If set, overwrites an existing container.";
-
-    SubCommand::with_name("create")
-        .about("Creates a nuts-volume.")
-        .version(crate_version!())
-        .arg(Arg::with_name("PATH").required(true).index(1))
-        .arg(
-            Arg::with_name("SIZE")
-                .required(true)
-                .index(2)
-                .validator(tool::contrib::clap::is_size::<u64>),
-        )
-        .args(&general_args)
-        .arg(
-            Arg::with_name("block-size")
-                .short("b")
-                .long("block-size")
-                .value_name("SIZE")
-                .validator(tool::contrib::clap::is_size::<u32>)
-                .help(&block_size_help),
-        )
-        .arg(
-            Arg::with_name("cipher")
-                .short("c")
-                .long("cipher")
-                .value_name("CIPHER")
-                .help(&cipher_help),
-        )
-        .arg(
-            Arg::with_name("disk-type")
-                .short("d")
-                .long("disk-type")
-                .value_name("DISK")
-                .help(&disk_type_help),
-        )
-        .arg(
-            Arg::with_name("iterations")
-                .short("i")
-                .long("iterations")
-                .value_name("N")
-                .help(&iterations_help),
-        )
-        .arg(
-            Arg::with_name("salt-length")
-                .short("s")
-                .long("salt-length")
-                .value_name("N")
-                .help(&salt_length_help),
-        )
-        .arg(
-            Arg::with_name("overwrite")
-                .long("overwrite")
-                .help(&overwrite_help),
-        )
-}
 
 pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     tool::logger::update(sub);

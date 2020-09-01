@@ -23,19 +23,166 @@
 mod tool;
 
 use clap::{crate_name, crate_version};
-use clap::{App, AppSettings};
+use clap::{App, AppSettings, Arg, SubCommand};
+use nuts::types::{Cipher, DiskType, Options, WrappingKey};
+
+use crate::tool::actions::general_args;
+use crate::tool::format::Format;
 
 fn main() -> tool::result::Result<()> {
     tool::logger::init();
 
-    let info_command = tool::actions::info::make();
-    let create_command = tool::actions::create::make();
+    let options = Options::default()?; // for defaults
+
+    let block_size_help = format!(
+        "Set the block-size to SIZE. Default is {}.",
+        options.bsize()
+    );
+    let cipher_help = {
+        let all_ciphers = [Cipher::Aes128Ctr, Cipher::None]
+            .iter()
+            .map(|c| c.to_string())
+            .collect::<Vec<String>>()
+            .join(", ");
+        format!(
+            "Set the cipher to CIPHER. Can be one of: {}. Default is {}.",
+            all_ciphers,
+            options.cipher.to_string()
+        )
+    };
+    let disk_type_help = {
+        let all_dtypes = [
+            DiskType::FatRandom,
+            DiskType::FatZero,
+            DiskType::ThinRandom,
+            DiskType::ThinZero,
+        ]
+        .iter()
+        .map(|d| d.to_string())
+        .collect::<Vec<String>>()
+        .join(", ");
+        format!(
+            "Set the disk-type to DISK. Can be one of: {}. Default is {}.",
+            all_dtypes,
+            options.dtype.to_string()
+        )
+    };
+    let format_help = {
+        let format_list = [Format::String, Format::Hex]
+            .iter()
+            .map(|f| f.to_string())
+            .collect::<Vec<String>>();
+        format!(
+            "Specifies the format of the userdata dump. Can be one of {}. Default is {}.",
+            format_list.join(", "),
+            Format::default().to_string()
+        )
+    };
+    let iterations_help = {
+        let iterations = match options.wkey {
+            Some(WrappingKey::Pbkdf2 {
+                iterations,
+                salt: _,
+            }) => iterations,
+            None => 0,
+        };
+        format!(
+            "Sets the number of iterations of the PBKDF2 algorithm to N. Default is {}.",
+            iterations
+        )
+    };
+    let overwrite_help = "If set, overwrites an existing container.";
+    let salt_length_help = {
+        let salt_len = match options.wkey {
+            Some(WrappingKey::Pbkdf2 {
+                iterations: _,
+                salt,
+            }) => salt.len(),
+            None => 0,
+        };
+        format!(
+            "Sets the length of the salt used by the PBKDF2 algorithm to N. Default is {}.",
+            salt_len
+        )
+    };
+    let userdata_help = "If set, dumps the userdata stored in the header.";
 
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .setting(AppSettings::ArgRequiredElseHelp)
-        .subcommand(info_command)
-        .subcommand(create_command)
+        .subcommand(
+            SubCommand::with_name("info")
+                .about("Shows information about a nuts-volume.")
+                .version(crate_version!())
+                .arg(Arg::with_name("PATH").required(true).index(1))
+                .args(&general_args())
+                .arg(
+                    Arg::with_name("userdata")
+                        .long("userdata")
+                        .help(userdata_help),
+                )
+                .arg(
+                    Arg::with_name("format")
+                        .long("format")
+                        .value_name("FORMAT")
+                        .validator(tool::format::Format::validate)
+                        .help(&format_help),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("create")
+                .about("Creates a nuts-volume.")
+                .version(crate_version!())
+                .arg(Arg::with_name("PATH").required(true).index(1))
+                .arg(
+                    Arg::with_name("SIZE")
+                        .required(true)
+                        .index(2)
+                        .validator(tool::contrib::clap::is_size::<u64>),
+                )
+                .args(&general_args())
+                .arg(
+                    Arg::with_name("block-size")
+                        .short("b")
+                        .long("block-size")
+                        .value_name("SIZE")
+                        .validator(tool::contrib::clap::is_size::<u32>)
+                        .help(&block_size_help),
+                )
+                .arg(
+                    Arg::with_name("cipher")
+                        .short("c")
+                        .long("cipher")
+                        .value_name("CIPHER")
+                        .help(&cipher_help),
+                )
+                .arg(
+                    Arg::with_name("disk-type")
+                        .short("d")
+                        .long("disk-type")
+                        .value_name("DISK")
+                        .help(&disk_type_help),
+                )
+                .arg(
+                    Arg::with_name("iterations")
+                        .short("i")
+                        .long("iterations")
+                        .value_name("N")
+                        .help(&iterations_help),
+                )
+                .arg(
+                    Arg::with_name("salt-length")
+                        .short("s")
+                        .long("salt-length")
+                        .value_name("N")
+                        .help(&salt_length_help),
+                )
+                .arg(
+                    Arg::with_name("overwrite")
+                        .long("overwrite")
+                        .help(&overwrite_help),
+                ),
+        )
         .get_matches();
 
     if let Some(sub) = matches.subcommand_matches("info") {
