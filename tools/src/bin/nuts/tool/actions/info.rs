@@ -25,26 +25,53 @@ use clap::ArgMatches;
 use nuts::container::Container;
 
 use crate::tool;
+use crate::tool::format::Format;
+use crate::tool::output::Output;
 
 pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     tool::logger::update(sub);
 
     let path = sub.value_of("PATH").unwrap();
     let mut container = Container::new();
+    let mut userdata = Vec::new();
 
     container.set_password_callback(tool::utils::ask_for_password);
-    container.open(path, None)?;
+    container.open(path, Some(&mut userdata))?;
 
+    if sub.is_present("userdata") {
+        print_userdata(sub, &userdata)
+    } else {
+        print_info(sub, &container)
+    }
+}
+
+fn print_info(sub: &ArgMatches, container: &Container) -> tool::result::Result<()> {
     let digest = container
         .digest()?
         .map_or_else(|| String::from("none"), |d| d.to_string());
 
-    say!(sub, "cipher:           {}", container.cipher()?);
-    say!(sub, "digest:           {}", digest);
-    say!(sub, "disk type:        {}", container.dtype()?);
-    say!(sub, "block size:       {}", container.bsize()?);
-    say!(sub, "blocks:           {}", container.blocks()?);
-    say!(sub, "allocated blocks: {}", container.ablocks()?);
+    if !sub.is_present("quiet") {
+        println!("cipher:           {}", container.cipher()?);
+        println!("digest:           {}", digest);
+        println!("disk type:        {}", container.dtype()?);
+        println!("block size:       {}", container.bsize()?);
+        println!("blocks:           {}", container.blocks()?);
+        println!("allocated blocks: {}", container.ablocks()?);
+    }
+
+    Ok(())
+}
+
+fn print_userdata(sub: &ArgMatches, userdata: &Vec<u8>) -> tool::result::Result<()> {
+    let format = match sub.value_of("format") {
+        Some(format) => Format::from_string(format)?,
+        None => Format::default(),
+    };
+
+    if !sub.is_present("quiet") {
+        let mut output = Output::new(format);
+        output.push(userdata).flush();
+    }
 
     Ok(())
 }
