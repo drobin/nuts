@@ -28,8 +28,19 @@ use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
 use crate::tool::actions::general_args;
 use crate::tool::format::Format;
+use crate::tool::result::Result;
 
-fn main() -> tool::result::Result<()> {
+fn main() {
+    std::process::exit(match run_tool() {
+        Ok(_) => 0,
+        Err(err) => {
+            eprintln!("{}", err.get_message());
+            1
+        }
+    })
+}
+
+fn run_tool() -> Result<()> {
     tool::logger::init();
 
     let options = Options::default()?; // for defaults

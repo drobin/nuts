@@ -26,6 +26,12 @@ pub struct Error {
 }
 
 impl Error {
+    pub fn get_message(&self) -> &str {
+        &self.msg
+    }
+}
+
+impl Error {
     pub fn new<T>(source: &T) -> Error
     where
         T: ToString,
