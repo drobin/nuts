@@ -173,6 +173,72 @@ impl Container {
         }
     }
 
+    /// Reads a block from the container.
+    ///
+    /// Reads the block with the given `id` and places the decrypted data in
+    /// `buf`.
+    ///
+    /// You cannot read not more data than the [block-size] bytes. If `buf` is
+    /// larger, than not the whole buffer is filled. In the other direction, if
+    /// `buf` is not large enough to store the whole block, `buf` is filled
+    /// with the first [`buf.len()`] bytes.
+    ///
+    /// The methods returns the number of bytes actually read, which cannot be
+    /// greater than the [block-size].
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed. Further errors are listed in the [`Error`] type.
+    ///
+    /// [block-size]: #method.bsize
+    /// [`buf.len()`]: https://doc.rust-lang.org/std/primitive.slice.html#method.len
+    /// [`Error`]: ../error/enum.Error.html
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
+    pub fn read(&mut self, id: u64, buf: &mut [u8]) -> Result<u32> {
+        self.on_open_mut(|inner| inner.read_block(buf, id + 1))
+    }
+
+    /// Writes a block into the container.
+    ///
+    /// Encrypts the plain data from `buf` and writes the encrypted data into
+    /// the block with the given `id`.
+    ///
+    /// Writes up to [`buf.len()`] bytes from the unencrypted `buf` buffer into
+    /// the container.
+    ///
+    /// If `buf` is not large enough to fill the while block, the destination
+    /// block is automatically padded:
+    ///
+    /// * If you have a random [disk-type] ([`DiskType::ThinRandom`],
+    ///   [`DiskType::FatRandom`]), than the padding is filled with random
+    ///   data.
+    /// * If you have a zero [disk-type] ([`DiskType::ThinZero`],
+    ///   [`DiskType::FatZero`]), than the padding is initialized with zeros.
+    ///
+    /// If `buf` holds more data than the block-size, then the first
+    /// [block-size] bytes are copied into the block.
+    ///
+    /// The method returns the number of bytes actually written.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed. Further errors are listed in the [`Error`] type.
+    ///
+    /// [block-size]: #method.bsize
+    /// [disk-type]: #method.dtype
+    /// [`buf.len()`]: https://doc.rust-lang.org/std/primitive.slice.html#method.len
+    /// [`DiskType::FatZero`]: ../types/enum.DiskType.html#variant.FatZero
+    /// [`DiskType::FatRandom`]: ../types/enum.DiskType.html#variant.FatRandom
+    /// [`DiskType::ThinZero`]: ../types/enum.DiskType.html#variant.ThinZero
+    /// [`DiskType::ThinRandom`]: ../types/enum.DiskType.html#variant.ThinRandom
+    /// [`Error`]: ../error/enum.Error.html
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
+    pub fn write(&mut self, id: u64, buf: &[u8]) -> Result<u32> {
+        self.on_open_mut(|inner| inner.write_block(buf, id + 1))
+    }
+
     /// Returns the [`Cipher`] used by the container.
     ///
     /// # Errors
@@ -183,9 +249,7 @@ impl Container {
     /// [`Cipher`]: ../types/enum.Cipher.html
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn cipher(&self) -> Result<Cipher> {
-        self.inner
-            .as_ref()
-            .map_or(Err(Error::Closed), |inner| Ok(inner.header.cipher))
+        self.on_open(|inner| Ok(inner.header.cipher))
     }
 
     /// Returns the [`Digest`] used by the container.
@@ -206,9 +270,7 @@ impl Container {
     /// [`None`]: https://doc.rust-lang.org/std/option/enum.Option.html#None.v
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn digest(&self) -> Result<Option<Digest>> {
-        self.inner
-            .as_ref()
-            .map_or(Err(Error::Closed), |inner| Ok(inner.header.digest))
+        self.on_open(|inner| Ok(inner.header.digest))
     }
 
     /// Returns the [`DiskType`] used by the container.
@@ -221,9 +283,7 @@ impl Container {
     /// [`DiskType`]: ../types/enum.DiskType.html
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn dtype(&self) -> Result<DiskType> {
-        self.inner
-            .as_ref()
-            .map_or(Err(Error::Closed), |inner| Ok(inner.header.dtype))
+        self.on_open(|inner| Ok(inner.header.dtype))
     }
 
     /// Returns the block size of the container.
@@ -235,9 +295,7 @@ impl Container {
     ///
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn bsize(&self) -> Result<u32> {
-        self.inner
-            .as_ref()
-            .map_or(Err(Error::Closed), |inner| Ok(inner.header.bsize))
+        self.on_open(|inner| Ok(inner.header.bsize))
     }
 
     /// Returns the number of blocks which can be allocated for the container.
@@ -253,9 +311,7 @@ impl Container {
     /// [`block size`]: #method.bsize
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn blocks(&self) -> Result<u64> {
-        self.inner
-            .as_ref()
-            .map_or(Err(Error::Closed), |inner| Ok(inner.header.blocks))
+        self.on_open(|inner| Ok(inner.header.blocks))
     }
 
     /// Returns the number of currently allocated blocks of the container.
@@ -277,8 +333,18 @@ impl Container {
     /// [`number of blocks`]: #method.blocks
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn ablocks(&self) -> Result<u64> {
+        self.on_open(|inner| Ok(inner.ablocks))
+    }
+
+    fn on_open<R>(&self, f: impl Fn(&Inner) -> Result<R>) -> Result<R> {
         self.inner
             .as_ref()
-            .map_or(Err(Error::Closed), |inner| Ok(inner.ablocks))
+            .map_or(Err(Error::Closed), |inner| f(inner))
+    }
+
+    fn on_open_mut<R>(&mut self, mut f: impl FnMut(&mut Inner) -> Result<R>) -> Result<R> {
+        self.inner
+            .as_mut()
+            .map_or(Err(Error::Closed), |inner| f(inner))
     }
 }

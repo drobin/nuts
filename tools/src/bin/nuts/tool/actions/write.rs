@@ -20,16 +20,44 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod create;
-pub mod info;
-pub mod read;
-pub mod write;
+use clap::ArgMatches;
+use nuts::container::Container;
+use std::cmp;
+use std::io::{stdin, Read};
 
-use clap::Arg;
+use crate::tool::convert::Convert;
+use crate::tool::logger;
+use crate::tool::result::Result;
+use crate::tool::utils;
 
-pub fn general_args<'a, 'b>() -> Vec<Arg<'a, 'b>> {
-    vec![
-        Arg::from_usage("-v, --verbose 'Turn on verbose logging.'"),
-        Arg::from_usage("-q, --quiet 'Be quiet, don't print any output.'"),
-    ]
+pub fn run(sub: &ArgMatches) -> Result<()> {
+    logger::update(sub);
+
+    let path = sub.value_of("PATH").unwrap();
+    let id = u64::from_str(sub.value_of("ID").unwrap())?;
+    let mut container = Container::new();
+
+    let max_bytes = match sub.value_of("max-bytes") {
+        Some(s) => u64::from_str(s)?,
+        None => u64::MAX,
+    };
+
+    container.set_password_callback(utils::ask_for_password);
+    container.open(path, None)?;
+
+    write(sub, &mut container, id, max_bytes)
+}
+
+fn write(sub: &ArgMatches, container: &mut Container, id: u64, max_bytes: u64) -> Result<()> {
+    let nbytes = cmp::min(container.bsize()? as u64, max_bytes);
+    let mut buf = vec![];
+
+    stdin().take(nbytes).read_to_end(&mut buf)?;
+    container.write(id, &buf)?;
+
+    if !sub.is_present("quiet") {
+        println!("{} bytes written to block {}.", buf.len(), id);
+    }
+
+    Ok(())
 }

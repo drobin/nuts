@@ -30,7 +30,7 @@ use crate::tool::actions::general_args;
 use crate::tool::contrib::clap::is_valid;
 use crate::tool::convert::{Convert, Size};
 use crate::tool::format::Format;
-use crate::tool::result::Result;
+use crate::tool::result::{Error, Result};
 
 fn main() {
     std::process::exit(match run_tool() {
@@ -47,50 +47,50 @@ fn run_tool() -> Result<()> {
 
     let options = Options::default()?; // for defaults
 
+    let cipher_list = [Cipher::Aes128Ctr, Cipher::None]
+        .iter()
+        .map(|c| c.to_str())
+        .collect::<Vec<String>>();
+    let dtype_list = [
+        DiskType::FatRandom,
+        DiskType::FatZero,
+        DiskType::ThinRandom,
+        DiskType::ThinZero,
+    ]
+    .iter()
+    .map(|d| d.to_str())
+    .collect::<Vec<String>>();
+    let format_list = [Format::String, Format::Hex]
+        .iter()
+        .map(|f| f.to_str())
+        .collect::<Vec<String>>();
+
     let block_size_help = format!(
         "Set the block-size to SIZE. Default is {}.",
         options.bsize()
     );
-    let cipher_help = {
-        let all_ciphers = [Cipher::Aes128Ctr, Cipher::None]
-            .iter()
-            .map(|c| c.to_str())
-            .collect::<Vec<String>>()
-            .join(", ");
-        format!(
-            "Set the cipher to CIPHER. Can be one of: {}. Default is {}.",
-            all_ciphers,
-            options.cipher.to_str()
-        )
-    };
-    let disk_type_help = {
-        let all_dtypes = [
-            DiskType::FatRandom,
-            DiskType::FatZero,
-            DiskType::ThinRandom,
-            DiskType::ThinZero,
-        ]
-        .iter()
-        .map(|d| d.to_str())
-        .collect::<Vec<String>>()
-        .join(", ");
-        format!(
-            "Set the disk-type to DISK. Can be one of: {}. Default is {}.",
-            all_dtypes,
-            options.dtype.to_str()
-        )
-    };
-    let format_help = {
-        let format_list = [Format::String, Format::Hex]
-            .iter()
-            .map(|f| f.to_str())
-            .collect::<Vec<String>>();
-        format!(
-            "Specifies the format of the userdata dump. Can be one of {}. Default is {}.",
-            format_list.join(", "),
-            Format::default().to_str()
-        )
-    };
+    let cipher_help = format!(
+        "Set the cipher to CIPHER. Can be one of: {}. Default is {}.",
+        cipher_list.join(", "),
+        options.cipher.to_str()
+    );
+    let disk_type_help = format!(
+        "Set the disk-type to DISK. Can be one of: {}. Default is {}.",
+        dtype_list.join(", "),
+        options.dtype.to_str()
+    );
+    let format_info_help = format!(
+        "Specifies the format of the userdata dump. Can be one of {}. Default is {}.",
+        format_list.join(", "),
+        Format::default().to_str()
+    );
+    let format_read_help = format!(
+        "Specifies the format of the dump. Can be one of {}. Default is {}.",
+        format_list.join(", "),
+        Format::default().to_str()
+    );
+    let id_read_help = "The block-id to read.";
+    let id_write_help = "The block-id to write.";
     let iterations_help = {
         let iterations = match options.wkey {
             Some(WrappingKey::Pbkdf2 {
@@ -104,7 +104,10 @@ fn run_tool() -> Result<()> {
             iterations
         )
     };
+    let max_bytes_read_help = "Reads up to SIZE bytes. Default is unlimited.";
+    let max_bytes_write_help = "Writes up to SIZE bytes. Default is unlimited.";
     let overwrite_help = "If set, overwrites an existing container.";
+    let path_help = "The path to the container.";
     let salt_length_help = {
         let salt_len = match options.wkey {
             Some(WrappingKey::Pbkdf2 {
@@ -127,7 +130,12 @@ fn run_tool() -> Result<()> {
             SubCommand::with_name("info")
                 .about("Shows information about a nuts-volume.")
                 .version(crate_version!())
-                .arg(Arg::with_name("PATH").required(true).index(1))
+                .arg(
+                    Arg::with_name("PATH")
+                        .required(true)
+                        .index(1)
+                        .help(path_help),
+                )
                 .args(&general_args())
                 .arg(
                     Arg::with_name("userdata")
@@ -137,16 +145,22 @@ fn run_tool() -> Result<()> {
                 .arg(
                     Arg::with_name("format")
                         .long("format")
+                        .short("f")
                         .value_name("FORMAT")
                         .validator(is_valid::<Format>)
-                        .help(&format_help),
+                        .help(&format_info_help),
                 ),
         )
         .subcommand(
             SubCommand::with_name("create")
                 .about("Creates a nuts-volume.")
                 .version(crate_version!())
-                .arg(Arg::with_name("PATH").required(true).index(1))
+                .arg(
+                    Arg::with_name("PATH")
+                        .required(true)
+                        .index(1)
+                        .help(path_help),
+                )
                 .arg(
                     Arg::with_name("SIZE")
                         .required(true)
@@ -200,13 +214,78 @@ fn run_tool() -> Result<()> {
                         .help(&overwrite_help),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("read")
+                .about("Reads data from a nuts-volume.")
+                .version(crate_version!())
+                .arg(
+                    Arg::with_name("PATH")
+                        .required(true)
+                        .index(1)
+                        .help(path_help),
+                )
+                .arg(
+                    Arg::with_name("ID")
+                        .required(true)
+                        .index(2)
+                        .help(id_read_help),
+                )
+                .args(&general_args())
+                .arg(
+                    Arg::with_name("format")
+                        .long("format")
+                        .short("f")
+                        .value_name("FORMAT")
+                        .validator(is_valid::<Format>)
+                        .help(&format_read_help),
+                )
+                .arg(
+                    Arg::with_name("max-bytes")
+                        .long("max-bytes")
+                        .short("m")
+                        .value_name("SIZE")
+                        .validator(is_valid::<Size<u64>>)
+                        .help(max_bytes_read_help),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("write")
+                .about("Writes data info a nuts-volume.")
+                .version(crate_version!())
+                .arg(
+                    Arg::with_name("PATH")
+                        .required(true)
+                        .index(1)
+                        .help(path_help),
+                )
+                .arg(
+                    Arg::with_name("ID")
+                        .required(true)
+                        .index(2)
+                        .help(id_write_help),
+                )
+                .args(&general_args())
+                .arg(
+                    Arg::with_name("max-bytes")
+                        .long("max-bytes")
+                        .short("m")
+                        .value_name("SIZE")
+                        .validator(is_valid::<Size<u64>>)
+                        .help(max_bytes_write_help),
+                ),
+        )
         .get_matches();
 
     if let Some(sub) = matches.subcommand_matches("info") {
         tool::actions::info::run(sub)
     } else if let Some(sub) = matches.subcommand_matches("create") {
         tool::actions::create::run(sub)
+    } else if let Some(sub) = matches.subcommand_matches("read") {
+        tool::actions::read::run(sub)
+    } else if let Some(sub) = matches.subcommand_matches("write") {
+        tool::actions::write::run(sub)
     } else {
-        Ok(())
+        let msg = String::from("Missing implementation for subcommand");
+        Err(Error::new(&msg))
     }
 }
