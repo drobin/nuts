@@ -26,28 +26,7 @@ pub enum Format {
 }
 
 impl Format {
-    pub fn from_string(s: &str) -> Result<Format, String> {
-        match s {
-            "string" => Ok(Format::String),
-            "hex" => Ok(Format::Hex),
-            _ => Err(format!("invalid format: {}", s)),
-        }
-    }
-
     pub fn default() -> Format {
         Format::String
-    }
-
-    pub fn validate(s: String) -> Result<(), String> {
-        Format::from_string(&s).map(|_| ())
-    }
-}
-
-impl std::fmt::Display for Format {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Format::String => write!(f, "string"),
-            Format::Hex => write!(f, "hex"),
-        }
     }
 }

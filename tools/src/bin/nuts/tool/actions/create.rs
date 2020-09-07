@@ -23,9 +23,10 @@
 use clap::ArgMatches;
 
 use nuts::container::Container;
-use nuts::types::{Cipher, DiskType, Options, WrappingKey};
+use nuts::types::{Cipher, DiskType, FromString, Options, WrappingKey};
 
 use crate::tool;
+use crate::tool::convert::{Convert, Size};
 
 pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     tool::logger::update(sub);
@@ -37,11 +38,11 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     };
 
     let path = sub.value_of("PATH").unwrap();
-    let size = tool::utils::to_size::<u64>(sub.value_of("SIZE").unwrap())?;
+    let size = Size::<u64>::from_str(sub.value_of("SIZE").unwrap())?.nbytes;
     let mut options = Options::default_with_cipher(cipher)?;
 
     let bsize = match sub.value_of("block-size") {
-        Some(bsize) => tool::utils::to_size::<u32>(bsize)?,
+        Some(bsize) => Size::<u32>::from_str(bsize)?.nbytes,
         None => options.bsize(),
     };
     let blocks = size / bsize as u64;

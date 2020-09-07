@@ -20,18 +20,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::convert::TryFrom;
 use std::result::Result;
 
-pub fn is_size<T>(s: String) -> Result<(), String>
-where
-    T: TryFrom<u64>,
-{
-    match crate::tool::utils::to_size::<T>(&s) {
+use crate::tool::convert::Convert;
+
+pub fn is_valid<C: Convert>(s: String) -> Result<(), String> {
+    match C::from_str(&s) {
         Ok(_) => Ok(()),
-        Err(error) => {
-            let msg = format!("{:?}", error);
-            Err(msg)
-        }
+        Err(_) => Err(s),
     }
 }

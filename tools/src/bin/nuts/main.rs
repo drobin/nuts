@@ -27,6 +27,8 @@ use clap::{App, AppSettings, Arg, SubCommand};
 use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
 use crate::tool::actions::general_args;
+use crate::tool::contrib::clap::is_valid;
+use crate::tool::convert::{Convert, Size};
 use crate::tool::format::Format;
 use crate::tool::result::Result;
 
@@ -81,12 +83,12 @@ fn run_tool() -> Result<()> {
     let format_help = {
         let format_list = [Format::String, Format::Hex]
             .iter()
-            .map(|f| f.to_string())
+            .map(|f| f.to_str())
             .collect::<Vec<String>>();
         format!(
             "Specifies the format of the userdata dump. Can be one of {}. Default is {}.",
             format_list.join(", "),
-            Format::default().to_string()
+            Format::default().to_str()
         )
     };
     let iterations_help = {
@@ -136,7 +138,7 @@ fn run_tool() -> Result<()> {
                     Arg::with_name("format")
                         .long("format")
                         .value_name("FORMAT")
-                        .validator(tool::format::Format::validate)
+                        .validator(is_valid::<Format>)
                         .help(&format_help),
                 ),
         )
@@ -149,7 +151,7 @@ fn run_tool() -> Result<()> {
                     Arg::with_name("SIZE")
                         .required(true)
                         .index(2)
-                        .validator(tool::contrib::clap::is_size::<u64>),
+                        .validator(is_valid::<Size<u64>>),
                 )
                 .args(&general_args())
                 .arg(
@@ -157,7 +159,7 @@ fn run_tool() -> Result<()> {
                         .short("b")
                         .long("block-size")
                         .value_name("SIZE")
-                        .validator(tool::contrib::clap::is_size::<u32>)
+                        .validator(is_valid::<Size<u32>>)
                         .help(&block_size_help),
                 )
                 .arg(
@@ -165,6 +167,7 @@ fn run_tool() -> Result<()> {
                         .short("c")
                         .long("cipher")
                         .value_name("CIPHER")
+                        .validator(is_valid::<Cipher>)
                         .help(&cipher_help),
                 )
                 .arg(
@@ -172,6 +175,7 @@ fn run_tool() -> Result<()> {
                         .short("d")
                         .long("disk-type")
                         .value_name("DISK")
+                        .validator(is_valid::<DiskType>)
                         .help(&disk_type_help),
                 )
                 .arg(
@@ -179,6 +183,7 @@ fn run_tool() -> Result<()> {
                         .short("i")
                         .long("iterations")
                         .value_name("N")
+                        .validator(is_valid::<u32>)
                         .help(&iterations_help),
                 )
                 .arg(
@@ -186,6 +191,7 @@ fn run_tool() -> Result<()> {
                         .short("s")
                         .long("salt-length")
                         .value_name("N")
+                        .validator(is_valid::<u32>)
                         .help(&salt_length_help),
                 )
                 .arg(

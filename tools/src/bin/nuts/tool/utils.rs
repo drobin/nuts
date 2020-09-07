@@ -20,38 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::convert::TryFrom;
-
 use rpassword::read_password_from_tty;
-
-use crate::tool;
-
-pub fn to_size<T>(s: &str) -> tool::result::Result<T>
-where
-    T: TryFrom<u64>,
-{
-    let s = s.trim_matches(char::is_whitespace).to_lowercase();
-
-    let (s, factor) = if s.ends_with("kb") {
-        (&s[..s.len() - 2], 1024)
-    } else if s.ends_with("mb") {
-        (&s[..s.len() - 2], 1024 * 1024)
-    } else if s.ends_with("gb") {
-        (&s[..s.len() - 2], 1024 * 1024 * 1024)
-    } else {
-        (&s[..], 1)
-    };
-
-    let size = s.parse::<u64>()?;
-
-    match T::try_from(factor * size) {
-        Ok(n) => Ok(n),
-        Err(_) => {
-            let msg = format!("size {} is too large", size);
-            Err(tool::result::Error::new(&msg))
-        }
-    }
-}
 
 pub fn ask_for_password() -> nuts::result::Result<Vec<u8>> {
     let password = read_password_from_tty(Some("Enter a password:"))?;
