@@ -23,7 +23,7 @@
 use clap::ArgMatches;
 
 use nuts::container::Container;
-use nuts::types::{Cipher, DiskType, FromString, Options, WrappingKey};
+use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
 use crate::tool;
 use crate::tool::convert::{Convert, Size};
@@ -32,7 +32,7 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     tool::logger::update(sub);
 
     let cipher = if let Some(cipher) = sub.value_of("cipher") {
-        Cipher::from_string(cipher)?
+        Cipher::from_str(cipher)?
     } else {
         Cipher::Aes128Ctr
     };
@@ -50,7 +50,7 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     options.update_sizes(bsize, blocks)?;
 
     if let Some(dtype) = sub.value_of("disk-type") {
-        options.dtype = DiskType::from_string(dtype)?;
+        options.dtype = DiskType::from_str(dtype)?;
     }
 
     if let Some(wkey_data) = options.wkey.as_ref() {
@@ -77,16 +77,14 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     container.set_password_callback(tool::utils::ask_for_password);
     container.create(path, &options)?;
 
-    let digest = container
-        .digest()?
-        .map_or_else(|| String::from("none"), |d| d.to_string());
-
-    say!(sub, "cipher:           {}", container.cipher()?);
-    say!(sub, "digest:           {}", digest);
-    say!(sub, "disk type:        {}", container.dtype()?);
-    say!(sub, "block size:       {}", container.bsize()?);
-    say!(sub, "blocks:           {}", container.blocks()?);
-    say!(sub, "allocated blocks: {}", container.ablocks()?);
+    if !sub.is_present("quiet") {
+        println!("cipher:           {}", container.cipher()?.to_str());
+        println!("digest:           {}", container.digest()?.to_str());
+        println!("disk type:        {}", container.dtype()?.to_str());
+        println!("block size:       {}", container.bsize()?);
+        println!("blocks:           {}", container.blocks()?);
+        println!("allocated blocks: {}", container.ablocks()?);
+    }
 
     Ok(())
 }

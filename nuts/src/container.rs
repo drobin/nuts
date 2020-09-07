@@ -112,7 +112,7 @@ impl Container {
             let inner = Inner::create(&path, options, self.callback.as_ref())?;
 
             debug!(
-                "allocating container, dtype = {}, bsize = {}, blocks = {}",
+                "allocating container, dtype = {:?}, bsize = {}, blocks = {}",
                 inner.header.dtype, inner.header.bsize, inner.header.blocks
             );
 

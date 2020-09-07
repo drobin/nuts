@@ -54,13 +54,13 @@ fn run_tool() -> Result<()> {
     let cipher_help = {
         let all_ciphers = [Cipher::Aes128Ctr, Cipher::None]
             .iter()
-            .map(|c| c.to_string())
+            .map(|c| c.to_str())
             .collect::<Vec<String>>()
             .join(", ");
         format!(
             "Set the cipher to CIPHER. Can be one of: {}. Default is {}.",
             all_ciphers,
-            options.cipher.to_string()
+            options.cipher.to_str()
         )
     };
     let disk_type_help = {
@@ -71,13 +71,13 @@ fn run_tool() -> Result<()> {
             DiskType::ThinZero,
         ]
         .iter()
-        .map(|d| d.to_string())
+        .map(|d| d.to_str())
         .collect::<Vec<String>>()
         .join(", ");
         format!(
             "Set the disk-type to DISK. Can be one of: {}. Default is {}.",
             all_dtypes,
-            options.dtype.to_string()
+            options.dtype.to_str()
         )
     };
     let format_help = {

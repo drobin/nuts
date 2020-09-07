@@ -69,47 +69,6 @@ impl Cipher {
         }
     }
 
-    /// Converts the given `str` into a [`Cipher`] variant.
-    ///
-    /// # Errors
-    ///
-    /// This function will return an [`Error::InvalArg`] error if `str` is not
-    /// a valid cipher.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use nuts::types::*;
-    /// use nuts::error::*;
-    ///
-    /// assert_eq!(Cipher::from_string("none").unwrap(), Cipher::None);
-    /// assert_eq!(
-    ///     Cipher::from_string("aes128-ctr").unwrap(),
-    ///     Cipher::Aes128Ctr
-    /// );
-    ///
-    /// let err = Cipher::from_string("xxx").unwrap_err();
-    ///
-    /// if let Error::InvalArg(msg) = err {
-    ///     assert_eq!(msg, "invalid cipher: xxx");
-    /// } else {
-    ///     panic!("invalid error: {:?}", err);
-    /// }
-    /// ```
-    ///
-    /// [`Cipher`]: enum.Cipher.html
-    /// [`Error::InvalArg`]: ../error/enum.Error.html#variant.InvalArg
-    pub fn from_string(str: &str) -> Result<Cipher> {
-        match str {
-            "none" => Ok(Cipher::None),
-            "aes128-ctr" => Ok(Cipher::Aes128Ctr),
-            _ => {
-                let message = format!("invalid cipher: {}", str);
-                Err(Error::InvalArg(message))
-            }
-        }
-    }
-
     pub(crate) fn encrypt(
         &self,
         input: &[u8],
@@ -210,15 +169,6 @@ impl Cipher {
     }
 }
 
-impl std::fmt::Display for Cipher {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Cipher::None => write!(f, "none"),
-            Cipher::Aes128Ctr => write!(f, "aes128-ctr"),
-        }
-    }
-}
-
 /// Supported message digests.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Digest {
@@ -236,55 +186,9 @@ impl Digest {
         }
     }
 
-    /// Converts the given `str` into a [`Digest`] variant.
-    ///
-    /// # Errors
-    ///
-    /// This function will return an [`Error::InvalArg`] error if `str` is not
-    /// a valid digest.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use nuts::types::*;
-    /// use nuts::error::*;
-    ///
-    /// assert_eq!(Digest::from_string("none").unwrap(), None);
-    /// assert_eq!(Digest::from_string("sha1").unwrap(), Some(Digest::Sha1));
-    ///
-    /// let err = Digest::from_string("xxx").unwrap_err();
-    ///
-    /// if let Error::InvalArg(msg) = err {
-    ///     assert_eq!(msg, "invalid digest: xxx");
-    /// } else {
-    ///     panic!("invalid error: {:?}", err);
-    /// }
-    /// ```
-    ///
-    /// [`Digest`]: enum.Digest.html
-    /// [`Error::InvalArg`]: ../error/enum.Error.html#variant.InvalArg
-    pub fn from_string(str: &str) -> Result<Option<Digest>> {
-        match str {
-            "none" => Ok(None),
-            "sha1" => Ok(Some(Digest::Sha1)),
-            _ => {
-                let message = format!("invalid digest: {}", str);
-                Err(Error::InvalArg(message))
-            }
-        }
-    }
-
     pub(crate) fn to_openssl(&self) -> hash::MessageDigest {
         match self {
             Digest::Sha1 => hash::MessageDigest::sha1(),
-        }
-    }
-}
-
-impl std::fmt::Display for Digest {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Digest::Sha1 => write!(f, "sha1"),
         }
     }
 }
@@ -436,73 +340,6 @@ pub enum DiskType {
     /// Space for the container is allocated dynamically when needed, unused
     /// blocks are initialized with random data.
     ThinRandom,
-}
-
-impl DiskType {
-    /// Converts the given `str` into a [`DiskType`] variant.
-    ///
-    /// # Errors
-    ///
-    /// This function will return an [`Error::InvalArg`] error if `str` is not
-    /// a valid disk type.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use nuts::types::*;
-    /// use nuts::error::*;
-    ///
-    /// assert_eq!(
-    ///     DiskType::from_string("fat-zero").unwrap(),
-    ///     DiskType::FatZero
-    /// );
-    /// assert_eq!(
-    ///     DiskType::from_string("fat-random").unwrap(),
-    ///     DiskType::FatRandom
-    /// );
-    /// assert_eq!(
-    ///     DiskType::from_string("thin-zero").unwrap(),
-    ///     DiskType::ThinZero
-    /// );
-    /// assert_eq!(
-    ///     DiskType::from_string("thin-random").unwrap(),
-    ///     DiskType::ThinRandom
-    /// );
-    ///
-    /// let err = DiskType::from_string("xxx").unwrap_err();
-    ///
-    /// if let Error::InvalArg(msg) = err {
-    ///     assert_eq!(msg, "invalid disk-type: xxx");
-    /// } else {
-    ///     panic!("invalid error: {:?}", err);
-    /// }
-    /// ```
-    ///
-    /// [`DiskType`]: enum.DiskType.html
-    /// [`Error::InvalArg`]: ../error/enum.Error.html#variant.InvalArg
-    pub fn from_string(str: &str) -> Result<DiskType> {
-        match str {
-            "fat-zero" => Ok(DiskType::FatZero),
-            "fat-random" => Ok(DiskType::FatRandom),
-            "thin-zero" => Ok(DiskType::ThinZero),
-            "thin-random" => Ok(DiskType::ThinRandom),
-            _ => {
-                let message = format!("invalid disk-type: {}", str);
-                Err(Error::InvalArg(message))
-            }
-        }
-    }
-}
-
-impl std::fmt::Display for DiskType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            DiskType::FatZero => write!(f, "fat-zero"),
-            DiskType::FatRandom => write!(f, "fat-random"),
-            DiskType::ThinZero => write!(f, "thin-zero"),
-            DiskType::ThinRandom => write!(f, "thin-random"),
-        }
-    }
 }
 
 /// The minimum size of a block.

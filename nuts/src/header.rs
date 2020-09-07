@@ -270,7 +270,7 @@ impl Header {
         if let Some(md) = self.digest {
             if hmac.len() != md.size() as usize {
                 error!(
-                    "invalid hmac, len: {}, expected: {} ({})",
+                    "invalid hmac, len: {}, expected: {} ({:?})",
                     hmac.len(),
                     md.size(),
                     md
@@ -308,14 +308,14 @@ impl Header {
     fn validate_digest(&self) -> Result<()> {
         if self.cipher == Cipher::None && self.digest.is_some() {
             error!(
-                "invalid digest {} for cipher {}",
+                "invalid digest {:?} for cipher {:?}",
                 self.digest.unwrap(),
                 self.cipher
             );
 
             Err(Error::InvalHeader(InvalHeaderKind::InvalDigest))
         } else if self.cipher != Cipher::None && self.digest.is_none() {
-            error!("invalid digest None for cipher {}", self.cipher);
+            error!("invalid digest None for cipher {:?}", self.cipher);
             Err(Error::InvalHeader(InvalHeaderKind::InvalDigest))
         } else {
             Ok(())
@@ -325,14 +325,17 @@ impl Header {
     fn validate_wrapping_key_data(&self) -> Result<()> {
         if self.cipher == Cipher::None && self.wrapping_key.is_some() {
             error!(
-                "invalid wrapping key data {:?} for cipher {}",
+                "invalid wrapping key data {:?} for cipher {:?}",
                 self.wrapping_key.as_ref().unwrap(),
                 self.cipher
             );
 
             Err(Error::InvalHeader(InvalHeaderKind::InvalWrappingKey))
         } else if self.cipher != Cipher::None && self.wrapping_key.is_none() {
-            error!("invalid wrapping key data None for cipher {}", self.cipher);
+            error!(
+                "invalid wrapping key data None for cipher {:?}",
+                self.cipher
+            );
             Err(Error::InvalHeader(InvalHeaderKind::InvalWrappingKey))
         } else {
             Ok(())
@@ -342,7 +345,7 @@ impl Header {
     fn validate_wrapping_iv(&self) -> Result<()> {
         if self.wrapping_iv.len() != self.cipher.iv_size() as usize {
             error!(
-                "invalid iv, len: {}, expected: {} ({})",
+                "invalid iv, len: {}, expected: {} ({:?})",
                 self.wrapping_iv.len(),
                 self.cipher.iv_size(),
                 self.cipher
@@ -374,8 +377,8 @@ impl Header {
 
     fn validate_master_key(&self) -> Result<()> {
         if self.master_key.len() != self.cipher.key_size() as usize {
-            println!(
-                "invalid master key, len: {}, expected: {} ({})",
+            error!(
+                "invalid master key, len: {}, expected: {} ({:?})",
                 self.master_key.len(),
                 self.cipher.key_size(),
                 self.cipher
@@ -389,7 +392,7 @@ impl Header {
     fn validate_master_iv(&self) -> Result<()> {
         if self.master_iv.len() != self.cipher.iv_size() as usize {
             error!(
-                "invalid master iv, len: {}, expected: {} ({})",
+                "invalid master iv, len: {}, expected: {} ({:?})",
                 self.master_iv.len(),
                 self.cipher.iv_size(),
                 self.cipher
@@ -409,10 +412,10 @@ impl Header {
 
         if self.hmac_key.len() != size {
             error!(
-                "invalid hmac key, len: {}, expected: {} ({})",
+                "invalid hmac key, len: {}, expected: {} ({:?})",
                 self.hmac_key.len(),
                 size,
-                digest_to_string(self.digest)
+                self.digest
             );
 
             Err(Error::InvalHeader(InvalHeaderKind::InvalHmacKey))
@@ -457,12 +460,5 @@ impl fmt::Debug for Header {
             .field("hmac_key", &hmac_key)
             .field("userdata", &userdata)
             .finish()
-    }
-}
-
-fn digest_to_string(digest: Option<Digest>) -> String {
-    match digest {
-        Some(md) => format!("{}", md),
-        None => String::from("None"),
     }
 }

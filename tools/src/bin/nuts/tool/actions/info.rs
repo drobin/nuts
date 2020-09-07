@@ -47,14 +47,10 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
 }
 
 fn print_info(sub: &ArgMatches, container: &Container) -> tool::result::Result<()> {
-    let digest = container
-        .digest()?
-        .map_or_else(|| String::from("none"), |d| d.to_string());
-
     if !sub.is_present("quiet") {
-        println!("cipher:           {}", container.cipher()?);
-        println!("digest:           {}", digest);
-        println!("disk type:        {}", container.dtype()?);
+        println!("cipher:           {}", container.cipher()?.to_str());
+        println!("digest:           {}", container.digest()?.to_str());
+        println!("disk type:        {}", container.dtype()?.to_str());
         println!("block size:       {}", container.bsize()?);
         println!("blocks:           {}", container.blocks()?);
         println!("allocated blocks: {}", container.ablocks()?);

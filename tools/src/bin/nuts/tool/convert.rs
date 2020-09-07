@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts::types::{Cipher, DiskType};
+use nuts::types::{Cipher, Digest, DiskType};
 use std::convert::TryFrom;
 
 use crate::tool::format::Format;
@@ -54,6 +54,26 @@ impl Convert for Cipher {
         match self {
             Cipher::None => String::from("none"),
             Cipher::Aes128Ctr => String::from("aes128-ctr"),
+        }
+    }
+}
+
+impl Convert for Option<Digest> {
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "none" => Ok(None),
+            "sha1" => Ok(Some(Digest::Sha1)),
+            _ => {
+                let msg = format!("invalid digest: {}", s);
+                Err(Error::new(&msg))
+            }
+        }
+    }
+
+    fn to_str(&self) -> String {
+        match self {
+            None => String::from("none"),
+            Some(Digest::Sha1) => String::from("sha1"),
         }
     }
 }
