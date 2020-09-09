@@ -21,9 +21,11 @@
 // IN THE SOFTWARE.
 
 use nuts::types::{Cipher, Digest, DiskType};
+use regex::Regex;
 use std::convert::TryFrom;
 
 use crate::tool::format::Format;
+use crate::tool::id::IdRange;
 use crate::tool::result::{Error, Result};
 
 pub struct Size<T> {
@@ -116,6 +118,58 @@ impl Convert for Format {
             Format::String => String::from("string"),
             Format::Hex => String::from("hex"),
         }
+    }
+}
+
+impl Convert for IdRange {
+    fn from_str(s: &str) -> Result<Self> {
+        lazy_static! {
+            static ref RE: Regex = Regex::new(r"(^\d+$)|^(\d*)\.\.(\d*)$").unwrap();
+        }
+
+        let caps = RE.captures(s).ok_or_else(|| {
+            let msg = format!("invalid range: {}", s);
+            Error::new(&msg)
+        })?;
+
+        let (start, end) = if caps.get(1).is_some() {
+            // matches a single number
+
+            assert!(caps.get(2).is_none(), "invalid capture#2 for '{}'", s);
+            assert!(caps.get(3).is_none(), "invalid capture#3 for '{}'", s);
+
+            let start = caps.get(1).unwrap().as_str().parse::<u64>()?;
+
+            (Some(start), Some(start))
+        } else {
+            // matches a range: n..m/n../..m/..
+
+            assert!(caps.get(1).is_none(), "invalid capture#1 for '{}'", s);
+
+            let start = caps.get(2).unwrap().as_str();
+            let end = caps.get(3).unwrap().as_str();
+
+            let start = match start {
+                "" => None,
+                _ => Some(start.parse::<u64>()?),
+            };
+
+            let end = match end {
+                "" => None,
+                _ => Some(end.parse::<u64>()?),
+            };
+
+            (start, end)
+        };
+
+        Ok(IdRange::new(start, end))
+    }
+
+    fn to_str(&self) -> String {
+        let start = self.start().map_or("".to_string(), |s| s.to_string());
+        let end = self.end().map_or("".to_string(), |e| e.to_string());
+
+        format!("{}..{}", start, end)
     }
 }
 

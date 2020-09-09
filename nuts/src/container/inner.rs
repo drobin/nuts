@@ -50,7 +50,12 @@ impl Inner {
 
         debug!("header: {:?}", header);
 
-        let fh = File::create(path)?;
+        let fh = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .truncate(true)
+            .create(true)
+            .open(path)?;
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
         let offset = header.write(&mut buf, callback)?;
@@ -175,6 +180,8 @@ impl Inner {
         self.seek_block(id)?;
         self.fh.write_all(&block)?;
 
+        debug!("block {} written, len = {}, pad = {}", id, len, pad.len());
+
         Ok(len as u32)
     }
 
@@ -202,10 +209,12 @@ impl Inner {
     }
 
     fn extend_container(&mut self, count: u64) -> Result<()> {
-        debug!(
-            "extending container by {} blocks, ablocks: {}",
-            count, self.ablocks
-        );
+        if count > 0 {
+            debug!(
+                "extending container by {} blocks, ablocks: {}",
+                count, self.ablocks
+            );
+        }
 
         self.seek_block(self.ablocks)?;
 
@@ -221,10 +230,12 @@ impl Inner {
             self.ablocks += 1;
         }
 
-        debug!(
-            "container extended by {} blocks, ablocks: {}",
-            count, self.ablocks
-        );
+        if count > 0 {
+            debug!(
+                "container extended by {} blocks, ablocks: {}",
+                count, self.ablocks
+            );
+        }
 
         Ok(())
     }

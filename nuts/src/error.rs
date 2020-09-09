@@ -130,3 +130,15 @@ impl From<openssl::error::ErrorStack> for Error {
         Error::OpenSSL(error)
     }
 }
+
+impl From<Error> for std::io::Error {
+    fn from(error: Error) -> Self {
+        match error {
+            Error::IoError(err) => err,
+            _ => {
+                let msg = format!("{:?}", error);
+                std::io::Error::new(std::io::ErrorKind::Other, msg)
+            }
+        }
+    }
+}

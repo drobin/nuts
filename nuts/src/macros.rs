@@ -61,3 +61,11 @@ macro_rules! assert_inval_header {
         );
     };
 }
+
+#[cfg(test)]
+macro_rules! assert_large_array {
+    ($lhs:expr, $rhs:expr) => {
+        assert_eq!($lhs.len(), $rhs.len());
+        assert!($lhs.iter().zip($rhs.iter()).all(|(a, b)| a == b));
+    };
+}

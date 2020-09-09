@@ -26,6 +26,7 @@ pub mod macros;
 pub mod actions;
 pub mod convert;
 pub mod format;
+pub mod id;
 pub mod logger;
 pub mod output;
 pub mod result;

@@ -20,6 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[macro_use]
+extern crate lazy_static;
+
 mod tool;
 
 use clap::{crate_name, crate_version};
@@ -30,6 +33,7 @@ use crate::tool::actions::general_args;
 use crate::tool::contrib::clap::is_valid;
 use crate::tool::convert::{Convert, Size};
 use crate::tool::format::Format;
+use crate::tool::id::IdRange;
 use crate::tool::result::{Error, Result};
 
 fn main() {
@@ -90,7 +94,6 @@ fn run_tool() -> Result<()> {
         Format::default().to_str()
     );
     let id_read_help = "The block-id to read.";
-    let id_write_help = "The block-id to write.";
     let iterations_help = {
         let iterations = match options.wkey {
             Some(WrappingKey::Pbkdf2 {
@@ -108,6 +111,7 @@ fn run_tool() -> Result<()> {
     let max_bytes_write_help = "Writes up to SIZE bytes. Default is unlimited.";
     let overwrite_help = "If set, overwrites an existing container.";
     let path_help = "The path to the container.";
+    let range_write_help = "Range of block ids to write.";
     let salt_length_help = {
         let salt_len = match options.wkey {
             Some(WrappingKey::Pbkdf2 {
@@ -259,10 +263,11 @@ fn run_tool() -> Result<()> {
                         .help(path_help),
                 )
                 .arg(
-                    Arg::with_name("ID")
+                    Arg::with_name("RANGE")
                         .required(true)
                         .index(2)
-                        .help(id_write_help),
+                        .validator(is_valid::<IdRange>)
+                        .help(range_write_help),
                 )
                 .args(&general_args())
                 .arg(

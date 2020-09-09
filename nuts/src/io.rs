@@ -24,8 +24,14 @@
 mod tests;
 
 use byteorder::{ByteOrder, NetworkEndian};
-use std::io;
-use std::io::{Read, Write};
+use std::cmp;
+use std::collections::VecDeque;
+use std::io::{self, Read, Write};
+
+use crate::container::Container;
+use crate::error::Error;
+use crate::result::Result;
+use crate::utils::SecureVec;
 
 /// Trait that supports reading of basic datatypes.
 ///
@@ -378,3 +384,119 @@ impl<W: Write + ?Sized> WriteBasics for W {}
 /// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
 /// [`WriteExt`]: trait.WriteExt.html
 impl<W: Write + ?Sized> WriteExt for W {}
+
+/// Utility used to write a stream of data into a container.
+///
+/// Compared to [`Container::write()`] (which can update a single block), the
+/// `Writer` can write a stream of data devided into several blocks; if one
+/// block is full, the `Writer` switches to another block and continues
+/// writing. The [`push_id()`] method is used to tell the `Writer` which blocks
+/// can be written.
+///
+/// The `Writer` implements the [`Write`] trait; it is used to push data into
+/// the container. Never forget to [`flush()`] the `Writer`! The [`flush()`]
+/// call makes sure that the remaining data are padded and written into the
+/// container.
+///
+/// [`Container::write()`]: ../container/struct.Container.html#method.write
+/// [`push_id()`]: #method.push_id
+/// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
+/// [`flush()`]: https://doc.rust-lang.org/std/io/trait.Write.html#tymethod.flush
+pub struct Writer<'a> {
+    container: &'a mut Container,
+    queue: VecDeque<u64>,
+    cache: SecureVec<u8>,
+    blocks: u64,
+}
+
+impl<'a> Writer<'a> {
+    /// Create a new `Writer` instance.
+    ///
+    /// The given `container` is used as the target.
+    pub fn new(container: &mut Container) -> Writer {
+        Writer {
+            container,
+            queue: VecDeque::new(),
+            cache: secure_vec![],
+            blocks: 0,
+        }
+    }
+
+    /// Queues the given `id`.
+    ///
+    /// Puts the given `id` on the back of a queue. Whenever the `Writer`
+    /// switches to another block, it takes an id from the front of the queue.
+    /// If the queue is empty but the `Writer` still needs another block, then
+    /// the [`write()`] or [`flush()`] operation is aborted. There can be also
+    /// more ids on the queue than required. In this case the remaining blocks
+    /// are ignored.
+    ///
+    /// The `Writer` does not check for duplicates. Pushing an `id` more than
+    /// one time on the queue can lead into a situation, where a block is
+    /// updated twice (or more)!
+    ///
+    /// [`write()`]: https://doc.rust-lang.org/std/io/trait.Write.html#tymethod.write
+    /// [`flush()`]: https://doc.rust-lang.org/std/io/trait.Write.html#tymethod.flush
+    pub fn push_id(&mut self, id: u64) {
+        self.queue.push_back(id);
+    }
+
+    fn pop_id(&mut self) -> Result<u64> {
+        self.queue.pop_front().ok_or_else(|| {
+            let msg = "no more blocks available";
+            let err = io::Error::new(io::ErrorKind::Other, msg);
+            Error::IoError(err)
+        })
+    }
+
+    /// Returns the number blocks actually written.
+    pub fn blocks(&self) -> u64 {
+        self.blocks
+    }
+
+    fn fill_cache(&mut self, buf: &[u8]) -> Result<usize> {
+        let bsize = self.container.bsize()? as usize;
+        let nbytes = cmp::min(bsize - self.cache.len(), buf.len());
+
+        self.cache.extend(buf[..nbytes].iter());
+
+        Ok(nbytes)
+    }
+
+    fn flush_cache(&mut self, force: bool) -> Result<()> {
+        let bsize = self.container.bsize()? as usize;
+
+        if self.cache.len() >= bsize || force {
+            let nbytes = cmp::min(bsize, self.cache.len());
+            let id = self.pop_id()?;
+
+            self.container.write(id, &self.cache[..nbytes])?;
+            self.cache.drain(..nbytes);
+
+            self.blocks += 1;
+        }
+
+        Ok(())
+    }
+}
+
+impl<'a> Write for Writer<'a> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let mut nbytes = 0;
+
+        while nbytes < buf.len() {
+            nbytes += self.fill_cache(&buf[nbytes..])?;
+            self.flush_cache(false)?;
+        }
+
+        Ok(nbytes)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        while !self.cache.is_empty() {
+            self.flush_cache(true)?;
+        }
+
+        Ok(())
+    }
+}

@@ -31,3 +31,6 @@ mod write_basics;
 
 #[cfg(test)]
 mod write_ext;
+
+#[cfg(test)]
+mod writer;

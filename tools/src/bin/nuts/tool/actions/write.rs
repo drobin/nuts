@@ -21,11 +21,14 @@
 // IN THE SOFTWARE.
 
 use clap::ArgMatches;
+use log::debug;
 use nuts::container::Container;
+use nuts::io::Writer;
 use std::cmp;
-use std::io::{stdin, Read};
+use std::io::{stdin, Read, Write};
 
 use crate::tool::convert::Convert;
+use crate::tool::id::IdRange;
 use crate::tool::logger;
 use crate::tool::result::Result;
 use crate::tool::utils;
@@ -34,7 +37,7 @@ pub fn run(sub: &ArgMatches) -> Result<()> {
     logger::update(sub);
 
     let path = sub.value_of("PATH").unwrap();
-    let id = u64::from_str(sub.value_of("ID").unwrap())?;
+    let mut range = IdRange::from_str(sub.value_of("RANGE").unwrap())?;
     let mut container = Container::new();
 
     let max_bytes = match sub.value_of("max-bytes") {
@@ -45,18 +48,43 @@ pub fn run(sub: &ArgMatches) -> Result<()> {
     container.set_password_callback(utils::ask_for_password);
     container.open(path, None)?;
 
-    write(sub, &mut container, id, max_bytes)
+    range.resolve(&container)?;
+    debug!("range: {:?}", range);
+
+    write(sub, &mut container, &range, max_bytes as usize)
 }
 
-fn write(sub: &ArgMatches, container: &mut Container, id: u64, max_bytes: u64) -> Result<()> {
-    let nbytes = cmp::min(container.bsize()? as u64, max_bytes);
-    let mut buf = vec![];
+fn write(
+    sub: &ArgMatches,
+    container: &mut Container,
+    range: &IdRange,
+    max_bytes: usize,
+) -> Result<()> {
+    let mut writer = Writer::new(container);
 
-    stdin().take(nbytes).read_to_end(&mut buf)?;
-    container.write(id, &buf)?;
+    for id in range.to_range() {
+        writer.push_id(id);
+    }
+
+    let mut nbytes = 0;
+    let mut buf = [0; 64];
+
+    while nbytes < max_bytes {
+        let n = cmp::min(buf.len(), max_bytes - nbytes);
+        let nread = stdin().read(&mut buf[..n])?;
+
+        if nread == 0 {
+            break;
+        }
+
+        nbytes += nread;
+        writer.write_all(&buf[..nread])?;
+    }
+
+    writer.flush()?;
 
     if !sub.is_present("quiet") {
-        println!("{} bytes written to block {}.", buf.len(), id);
+        println!("{} bytes written to {} block(s).", nbytes, writer.blocks());
     }
 
     Ok(())
