@@ -21,12 +21,7 @@
 // IN THE SOFTWARE.
 
 pub enum Format {
+    Raw,
     String,
     Hex,
-}
-
-impl Format {
-    pub fn default() -> Format {
-        Format::String
-    }
 }

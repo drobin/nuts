@@ -62,7 +62,7 @@ fn print_info(sub: &ArgMatches, container: &Container) -> tool::result::Result<(
 fn print_userdata(sub: &ArgMatches, userdata: &Vec<u8>) -> tool::result::Result<()> {
     let format = match sub.value_of("format") {
         Some(format) => Format::from_str(format)?,
-        None => Format::default(),
+        None => Format::Hex,
     };
 
     if !sub.is_present("quiet") {

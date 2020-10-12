@@ -22,6 +22,7 @@
 
 use log::debug;
 use std::cmp;
+use std::io::{self, Write};
 
 use crate::tool::format::Format;
 
@@ -58,6 +59,7 @@ impl Output {
 
     pub fn print(&mut self) {
         match self.fmt {
+            Format::Raw => self.print_raw(),
             Format::String => self.print_utf8(self.buf.len(), false),
             Format::Hex => self.print_hex(),
         }
@@ -65,6 +67,7 @@ impl Output {
 
     pub fn flush(&mut self) {
         match self.fmt {
+            Format::Raw => self.flush_raw(),
             Format::String => self.flush_utf8(),
             Format::Hex => self.flush_hex(),
         }
@@ -136,6 +139,27 @@ impl Output {
         if self.offset == 0 || self.offset % 16 != 0 {
             // Appen newline, if not present.
             println!();
+        }
+    }
+
+    fn print_raw(&mut self) {
+        match io::stdout().write_all(&self.buf) {
+            Ok(()) => {
+                self.offset += self.buf.len();
+                self.buf.clear();
+            }
+            Err(error) => {
+                eprintln!("failed to print to stderr: {}", error);
+            }
+        }
+    }
+
+    fn flush_raw(&mut self) {
+        match io::stdout().flush() {
+            Ok(()) => (),
+            Err(error) => {
+                eprintln!("failed t flush stdout: {}", error);
+            }
         }
     }
 }

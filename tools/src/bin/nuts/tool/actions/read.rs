@@ -43,7 +43,7 @@ pub fn run(sub: &ArgMatches) -> Result<()> {
 
     let format = match sub.value_of("format") {
         Some(format) => Format::from_str(format)?,
-        None => Format::default(),
+        None => Format::Raw,
     };
 
     let max_bytes = match sub.value_of("max-bytes") {

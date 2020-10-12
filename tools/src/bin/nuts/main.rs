@@ -64,7 +64,7 @@ fn run_tool() -> Result<()> {
     .iter()
     .map(|d| d.to_str())
     .collect::<Vec<String>>();
-    let format_list = [Format::String, Format::Hex]
+    let format_list = [Format::Raw, Format::String, Format::Hex]
         .iter()
         .map(|f| f.to_str())
         .collect::<Vec<String>>();
@@ -86,12 +86,12 @@ fn run_tool() -> Result<()> {
     let format_info_help = format!(
         "Specifies the format of the userdata dump. Can be one of {}. Default is {}.",
         format_list.join(", "),
-        Format::default().to_str()
+        Format::Hex.to_str()
     );
     let format_read_help = format!(
         "Specifies the format of the dump. Can be one of {}. Default is {}.",
         format_list.join(", "),
-        Format::default().to_str()
+        Format::Raw.to_str()
     );
     let iterations_help = {
         let iterations = match options.wkey {
