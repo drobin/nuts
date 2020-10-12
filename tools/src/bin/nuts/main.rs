@@ -93,7 +93,6 @@ fn run_tool() -> Result<()> {
         format_list.join(", "),
         Format::default().to_str()
     );
-    let id_read_help = "The block-id to read.";
     let iterations_help = {
         let iterations = match options.wkey {
             Some(WrappingKey::Pbkdf2 {
@@ -111,6 +110,7 @@ fn run_tool() -> Result<()> {
     let max_bytes_write_help = "Writes up to SIZE bytes. Default is unlimited.";
     let overwrite_help = "If set, overwrites an existing container.";
     let path_help = "The path to the container.";
+    let range_read_help = "Range of block ids to read.";
     let range_write_help = "Range of block ids to write.";
     let salt_length_help = {
         let salt_len = match options.wkey {
@@ -229,10 +229,11 @@ fn run_tool() -> Result<()> {
                         .help(path_help),
                 )
                 .arg(
-                    Arg::with_name("ID")
+                    Arg::with_name("RANGE")
                         .required(true)
                         .index(2)
-                        .help(id_read_help),
+                        .validator(is_valid::<IdRange>)
+                        .help(range_read_help),
                 )
                 .args(&general_args())
                 .arg(

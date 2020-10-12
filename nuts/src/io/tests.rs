@@ -27,6 +27,9 @@ mod read_basics;
 mod read_ext;
 
 #[cfg(test)]
+mod reader;
+
+#[cfg(test)]
 mod write_basics;
 
 #[cfg(test)]

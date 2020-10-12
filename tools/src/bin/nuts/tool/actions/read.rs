@@ -21,12 +21,15 @@
 // IN THE SOFTWARE.
 
 use clap::ArgMatches;
+use log::debug;
 use nuts::container::Container;
-use std::cmp;
+use nuts::io::Reader;
+use std::io::Read;
 
 use crate::tool;
 use crate::tool::convert::Convert;
 use crate::tool::format::Format;
+use crate::tool::id::IdRange;
 use crate::tool::logger;
 use crate::tool::output::Output;
 use crate::tool::result::Result;
@@ -35,7 +38,7 @@ pub fn run(sub: &ArgMatches) -> Result<()> {
     logger::update(sub);
 
     let path = sub.value_of("PATH").unwrap();
-    let id = u64::from_str(sub.value_of("ID").unwrap())?;
+    let mut range = IdRange::from_str(sub.value_of("RANGE").unwrap())?;
     let mut container = Container::new();
 
     let format = match sub.value_of("format") {
@@ -51,24 +54,43 @@ pub fn run(sub: &ArgMatches) -> Result<()> {
     container.set_password_callback(tool::utils::ask_for_password);
     container.open(path, None)?;
 
-    read(sub, &mut container, format, id, max_bytes)
+    range.resolve(&container)?;
+    debug!("range: {:?}", range);
+
+    read(sub, &mut container, format, &range, max_bytes)
 }
 
 fn read(
     sub: &ArgMatches,
     container: &mut Container,
     format: Format,
-    id: u64,
+    range: &IdRange,
     max_bytes: u64,
 ) -> Result<()> {
-    let nbytes = cmp::min(container.bsize()? as u64, max_bytes);
-    let mut buf = vec![0; nbytes as usize];
+    let mut reader = Reader::new(container);
 
-    container.read(id, &mut buf)?;
+    reader.set_max_bytes(max_bytes);
 
+    for id in range.to_range() {
+        reader.push_id(id);
+    }
+
+    let mut output = Output::new(format);
+    let mut buf = [0; 64];
+
+    loop {
+        let nbytes = reader.read(&mut buf)?;
+
+        if nbytes == 0 {
+            break;
+        }
+
+        if !sub.is_present("quiet") {
+            output.push(&buf[..nbytes]).print();
+        }
+    }
     if !sub.is_present("quiet") {
-        let mut output = Output::new(format);
-        output.push(&buf).flush();
+        output.flush();
     }
 
     Ok(())

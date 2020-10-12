@@ -385,6 +385,107 @@ impl<W: Write + ?Sized> WriteBasics for W {}
 /// [`WriteExt`]: trait.WriteExt.html
 impl<W: Write + ?Sized> WriteExt for W {}
 
+/// Utility used to read a stream of data from a container.
+///
+/// Compared to [`Container::read()`] (which can read a single block), the
+/// `Reader` can read a stream of data which are located in several blocks. The
+/// `Reader` has a queue of blocks ids. You can put an block id on the back of
+/// this queue using the [`push_id()`] method. The `Reader` utility
+/// subsequently takes an block id from the front of the queue. For each id it
+/// reads the content of the block from the container. If no more block ids are
+/// available for reading, the `Reader` reports an _end of file_ event.
+///
+/// Additionally you can configure a maximum number of bytes to read using the
+/// [`set_max_bytes()`] method. If the condition is reached (or you getting out
+/// of block ids - whatever is reached first), the `Reader` stops reading data.
+/// The maximum number of bytes has not to be a multiple of the [block size]!
+/// So you can read a part of a block easly.
+///
+/// The `Reader` implements the [`Read`] trait; it is used to read data from
+/// the container.
+///
+/// [`Container::read()`]: ../container/struct.Container.html#method.read
+/// [`push_id()`]: #method.push_id
+/// [`set_max_bytes()`]: #method.set_max_bytes
+/// [block size]: ../container/struct.Container.html#method.bsize
+/// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+pub struct Reader<'a> {
+    container: &'a mut Container,
+    queue: VecDeque<u64>,
+    cache: SecureVec<u8>,
+    cur_bytes: u64,
+    max_bytes: u64,
+}
+
+impl<'a> Reader<'a> {
+    /// Create a new `Reader` instance.
+    ///
+    /// The given `container` is used as the source.
+    pub fn new(container: &mut Container) -> Reader {
+        Reader {
+            container,
+            queue: VecDeque::new(),
+            cache: secure_vec![],
+            cur_bytes: 0,
+            max_bytes: u64::MAX,
+        }
+    }
+
+    /// Sets the maximum number of bytes to read.
+    ///
+    /// The utility stops reading data, if `max_bytes` bytes are actually read.
+    /// If unset, the `Reader` stops when no more blocks are available.
+    pub fn set_max_bytes(&mut self, max_bytes: u64) {
+        self.max_bytes = max_bytes;
+    }
+
+    /// Queues the given `id`.
+    ///
+    /// Puts the given `id` on the back of a queue. The `Reader` subsequently
+    /// takes an block id from the front of the queue and reads the content of
+    /// the block from the container.
+    ///
+    /// The `Reader` does not check for duplicates. Pushing an `id` more than
+    /// one time on the queue can lead into a situation, where a block is read
+    /// twice (or more)!
+    pub fn push_id(&mut self, id: u64) {
+        self.queue.push_back(id);
+    }
+
+    fn fill_cache(&mut self) -> Result<()> {
+        if self.cache.is_empty() {
+            match self.queue.pop_front() {
+                Some(id) => {
+                    let bsize = self.container.bsize()?;
+
+                    self.cache.resize(bsize as usize, 0);
+                    self.container.read(id, &mut self.cache)?;
+                }
+                None => (),
+            }
+        };
+
+        Ok(())
+    }
+}
+
+impl<'a> Read for Reader<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.fill_cache()?;
+
+        let remaining_bytes = (self.max_bytes - self.cur_bytes) as usize;
+        let nbytes = cmp::min(cmp::min(self.cache.len(), buf.len()), remaining_bytes);
+        let source = &self.cache[..nbytes];
+        let target = &mut buf[..nbytes];
+
+        target.copy_from_slice(source);
+        self.cache.drain(..nbytes);
+        self.cur_bytes += nbytes as u64;
+
+        Ok(nbytes)
+    }
+}
+
 /// Utility used to write a stream of data into a container.
 ///
 /// Compared to [`Container::write()`] (which can update a single block), the
