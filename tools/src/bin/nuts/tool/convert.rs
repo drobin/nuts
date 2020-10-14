@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts::types::{Cipher, Digest, DiskType};
+use nuts::types::{Cipher, Digest, DiskType, WrappingKey};
 use regex::Regex;
 use std::convert::TryFrom;
 
@@ -220,6 +220,16 @@ impl WrappingKeySpec {
             algorithm: algorithm.to_string(),
             iterations: None,
             salt_len: None,
+        }
+    }
+
+    pub fn from_wrapping_key(wrapping_key: &WrappingKey) -> WrappingKeySpec {
+        let WrappingKey::Pbkdf2 { iterations, salt } = wrapping_key;
+
+        WrappingKeySpec {
+            algorithm: "pbkdf2".to_string(),
+            iterations: Some(*iterations),
+            salt_len: Some(salt.len() as u32),
         }
     }
 }

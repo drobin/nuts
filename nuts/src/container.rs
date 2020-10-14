@@ -28,7 +28,7 @@ use std::path::Path;
 use crate::container::inner::Inner;
 use crate::error::Error;
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType, Options};
+use crate::types::{Cipher, Digest, DiskType, Options, WrappingKey};
 
 pub struct Container {
     callback: Option<Box<dyn Fn() -> Result<Vec<u8>>>>,
@@ -312,6 +312,26 @@ impl Container {
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn blocks(&self) -> Result<u64> {
         self.on_open(|inner| Ok(inner.header.blocks))
+    }
+
+    /// Returns the wrapping key algorithm of the container.
+    ///
+    /// If encryption is enabled (the cipher is set to something other than
+    /// [`Cipher::None`]), the wrapping key algorithm is wrapped into a
+    /// [`Some`] value. If the cipher is set to [`Cipher::None`], no wrapping
+    /// key is used and a [`None`] value is returned.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed.
+    ///
+    /// [`Cipher::None`]: ../types/enum.Cipher.html#variant.None
+    /// [`Some`]: https://doc.rust-lang.org/std/option/enum.Option.html#Some.v
+    /// [`None`]: https://doc.rust-lang.org/std/option/enum.Option.html#None.v
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
+    pub fn wrapping_key(&self) -> Result<Option<WrappingKey>> {
+        self.on_open(|inner| Ok(inner.header.wrapping_key.clone()))
     }
 
     /// Returns the number of currently allocated blocks of the container.
