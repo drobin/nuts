@@ -26,7 +26,7 @@ use nuts::container::Container;
 use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
 use crate::tool;
-use crate::tool::convert::{Convert, Size};
+use crate::tool::convert::{Convert, Size, WrappingKeySpec};
 
 pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     tool::logger::update(sub);
@@ -54,22 +54,26 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     }
 
     if let Some(wkey_data) = options.wkey.as_ref() {
-        let WrappingKey::Pbkdf2 {
-            iterations: default_iterations,
-            salt: default_salt,
-        } = wkey_data;
+        if let Some(wkey_spec) = sub.value_of("wrapping-key") {
+            let wkey_spec = WrappingKeySpec::from_str(wkey_spec)?;
 
-        let iterations = match sub.value_of("iterations") {
-            Some(s) => s.parse::<u32>()?,
-            None => *default_iterations,
-        };
+            let WrappingKey::Pbkdf2 {
+                iterations: default_iterations,
+                salt: default_salt,
+            } = wkey_data;
 
-        let salt_len = match sub.value_of("salt-length") {
-            Some(s) => s.parse::<u32>()?,
-            None => default_salt.len() as u32,
-        };
+            let iterations = match wkey_spec.iterations {
+                Some(n) => n,
+                None => *default_iterations,
+            };
 
-        options.wkey = Some(WrappingKey::generate_pbkdf2(iterations, salt_len)?);
+            let salt_len = match wkey_spec.salt_len {
+                Some(n) => n,
+                None => default_salt.len() as u32,
+            };
+
+            options.wkey = Some(WrappingKey::generate_pbkdf2(iterations, salt_len)?);
+        }
     };
 
     let mut container = Container::new();

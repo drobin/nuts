@@ -208,6 +208,78 @@ where
     }
 }
 
+pub struct WrappingKeySpec {
+    pub algorithm: String,
+    pub iterations: Option<u32>,
+    pub salt_len: Option<u32>,
+}
+
+impl WrappingKeySpec {
+    fn new(algorithm: &str) -> WrappingKeySpec {
+        WrappingKeySpec {
+            algorithm: algorithm.to_string(),
+            iterations: None,
+            salt_len: None,
+        }
+    }
+}
+
+fn from_pbkdf2_str(v: &Vec<&str>) -> Result<WrappingKeySpec> {
+    if v.len() == 1 {
+        Ok(WrappingKeySpec::new(v[0]))
+    } else if v.len() == 3 {
+        let mut spec = WrappingKeySpec::new(v[0]);
+
+        if !v[1].is_empty() {
+            spec.iterations = Some(v[1].parse::<u32>()?);
+        }
+
+        if !v[2].is_empty() {
+            spec.salt_len = Some(v[2].parse::<u32>()?);
+        }
+
+        Ok(spec)
+    } else {
+        let msg = "invalid wrapping key specification";
+        Err(Error::new(&msg))
+    }
+}
+
+impl Convert for WrappingKeySpec {
+    fn from_str(s: &str) -> Result<Self> {
+        let v: Vec<&str> = s
+            .split(':')
+            .map(|s| s.trim_matches(char::is_whitespace))
+            .collect();
+
+        if v.is_empty() {
+            let msg = "empty wrapping key specification";
+            return Err(Error::new(&msg));
+        }
+
+        match v[0] {
+            "pbkdf2" => from_pbkdf2_str(&v),
+            _ => {
+                let msg = format!("unknown wrapping key algorithm: {}", v[0]);
+                Err(Error::new(&msg))
+            }
+        }
+    }
+
+    fn to_str(&self) -> String {
+        let iterations = match self.iterations {
+            Some(n) => n.to_string(),
+            None => "".to_string(),
+        };
+        let salt_len = match self.salt_len {
+            Some(n) => n.to_string(),
+            None => "".to_string(),
+        };
+
+        format!("{}:{}:{}", self.algorithm, iterations, salt_len)
+    }
+}
+
 impl Convert for u32 {
     fn from_str(s: &str) -> Result<Self> {
         let num: u64 = Convert::from_str(s)?;

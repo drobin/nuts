@@ -31,7 +31,7 @@ use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
 use crate::tool::actions::general_args;
 use crate::tool::contrib::clap::is_valid;
-use crate::tool::convert::{Convert, Size};
+use crate::tool::convert::{Convert, Size, WrappingKeySpec};
 use crate::tool::format::Format;
 use crate::tool::id::IdRange;
 use crate::tool::result::{Error, Result};
@@ -93,39 +93,31 @@ fn run_tool() -> Result<()> {
         format_list.join(", "),
         Format::Raw.to_str()
     );
-    let iterations_help = {
-        let iterations = match options.wkey {
-            Some(WrappingKey::Pbkdf2 {
-                iterations,
-                salt: _,
-            }) => iterations,
-            None => 0,
-        };
-        format!(
-            "Sets the number of iterations of the PBKDF2 algorithm to N. Default is {}.",
-            iterations
-        )
-    };
     let max_bytes_read_help = "Reads up to SIZE bytes. Default is unlimited.";
     let max_bytes_write_help = "Writes up to SIZE bytes. Default is unlimited.";
     let overwrite_help = "If set, overwrites an existing container.";
     let path_help = "The path to the container.";
     let range_read_help = "Range of block ids to read.";
     let range_write_help = "Range of block ids to write.";
-    let salt_length_help = {
-        let salt_len = match options.wkey {
-            Some(WrappingKey::Pbkdf2 {
-                iterations: _,
-                salt,
-            }) => salt.len(),
-            None => 0,
-        };
-        format!(
-            "Sets the length of the salt used by the PBKDF2 algorithm to N. Default is {}.",
-            salt_len
-        )
-    };
     let userdata_help = "If set, dumps the userdata stored in the header.";
+    let wrapping_key_help = {
+        let (iterations, salt_len) = match options.wkey.as_ref() {
+            Some(WrappingKey::Pbkdf2 {
+                iterations,
+                ref salt,
+            }) => (*iterations, salt.len()),
+            None => (0, 0),
+        };
+        format!("Specifies the wrapping key algorithm. The default is pbkdf2.\n\n\
+            There are two ways to specify the wrapping key algorithm. The short form only specifies the algorithm \
+            name. The long form can customize the algorithm; it starts with the algorithm name followed by sections \
+            separated by a colon. A section can empty. In this case a default value is taken. The number of sections \
+            and its meaning depends on the algorithm.\n\n\
+            Algorithm: PBKDF2\n\
+            Value: pbkdf2[:[<ITERATIONS>]:[<SALT_LENGTH>]] (Selects PBKDF2 with the given number of iterations \
+            (default: {pbkdf2_iterations}) and salt length (default: {pbkdf2_salt_len}).",
+            pbkdf2_iterations = iterations, pbkdf2_salt_len = salt_len)
+    };
 
     let matches = App::new(crate_name!())
         .version(crate_version!())
@@ -197,20 +189,12 @@ fn run_tool() -> Result<()> {
                         .help(&disk_type_help),
                 )
                 .arg(
-                    Arg::with_name("iterations")
-                        .short("i")
-                        .long("iterations")
-                        .value_name("N")
-                        .validator(is_valid::<u32>)
-                        .help(&iterations_help),
-                )
-                .arg(
-                    Arg::with_name("salt-length")
-                        .short("s")
-                        .long("salt-length")
-                        .value_name("N")
-                        .validator(is_valid::<u32>)
-                        .help(&salt_length_help),
+                    Arg::with_name("wrapping-key")
+                        .short("w")
+                        .long("wrapping-key")
+                        .value_name("SPEC")
+                        .validator(is_valid::<WrappingKeySpec>)
+                        .help(&wrapping_key_help),
                 )
                 .arg(
                     Arg::with_name("overwrite")
