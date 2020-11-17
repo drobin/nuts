@@ -32,10 +32,11 @@ const NONE: Option<&fn() -> Result<Vec<u8>>> = None;
 fn setup(dtype: DiskType, bsize: u32) -> (TempDir, PathBuf, Options) {
     let tmp_dir = TempDir::new().unwrap();
     let path: PathBuf = [tmp_dir.path(), Path::new("container")].iter().collect();
-
     let mut options = Options::default_with_cipher(Cipher::None).unwrap();
-    options.update_sizes(bsize, 3).unwrap();
-    options.dtype = dtype;
+
+    options.set_dtype(dtype);
+    options.set_bsize(bsize).unwrap();
+    options.set_blocks(3).unwrap();
 
     (tmp_dir, path, options)
 }

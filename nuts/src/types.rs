@@ -27,7 +27,7 @@ use ::openssl::symm::{Crypter, Mode};
 use log::error;
 use openssl::pkcs5;
 use openssl::{hash, symm};
-use std::fmt;
+use std::{cmp, fmt};
 
 use crate::error::Error;
 use crate::rand::random;
@@ -345,33 +345,31 @@ pub enum DiskType {
 /// The minimum size of a block.
 pub const BLOCK_MIN_SIZE: u32 = 512;
 
+const DEFAULT_CIPHER: Cipher = Cipher::Aes128Ctr;
+const DEFAULT_DTYPE: DiskType = DiskType::FatRandom;
+const DEFAULT_DIGEST: Digest = Digest::Sha1;
+const DEFAULT_PBKDF2_ITERATIONS: u32 = 65536;
+const DEFAULT_PBKDF2_SALT_LEN: u32 = 16;
+const DEFAULT_BSIZE: u32 = BLOCK_MIN_SIZE;
+const DEFAULT_BLOCKS: u64 = (1024 * 1024 / DEFAULT_BSIZE) as u64; // container of 1MB
+
 /// Options to customize the creation of a container.
 ///
 /// Use [`default()`] to create a set of default parameters. The
-/// [`default_with_sizes()`] functions creates a set to default parameters with
-/// some custom sizes.
+/// [`default_with_cipher()`] function creates a set to default parameters for
+/// the given [`Cipher`].
 ///
 /// [`default()`]: #method.default
-/// [`default_with_sizes()`]: #method.default_with_sizes
+/// [`default_with_cipher()`]: #method.default_with_cipher
+/// [`Cipher`]: enum.Cipher.html
 #[derive(Debug)]
 pub struct Options {
-    /// The disk type.
-    pub dtype: DiskType,
-
-    /// The wrapping key algorithm.
-    pub wkey: Option<WrappingKey>,
-
-    /// Cipher used by the container.
-    pub cipher: Cipher,
-
-    /// Message digest used by the container.
-    pub md: Option<Digest>,
-
-    /// The size of a single block.
-    bsize: u32,
-
-    /// Number of blocks.
-    blocks: u64,
+    pub(crate) dtype: DiskType,
+    pub(crate) wkey: Option<WrappingKey>,
+    pub(crate) cipher: Cipher,
+    pub(crate) md: Option<Digest>,
+    pub(crate) bsize: u32,
+    pub(crate) blocks: u64,
 }
 
 impl Options {
@@ -384,18 +382,18 @@ impl Options {
     ///
     /// let options = Options::default().unwrap();
     ///
-    /// let WrappingKey::Pbkdf2 { iterations, salt } = options.wkey.as_ref().unwrap();
+    /// let WrappingKey::Pbkdf2 { iterations, salt } = options.wkey().unwrap();
     /// assert_eq!(*iterations, 65536);
     /// assert_eq!(salt.len(), 16); // salt is filled with random data
     ///
-    /// assert_eq!(options.dtype, DiskType::FatRandom);
-    /// assert_eq!(options.cipher, Cipher::Aes128Ctr);
-    /// assert_eq!(options.md, Some(Digest::Sha1));
+    /// assert_eq!(options.dtype(), DiskType::FatRandom);
+    /// assert_eq!(options.cipher(), Cipher::Aes128Ctr);
+    /// assert_eq!(options.digest(), Some(Digest::Sha1));
     /// assert_eq!(options.bsize(), 512);
     /// assert_eq!(options.blocks(), 2048);
     /// ```
     pub fn default() -> Result<Options> {
-        Options::default_with_cipher(Cipher::Aes128Ctr)
+        Options::default_with_cipher(DEFAULT_CIPHER)
     }
 
     /// Creates a set of defaults with the given `cipher`.
@@ -410,8 +408,12 @@ impl Options {
     ///
     /// let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
     ///
-    /// assert_eq!(options.cipher, Cipher::Aes128Ctr);
-    /// assert_eq!(options.md, Some(Digest::Sha1));
+    /// let WrappingKey::Pbkdf2 { iterations, salt } = options.wkey().unwrap();
+    /// assert_eq!(*iterations, 65536);
+    /// assert_eq!(salt.len(), 16); // salt is filled with random data
+    ///
+    /// assert_eq!(options.cipher(), Cipher::Aes128Ctr);
+    /// assert_eq!(options.digest(), Some(Digest::Sha1));
     /// assert_eq!(options.bsize(), 512);
     /// assert_eq!(options.blocks(), 2048);
     /// ```
@@ -421,10 +423,10 @@ impl Options {
     ///
     /// let options = Options::default_with_cipher(Cipher::None).unwrap();
     ///
-    /// assert_eq!(options.dtype, DiskType::FatRandom);
-    /// assert_eq!(options.wkey, None);
-    /// assert_eq!(options.cipher, Cipher::None);
-    /// assert_eq!(options.md, None);
+    /// assert_eq!(options.dtype(), DiskType::FatRandom);
+    /// assert_eq!(options.wkey(), None);
+    /// assert_eq!(options.cipher(), Cipher::None);
+    /// assert_eq!(options.digest(), None);
     /// assert_eq!(options.bsize(), 512);
     /// assert_eq!(options.blocks(), 2048);
     /// ```
@@ -433,19 +435,22 @@ impl Options {
     /// [`Option::None`]: https://doc.rust-lang.org/std/option/enum.Option.html#variant.None
     pub fn default_with_cipher(cipher: Cipher) -> Result<Options> {
         let options = Options {
-            dtype: DiskType::FatRandom,
+            dtype: DEFAULT_DTYPE,
             cipher: Cipher::None,
             md: None,
             wkey: None,
-            bsize: BLOCK_MIN_SIZE,
-            blocks: (1024 * 1024 / BLOCK_MIN_SIZE) as u64, // container of 1MB
+            bsize: DEFAULT_BSIZE,
+            blocks: DEFAULT_BLOCKS,
         };
 
         if cipher != Cipher::None {
             Ok(Options {
                 cipher: cipher,
-                md: Some(Digest::Sha1),
-                wkey: Some(WrappingKey::generate_pbkdf2(65536, 16)?),
+                md: Some(DEFAULT_DIGEST),
+                wkey: Some(WrappingKey::generate_pbkdf2(
+                    DEFAULT_PBKDF2_ITERATIONS,
+                    DEFAULT_PBKDF2_SALT_LEN,
+                )?),
                 ..options
             })
         } else {
@@ -453,36 +458,86 @@ impl Options {
         }
     }
 
-    /// Creates a set of defaults with some custom sizes.
+    /// Returns the [`DiskType`] assigned to this `Options` instance.
     ///
-    /// # Errors
+    /// [`DiskType`]: enum.DiskType.html
+    pub fn dtype(&self) -> DiskType {
+        self.dtype
+    }
+
+    /// Assigns a new [`DiskType`] to this `Options` instance.
     ///
-    /// This function will return an [`Error::InvalArg`] error if `bsize` or
-    /// `blocks` are invalid.
+    /// [`DiskType`]: enum.DiskType.html
+    pub fn set_dtype(&mut self, dtype: DiskType) {
+        self.dtype = dtype;
+    }
+
+    /// Returns the [`WrappingKey`] assigned to this `Options` instance.
     ///
-    /// [`Error::InvalArg`]: ../error/enum.Error.html#variant.InvalArg
+    /// If encryption is enabled (the [cipher] is set to something other than
+    /// [`Cipher::None`]), the wrapping key is wrapped into a [`Some`] value.
+    /// If the [cipher] is set to [`Cipher::None`], no wrapping key is used and
+    /// a [`None`] value is returned.
     ///
-    /// # Examples
+    /// [`WrappingKey`]: enum.WrappingKey.html
+    /// [`Cipher::None`]: ../types/enum.Cipher.html#variant.None
+    /// [`Some`]: https://doc.rust-lang.org/std/option/enum.Option.html#Some.v
+    /// [`None`]: https://doc.rust-lang.org/std/option/enum.Option.html#None.v
+    /// [cipher]: #method.cipher
+    pub fn wkey(&self) -> Option<&WrappingKey> {
+        self.wkey.as_ref()
+    }
+
+    /// Assigns a new [`WrappingKey`] to this `Options` instance.
     ///
-    /// ```rust
-    /// use nuts::types::*;
+    /// A wrapping key cannot be assigned, if encryption is disabled (the
+    /// [cipher] is set to [`Cipher::None`]). In this case the method makes
+    /// nothing.
     ///
-    /// let options = Options::default_with_sizes(1024, 2).unwrap();
+    /// [`WrappingKey`]: enum.WrappingKey.html
+    /// [`Cipher::None`]: ../types/enum.Cipher.html#variant.None
+    /// [cipher]: #method.cipher
+    pub fn set_wkey(&mut self, wkey: WrappingKey) {
+        if self.cipher != Cipher::None {
+            self.wkey = Some(wkey);
+        }
+    }
+
+    /// Returns the [`Cipher`] assigned to this `Options` instance.
     ///
-    /// let WrappingKey::Pbkdf2 { iterations, salt } = options.wkey.as_ref().unwrap();
-    /// assert_eq!(*iterations, 65536);
-    /// assert_eq!(salt.len(), 16); // salt is filled with random data
+    /// [`Cipher`]: ../types/enum.Cipher.html
+    pub fn cipher(&self) -> Cipher {
+        self.cipher
+    }
+
+    /// Returns the [`Digest`] assigned to this `Options` instance.
     ///
-    /// assert_eq!(options.dtype, DiskType::FatRandom);
-    /// assert_eq!(options.cipher, Cipher::Aes128Ctr);
-    /// assert_eq!(options.md, Some(Digest::Sha1));
-    /// assert_eq!(options.bsize(), 1024);
-    /// assert_eq!(options.blocks(), 2);
-    /// ```
-    pub fn default_with_sizes(bsize: u32, blocks: u64) -> Result<Options> {
-        let mut options = Options::default()?;
-        options.update_sizes(bsize, blocks)?;
-        Ok(options)
+    /// If encryption is enabled (the [cipher] is set to something other than
+    /// [`Cipher::None`]), the digest is wrapped into a [`Some`] value. If the
+    /// [cipher] is set to [`Cipher::None`], no digest is used and a [`None`]
+    /// value is returned.
+    ///
+    /// [`Digest`]: ../types/enum.Digest.html
+    /// [`Cipher::None`]: ../types/enum.Cipher.html#variant.None
+    /// [`Some`]: https://doc.rust-lang.org/std/option/enum.Option.html#Some.v
+    /// [`None`]: https://doc.rust-lang.org/std/option/enum.Option.html#None.v
+    /// [cipher]: #method.cipher
+    pub fn digest(&self) -> Option<Digest> {
+        self.md
+    }
+
+    /// Assigns a new [`Digest`] to this `Options` instance.
+    ///
+    /// A digest cannot be assigned, if encryption is disabled (the [cipher] is
+    /// set to [`Cipher::None`]). In this case the method makes nothing.
+    ///
+    /// [`Digest`]: enum.Digest.html
+    /// [`Cipher::None`]: ../types/enum.Cipher.html#variant.None
+    /// [cipher]: #method.cipher
+    pub fn set_digest(&mut self, digest: Digest) {
+        if self.cipher != Cipher::None {
+            self.md = Some(digest);
+        }
     }
 
     /// Returns the block size.
@@ -490,27 +545,15 @@ impl Options {
         self.bsize
     }
 
-    /// Returns the number of blocks.
-    pub fn blocks(&self) -> u64 {
-        self.blocks
-    }
-
-    /// Updates both size attributes of the options.
+    /// Assigns a new block-size to this `Options` instance.
     ///
-    /// The `bsize` argument is the block size and must be a multiple of
-    /// [`BLOCK_MIN_SIZE`] bytes. You cannot have a block size less that
-    /// [`BLOCK_MIN_SIZE`] bytes!
-    ///
-    /// The `blocks` argument specifies the number of blocks, which should be
-    /// allocated for the container. It must be a number greater than `0`.
+    /// The block size must be a multiple of [`BLOCK_MIN_SIZE`] bytes. You
+    /// cannot have a block size less that [`BLOCK_MIN_SIZE`] bytes!
     ///
     /// # Errors
     ///
-    /// This function will return an [`Error::InvalArg`] error if `bsize` or
-    /// `blocks` are invalid.
-    ///
-    /// [`Error::InvalArg`]: ../error/enum.Error.html#variant.InvalArg
-    /// [`BLOCK_MIN_SIZE`]: constant.BLOCK_MIN_SIZE.html
+    /// This function will return an [`Error::InvalArg`] error if the block
+    /// size is invalid.
     ///
     /// # Examples
     ///
@@ -519,11 +562,15 @@ impl Options {
     ///
     /// let mut options = Options::default().unwrap();
     ///
-    /// assert!(options.update_sizes(1024, 2).is_ok());
+    /// assert!(options.set_bsize(1).is_err());
+    /// assert!(options.set_bsize(513).is_err());
+    /// assert!(options.set_bsize(1024).is_ok());
     /// assert_eq!(options.bsize(), 1024);
-    /// assert_eq!(options.blocks(), 2);
     /// ```
-    pub fn update_sizes(&mut self, bsize: u32, blocks: u64) -> Result<()> {
+    ///
+    /// [`Error::InvalArg`]: ../error/enum.Error.html#variant.InvalArg
+    /// [`BLOCK_MIN_SIZE`]: constant.BLOCK_MIN_SIZE.html
+    pub fn set_bsize(&mut self, bsize: u32) -> Result<()> {
         if bsize < BLOCK_MIN_SIZE {
             let message = format!(
                 "Invalid block size, got {} but must be at least {}.",
@@ -540,14 +587,83 @@ impl Options {
             return Err(Error::InvalArg(message));
         }
 
+        self.bsize = bsize;
+
+        Ok(())
+    }
+
+    /// Returns the number of blocks.
+    pub fn blocks(&self) -> u64 {
+        self.blocks
+    }
+
+    /// Assigns a new number of blocks to this `Options` instance.
+    ///
+    /// This is the number of blocks, which should be allocated for the
+    /// container. It must be a greater than `0`.
+    ///
+    /// The product of the [block size] and the [number of blocks] specifies
+    /// the size of the container.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an [`Error::InvalArg`] error if `0` is passed
+    /// to `blocks`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use nuts::types::Options;
+    ///
+    /// let mut options = Options::default().unwrap();
+    ///
+    /// assert!(options.set_blocks(0).is_err());
+    /// assert!(options.set_blocks(16).is_ok());
+    /// assert_eq!(options.blocks(), 16);
+    /// ```
+    ///
+    /// [block size]: #method.bsize
+    /// [number of blocks]: #method.blocks
+    /// [`Error::InvalArg`]: ../error/enum.Error.html#variant.InvalArg
+    pub fn set_blocks(&mut self, blocks: u64) -> Result<()> {
         if blocks == 0 {
             let message = format!("Invalid number of blocks, got {}, expected > 0.", blocks);
             return Err(Error::InvalArg(message));
         }
 
-        self.bsize = bsize;
         self.blocks = blocks;
 
         Ok(())
+    }
+
+    /// Convenient method to set the number of blocks by specifying the
+    /// container size.
+    ///
+    /// The method calculates the number of blocks based on the current
+    /// [block size] and the given `size` argument. If `size` is not a multiple
+    /// of the [block size], then the size is rounded down to the nearest
+    /// multiple. If `size` is less than the [block size], then one block is
+    /// created.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use nuts::types::Options;
+    ///
+    /// let mut options = Options::default().unwrap();
+    ///
+    /// options.set_size(511);
+    /// assert_eq!(options.blocks(), 1);
+    ///
+    /// options.set_size(1024);
+    /// assert_eq!(options.blocks(), 2);
+    ///
+    /// options.set_size(1025);
+    /// assert_eq!(options.blocks(), 2);
+    /// ```
+    ///
+    /// [block size]: #method.bsize
+    pub fn set_size(&mut self, size: u64) {
+        let blocks = cmp::max(size / self.bsize as u64, 1);
+        self.set_blocks(blocks).unwrap() // panic: ok here
     }
 }

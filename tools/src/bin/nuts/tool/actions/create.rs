@@ -38,22 +38,20 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     };
 
     let path = sub.value_of("PATH").unwrap();
-    let size = Size::<u64>::from_str(sub.value_of("SIZE").unwrap())?.nbytes;
     let mut options = Options::default_with_cipher(cipher)?;
 
-    let bsize = match sub.value_of("block-size") {
-        Some(bsize) => Size::<u32>::from_str(bsize)?.nbytes,
-        None => options.bsize(),
-    };
-    let blocks = size / bsize as u64;
-
-    options.update_sizes(bsize, blocks)?;
-
-    if let Some(dtype) = sub.value_of("disk-type") {
-        options.dtype = DiskType::from_str(dtype)?;
+    if let Some(bsize) = sub.value_of("block-size") {
+        options.set_bsize(Size::<u32>::from_str(bsize)?.nbytes)?;
     }
 
-    if let Some(wkey_data) = options.wkey.as_ref() {
+    let size = Size::<u64>::from_str(sub.value_of("SIZE").unwrap())?.nbytes;
+    options.set_size(size);
+
+    if let Some(dtype) = sub.value_of("disk-type") {
+        options.set_dtype(DiskType::from_str(dtype)?);
+    }
+
+    if let Some(wkey_data) = options.wkey() {
         if let Some(wkey_spec) = sub.value_of("wrapping-key") {
             let wkey_spec = WrappingKeySpec::from_str(wkey_spec)?;
 
@@ -72,7 +70,8 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
                 None => default_salt.len() as u32,
             };
 
-            options.wkey = Some(WrappingKey::generate_pbkdf2(iterations, salt_len)?);
+            let wkey = WrappingKey::generate_pbkdf2(iterations, salt_len)?;
+            options.set_wkey(wkey);
         }
     };
 

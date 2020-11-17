@@ -33,10 +33,11 @@ use crate::types::{Cipher, DiskType, Options, BLOCK_MIN_SIZE};
 fn setup() -> (TempDir, Container) {
     let tmp_dir = TempDir::new().unwrap();
     let path: PathBuf = [tmp_dir.path(), Path::new("container")].iter().collect();
-
     let mut options = Options::default_with_cipher(Cipher::None).unwrap();
-    options.dtype = DiskType::FatZero;
-    options.update_sizes(BLOCK_MIN_SIZE, 4).unwrap();
+
+    options.set_dtype(DiskType::FatZero);
+    options.set_bsize(BLOCK_MIN_SIZE).unwrap();
+    options.set_blocks(4).unwrap();
 
     let mut container = Container::new();
     container.create(path, &options).unwrap();

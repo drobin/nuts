@@ -76,12 +76,12 @@ fn run_tool() -> Result<()> {
     let cipher_help = format!(
         "Set the cipher to CIPHER. Can be one of: {}. Default is {}.",
         cipher_list.join(", "),
-        options.cipher.to_str()
+        options.cipher().to_str()
     );
     let disk_type_help = format!(
         "Set the disk-type to DISK. Can be one of: {}. Default is {}.",
         dtype_list.join(", "),
-        options.dtype.to_str()
+        options.dtype().to_str()
     );
     let format_info_help = format!(
         "Specifies the format of the userdata dump. Can be one of {}. Default is {}.",
@@ -101,7 +101,7 @@ fn run_tool() -> Result<()> {
     let range_write_help = "Range of block ids to write.";
     let userdata_help = "If set, dumps the userdata stored in the header.";
     let wrapping_key_help = {
-        let (iterations, salt_len) = match options.wkey.as_ref() {
+        let (iterations, salt_len) = match options.wkey() {
             Some(WrappingKey::Pbkdf2 {
                 iterations,
                 ref salt,

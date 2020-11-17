@@ -92,8 +92,10 @@ fn setup(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> (TempDir, Pa
 
     {
         let mut options = Options::default_with_cipher(Cipher::None).unwrap();
-        options.dtype = dtype;
-        options.update_sizes(bsize, blocks).unwrap();
+
+        options.set_dtype(dtype);
+        options.set_bsize(bsize).unwrap();
+        options.set_blocks(blocks).unwrap();
 
         let mut inner = Inner::create(&path, &options, NONE).unwrap();
         let nbytes = (bsize as u64 * (ablocks - 1)) as usize;
