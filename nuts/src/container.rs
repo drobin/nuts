@@ -173,6 +173,16 @@ impl Container {
         }
     }
 
+    /// Tests whether the container is open.
+    ///
+    /// The container is open, if [`create()`] or [`open()`] was called successfully.
+    ///
+    /// [`create()`]: #method.create
+    /// [`open()`]: #method.open
+    pub fn is_open(&self) -> bool {
+        self.on_open(|_| Ok(true)).is_ok()
+    }
+
     /// Reads a block from the container.
     ///
     /// Reads the block with the given `id` and places the decrypted data in
