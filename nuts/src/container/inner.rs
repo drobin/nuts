@@ -32,7 +32,7 @@ use crate::error::Error;
 use crate::header::Header;
 use crate::rand::random;
 use crate::result::Result;
-use crate::types::{DiskType, Options, BLOCK_MIN_SIZE};
+use crate::types::{Cipher, DiskType, Options, BLOCK_MIN_SIZE};
 
 pub struct Inner {
     pub header: Header,
@@ -123,28 +123,57 @@ impl Inner {
         let buf = buf.get_mut(0..len).unwrap();
 
         if id < self.ablocks {
-            // Read an allocated block.
-            // Seek to the related position and read the buffer.
-
-            self.seek_block(id)?;
-            self.fh.read_exact(buf)?;
+            self.read_allocated(buf, id)
         } else {
-            // Read an existing but unallocated block.
-            // Fill the target buffer with data which fits to the dtype.
+            self.read_unallocated(buf)
+        }
+    }
 
-            match self.header.dtype {
-                DiskType::FatZero | DiskType::ThinZero => {
-                    for e in buf.iter_mut() {
-                        *e = 0;
-                    }
+    fn read_allocated(&mut self, buf: &mut [u8], id: u64) -> Result<u32> {
+        // Read an allocated block.
+        // Seek to the related position and read the buffer.
+        // buf is already clipped at the block-size.
+
+        self.seek_block(id)?;
+
+        if id > 0 {
+            let mut cipher_block = vec![0; self.header.bsize as usize];
+            let mut plain_block = vec![0; self.header.bsize as usize];
+
+            self.fh.read_exact(&mut cipher_block)?;
+
+            self.header.cipher.decrypt(
+                &cipher_block,
+                &mut plain_block,
+                &self.header.master_key,
+                &self.header.master_iv,
+            )?;
+
+            buf.copy_from_slice(&plain_block.get(..buf.len()).unwrap());
+        } else {
+            self.fh.read_exact(buf)?;
+        }
+
+        Ok(buf.len() as u32)
+    }
+
+    fn read_unallocated(&mut self, buf: &mut [u8]) -> Result<u32> {
+        // Read an existing but unallocated block.
+        // Fill the target buffer with data which fits to the dtype.
+        // buf is already clipped at the block-size.
+
+        match self.header.dtype {
+            DiskType::FatZero | DiskType::ThinZero => {
+                for e in buf.iter_mut() {
+                    *e = 0;
                 }
-                DiskType::FatRandom | DiskType::ThinRandom => {
-                    random(buf)?;
-                }
+            }
+            DiskType::FatRandom | DiskType::ThinRandom => {
+                random(buf)?;
             }
         }
 
-        Ok(len as u32)
+        Ok(buf.len() as u32)
     }
 
     pub fn write_block(&mut self, buf: &[u8], id: u64) -> Result<u32> {
@@ -175,10 +204,26 @@ impl Inner {
             }
         };
 
-        let block = [buf, &pad[..]].concat();
+        // Choose the configured cipher,
+        // block 0 (header-block) is not encrypted.
+        let cipher = if id > 0 {
+            self.header.cipher
+        } else {
+            Cipher::None
+        };
+
+        let plain_block = [buf, &pad[..]].concat();
+        let mut cipher_block = vec![0; plain_block.len()];
+
+        cipher.encrypt(
+            &plain_block,
+            &mut cipher_block,
+            &self.header.master_key,
+            &self.header.master_iv,
+        )?;
 
         self.seek_block(id)?;
-        self.fh.write_all(&block)?;
+        self.fh.write_all(&cipher_block)?;
 
         debug!("block {} written, len = {}, pad = {}", id, len, pad.len());
 

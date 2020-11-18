@@ -78,7 +78,12 @@ impl Header {
         let hmac_size = options.md.map_or_else(|| 0, |d| d.size()) as usize;
 
         let mut wrapping_iv = vec![0; iv_size];
+        let mut master_key = secure_vec![0; key_size];
+        let mut master_iv = secure_vec![0; iv_size];
+
         random(&mut wrapping_iv)?;
+        random(&mut master_key)?;
+        random(&mut master_iv)?;
 
         Ok(Header {
             revision: 1,
@@ -89,8 +94,8 @@ impl Header {
             dtype: options.dtype,
             bsize: options.bsize(),
             blocks: options.blocks(),
-            master_key: secure_vec![0; key_size],
-            master_iv: secure_vec![0; iv_size],
+            master_key,
+            master_iv,
             hmac_key: secure_vec![0; hmac_size],
             userdata: vec![],
         })
