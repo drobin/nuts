@@ -25,7 +25,6 @@ extern crate lazy_static;
 
 mod tool;
 
-use clap::{crate_name, crate_version};
 use clap::{App, AppSettings, Arg, SubCommand};
 use nuts::types::{Cipher, DiskType, Options, WrappingKey};
 
@@ -119,13 +118,13 @@ fn run_tool() -> Result<()> {
             pbkdf2_iterations = iterations, pbkdf2_salt_len = salt_len)
     };
 
-    let matches = App::new(crate_name!())
-        .version(crate_version!())
+    let matches = App::new("nuts")
+        .version(nuts::version().as_str())
         .setting(AppSettings::ArgRequiredElseHelp)
         .subcommand(
             SubCommand::with_name("info")
                 .about("Shows information about a nuts-volume.")
-                .version(crate_version!())
+                .version(nuts::version().as_str())
                 .arg(
                     Arg::with_name("PATH")
                         .required(true)
@@ -150,7 +149,7 @@ fn run_tool() -> Result<()> {
         .subcommand(
             SubCommand::with_name("create")
                 .about("Creates a nuts-volume.")
-                .version(crate_version!())
+                .version(nuts::version().as_str())
                 .arg(
                     Arg::with_name("PATH")
                         .required(true)
@@ -205,7 +204,7 @@ fn run_tool() -> Result<()> {
         .subcommand(
             SubCommand::with_name("read")
                 .about("Reads data from a nuts-volume.")
-                .version(crate_version!())
+                .version(nuts::version().as_str())
                 .arg(
                     Arg::with_name("PATH")
                         .required(true)
@@ -240,7 +239,7 @@ fn run_tool() -> Result<()> {
         .subcommand(
             SubCommand::with_name("write")
                 .about("Writes data info a nuts-volume.")
-                .version(crate_version!())
+                .version(nuts::version().as_str())
                 .arg(
                     Arg::with_name("PATH")
                         .required(true)
