@@ -142,6 +142,7 @@ pub mod container;
 pub mod error;
 pub(crate) mod header;
 pub mod io;
+pub(crate) mod password;
 pub(crate) mod rand;
 pub mod result;
 pub mod types;

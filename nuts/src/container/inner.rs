@@ -30,6 +30,7 @@ use std::path::Path;
 
 use crate::error::Error;
 use crate::header::Header;
+use crate::password::PasswordStore;
 use crate::rand::random;
 use crate::result::Result;
 use crate::types::{Cipher, DiskType, Options, BLOCK_MIN_SIZE};
@@ -44,7 +45,7 @@ impl Inner {
     pub fn create(
         path: &dyn AsRef<Path>,
         options: &Options,
-        callback: Option<&impl Fn() -> Result<Vec<u8>>>,
+        store: &mut PasswordStore,
     ) -> Result<Inner> {
         let header = Header::create(options)?;
 
@@ -58,7 +59,7 @@ impl Inner {
             .open(path)?;
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
-        let offset = header.write(&mut buf, callback)?;
+        let offset = header.write(&mut buf, store)?;
         let end = offset as usize;
 
         let mut inner = Inner {
@@ -72,10 +73,7 @@ impl Inner {
         Ok(inner)
     }
 
-    pub fn open(
-        path: &dyn AsRef<Path>,
-        callback: Option<&impl Fn() -> Result<Vec<u8>>>,
-    ) -> Result<Inner> {
+    pub fn open(path: &dyn AsRef<Path>, store: &mut PasswordStore) -> Result<Inner> {
         let mut fh = OpenOptions::new()
             .read(true)
             .write(true)
@@ -87,7 +85,7 @@ impl Inner {
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
         fh.read_exact(&mut buf)?;
 
-        let header = Header::read(&buf, callback).map(|(header, _)| header)?;
+        let header = Header::read(&buf, store).map(|(header, _)| header)?;
         debug!("header: {:?}", header);
 
         let pos = fh.seek(SeekFrom::End(0))?;

@@ -29,12 +29,8 @@ use crate::error::{Error, InvalHeaderKind};
 use crate::header::ser::HeaderWriter;
 use crate::header::Header;
 use crate::io::{WriteBasics, WriteExt};
-use crate::result::Result;
+use crate::password::PasswordStore;
 use crate::types::{Cipher, Digest, DiskType, WrappingKey, BLOCK_MIN_SIZE};
-
-fn callback() -> Result<Vec<u8>> {
-    Ok(vec![b'1', b'2', b'3'])
-}
 
 fn mk_secret(
     dtype: u8,
@@ -141,10 +137,21 @@ fn mk_data(d: &Data) -> Vec<u8> {
     data
 }
 
+fn setup_store(password: bool) -> PasswordStore {
+    let mut store = PasswordStore::new();
+
+    if password {
+        store.set_value(secure_vec![b'1', b'2', b'3']);
+    }
+
+    store
+}
+
 #[test]
 fn ok() {
     let data = mk_data(&ok_data());
-    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
+    let mut store = setup_store(true);
+    let (header, nbytes) = Header::read(&data, &mut store).unwrap();
 
     assert_eq!(nbytes, 155);
     assert_eq!(header.revision, 1);
@@ -173,19 +180,17 @@ fn ok() {
 #[test]
 fn missing_callback() {
     let data = mk_data(&ok_data());
-    let none: Option<fn() -> Result<Vec<u8>>> = None;
+    let mut store = setup_store(false);
 
-    assert_error!(Error::NoPassword, Header::read(&data, none));
+    assert_error!(Error::NoPassword, Header::read(&data, &mut store));
 }
 
 #[test]
 fn incomplete() {
     for i in 1..155 {
         let data = &mk_data(&ok_data())[..i];
-        assert_io_error!(
-            ErrorKind::UnexpectedEof,
-            Header::read(&data, Some(callback))
-        );
+        let mut store = setup_store(true);
+        assert_io_error!(ErrorKind::UnexpectedEof, Header::read(&data, &mut store));
     }
 }
 
@@ -195,11 +200,9 @@ fn bad_magic() {
         magic: vec![b'X', b'u', b't', b's', b'-', b'i', b'o'],
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalMagic,
-        Header::read(&data, Some(callback))
-    );
+    assert_inval_header!(InvalHeaderKind::InvalMagic, Header::read(&data, &mut store));
 }
 
 #[test]
@@ -208,10 +211,11 @@ fn bad_revision() {
         revision: 0,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
     assert_inval_header!(
         InvalHeaderKind::InvalRevision,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -221,10 +225,11 @@ fn bad_cipher() {
         cipher: 99,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
     assert_inval_header!(
         InvalHeaderKind::InvalCipher,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -234,10 +239,11 @@ fn bad_digest() {
         digest: 99,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
     assert_inval_header!(
         InvalHeaderKind::InvalDigest,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -247,10 +253,11 @@ fn digest_none() {
         digest: 0xFF,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
     assert_inval_header!(
         InvalHeaderKind::InvalDigest,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -260,10 +267,11 @@ fn bad_wrapping_key_data() {
         wkey_data: vec![9],
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
     assert_inval_header!(
         InvalHeaderKind::InvalWrappingKey,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -273,10 +281,11 @@ fn wrapping_key_data_none() {
         wkey_data: vec![0xFF],
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
     assert_inval_header!(
         InvalHeaderKind::InvalWrappingKey,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -286,11 +295,9 @@ fn wrapping_iv_inval_size() {
         wrapping_iv: vec![0, 0, 0, 15, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalIv,
-        Header::read(&data, Some(callback))
-    );
+    assert_inval_header!(InvalHeaderKind::InvalIv, Header::read(&data, &mut store));
 }
 
 #[test]
@@ -301,11 +308,9 @@ fn bad_hmac() {
         ],
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalHmac,
-        Header::read(&data, Some(callback))
-    );
+    assert_inval_header!(InvalHeaderKind::InvalHmac, Header::read(&data, &mut store));
 }
 
 #[test]
@@ -316,8 +321,9 @@ fn bad_hmac_mismatch() {
         ],
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
-    assert_error!(Error::HmacMismatch, Header::read(&data, Some(callback)));
+    assert_error!(Error::HmacMismatch, Header::read(&data, &mut store));
 }
 
 #[test]
@@ -336,10 +342,11 @@ fn bad_dtype() {
         secret,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
     assert_inval_header!(
         InvalHeaderKind::InvalDiskType,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -359,9 +366,10 @@ fn bsize_lt_512() {
         secret,
         ..ok_data()
     });
+    let mut store = setup_store(true);
     assert_inval_header!(
         InvalHeaderKind::InvalBlockSize,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -381,9 +389,10 @@ fn bsize_inval_modulo() {
         secret,
         ..ok_data()
     });
+    let mut store = setup_store(true);
     assert_inval_header!(
         InvalHeaderKind::InvalBlockSize,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -403,8 +412,9 @@ fn bsize_512() {
         secret,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
-    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
+    let (header, nbytes) = Header::read(&data, &mut store).unwrap();
     assert_eq!(nbytes, 155);
     assert_eq!(header.bsize, 512);
 }
@@ -425,8 +435,9 @@ fn bsize_1024() {
         secret,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
-    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
+    let (header, nbytes) = Header::read(&data, &mut store).unwrap();
     assert_eq!(nbytes, 155);
     assert_eq!(header.bsize, 1024);
 }
@@ -447,9 +458,10 @@ fn blocks_0() {
         secret,
         ..ok_data()
     });
+    let mut store = setup_store(true);
     assert_inval_header!(
         InvalHeaderKind::InvalBlocks,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -469,7 +481,8 @@ fn blocks_1() {
         secret,
         ..ok_data()
     });
-    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
+    let mut store = setup_store(true);
+    let (header, nbytes) = Header::read(&data, &mut store).unwrap();
     assert_eq!(nbytes, 155);
     assert_eq!(header.blocks, 1);
 }
@@ -490,7 +503,8 @@ fn blocks_2() {
         secret,
         ..ok_data()
     });
-    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
+    let mut store = setup_store(true);
+    let (header, nbytes) = Header::read(&data, &mut store).unwrap();
     assert_eq!(nbytes, 155);
     assert_eq!(header.blocks, 2);
 }
@@ -511,10 +525,11 @@ fn master_key_inval_size() {
         secret,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
     assert_inval_header!(
         InvalHeaderKind::InvalMasterKey,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -534,10 +549,11 @@ fn master_iv_inval_size() {
         secret,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
     assert_inval_header!(
         InvalHeaderKind::InvalMasterIv,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -557,10 +573,11 @@ fn hmac_key_inval_size() {
         secret,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
     assert_inval_header!(
         InvalHeaderKind::InvalHmacKey,
-        Header::read(&data, Some(callback))
+        Header::read(&data, &mut store)
     );
 }
 
@@ -580,8 +597,9 @@ fn empty_userdata() {
         secret,
         ..ok_data()
     });
+    let mut store = setup_store(true);
 
-    let (header, nbytes) = Header::read(&data, Some(callback)).unwrap();
+    let (header, nbytes) = Header::read(&data, &mut store).unwrap();
     assert_eq!(nbytes, 155 - 4);
     assert_eq!(header.userdata, []);
 }

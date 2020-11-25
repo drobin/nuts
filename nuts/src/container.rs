@@ -27,11 +27,12 @@ use std::path::Path;
 
 use crate::container::inner::Inner;
 use crate::error::Error;
+use crate::password::PasswordStore;
 use crate::result::Result;
 use crate::types::{Cipher, Digest, DiskType, Options, WrappingKey};
 
 pub struct Container {
-    callback: Option<Box<dyn Fn() -> Result<Vec<u8>>>>,
+    store: PasswordStore,
     inner: Option<Inner>,
 }
 
@@ -46,7 +47,7 @@ impl Container {
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn new() -> Container {
         Container {
-            callback: None,
+            store: PasswordStore::new(),
             inner: None,
         }
     }
@@ -71,7 +72,7 @@ impl Container {
     /// [`Ok`]: https://doc.rust-lang.org/std/result/enum.Result.html#variant.Ok
     /// [`Err`]: https://doc.rust-lang.org/std/result/enum.Result.html#variant.Err
     pub fn set_password_callback(&mut self, callback: impl Fn() -> Result<Vec<u8>> + 'static) {
-        self.callback = Some(Box::new(callback));
+        self.store.set_callback(callback);
     }
 
     /// Creates a new container.
@@ -109,7 +110,7 @@ impl Container {
     /// [`Error::NoPassword`]: ../error/enum.Error.html#variant.NoPassword
     pub fn create(&mut self, path: impl AsRef<Path>, options: &Options) -> Result<()> {
         if self.inner.is_none() {
-            let inner = Inner::create(&path, options, self.callback.as_ref())?;
+            let inner = Inner::create(&path, options, &mut self.store)?;
 
             debug!(
                 "allocating container, dtype = {:?}, bsize = {}, blocks = {}",
@@ -158,7 +159,7 @@ impl Container {
     /// [`Error::NoPassword`]: ../error/enum.Error.html#variant.NoPassword
     pub fn open(&mut self, path: impl AsRef<Path>, userdata: Option<&mut Vec<u8>>) -> Result<()> {
         if self.inner.is_none() {
-            let inner = Inner::open(&path, self.callback.as_ref())?;
+            let inner = Inner::open(&path, &mut self.store)?;
 
             if let Some(userdata) = userdata {
                 userdata.clear();

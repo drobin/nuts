@@ -27,11 +27,9 @@ use tempfile::TempDir;
 
 use crate::container::inner::Inner;
 use crate::error::Error;
+use crate::password::PasswordStore;
 use crate::rand::RND;
-use crate::result::Result;
 use crate::types::{Cipher, DiskType, Options};
-
-const NONE: Option<&fn() -> Result<Vec<u8>>> = None;
 
 const SOURCE: [u8; 1024] = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
@@ -89,6 +87,7 @@ const SOURCE: [u8; 1024] = [
 fn setup(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> (TempDir, PathBuf, Inner) {
     let tmp_dir = TempDir::new().unwrap();
     let path: PathBuf = [tmp_dir.path(), Path::new("container")].iter().collect();
+    let mut store = PasswordStore::new();
 
     {
         let mut options = Options::default_with_cipher(Cipher::None).unwrap();
@@ -97,7 +96,7 @@ fn setup(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> (TempDir, Pa
         options.set_bsize(bsize).unwrap();
         options.set_blocks(blocks).unwrap();
 
-        let mut inner = Inner::create(&path, &options, NONE).unwrap();
+        let mut inner = Inner::create(&path, &options, &mut store).unwrap();
         let nbytes = (bsize as u64 * (ablocks - 1)) as usize;
         let mut buf = vec![0u8; nbytes];
 
@@ -110,15 +109,15 @@ fn setup(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> (TempDir, Pa
         inner.fh.flush().unwrap();
     };
 
-    let inner = Inner::open(&path, NONE).unwrap();
+    let inner = Inner::open(&path, &mut store).unwrap();
 
     (tmp_dir, path, inner)
 }
 
 macro_rules! assert_header {
     ($buf:expr, $rnd:expr) => {
-        let none: Option<&fn() -> Result<Vec<u8>>> = None;
-        let (_, nbytes) = crate::header::Header::read($buf, none).unwrap();
+        let mut store = PasswordStore::new();
+        let (_, nbytes) = crate::header::Header::read($buf, &mut store).unwrap();
         let nbytes = nbytes as usize;
 
         if ($rnd) {

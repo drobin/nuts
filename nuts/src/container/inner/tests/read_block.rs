@@ -27,11 +27,9 @@ use tempfile::TempDir;
 use crate::container::inner::Inner;
 use crate::error::Error;
 use crate::header::Header;
+use crate::password::PasswordStore;
 use crate::rand::RND;
-use crate::result::Result;
 use crate::types::{Cipher, DiskType, Options};
-
-const NONE: Option<&fn() -> Result<Vec<u8>>> = None;
 
 const SOURCE: [u8; 1024] = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
@@ -89,6 +87,7 @@ const SOURCE: [u8; 1024] = [
 fn setup_container(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> Inner {
     let tmp_dir = TempDir::new().unwrap();
     let path: PathBuf = [tmp_dir.path(), Path::new("container")].iter().collect();
+    let mut store = PasswordStore::new();
 
     {
         let mut options = Options::default_with_cipher(Cipher::None).unwrap();
@@ -97,7 +96,7 @@ fn setup_container(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> In
         options.set_bsize(bsize).unwrap();
         options.set_blocks(blocks).unwrap();
 
-        let mut inner = Inner::create(&path, &options, NONE).unwrap();
+        let mut inner = Inner::create(&path, &options, &mut store).unwrap();
         let nbytes = (bsize as u64 * (ablocks - 1)) as usize;
         let mut buf = vec![0u8; nbytes];
 
@@ -110,16 +109,17 @@ fn setup_container(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> In
         inner.fh.flush().unwrap();
     };
 
-    Inner::open(&path, NONE).unwrap()
+    Inner::open(&path, &mut store).unwrap()
 }
 
 #[test]
 fn thin_zero_header_full() {
     let mut inner = setup_container(DiskType::ThinZero, 512, 3, 2);
     let mut target = vec![b'x'; 512];
+    let mut store = PasswordStore::new();
 
     assert_eq!(inner.read_block(&mut target, 0).unwrap(), 512);
-    let (_, nbytes) = Header::read(&target, NONE).unwrap();
+    let (_, nbytes) = Header::read(&target, &mut store).unwrap();
     let nbytes = nbytes as usize;
     assert_eq!(&target[nbytes..], &vec![0u8; 512 - nbytes][..]);
 }
@@ -137,9 +137,10 @@ fn thin_zero_header_part() {
 fn thin_zero_header_bigger() {
     let mut inner = setup_container(DiskType::ThinZero, 512, 3, 2);
     let mut target = vec![b'x'; 513];
+    let mut store = PasswordStore::new();
 
     assert_eq!(inner.read_block(&mut target, 0).unwrap(), 512);
-    let (_, nbytes) = Header::read(&target, NONE).unwrap();
+    let (_, nbytes) = Header::read(&target, &mut store).unwrap();
     let nbytes = nbytes as usize;
     assert_eq!(&target[nbytes..512], &vec![0u8; 512 - nbytes][..]);
     assert_eq!(target[512], b'x');
@@ -218,9 +219,10 @@ fn thin_zero_no_such_block() {
 fn fat_zero_header_full() {
     let mut inner = setup_container(DiskType::FatZero, 512, 2, 2);
     let mut target = vec![b'x'; 512];
+    let mut store = PasswordStore::new();
 
     assert_eq!(inner.read_block(&mut target, 0).unwrap(), 512);
-    let (_, nbytes) = Header::read(&target, NONE).unwrap();
+    let (_, nbytes) = Header::read(&target, &mut store).unwrap();
     let nbytes = nbytes as usize;
     assert_eq!(&target[nbytes..], &vec![0u8; 512 - nbytes][..]);
 }
@@ -238,9 +240,10 @@ fn fat_zero_header_part() {
 fn fat_zero_header_bigger() {
     let mut inner = setup_container(DiskType::FatZero, 512, 2, 2);
     let mut target = vec![b'x'; 513];
+    let mut store = PasswordStore::new();
 
     assert_eq!(inner.read_block(&mut target, 0).unwrap(), 512);
-    let (_, nbytes) = Header::read(&target, NONE).unwrap();
+    let (_, nbytes) = Header::read(&target, &mut store).unwrap();
     let nbytes = nbytes as usize;
     assert_eq!(&target[nbytes..512], &vec![0u8; 512 - nbytes][..]);
     assert_eq!(target[512], b'x');
@@ -291,9 +294,10 @@ fn fat_zero_no_such_block() {
 fn thin_random_header_full() {
     let mut inner = setup_container(DiskType::ThinRandom, 512, 3, 2);
     let mut target = vec![b'x'; 512];
+    let mut store = PasswordStore::new();
 
     assert_eq!(inner.read_block(&mut target, 0).unwrap(), 512);
-    let (_, nbytes) = Header::read(&target, NONE).unwrap();
+    let (_, nbytes) = Header::read(&target, &mut store).unwrap();
     let nbytes = nbytes as usize;
     assert_eq!(target[nbytes..], RND[..512 - nbytes]);
 }
@@ -311,9 +315,10 @@ fn thin_random_header_part() {
 fn thin_random_header_bigger() {
     let mut inner = setup_container(DiskType::ThinRandom, 512, 3, 2);
     let mut target = vec![b'x'; 513];
+    let mut store = PasswordStore::new();
 
     assert_eq!(inner.read_block(&mut target, 0).unwrap(), 512);
-    let (_, nbytes) = Header::read(&target, NONE).unwrap();
+    let (_, nbytes) = Header::read(&target, &mut store).unwrap();
     let nbytes = nbytes as usize;
     assert_eq!(target[nbytes..512], RND[..512 - nbytes]);
     assert_eq!(target[512], b'x');
@@ -392,9 +397,10 @@ fn thin_random_no_such_block() {
 fn fat_random_header_full() {
     let mut inner = setup_container(DiskType::FatRandom, 512, 2, 2);
     let mut target = vec![b'x'; 512];
+    let mut store = PasswordStore::new();
 
     assert_eq!(inner.read_block(&mut target, 0).unwrap(), 512);
-    let (_, nbytes) = Header::read(&target, NONE).unwrap();
+    let (_, nbytes) = Header::read(&target, &mut store).unwrap();
     let nbytes = nbytes as usize;
     assert_eq!(target[nbytes..], RND[..512 - nbytes]);
 }
@@ -412,9 +418,10 @@ fn fat_random_header_part() {
 fn fat_random_header_bigger() {
     let mut inner = setup_container(DiskType::FatRandom, 512, 2, 2);
     let mut target = vec![b'x'; 513];
+    let mut store = PasswordStore::new();
 
     assert_eq!(inner.read_block(&mut target, 0).unwrap(), 512);
-    let (_, nbytes) = Header::read(&target, NONE).unwrap();
+    let (_, nbytes) = Header::read(&target, &mut store).unwrap();
     let nbytes = nbytes as usize;
     assert_eq!(target[nbytes..512], RND[..512 - nbytes]);
     assert_eq!(target[512], b'x');
