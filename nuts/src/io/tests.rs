@@ -21,6 +21,12 @@
 // IN THE SOFTWARE.
 
 #[cfg(test)]
+mod from_binary;
+
+#[cfg(test)]
+mod into_binary;
+
+#[cfg(test)]
 mod read_basics;
 
 #[cfg(test)]
