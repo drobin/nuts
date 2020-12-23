@@ -23,8 +23,11 @@
 #[cfg(test)]
 mod tests;
 
-use std::fmt;
+use std::io::{self, Write};
 use std::ops::{Deref, DerefMut};
+use std::{default, fmt};
+
+use crate::io::IntoBinary;
 
 pub struct SecureVec<T>
 where
@@ -35,7 +38,7 @@ where
 
 impl<T> SecureVec<T>
 where
-    T: std::default::Default,
+    T: default::Default,
 {
     pub fn new(vec: Vec<T>) -> SecureVec<T> {
         SecureVec { inner: vec }
@@ -44,7 +47,7 @@ where
 
 impl<T> Drop for SecureVec<T>
 where
-    T: std::default::Default,
+    T: default::Default,
 {
     fn drop(&mut self) {
         self.inner
@@ -58,7 +61,7 @@ where
 
 impl<T> Deref for SecureVec<T>
 where
-    T: std::default::Default,
+    T: default::Default,
 {
     type Target = Vec<T>;
 
@@ -69,7 +72,7 @@ where
 
 impl<T> DerefMut for SecureVec<T>
 where
-    T: std::default::Default,
+    T: default::Default,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
@@ -78,7 +81,7 @@ where
 
 impl<T> PartialEq<Vec<T>> for SecureVec<T>
 where
-    T: std::default::Default + PartialEq,
+    T: default::Default + PartialEq,
 {
     fn eq(&self, other: &Vec<T>) -> bool {
         self.inner.eq(other)
@@ -87,7 +90,7 @@ where
 
 impl<T> PartialEq<[T]> for SecureVec<T>
 where
-    T: std::default::Default + PartialEq,
+    T: default::Default + PartialEq,
 {
     fn eq(&self, other: &[T]) -> bool {
         self.inner.eq(&other)
@@ -96,7 +99,7 @@ where
 
 impl<T> PartialEq<&[T]> for SecureVec<T>
 where
-    T: std::default::Default + PartialEq,
+    T: default::Default + PartialEq,
 {
     fn eq(&self, other: &&[T]) -> bool {
         self.inner.eq(other)
@@ -105,9 +108,18 @@ where
 
 impl<T> fmt::Debug for SecureVec<T>
 where
-    T: fmt::Debug + std::default::Default,
+    T: fmt::Debug + default::Default,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&self.inner, f)
+    }
+}
+
+impl<T> IntoBinary for SecureVec<T>
+where
+    T: fmt::Debug + default::Default + IntoBinary,
+{
+    fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
+        self.inner.into_binary(w)
     }
 }

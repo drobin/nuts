@@ -20,7 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::io::{Cursor, ErrorKind};
+
 use crate::error::Error;
+use crate::io::{FromBinary, IntoBinary};
 use crate::rand::RND;
 use crate::types::{Digest, WrappingKey};
 
@@ -97,4 +100,58 @@ fn pbkdf2_create_wrapping_key() {
             96, 23, 159, 91, 244, 187, 88, 88, 95, 129, 91, 252, 136, 14, 242, 207, 92, 3, 153, 56
         ]
     );
+}
+
+#[test]
+fn from_binary_pbkdf2() {
+    let mut c = Cursor::new(&[1, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3]);
+    let wkey = Option::<WrappingKey>::from_binary(&mut c).unwrap();
+
+    assert_eq!(
+        wkey,
+        Some(WrappingKey::Pbkdf2 {
+            iterations: 65536,
+            salt: vec![1, 2, 3]
+        })
+    );
+}
+
+#[test]
+fn from_binary_none() {
+    let mut c = Cursor::new(&[0xFF]);
+    assert_eq!(Option::<WrappingKey>::from_binary(&mut c).unwrap(), None);
+}
+
+#[test]
+fn from_binary_inval() {
+    let mut c = Cursor::new(&[2]);
+    let err = Option::<WrappingKey>::from_binary(&mut c).unwrap_err();
+
+    assert_eq!(err.kind(), ErrorKind::InvalidData);
+    assert_eq!(format!("{}", err), "invalid wrapping-key detected");
+}
+
+#[test]
+fn into_binary_pbkdf2() {
+    let mut c = Cursor::new(Vec::new());
+    Some(WrappingKey::Pbkdf2 {
+        iterations: 65536,
+        salt: vec![1, 2, 3],
+    })
+    .into_binary(&mut c)
+    .unwrap();
+
+    assert_eq!(
+        c.into_inner(),
+        [1, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3]
+    );
+}
+
+#[test]
+fn into_binary_none() {
+    let mut c = Cursor::new(Vec::new());
+    let none: Option<WrappingKey> = None;
+
+    none.into_binary(&mut c).unwrap();
+    assert_eq!(c.into_inner(), [0xFF]);
 }

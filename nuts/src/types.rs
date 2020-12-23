@@ -27,9 +27,11 @@ use ::openssl::symm::{Crypter, Mode};
 use log::error;
 use openssl::pkcs5;
 use openssl::{hash, symm};
+use std::io::{self, Read, Write};
 use std::{cmp, fmt};
 
-use crate::error::Error;
+use crate::error::{Error, InvalHeaderError};
+use crate::io::{FromBinary, IntoBinary};
 use crate::rand::random;
 use crate::result::Result;
 use crate::utils::SecureVec;
@@ -169,6 +171,29 @@ impl Cipher {
     }
 }
 
+impl FromBinary for Cipher {
+    fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
+        match u8::from_binary(r)? {
+            0 => Ok(Cipher::None),
+            1 => Ok(Cipher::Aes128Ctr),
+            _ => Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                InvalHeaderError::InvalCipher,
+            )),
+        }
+    }
+}
+
+impl IntoBinary for Cipher {
+    fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
+        match self {
+            Cipher::None => 0u8,
+            Cipher::Aes128Ctr => 1u8,
+        }
+        .into_binary(w)
+    }
+}
+
 /// Supported message digests.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Digest {
@@ -190,6 +215,29 @@ impl Digest {
         match self {
             Digest::Sha1 => hash::MessageDigest::sha1(),
         }
+    }
+}
+
+impl FromBinary for Option<Digest> {
+    fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
+        match u8::from_binary(r)? {
+            1 => Ok(Some(Digest::Sha1)),
+            0xFF => Ok(None),
+            _ => Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                InvalHeaderError::InvalDigest,
+            )),
+        }
+    }
+}
+
+impl IntoBinary for Option<Digest> {
+    fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
+        match self {
+            Some(Digest::Sha1) => 1u8,
+            None => 0xFFu8,
+        }
+        .into_binary(w)
     }
 }
 
@@ -322,6 +370,41 @@ impl fmt::Debug for WrappingKey {
     }
 }
 
+impl FromBinary for Option<WrappingKey> {
+    fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
+        match u8::from_binary(r)? {
+            1 => {
+                let iterations = u32::from_binary(r)?;
+                let salt = Vec::<u8>::from_binary(r)?;
+
+                Ok(Some(WrappingKey::pbkdf2(iterations, &salt)))
+            }
+            0xFF => Ok(None),
+            _ => Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                InvalHeaderError::InvalWrappingKey,
+            )),
+        }
+    }
+}
+
+impl IntoBinary for Option<WrappingKey> {
+    fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
+        match self {
+            Some(data) => {
+                let WrappingKey::Pbkdf2 { iterations, salt } = data;
+
+                1u8.into_binary(w)?;
+                iterations.into_binary(w)?;
+                salt.into_binary(w)?;
+
+                Ok(())
+            }
+            None => 0xFFu8.into_binary(w),
+        }
+    }
+}
+
 /// Container disk types.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum DiskType {
@@ -340,6 +423,33 @@ pub enum DiskType {
     /// Space for the container is allocated dynamically when needed, unused
     /// blocks are initialized with random data.
     ThinRandom,
+}
+
+impl FromBinary for DiskType {
+    fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
+        match u8::from_binary(r)? {
+            0 => Ok(DiskType::FatZero),
+            1 => Ok(DiskType::FatRandom),
+            2 => Ok(DiskType::ThinZero),
+            3 => Ok(DiskType::ThinRandom),
+            _ => Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                InvalHeaderError::InvalDiskType,
+            )),
+        }
+    }
+}
+
+impl IntoBinary for DiskType {
+    fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
+        match self {
+            DiskType::FatZero => 0u8,
+            DiskType::FatRandom => 1u8,
+            DiskType::ThinZero => 2u8,
+            DiskType::ThinRandom => 3u8,
+        }
+        .into_binary(w)
+    }
 }
 
 /// The minimum size of a block.

@@ -20,7 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::io::{Cursor, ErrorKind};
+
 use crate::error::Error;
+use crate::io::{FromBinary, IntoBinary};
 use crate::types::Cipher;
 
 #[test]
@@ -183,4 +186,41 @@ fn decrypt_aes128_ctr_non_empty() {
         .decrypt(&[22, 212, 23], &mut out, &key, &iv)
         .unwrap();
     assert_eq!(out, [1, 2, 3]);
+}
+
+#[test]
+fn from_binary_none() {
+    let mut c = Cursor::new(&[0]);
+    assert_eq!(Cipher::from_binary(&mut c).unwrap(), Cipher::None);
+}
+
+#[test]
+fn from_binary_aes128_ctr() {
+    let mut c = Cursor::new(&[1]);
+    assert_eq!(Cipher::from_binary(&mut c).unwrap(), Cipher::Aes128Ctr);
+}
+
+#[test]
+fn from_binary_inval() {
+    let mut c = Cursor::new(&[2]);
+    let err = Cipher::from_binary(&mut c).unwrap_err();
+
+    assert_eq!(err.kind(), ErrorKind::InvalidData);
+    assert_eq!(format!("{}", err), "invalid cipher detected");
+}
+
+#[test]
+fn into_binary_none() {
+    let mut c = Cursor::new(Vec::new());
+    Cipher::None.into_binary(&mut c).unwrap();
+
+    assert_eq!(c.into_inner(), [0]);
+}
+
+#[test]
+fn into_binary_aes128_ctr() {
+    let mut c = Cursor::new(Vec::new());
+    Cipher::Aes128Ctr.into_binary(&mut c).unwrap();
+
+    assert_eq!(c.into_inner(), [1]);
 }

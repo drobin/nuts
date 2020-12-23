@@ -20,6 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::error;
+use std::fmt;
+
 /// Details about an [`Error::InvalHeader`] error.
 ///
 /// [`Error::InvalHeader`]: enum.Error.html#variant.InvalHeader
@@ -66,6 +69,74 @@ pub enum InvalHeaderKind {
     /// Invalid HMAC key.
     InvalHmacKey,
 }
+
+#[derive(PartialEq, Debug)]
+pub(crate) enum InvalHeaderError {
+    /// Invalid magic.
+    ///
+    /// The first few bytes encodes a magic string, which is incorrect.
+    InvalMagic,
+
+    /// Invalid revision.
+    InvalRevision,
+
+    /// Invalid cipher.
+    InvalCipher,
+
+    /// Invalid digest.
+    InvalDigest,
+
+    /// Invalid wrapping key.
+    InvalWrappingKey,
+
+    /// Invalid IV.
+    InvalIv,
+
+    /// Invalid HMAC.
+    InvalHmac,
+
+    /// Invalid disk type.
+    InvalDiskType,
+
+    /// Invalid block size.
+    InvalBlockSize,
+
+    /// Invalid number of blocks.
+    InvalBlocks,
+
+    /// Invalid master key.
+    InvalMasterKey,
+
+    /// Invalid master iv.
+    InvalMasterIv,
+
+    /// Invalid HMAC key.
+    InvalHmacKey,
+}
+
+impl fmt::Display for InvalHeaderError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let name = match self {
+            InvalHeaderError::InvalMagic => "magic",
+            InvalHeaderError::InvalRevision => "revision",
+            InvalHeaderError::InvalCipher => "cipher",
+            InvalHeaderError::InvalDigest => "digest",
+            InvalHeaderError::InvalWrappingKey => "wrapping-key",
+            InvalHeaderError::InvalIv => "iv",
+            InvalHeaderError::InvalHmac => "hmac",
+            InvalHeaderError::InvalDiskType => "disk-type",
+            InvalHeaderError::InvalBlockSize => "block-size",
+            InvalHeaderError::InvalBlocks => "blocks",
+            InvalHeaderError::InvalMasterKey => "master-key",
+            InvalHeaderError::InvalMasterIv => "master-iv",
+            InvalHeaderError::InvalHmacKey => "hmac-key",
+        };
+
+        write!(fmt, "invalid {} detected", name)
+    }
+}
+
+impl error::Error for InvalHeaderError {}
 
 /// Collection of error-codes.
 #[derive(Debug)]

@@ -53,12 +53,15 @@ macro_rules! assert_io_error {
 
 #[cfg(test)]
 macro_rules! assert_inval_header {
-    ($kind:expr, $elem:expr) => {
+    ($name:expr, $elem:expr) => {
         let err = $elem.unwrap_err();
-        assert_eq!(
-            format!("{:?}", err),
-            format!("{:?}", crate::error::Error::InvalHeader($kind))
-        );
+        match err {
+            crate::error::Error::IoError(err) => {
+                assert_eq!(err.kind(), std::io::ErrorKind::InvalidData);
+                assert_eq!(format!("{}", err), format!("invalid {} detected", $name));
+            }
+            _ => panic!("unexpected error: {:?}", err),
+        }
     };
 }
 

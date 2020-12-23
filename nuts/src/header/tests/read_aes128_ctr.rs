@@ -23,12 +23,11 @@
 use ::openssl::pkey::PKey;
 use ::openssl::sign::Signer;
 use byteorder::{ByteOrder, NetworkEndian};
-use std::io::ErrorKind;
+use std::io::{Cursor, ErrorKind};
 
-use crate::error::{Error, InvalHeaderKind};
-use crate::header::ser::HeaderWriter;
+use crate::error::Error;
 use crate::header::Header;
-use crate::io::{WriteBasics, WriteExt};
+use crate::io::BinaryWrite;
 use crate::password::PasswordStore;
 use crate::types::{Cipher, Digest, DiskType, WrappingKey, BLOCK_MIN_SIZE};
 
@@ -44,17 +43,17 @@ fn mk_secret(
     // the plain secret
     let mut plain_secret = vec![0; 512];
     let nbytes = {
-        let mut writer = HeaderWriter::new(&mut plain_secret);
+        let mut cursor = Cursor::new(&mut plain_secret);
 
-        writer.write_u8(dtype).unwrap();
-        writer.write_u32(bsize).unwrap();
-        writer.write_u64(blocks).unwrap();
-        writer.write_vec(master_key).unwrap();
-        writer.write_vec(master_iv).unwrap();
-        writer.write_vec(hmac_key).unwrap();
-        writer.write_vec(userdata).unwrap();
+        cursor.write_binary(&dtype).unwrap();
+        cursor.write_binary(&bsize).unwrap();
+        cursor.write_binary(&blocks).unwrap();
+        cursor.write_binary(&master_key.to_vec()).unwrap();
+        cursor.write_binary(&master_iv.to_vec()).unwrap();
+        cursor.write_binary(&hmac_key.to_vec()).unwrap();
+        cursor.write_binary(&userdata.to_vec()).unwrap();
 
-        writer.offs
+        cursor.position() as usize
     };
     plain_secret.resize(nbytes, 0);
 
@@ -202,7 +201,7 @@ fn bad_magic() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(InvalHeaderKind::InvalMagic, Header::read(&data, &mut store));
+    assert_inval_header!("magic", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -213,10 +212,7 @@ fn bad_revision() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalRevision,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("revision", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -227,10 +223,7 @@ fn bad_cipher() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalCipher,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("cipher", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -241,10 +234,7 @@ fn bad_digest() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalDigest,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("digest", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -255,10 +245,7 @@ fn digest_none() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalDigest,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("digest", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -269,10 +256,7 @@ fn bad_wrapping_key_data() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalWrappingKey,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("wrapping-key", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -283,10 +267,7 @@ fn wrapping_key_data_none() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalWrappingKey,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("wrapping-key", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -297,7 +278,7 @@ fn wrapping_iv_inval_size() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(InvalHeaderKind::InvalIv, Header::read(&data, &mut store));
+    assert_inval_header!("iv", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -310,7 +291,7 @@ fn bad_hmac() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(InvalHeaderKind::InvalHmac, Header::read(&data, &mut store));
+    assert_inval_header!("hmac", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -344,10 +325,7 @@ fn bad_dtype() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalDiskType,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("disk-type", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -367,10 +345,7 @@ fn bsize_lt_512() {
         ..ok_data()
     });
     let mut store = setup_store(true);
-    assert_inval_header!(
-        InvalHeaderKind::InvalBlockSize,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("block-size", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -390,10 +365,7 @@ fn bsize_inval_modulo() {
         ..ok_data()
     });
     let mut store = setup_store(true);
-    assert_inval_header!(
-        InvalHeaderKind::InvalBlockSize,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("block-size", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -459,10 +431,7 @@ fn blocks_0() {
         ..ok_data()
     });
     let mut store = setup_store(true);
-    assert_inval_header!(
-        InvalHeaderKind::InvalBlocks,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("blocks", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -527,10 +496,7 @@ fn master_key_inval_size() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalMasterKey,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("master-key", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -551,10 +517,7 @@ fn master_iv_inval_size() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalMasterIv,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("master-iv", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -575,10 +538,7 @@ fn hmac_key_inval_size() {
     });
     let mut store = setup_store(true);
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalHmacKey,
-        Header::read(&data, &mut store)
-    );
+    assert_inval_header!("hmac-key", Header::read(&data, &mut store));
 }
 
 #[test]

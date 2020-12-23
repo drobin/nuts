@@ -23,50 +23,69 @@
 use std::io::{Cursor, ErrorKind};
 
 use crate::io::{FromBinary, IntoBinary};
-use crate::types::Digest;
+use crate::types::DiskType;
 
 #[test]
-fn size_sha1() {
-    assert_eq!(Digest::Sha1.size(), 20);
+fn from_binary_fat_zero() {
+    let mut c = Cursor::new(&[0]);
+    assert_eq!(DiskType::from_binary(&mut c).unwrap(), DiskType::FatZero);
 }
 
 #[test]
-fn from_binary_sha1() {
+fn from_binary_fat_random() {
     let mut c = Cursor::new(&[1]);
-    assert_eq!(
-        Option::<Digest>::from_binary(&mut c).unwrap(),
-        Some(Digest::Sha1)
-    );
+    assert_eq!(DiskType::from_binary(&mut c).unwrap(), DiskType::FatRandom);
 }
 
 #[test]
-fn from_binary_none() {
-    let mut c = Cursor::new(&[0xFF]);
-    assert_eq!(Option::<Digest>::from_binary(&mut c).unwrap(), None);
+fn from_binary_thin_zero() {
+    let mut c = Cursor::new(&[2]);
+    assert_eq!(DiskType::from_binary(&mut c).unwrap(), DiskType::ThinZero);
+}
+
+#[test]
+fn from_binary_thin_random() {
+    let mut c = Cursor::new(&[3]);
+    assert_eq!(DiskType::from_binary(&mut c).unwrap(), DiskType::ThinRandom);
 }
 
 #[test]
 fn from_binary_inval() {
-    let mut c = Cursor::new(&[2]);
-    let err = Option::<Digest>::from_binary(&mut c).unwrap_err();
+    let mut c = Cursor::new(&[4]);
+    let err = DiskType::from_binary(&mut c).unwrap_err();
 
     assert_eq!(err.kind(), ErrorKind::InvalidData);
-    assert_eq!(format!("{}", err), "invalid digest detected");
+    assert_eq!(format!("{}", err), "invalid disk-type detected");
 }
 
 #[test]
-fn into_binary_sha1() {
+fn into_binary_fat_zero() {
     let mut c = Cursor::new(Vec::new());
 
-    Some(Digest::Sha1).into_binary(&mut c).unwrap();
+    DiskType::FatZero.into_binary(&mut c).unwrap();
+    assert_eq!(c.into_inner(), [0]);
+}
+
+#[test]
+fn into_binary_fat_random() {
+    let mut c = Cursor::new(Vec::new());
+
+    DiskType::FatRandom.into_binary(&mut c).unwrap();
     assert_eq!(c.into_inner(), [1]);
 }
 
 #[test]
-fn into_binary_none() {
+fn into_binary_thin_zero() {
     let mut c = Cursor::new(Vec::new());
-    let none: Option<Digest> = None;
 
-    none.into_binary(&mut c).unwrap();
-    assert_eq!(c.into_inner(), [0xFF]);
+    DiskType::ThinZero.into_binary(&mut c).unwrap();
+    assert_eq!(c.into_inner(), [2]);
+}
+
+#[test]
+fn into_binary_thin_random() {
+    let mut c = Cursor::new(Vec::new());
+
+    DiskType::ThinRandom.into_binary(&mut c).unwrap();
+    assert_eq!(c.into_inner(), [3]);
 }

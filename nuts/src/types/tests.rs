@@ -27,6 +27,9 @@ mod cipher;
 mod digest;
 
 #[cfg(test)]
+mod disk_type;
+
+#[cfg(test)]
 mod options;
 
 #[cfg(test)]

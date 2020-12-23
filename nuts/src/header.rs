@@ -23,22 +23,26 @@
 #[cfg(test)]
 mod tests;
 
-pub(crate) mod ser;
-
 use ::openssl::memcmp;
 use ::openssl::pkey::PKey;
 use ::openssl::sign::Signer;
 use log::{debug, error};
 use std::fmt;
+use std::io::{self, Cursor, Read, Write};
 
-use crate::error::{Error, InvalHeaderKind};
-use crate::header::ser::{HeaderReader, HeaderWriter};
-use crate::io::{ReadBasics, ReadExt, WriteBasics, WriteExt};
+use crate::error::{Error, InvalHeaderError};
+use crate::io::{BinaryRead, BinaryWrite, FromBinary, IntoBinary};
 use crate::password::PasswordStore;
 use crate::rand::random;
 use crate::result::Result;
 use crate::types::{Cipher, Digest, DiskType, Options, WrappingKey, BLOCK_MIN_SIZE};
 use crate::utils::SecureVec;
+
+macro_rules! invalheader_error {
+    ($e:expr) => {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, $e)
+    };
+}
 
 pub struct Header {
     pub revision: u8,
@@ -129,31 +133,31 @@ impl Header {
     }
 
     fn read_header(&mut self, source: &[u8]) -> Result<(Vec<u8>, Vec<u8>, u32)> {
-        let mut reader = HeaderReader::new(source);
+        let mut cursor = Cursor::new(source);
 
-        reader.read_magic()?;
-        self.revision = reader.read_revision()?;
-        self.cipher = reader.read_cipher()?;
-        self.digest = reader.read_digest()?;
-        self.wrapping_key = reader.read_wrapping_key()?;
-        self.wrapping_iv = reader.read_vec()?;
+        cursor.read_binary::<Magic>()?;
+        self.revision = cursor.read_binary::<Revision>()?.rev;
+        self.cipher = cursor.read_binary::<Cipher>()?;
+        self.digest = cursor.read_binary::<Option<Digest>>()?;
+        self.wrapping_key = cursor.read_binary::<Option<WrappingKey>>()?;
+        self.wrapping_iv = cursor.read_binary::<Vec<u8>>()?;
 
-        let hmac = reader.read_vec()?;
-        let secret = reader.read_vec()?;
+        let hmac = cursor.read_binary::<Vec<u8>>()?;
+        let cipher_secret = cursor.read_binary::<Vec<u8>>()?;
 
-        Ok((hmac, secret, reader.offs as u32))
+        Ok((hmac, cipher_secret, cursor.position() as u32))
     }
 
     fn read_secret(&mut self, source: &[u8]) -> Result<()> {
-        let mut reader = HeaderReader::new(source);
+        let mut cursor = Cursor::new(source);
 
-        self.dtype = reader.read_dtype()?;
-        self.bsize = reader.read_u32()?;
-        self.blocks = reader.read_u64()?;
-        self.master_key = SecureVec::new(reader.read_vec()?);
-        self.master_iv = SecureVec::new(reader.read_vec()?);
-        self.hmac_key = SecureVec::new(reader.read_vec()?);
-        self.userdata = reader.read_vec()?;
+        self.dtype = cursor.read_binary::<DiskType>()?;
+        self.bsize = cursor.read_binary::<u32>()?;
+        self.blocks = cursor.read_binary::<u64>()?;
+        self.master_key = SecureVec::new(cursor.read_binary::<Vec<u8>>()?);
+        self.master_iv = SecureVec::new(cursor.read_binary::<Vec<u8>>()?);
+        self.hmac_key = SecureVec::new(cursor.read_binary::<Vec<u8>>()?);
+        self.userdata = cursor.read_binary::<Vec<u8>>()?;
 
         Ok(())
     }
@@ -180,41 +184,41 @@ impl Header {
         Ok(self.write_header(target, &hmac, &cipher_secret)?)
     }
 
-    fn write_header(&self, target: &mut [u8], hmac: &[u8], secret: &[u8]) -> Result<u32> {
-        let mut writer = HeaderWriter::new(target);
+    fn write_header(&self, target: &mut [u8], hmac: &Vec<u8>, secret: &Vec<u8>) -> Result<u32> {
+        let mut cursor = Cursor::new(target);
 
-        writer.write_magic()?;
-        writer.write_revision(self.revision)?;
-        writer.write_cipher(self.cipher)?;
-        writer.write_digest(self.digest)?;
-        writer.write_wrapping_key(self.wrapping_key.as_ref())?;
-        writer.write_vec(&self.wrapping_iv)?;
-        writer.write_vec(hmac)?;
-        writer.write_vec(secret)?;
+        cursor.write_binary(&Magic::new())?;
+        cursor.write_binary(&Revision::new(self.revision))?;
+        cursor.write_binary(&self.cipher)?;
+        cursor.write_binary(&self.digest)?;
+        cursor.write_binary(&self.wrapping_key)?;
+        cursor.write_binary(&self.wrapping_iv)?;
+        cursor.write_binary(hmac)?;
+        cursor.write_binary(secret)?;
 
-        Ok(writer.offs as u32)
+        Ok(cursor.position() as u32)
     }
 
     fn write_secret(&self, target: &mut [u8]) -> Result<usize> {
-        let mut writer = HeaderWriter::new(target);
+        let mut cursor = Cursor::new(target);
 
-        writer.write_dtype(self.dtype)?;
-        writer.write_u32(self.bsize)?;
-        writer.write_u64(self.blocks)?;
-        writer.write_vec(&self.master_key)?;
-        writer.write_vec(&self.master_iv)?;
-        writer.write_vec(&self.hmac_key)?;
-        writer.write_vec(&self.userdata)?;
+        cursor.write_binary(&self.dtype)?;
+        cursor.write_binary(&self.bsize)?;
+        cursor.write_binary(&self.blocks)?;
+        cursor.write_binary(&self.master_key)?;
+        cursor.write_binary(&self.master_iv)?;
+        cursor.write_binary(&self.hmac_key)?;
+        cursor.write_binary(&self.userdata)?;
 
-        Ok(writer.offs)
+        Ok(cursor.position() as usize)
     }
 
     fn create_wrapping_key(&self, store: &mut PasswordStore) -> Result<SecureVec<u8>> {
         let wrapping_key = match self.wrapping_key.as_ref() {
             Some(wkey_data) => {
-                let digest = self
-                    .digest
-                    .ok_or(Error::InvalHeader(InvalHeaderKind::InvalDigest))?;
+                let digest = self.digest.ok_or(Error::IoError(invalheader_error!(
+                    InvalHeaderError::InvalDigest
+                )))?;
                 let password = store.value()?;
                 wkey_data.create_wrapping_key(password, digest)?
             }
@@ -271,7 +275,9 @@ impl Header {
                     md
                 );
 
-                return Err(Error::InvalHeader(InvalHeaderKind::InvalHmac));
+                return Err(Error::IoError(invalheader_error!(
+                    InvalHeaderError::InvalHmac
+                )));
             }
 
             let pkey = PKey::hmac(&self.hmac_key)?;
@@ -296,7 +302,9 @@ impl Header {
             Ok(())
         } else {
             error!("invalid revision: {}", self.revision);
-            Err(Error::InvalHeader(InvalHeaderKind::InvalRevision))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalRevision
+            )))
         }
     }
 
@@ -308,10 +316,14 @@ impl Header {
                 self.cipher
             );
 
-            Err(Error::InvalHeader(InvalHeaderKind::InvalDigest))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalDigest
+            )))
         } else if self.cipher != Cipher::None && self.digest.is_none() {
             error!("invalid digest None for cipher {:?}", self.cipher);
-            Err(Error::InvalHeader(InvalHeaderKind::InvalDigest))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalDigest
+            )))
         } else {
             Ok(())
         }
@@ -325,13 +337,17 @@ impl Header {
                 self.cipher
             );
 
-            Err(Error::InvalHeader(InvalHeaderKind::InvalWrappingKey))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalWrappingKey
+            )))
         } else if self.cipher != Cipher::None && self.wrapping_key.is_none() {
             error!(
                 "invalid wrapping key data None for cipher {:?}",
                 self.cipher
             );
-            Err(Error::InvalHeader(InvalHeaderKind::InvalWrappingKey))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalWrappingKey
+            )))
         } else {
             Ok(())
         }
@@ -346,7 +362,9 @@ impl Header {
                 self.cipher
             );
 
-            Err(Error::InvalHeader(InvalHeaderKind::InvalIv))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalIv
+            )))
         } else {
             Ok(())
         }
@@ -357,7 +375,9 @@ impl Header {
             Ok(())
         } else {
             error!("invalid block size: {}", self.bsize);
-            Err(Error::InvalHeader(InvalHeaderKind::InvalBlockSize))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalBlockSize
+            )))
         }
     }
 
@@ -366,7 +386,9 @@ impl Header {
             Ok(())
         } else {
             error!("invalid number of blocks: {}", self.blocks);
-            Err(Error::InvalHeader(InvalHeaderKind::InvalBlocks))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalBlocks
+            )))
         }
     }
 
@@ -378,7 +400,9 @@ impl Header {
                 self.cipher.key_size(),
                 self.cipher
             );
-            Err(Error::InvalHeader(InvalHeaderKind::InvalMasterKey))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalMasterKey
+            )))
         } else {
             Ok(())
         }
@@ -393,7 +417,9 @@ impl Header {
                 self.cipher
             );
 
-            Err(Error::InvalHeader(InvalHeaderKind::InvalMasterIv))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalMasterIv
+            )))
         } else {
             Ok(())
         }
@@ -413,7 +439,9 @@ impl Header {
                 self.digest
             );
 
-            Err(Error::InvalHeader(InvalHeaderKind::InvalHmacKey))
+            Err(Error::IoError(invalheader_error!(
+                InvalHeaderError::InvalHmacKey
+            )))
         } else {
             Ok(())
         }
@@ -455,5 +483,69 @@ impl fmt::Debug for Header {
             .field("hmac_key", &hmac_key)
             .field("userdata", &userdata)
             .finish()
+    }
+}
+
+const MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
+
+struct Magic {
+    magic: [u8; 7],
+}
+
+impl Magic {
+    fn new() -> Magic {
+        Magic { magic: MAGIC }
+    }
+}
+
+impl FromBinary for Magic {
+    fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
+        let mut m = Magic { magic: [0; 7] };
+
+        for n in m.magic.iter_mut() {
+            *n = u8::from_binary(r)?;
+        }
+
+        if m.magic == MAGIC {
+            Ok(m)
+        } else {
+            error!("invalid magic: {:x?}", m.magic);
+            Err(invalheader_error!(InvalHeaderError::InvalMagic))
+        }
+    }
+}
+
+impl IntoBinary for Magic {
+    fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
+        w.write_all(&self.magic)?;
+        Ok(())
+    }
+}
+
+struct Revision {
+    rev: u8,
+}
+
+impl Revision {
+    fn new(rev: u8) -> Revision {
+        Revision { rev }
+    }
+}
+
+impl FromBinary for Revision {
+    fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
+        let r = Revision::new(u8::from_binary(r)?);
+
+        if r.rev == 1 {
+            Ok(r)
+        } else {
+            Err(invalheader_error!(InvalHeaderError::InvalRevision))
+        }
+    }
+}
+
+impl IntoBinary for Revision {
+    fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
+        self.rev.into_binary(w)
     }
 }

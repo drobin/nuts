@@ -22,7 +22,7 @@
 
 use std::io::ErrorKind;
 
-use crate::error::{Error, InvalHeaderKind};
+use crate::error::Error;
 use crate::header::Header;
 use crate::password::PasswordStore;
 use crate::types::{Cipher, Digest, DiskType, WrappingKey, BLOCK_MIN_SIZE};
@@ -117,10 +117,7 @@ fn digest_none() {
     let (mut header, mut target, mut store) = setup(true);
     header.digest = None;
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalDigest,
-        header.write(&mut target, &mut store)
-    );
+    assert_inval_header!("digest", header.write(&mut target, &mut store));
 }
 
 #[test]
@@ -137,10 +134,7 @@ fn wrapping_key_data_none() {
     let (mut header, mut target, mut store) = setup(true);
     header.wrapping_key = None;
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalWrappingKey,
-        header.write(&mut target, &mut store)
-    );
+    assert_inval_header!("wrapping-key", header.write(&mut target, &mut store));
 }
 
 #[test]
@@ -160,10 +154,7 @@ fn wrapping_iv_inval_size() {
     let (mut header, mut target, mut store) = setup(true);
     header.wrapping_iv.pop().unwrap();
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalIv,
-        header.write(&mut target, &mut store)
-    );
+    assert_inval_header!("iv", header.write(&mut target, &mut store));
 }
 
 #[test]
@@ -179,10 +170,7 @@ fn bsize_lt_512() {
     let (mut header, mut target, mut store) = setup(true);
     header.bsize = BLOCK_MIN_SIZE - 1;
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalBlockSize,
-        header.write(&mut target, &mut store)
-    );
+    assert_inval_header!("block-size", header.write(&mut target, &mut store));
 }
 
 #[test]
@@ -190,10 +178,7 @@ fn bsize_inval_modulo() {
     let (mut header, mut target, mut store) = setup(true);
     header.bsize = BLOCK_MIN_SIZE + 1;
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalBlockSize,
-        header.write(&mut target, &mut store)
-    );
+    assert_inval_header!("block-size", header.write(&mut target, &mut store));
 }
 
 #[test]
@@ -217,10 +202,7 @@ fn blocks_0() {
     let (mut header, mut target, mut store) = setup(true);
     header.blocks = 0;
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalBlocks,
-        header.write(&mut target, &mut store)
-    );
+    assert_inval_header!("blocks", header.write(&mut target, &mut store));
 }
 
 #[test]
@@ -244,10 +226,7 @@ fn master_key_inval_size() {
     let (mut header, mut target, mut store) = setup(true);
     header.master_key.pop().unwrap();
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalMasterKey,
-        header.write(&mut target, &mut store)
-    );
+    assert_inval_header!("master-key", header.write(&mut target, &mut store));
 }
 
 #[test]
@@ -255,10 +234,7 @@ fn master_iv_inval_size() {
     let (mut header, mut target, mut store) = setup(true);
     header.master_iv.pop().unwrap();
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalMasterIv,
-        header.write(&mut target, &mut store)
-    );
+    assert_inval_header!("master-iv", header.write(&mut target, &mut store));
 }
 
 #[test]
@@ -266,10 +242,7 @@ fn hmac_key_inval_size() {
     let (mut header, mut target, mut store) = setup(true);
     header.hmac_key.pop().unwrap();
 
-    assert_inval_header!(
-        InvalHeaderKind::InvalHmacKey,
-        header.write(&mut target, &mut store)
-    );
+    assert_inval_header!("hmac-key", header.write(&mut target, &mut store));
 }
 
 #[test]
