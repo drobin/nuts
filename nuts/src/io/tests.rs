@@ -27,19 +27,7 @@ mod from_binary;
 mod into_binary;
 
 #[cfg(test)]
-mod read_basics;
-
-#[cfg(test)]
-mod read_ext;
-
-#[cfg(test)]
 mod reader;
-
-#[cfg(test)]
-mod write_basics;
-
-#[cfg(test)]
-mod write_ext;
 
 #[cfg(test)]
 mod writer;
