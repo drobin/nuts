@@ -57,10 +57,6 @@ impl Inner {
             .truncate(true)
             .create(true)
             .open(path)?;
-        let mut buf = [0; BLOCK_MIN_SIZE as usize];
-
-        let offset = header.write(&mut buf, store)?;
-        let end = offset as usize;
 
         let mut inner = Inner {
             header,
@@ -68,7 +64,7 @@ impl Inner {
             fh,
         };
 
-        inner.write_block_unchecked(&buf[..end], 0, true)?;
+        inner.flush_header(store)?;
 
         Ok(inner)
     }
@@ -97,6 +93,17 @@ impl Inner {
             ablocks,
             fh,
         })
+    }
+
+    pub(crate) fn flush_header(&mut self, store: &mut PasswordStore) -> Result<()> {
+        let mut buf = [0; BLOCK_MIN_SIZE as usize];
+
+        let offset = self.header.write(&mut buf, store)?;
+        let end = offset as usize;
+
+        self.write_block_unchecked(&buf[..end], 0, true)?;
+
+        Ok(())
     }
 
     fn seek_block(&mut self, id: u64) -> Result<()> {

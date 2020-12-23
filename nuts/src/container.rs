@@ -184,6 +184,35 @@ impl Container {
         self.on_open(|_| Ok(true)).is_ok()
     }
 
+    /// Updates the userdata stored in the header of the container.
+    ///
+    /// Passing an empty slice to `userdata` will clear the userdata stored in
+    /// the container. You can receive the userdata over the [`open()`] call
+    /// again.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed. Further errors are listed in the [`Error`] type.
+    ///
+    /// [`open()`]: #method.open
+    /// [`Error`]: ../error/enum.Error.html
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
+    pub fn set_userdata(&mut self, userdata: &[u8]) -> Result<()> {
+        if self.is_open() {
+            let inner = self.inner.as_mut().unwrap();
+
+            inner.header.userdata.clear();
+            inner.header.userdata.extend(userdata);
+
+            inner.flush_header(&mut self.store)?;
+
+            Ok(())
+        } else {
+            Err(Error::Closed)
+        }
+    }
+
     /// Reads a block from the container.
     ///
     /// Reads the block with the given `id` and places the decrypted data in
