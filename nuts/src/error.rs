@@ -20,55 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::error;
-use std::fmt;
-
-/// Details about an [`Error::InvalHeader`] error.
-///
-/// [`Error::InvalHeader`]: enum.Error.html#variant.InvalHeader
-#[derive(PartialEq, Debug)]
-pub enum InvalHeaderKind {
-    /// Invalid magic.
-    ///
-    /// The first few bytes encodes a magic string, which is incorrect.
-    InvalMagic,
-
-    /// Invalid revision.
-    InvalRevision,
-
-    /// Invalid cipher.
-    InvalCipher,
-
-    /// Invalid digest.
-    InvalDigest,
-
-    /// Invalid wrapping key.
-    InvalWrappingKey,
-
-    /// Invalid IV.
-    InvalIv,
-
-    /// Invalid HMAC.
-    InvalHmac,
-
-    /// Invalid disk type.
-    InvalDiskType,
-
-    /// Invalid block size.
-    InvalBlockSize,
-
-    /// Invalid number of blocks.
-    InvalBlocks,
-
-    /// Invalid master key.
-    InvalMasterKey,
-
-    /// Invalid master iv.
-    InvalMasterIv,
-
-    /// Invalid HMAC key.
-    InvalHmacKey,
-}
+use std::{error, fmt};
 
 #[derive(PartialEq, Debug)]
 pub(crate) enum InvalHeaderError {
@@ -168,11 +120,6 @@ pub enum Error {
     ///
     /// It has a message, that describes the failure.
     InvalArg(String),
-
-    /// An invalid header of the container was detected.
-    ///
-    /// The value contains some details about the error.
-    InvalHeader(InvalHeaderKind),
 
     /// Not enough data available to read from a source.
     NoData,
