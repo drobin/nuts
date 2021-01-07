@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -135,6 +135,44 @@ pub enum Error {
 
     /// An hmac mismatch was detected.
     HmacMismatch,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Opened => write!(
+                fmt,
+                "The container is open but it is expected to be closed."
+            ),
+            Error::Closed => write!(
+                fmt,
+                "The container is closed but it is expected to be open."
+            ),
+            Error::IoError(cause) => write!(fmt, "An IO error occured: {}", cause),
+            Error::InvalArg(msg) => write!(fmt, "Invalid argument: {}", msg),
+            Error::NoData => write!(fmt, "Not enough data available to read from a source."),
+            Error::NoSpace => write!(fmt, "Not enough space available to write into a target."),
+            Error::NoPassword => write!(fmt, "A password is needed by the current cipher."),
+            Error::OpenSSL(cause) => write!(fmt, "An OpenSSL error occured: {}", cause),
+            Error::HmacMismatch => write!(fmt, "An hmac mismatch was detected."),
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            Error::Opened => None,
+            Error::Closed => None,
+            Error::IoError(ref err) => Some(err),
+            Error::InvalArg(_) => None,
+            Error::NoData => None,
+            Error::NoSpace => None,
+            Error::NoPassword => None,
+            Error::OpenSSL(ref err) => Some(err),
+            Error::HmacMismatch => None,
+        }
+    }
 }
 
 impl From<std::io::Error> for Error {
