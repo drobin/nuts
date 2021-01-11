@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -182,6 +182,19 @@ impl Container {
     /// [`open()`]: #method.open
     pub fn is_open(&self) -> bool {
         self.on_open(|_| Ok(true)).is_ok()
+    }
+
+    /// Returns the userdata stored in the header of the container.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed. Further errors are listed in the [`Error`] type.
+    ///
+    /// [`Error`]: ../error/enum.Error.html
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
+    pub fn get_userdata(&self) -> Result<&[u8]> {
+        self.on_open(|inner| Ok(&inner.header.userdata[..]))
     }
 
     /// Updates the userdata stored in the header of the container.
@@ -396,13 +409,16 @@ impl Container {
         self.on_open(|inner| Ok(inner.ablocks))
     }
 
-    fn on_open<R>(&self, f: impl Fn(&Inner) -> Result<R>) -> Result<R> {
+    fn on_open<'a, R>(&'a self, f: impl Fn(&'a Inner) -> Result<R>) -> Result<R> {
         self.inner
             .as_ref()
             .map_or(Err(Error::Closed), |inner| f(inner))
     }
 
-    fn on_open_mut<R>(&mut self, mut f: impl FnMut(&mut Inner) -> Result<R>) -> Result<R> {
+    fn on_open_mut<'a, R>(
+        &'a mut self,
+        mut f: impl FnMut(&'a mut Inner) -> Result<R>,
+    ) -> Result<R> {
         self.inner
             .as_mut()
             .map_or(Err(Error::Closed), |inner| f(inner))
