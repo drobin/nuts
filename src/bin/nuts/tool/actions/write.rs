@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -62,7 +62,7 @@ fn write(
 ) -> Result<()> {
     let mut writer = Writer::new(container);
 
-    for id in range.to_range() {
+    for id in range.iter() {
         writer.push_id(id);
     }
 

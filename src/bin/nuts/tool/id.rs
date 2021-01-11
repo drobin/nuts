@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,6 @@
 
 use nuts::container::Container;
 use std::cmp;
-use std::ops::Range;
 
 use crate::tool::result::Result;
 
@@ -77,12 +76,33 @@ impl IdRange {
         Ok(self)
     }
 
-    pub fn to_range(&self) -> Range<u64> {
-        assert!(self.resolved, "calling to_range on an unresolved IdRange");
+    pub fn iter(&self) -> IdRangeIterator {
+        assert!(self.resolved, "calling iter() on an unresolved IdRange");
+        IdRangeIterator::new(self.start.unwrap(), self.end.unwrap())
+    }
+}
 
-        let start = self.start.unwrap();
-        let end = self.end.unwrap() + 1;
+pub struct IdRangeIterator {
+    cur: u64,
+    end: u64,
+}
 
-        start..end
+impl IdRangeIterator {
+    fn new(start: u64, end: u64) -> IdRangeIterator {
+        IdRangeIterator { cur: start, end }
+    }
+}
+
+impl Iterator for IdRangeIterator {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cur <= self.end {
+            let val = self.cur;
+            self.cur += 1;
+            Some(val)
+        } else {
+            None
+        }
     }
 }

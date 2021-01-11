@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -71,7 +71,7 @@ fn read(
 
     reader.set_max_bytes(max_bytes);
 
-    for id in range.to_range() {
+    for id in range.iter() {
         reader.push_id(id);
     }
 
