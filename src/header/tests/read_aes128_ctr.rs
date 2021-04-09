@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,8 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use ::openssl::pkey::PKey;
-use ::openssl::sign::Signer;
 use byteorder::{ByteOrder, NetworkEndian};
 use std::io::{Cursor, ErrorKind};
 
@@ -37,9 +35,8 @@ fn mk_secret(
     blocks: u64,
     master_key: &[u8],
     master_iv: &[u8],
-    hmac_key: &[u8],
     userdata: &[u8],
-) -> (Vec<u8>, Vec<u8>) {
+) -> Vec<u8> {
     // the plain secret
     let mut plain_secret = vec![0; 512];
     let nbytes = {
@@ -50,7 +47,6 @@ fn mk_secret(
         cursor.write_binary(&blocks).unwrap();
         cursor.write_binary(&master_key.to_vec()).unwrap();
         cursor.write_binary(&master_iv.to_vec()).unwrap();
-        cursor.write_binary(&hmac_key.to_vec()).unwrap();
         cursor.write_binary(&userdata.to_vec()).unwrap();
 
         cursor.position() as usize
@@ -75,15 +71,7 @@ fn mk_secret(
         .encrypt(&plain_secret, &mut secret[4..], &wkey, &wiv)
         .unwrap();
 
-    // create hmac
-    let pkey = PKey::hmac(&[b'c'; 20]).unwrap();
-    let mut signer = Signer::new(Digest::Sha1.to_openssl(), &pkey).unwrap();
-    let mut hmac = vec![0; 4 + Digest::Sha1.size() as usize];
-
-    NetworkEndian::write_u32(&mut hmac[..4], Digest::Sha1.size());
-    signer.sign_oneshot(&mut hmac[4..], &plain_secret).unwrap();
-
-    (secret, hmac)
+    secret
 }
 
 struct Data {
@@ -93,7 +81,6 @@ struct Data {
     digest: u8,
     wkey_data: Vec<u8>,
     wrapping_iv: Vec<u8>,
-    hmac: Vec<u8>,
     secret: Vec<u8>,
 }
 
@@ -107,16 +94,11 @@ fn ok_data() -> Data {
         wrapping_iv: vec![
             0x00, 0x00, 0x00, 0x10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
         ],
-        hmac: vec![
-            0, 0, 0, 20, 208, 98, 13, 189, 168, 244, 235, 189, 4, 29, 124, 252, 76, 223, 98, 90,
-            100, 202, 104, 26,
-        ],
         secret: vec![
-            0, 0, 0, 85, 21, 41, 218, 239, 228, 245, 41, 150, 29, 113, 119, 117, 150, 178, 29, 147,
+            0, 0, 0, 61, 21, 41, 218, 239, 228, 245, 41, 150, 29, 113, 119, 117, 150, 178, 29, 147,
             144, 100, 134, 111, 47, 5, 92, 46, 136, 34, 229, 149, 229, 214, 30, 226, 197, 251, 52,
             53, 192, 49, 150, 111, 85, 161, 122, 173, 223, 205, 185, 225, 78, 217, 224, 146, 31,
-            186, 146, 196, 199, 222, 232, 79, 170, 98, 176, 179, 202, 46, 0, 142, 172, 167, 183,
-            51, 21, 62, 115, 101, 214, 190, 72, 53, 163, 199, 77, 238, 42,
+            186, 146, 196, 215, 186, 131, 37, 195,
         ],
     }
 }
@@ -130,7 +112,6 @@ fn mk_data(d: &Data) -> Vec<u8> {
     data.push(d.digest);
     data.extend_from_slice(&d.wkey_data);
     data.extend_from_slice(&d.wrapping_iv);
-    data.extend_from_slice(&d.hmac);
     data.extend_from_slice(&d.secret);
 
     data
@@ -152,7 +133,7 @@ fn ok() {
     let mut store = setup_store(true);
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
 
-    assert_eq!(nbytes, 155);
+    assert_eq!(nbytes, 107);
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::Aes128Ctr);
     assert_eq!(header.digest, Some(Digest::Sha1));
@@ -172,7 +153,6 @@ fn ok() {
     assert_eq!(header.blocks, 4711);
     assert_eq!(header.master_key, vec![b'a'; 16]);
     assert_eq!(header.master_iv, vec![b'b'; 16]);
-    assert_eq!(header.hmac_key, vec![b'c'; 20]);
     assert_eq!(header.userdata, [7, 8, 9, 10]);
 }
 
@@ -186,7 +166,7 @@ fn missing_callback() {
 
 #[test]
 fn incomplete() {
-    for i in 1..155 {
+    for i in 1..107 {
         let data = &mk_data(&ok_data())[..i];
         let mut store = setup_store(true);
         assert_io_error!(ErrorKind::UnexpectedEof, Header::read(&data, &mut store));
@@ -282,44 +262,16 @@ fn wrapping_iv_inval_size() {
 }
 
 #[test]
-fn bad_hmac() {
-    let data = mk_data(&Data {
-        hmac: vec![
-            0, 0, 0, 19, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
-        ],
-        ..ok_data()
-    });
-    let mut store = setup_store(true);
-
-    assert_inval_header!("hmac", Header::read(&data, &mut store));
-}
-
-#[test]
-fn bad_hmac_mismatch() {
-    let data = mk_data(&Data {
-        hmac: vec![
-            0, 0, 0, 20, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
-        ],
-        ..ok_data()
-    });
-    let mut store = setup_store(true);
-
-    assert_error!(Error::HmacMismatch, Header::read(&data, &mut store));
-}
-
-#[test]
 fn bad_dtype() {
-    let (secret, hmac) = mk_secret(
+    let secret = mk_secret(
         99,
         BLOCK_MIN_SIZE,
         4711,
         &[b'a'; 16],
         &[b'b'; 16],
-        &[b'c'; 20],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
@@ -330,17 +282,15 @@ fn bad_dtype() {
 
 #[test]
 fn bsize_lt_512() {
-    let (secret, hmac) = mk_secret(
+    let secret = mk_secret(
         0,
         BLOCK_MIN_SIZE - 1,
         4711,
         &[b'a'; 16],
         &[b'b'; 16],
-        &[b'c'; 20],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
@@ -350,17 +300,15 @@ fn bsize_lt_512() {
 
 #[test]
 fn bsize_inval_modulo() {
-    let (secret, hmac) = mk_secret(
+    let secret = mk_secret(
         0,
         BLOCK_MIN_SIZE + 1,
         4711,
         &[b'a'; 16],
         &[b'b'; 16],
-        &[b'c'; 20],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
@@ -370,63 +318,50 @@ fn bsize_inval_modulo() {
 
 #[test]
 fn bsize_512() {
-    let (secret, hmac) = mk_secret(
+    let secret = mk_secret(
         0,
         BLOCK_MIN_SIZE,
         4711,
         &[b'a'; 16],
         &[b'b'; 16],
-        &[b'c'; 20],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
     let mut store = setup_store(true);
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 155);
+    assert_eq!(nbytes, 107);
     assert_eq!(header.bsize, 512);
 }
 
 #[test]
 fn bsize_1024() {
-    let (secret, hmac) = mk_secret(
-        0,
-        1024,
-        4711,
-        &[b'a'; 16],
-        &[b'b'; 16],
-        &[b'c'; 20],
-        &[7, 8, 9, 10],
-    );
+    let secret = mk_secret(0, 1024, 4711, &[b'a'; 16], &[b'b'; 16], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
     let mut store = setup_store(true);
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 155);
+    assert_eq!(nbytes, 107);
     assert_eq!(header.bsize, 1024);
 }
 
 #[test]
 fn blocks_0() {
-    let (secret, hmac) = mk_secret(
+    let secret = mk_secret(
         0,
         BLOCK_MIN_SIZE,
         0,
         &[b'a'; 16],
         &[b'b'; 16],
-        &[b'c'; 20],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
@@ -436,61 +371,55 @@ fn blocks_0() {
 
 #[test]
 fn blocks_1() {
-    let (secret, hmac) = mk_secret(
+    let secret = mk_secret(
         0,
         BLOCK_MIN_SIZE,
         1,
         &[b'a'; 16],
         &[b'b'; 16],
-        &[b'c'; 20],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
     let mut store = setup_store(true);
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 155);
+    assert_eq!(nbytes, 107);
     assert_eq!(header.blocks, 1);
 }
 
 #[test]
 fn blocks_2() {
-    let (secret, hmac) = mk_secret(
+    let secret = mk_secret(
         0,
         BLOCK_MIN_SIZE,
         2,
         &[b'a'; 16],
         &[b'b'; 16],
-        &[b'c'; 20],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
     let mut store = setup_store(true);
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 155);
+    assert_eq!(nbytes, 107);
     assert_eq!(header.blocks, 2);
 }
 
 #[test]
 fn master_key_inval_size() {
-    let (secret, hmac) = mk_secret(
+    let secret = mk_secret(
         0,
         BLOCK_MIN_SIZE,
         4711,
         &[b'a'; 15],
         &[b'b'; 16],
-        &[b'c'; 20],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
@@ -501,17 +430,15 @@ fn master_key_inval_size() {
 
 #[test]
 fn master_iv_inval_size() {
-    let (secret, hmac) = mk_secret(
+    let secret = mk_secret(
         0,
         BLOCK_MIN_SIZE,
         4711,
         &[b'a'; 16],
         &[b'b'; 15],
-        &[b'c'; 20],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
@@ -521,45 +448,15 @@ fn master_iv_inval_size() {
 }
 
 #[test]
-fn hmac_key_inval_size() {
-    let (secret, hmac) = mk_secret(
-        0,
-        BLOCK_MIN_SIZE,
-        4711,
-        &[b'a'; 16],
-        &[b'b'; 16],
-        &[b'c'; 19],
-        &[7, 8, 9, 10],
-    );
-    let data = mk_data(&Data {
-        hmac,
-        secret,
-        ..ok_data()
-    });
-    let mut store = setup_store(true);
-
-    assert_inval_header!("hmac-key", Header::read(&data, &mut store));
-}
-
-#[test]
 fn empty_userdata() {
-    let (secret, hmac) = mk_secret(
-        0,
-        BLOCK_MIN_SIZE,
-        4711,
-        &[b'a'; 16],
-        &[b'b'; 16],
-        &[b'c'; 20],
-        &[],
-    );
+    let secret = mk_secret(0, BLOCK_MIN_SIZE, 4711, &[b'a'; 16], &[b'b'; 16], &[]);
     let data = mk_data(&Data {
-        hmac,
         secret,
         ..ok_data()
     });
     let mut store = setup_store(true);
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 155 - 4);
+    assert_eq!(nbytes, 107 - 4);
     assert_eq!(header.userdata, []);
 }

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -27,21 +27,16 @@ use crate::header::Header;
 use crate::password::PasswordStore;
 use crate::types::{Cipher, Digest, DiskType, WrappingKey, BLOCK_MIN_SIZE};
 
-const ENCODED_SIZE: u32 = 155;
+const ENCODED_SIZE: u32 = 107;
 const ENCODED_WKEY_DATA: [u8; 12] = [1, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3];
 const ENCODED_WRAPPING_IV: [u8; 20] = [
     0x00, 0x00, 0x00, 0x10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
 ];
-const ENCODED_HMAC: [u8; 24] = [
-    0, 0, 0, 20, 208, 98, 13, 189, 168, 244, 235, 189, 4, 29, 124, 252, 76, 223, 98, 90, 100, 202,
-    104, 26,
-];
-const ENCODED_SECRET: [u8; 89] = [
-    0, 0, 0, 85, 21, 41, 218, 239, 228, 245, 41, 150, 29, 113, 119, 117, 150, 178, 29, 147, 144,
+const ENCODED_SECRET: [u8; 65] = [
+    0, 0, 0, 61, 21, 41, 218, 239, 228, 245, 41, 150, 29, 113, 119, 117, 150, 178, 29, 147, 144,
     100, 134, 111, 47, 5, 92, 46, 136, 34, 229, 149, 229, 214, 30, 226, 197, 251, 52, 53, 192, 49,
-    150, 111, 85, 161, 122, 173, 223, 205, 185, 225, 78, 217, 224, 146, 31, 186, 146, 196, 199,
-    222, 232, 79, 170, 98, 176, 179, 202, 46, 0, 142, 172, 167, 183, 51, 21, 62, 115, 101, 214,
-    190, 72, 53, 163, 199, 77, 238, 42,
+    150, 111, 85, 161, 122, 173, 223, 205, 185, 225, 78, 217, 224, 146, 31, 186, 146, 196, 215,
+    186, 131, 37, 195,
 ];
 
 fn ok_header() -> Header {
@@ -61,7 +56,6 @@ fn ok_header() -> Header {
         blocks: 4711,
         master_key: secure_vec![b'a'; 16],
         master_iv: secure_vec![b'b'; 16],
-        hmac_key: secure_vec![b'c'; 20],
         userdata: vec![7, 8, 9, 10],
     }
 }
@@ -87,10 +81,9 @@ fn ok() {
     assert_eq!(target[9], 1); // digest
     assert_eq!(target[10..22], ENCODED_WKEY_DATA); // pbkdf2
     assert_eq!(target[22..42], ENCODED_WRAPPING_IV); // wrapping_iv
-    assert_eq!(target[42..66], ENCODED_HMAC); // hmac
-    assert_eq!(target[66..98], ENCODED_SECRET[..32]); // secret, part I
-    assert_eq!(&target[98..130], &ENCODED_SECRET[32..64]); // secret, part II
-    assert_eq!(&target[130..155], &ENCODED_SECRET[64..]); // secret, part III
+    assert_eq!(target[42..74], ENCODED_SECRET[..32]); // secret, part I
+    assert_eq!(target[74..106], ENCODED_SECRET[32..64]); // secret, part II
+    assert_eq!(&target[106..107], &ENCODED_SECRET[64..]); // secret, part III
 }
 
 #[test]
@@ -235,14 +228,6 @@ fn master_iv_inval_size() {
     header.master_iv.pop().unwrap();
 
     assert_inval_header!("master-iv", header.write(&mut target, &mut store));
-}
-
-#[test]
-fn hmac_key_inval_size() {
-    let (mut header, mut target, mut store) = setup(true);
-    header.hmac_key.pop().unwrap();
-
-    assert_inval_header!("hmac-key", header.write(&mut target, &mut store));
 }
 
 #[test]

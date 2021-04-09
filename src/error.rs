@@ -44,9 +44,6 @@ pub(crate) enum InvalHeaderError {
     /// Invalid IV.
     InvalIv,
 
-    /// Invalid HMAC.
-    InvalHmac,
-
     /// Invalid disk type.
     InvalDiskType,
 
@@ -61,9 +58,6 @@ pub(crate) enum InvalHeaderError {
 
     /// Invalid master iv.
     InvalMasterIv,
-
-    /// Invalid HMAC key.
-    InvalHmacKey,
 }
 
 impl fmt::Display for InvalHeaderError {
@@ -75,13 +69,11 @@ impl fmt::Display for InvalHeaderError {
             InvalHeaderError::InvalDigest => "digest",
             InvalHeaderError::InvalWrappingKey => "wrapping-key",
             InvalHeaderError::InvalIv => "iv",
-            InvalHeaderError::InvalHmac => "hmac",
             InvalHeaderError::InvalDiskType => "disk-type",
             InvalHeaderError::InvalBlockSize => "block-size",
             InvalHeaderError::InvalBlocks => "blocks",
             InvalHeaderError::InvalMasterKey => "master-key",
             InvalHeaderError::InvalMasterIv => "master-iv",
-            InvalHeaderError::InvalHmacKey => "hmac-key",
         };
 
         write!(fmt, "invalid {} detected", name)
@@ -132,9 +124,6 @@ pub enum Error {
 
     /// An error occured in the unterlaying OpenSSL library.
     OpenSSL(openssl::error::ErrorStack),
-
-    /// An hmac mismatch was detected.
-    HmacMismatch,
 }
 
 impl fmt::Display for Error {
@@ -154,7 +143,6 @@ impl fmt::Display for Error {
             Error::NoSpace => write!(fmt, "Not enough space available to write into a target."),
             Error::NoPassword => write!(fmt, "A password is needed by the current cipher."),
             Error::OpenSSL(cause) => write!(fmt, "An OpenSSL error occured: {}", cause),
-            Error::HmacMismatch => write!(fmt, "An hmac mismatch was detected."),
         }
     }
 }
@@ -170,7 +158,6 @@ impl error::Error for Error {
             Error::NoSpace => None,
             Error::NoPassword => None,
             Error::OpenSSL(ref err) => Some(err),
-            Error::HmacMismatch => None,
         }
     }
 }

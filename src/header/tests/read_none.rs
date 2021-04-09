@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -34,7 +34,6 @@ fn mk_secret(
     blocks: u64,
     master_key: &[u8],
     master_iv: &[u8],
-    hmac_key: &[u8],
     userdata: &[u8],
 ) -> Vec<u8> {
     let mut secret = vec![0; 512];
@@ -46,7 +45,6 @@ fn mk_secret(
         cursor.write_binary(&blocks).unwrap();
         cursor.write_binary(&master_key.to_vec()).unwrap();
         cursor.write_binary(&master_iv.to_vec()).unwrap();
-        cursor.write_binary(&hmac_key.to_vec()).unwrap();
         cursor.write_binary(&userdata.to_vec()).unwrap();
 
         cursor.position() as usize
@@ -65,7 +63,6 @@ struct Data {
     digest: u8,
     wkey_data: Vec<u8>,
     wrapping_iv: Vec<u8>,
-    hmac: Vec<u8>,
     secret: Vec<u8>,
 }
 
@@ -77,11 +74,14 @@ fn ok_data() -> Data {
         digest: 0xFF,
         wkey_data: vec![0xFF],
         wrapping_iv: vec![0x00, 0x00, 0x00, 0x00],
-        hmac: vec![0x00, 0x00, 0x00, 0x00],
         secret: vec![
-            0x00, 0x00, 0x00, 0x21, 0, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x12, 0x67, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x04, 7, 8, 9, 10,
+            0x00, 0x00, 0x00, 0x1D, // length
+            0,    // dtype
+            0x00, 0x00, 0x02, 0x00, // bsize
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x67, // blocks
+            0x00, 0x00, 0x00, 0x00, // master-key
+            0x00, 0x00, 0x00, 0x00, // master-iv
+            0x00, 0x00, 0x00, 0x04, 7, 8, 9, 10, // userdata
         ],
     }
 }
@@ -95,7 +95,6 @@ fn mk_data(d: &Data) -> Vec<u8> {
     data.push(d.digest);
     data.extend_from_slice(&d.wkey_data);
     data.extend_from_slice(&d.wrapping_iv);
-    data.extend_from_slice(&d.hmac);
     data.extend_from_slice(&d.secret);
 
     data
@@ -107,7 +106,7 @@ fn ok() {
     let mut store = PasswordStore::new();
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
 
-    assert_eq!(nbytes, 56);
+    assert_eq!(nbytes, 48);
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.digest, None);
@@ -118,7 +117,6 @@ fn ok() {
     assert_eq!(header.blocks, 4711);
     assert_eq!(header.master_key, vec![]);
     assert_eq!(header.master_iv, vec![]);
-    assert_eq!(header.hmac_key, vec![]);
     assert_eq!(header.userdata, [7, 8, 9, 10]);
 }
 
@@ -131,7 +129,7 @@ fn ok_ignored_callback() {
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
 
-    assert_eq!(nbytes, 56);
+    assert_eq!(nbytes, 48);
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.digest, None);
@@ -142,13 +140,12 @@ fn ok_ignored_callback() {
     assert_eq!(header.blocks, 4711);
     assert_eq!(header.master_key, vec![]);
     assert_eq!(header.master_iv, vec![]);
-    assert_eq!(header.hmac_key, vec![]);
     assert_eq!(header.userdata, [7, 8, 9, 10]);
 }
 
 #[test]
 fn incomplete() {
-    for i in 1..56 {
+    for i in 1..48 {
         let data = &mk_data(&ok_data())[..i];
         let mut store = PasswordStore::new();
         assert_io_error!(ErrorKind::UnexpectedEof, Header::read(&data, &mut store));
@@ -245,7 +242,7 @@ fn wrapping_iv_not_empty() {
 
 #[test]
 fn bad_dtype() {
-    let secret = mk_secret(99, BLOCK_MIN_SIZE, 4711, &[], &[], &[], &[7, 8, 9, 10]);
+    let secret = mk_secret(99, BLOCK_MIN_SIZE, 4711, &[], &[], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
@@ -257,7 +254,7 @@ fn bad_dtype() {
 
 #[test]
 fn bsize_lt_512() {
-    let secret = mk_secret(0, BLOCK_MIN_SIZE - 1, 4711, &[], &[], &[], &[7, 8, 9, 10]);
+    let secret = mk_secret(0, BLOCK_MIN_SIZE - 1, 4711, &[], &[], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
@@ -268,7 +265,7 @@ fn bsize_lt_512() {
 
 #[test]
 fn bsize_inval_modulo() {
-    let secret = mk_secret(0, BLOCK_MIN_SIZE + 1, 4711, &[], &[], &[], &[7, 8, 9, 10]);
+    let secret = mk_secret(0, BLOCK_MIN_SIZE + 1, 4711, &[], &[], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
@@ -279,7 +276,7 @@ fn bsize_inval_modulo() {
 
 #[test]
 fn bsize_512() {
-    let secret = mk_secret(0, BLOCK_MIN_SIZE, 4711, &[], &[], &[], &[7, 8, 9, 10]);
+    let secret = mk_secret(0, BLOCK_MIN_SIZE, 4711, &[], &[], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
@@ -287,13 +284,13 @@ fn bsize_512() {
     let mut store = PasswordStore::new();
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 56);
+    assert_eq!(nbytes, 48);
     assert_eq!(header.bsize, 512);
 }
 
 #[test]
 fn bsize_1024() {
-    let secret = mk_secret(0, 1024, 4711, &[], &[], &[], &[7, 8, 9, 10]);
+    let secret = mk_secret(0, 1024, 4711, &[], &[], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
@@ -301,13 +298,13 @@ fn bsize_1024() {
     let mut store = PasswordStore::new();
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 56);
+    assert_eq!(nbytes, 48);
     assert_eq!(header.bsize, 1024);
 }
 
 #[test]
 fn blocks_0() {
-    let secret = mk_secret(0, BLOCK_MIN_SIZE, 0, &[], &[], &[], &[7, 8, 9, 10]);
+    let secret = mk_secret(0, BLOCK_MIN_SIZE, 0, &[], &[], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
@@ -318,41 +315,33 @@ fn blocks_0() {
 
 #[test]
 fn blocks_1() {
-    let secret = mk_secret(0, BLOCK_MIN_SIZE, 1, &[], &[], &[], &[7, 8, 9, 10]);
+    let secret = mk_secret(0, BLOCK_MIN_SIZE, 1, &[], &[], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
     });
     let mut store = PasswordStore::new();
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 56);
+    assert_eq!(nbytes, 48);
     assert_eq!(header.blocks, 1);
 }
 
 #[test]
 fn blocks_2() {
-    let secret = mk_secret(0, BLOCK_MIN_SIZE, 2, &[], &[], &[], &[7, 8, 9, 10]);
+    let secret = mk_secret(0, BLOCK_MIN_SIZE, 2, &[], &[], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
     });
     let mut store = PasswordStore::new();
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 56);
+    assert_eq!(nbytes, 48);
     assert_eq!(header.blocks, 2);
 }
 
 #[test]
 fn master_key_not_empty() {
-    let secret = mk_secret(
-        0,
-        BLOCK_MIN_SIZE,
-        4711,
-        &[b'a'; 1],
-        &[],
-        &[],
-        &[7, 8, 9, 10],
-    );
+    let secret = mk_secret(0, BLOCK_MIN_SIZE, 4711, &[b'a'; 1], &[], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
@@ -364,15 +353,7 @@ fn master_key_not_empty() {
 
 #[test]
 fn master_iv_not_empty() {
-    let secret = mk_secret(
-        0,
-        BLOCK_MIN_SIZE,
-        4711,
-        &[],
-        &[b'b'; 1],
-        &[],
-        &[7, 8, 9, 10],
-    );
+    let secret = mk_secret(0, BLOCK_MIN_SIZE, 4711, &[], &[b'b'; 1], &[7, 8, 9, 10]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
@@ -383,28 +364,8 @@ fn master_iv_not_empty() {
 }
 
 #[test]
-fn hmac_key_not_empty() {
-    let secret = mk_secret(
-        0,
-        BLOCK_MIN_SIZE,
-        4711,
-        &[],
-        &[],
-        &[b'c'; 1],
-        &[7, 8, 9, 10],
-    );
-    let data = mk_data(&Data {
-        secret,
-        ..ok_data()
-    });
-    let mut store = PasswordStore::new();
-
-    assert_inval_header!("hmac-key", Header::read(&data, &mut store));
-}
-
-#[test]
 fn empty_userdata() {
-    let secret = mk_secret(0, BLOCK_MIN_SIZE, 4711, &[], &[], &[], &[]);
+    let secret = mk_secret(0, BLOCK_MIN_SIZE, 4711, &[], &[], &[]);
     let data = mk_data(&Data {
         secret,
         ..ok_data()
@@ -412,6 +373,6 @@ fn empty_userdata() {
     let mut store = PasswordStore::new();
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 52);
+    assert_eq!(nbytes, 44);
     assert_eq!(header.userdata, []);
 }

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,9 +23,6 @@
 #[cfg(test)]
 mod tests;
 
-use ::openssl::memcmp;
-use ::openssl::pkey::PKey;
-use ::openssl::sign::Signer;
 use log::{debug, error};
 use std::fmt;
 use std::io::{self, Cursor, Read, Write};
@@ -55,7 +52,6 @@ pub struct Header {
     pub blocks: u64,               // part of secret
     pub master_key: SecureVec<u8>, // part of secret
     pub master_iv: SecureVec<u8>,  // part of secret
-    pub hmac_key: SecureVec<u8>,   // part of secret
     pub userdata: Vec<u8>,         // part of secret
 }
 
@@ -72,7 +68,6 @@ impl Header {
             blocks: 0,
             master_key: secure_vec![],
             master_iv: secure_vec![],
-            hmac_key: secure_vec![],
             userdata: vec![],
         }
     }
@@ -80,7 +75,6 @@ impl Header {
     pub fn create(options: &Options) -> Result<Header> {
         let key_size = options.cipher.key_size() as usize;
         let iv_size = options.cipher.iv_size() as usize;
-        let hmac_size = options.md.map_or_else(|| 0, |d| d.size()) as usize;
 
         let mut wrapping_iv = vec![0; iv_size];
         let mut master_key = secure_vec![0; key_size];
@@ -101,7 +95,6 @@ impl Header {
             blocks: options.blocks(),
             master_key,
             master_iv,
-            hmac_key: secure_vec![0; hmac_size],
             userdata: vec![],
         })
     }
@@ -109,7 +102,7 @@ impl Header {
     pub fn read(source: &[u8], store: &mut PasswordStore) -> Result<(Header, u32)> {
         let mut header = Header::new();
 
-        let (hmac, cipher_secret, offset) = header.read_header(source)?;
+        let (cipher_secret, offset) = header.read_header(source)?;
 
         // Let's validate the header (except secret),
         // so you can create the wrapping key.
@@ -127,12 +120,11 @@ impl Header {
 
         header.read_secret(&plain_secret)?;
         header.validate(true)?;
-        header.verify_hmac(&plain_secret, &hmac)?;
 
         Ok((header, offset))
     }
 
-    fn read_header(&mut self, source: &[u8]) -> Result<(Vec<u8>, Vec<u8>, u32)> {
+    fn read_header(&mut self, source: &[u8]) -> Result<(Vec<u8>, u32)> {
         let mut cursor = Cursor::new(source);
 
         cursor.read_binary::<Magic>()?;
@@ -142,10 +134,9 @@ impl Header {
         self.wrapping_key = cursor.read_binary::<Option<WrappingKey>>()?;
         self.wrapping_iv = cursor.read_binary::<Vec<u8>>()?;
 
-        let hmac = cursor.read_binary::<Vec<u8>>()?;
         let cipher_secret = cursor.read_binary::<Vec<u8>>()?;
 
-        Ok((hmac, cipher_secret, cursor.position() as u32))
+        Ok((cipher_secret, cursor.position() as u32))
     }
 
     fn read_secret(&mut self, source: &[u8]) -> Result<()> {
@@ -156,7 +147,6 @@ impl Header {
         self.blocks = cursor.read_binary::<u64>()?;
         self.master_key = SecureVec::new(cursor.read_binary::<Vec<u8>>()?);
         self.master_iv = SecureVec::new(cursor.read_binary::<Vec<u8>>()?);
-        self.hmac_key = SecureVec::new(cursor.read_binary::<Vec<u8>>()?);
         self.userdata = cursor.read_binary::<Vec<u8>>()?;
 
         Ok(())
@@ -180,11 +170,10 @@ impl Header {
             &self.wrapping_iv,
         )?;
 
-        let hmac = self.create_hmac(&plain_secret)?;
-        Ok(self.write_header(target, &hmac, &cipher_secret)?)
+        Ok(self.write_header(target, &cipher_secret)?)
     }
 
-    fn write_header(&self, target: &mut [u8], hmac: &Vec<u8>, secret: &Vec<u8>) -> Result<u32> {
+    fn write_header(&self, target: &mut [u8], secret: &Vec<u8>) -> Result<u32> {
         let mut cursor = Cursor::new(target);
 
         cursor.write_binary(&Magic::new())?;
@@ -193,7 +182,6 @@ impl Header {
         cursor.write_binary(&self.digest)?;
         cursor.write_binary(&self.wrapping_key)?;
         cursor.write_binary(&self.wrapping_iv)?;
-        cursor.write_binary(hmac)?;
         cursor.write_binary(secret)?;
 
         Ok(cursor.position() as u32)
@@ -207,7 +195,6 @@ impl Header {
         cursor.write_binary(&self.blocks)?;
         cursor.write_binary(&self.master_key)?;
         cursor.write_binary(&self.master_iv)?;
-        cursor.write_binary(&self.hmac_key)?;
         cursor.write_binary(&self.userdata)?;
 
         Ok(cursor.position() as usize)
@@ -241,60 +228,9 @@ impl Header {
             self.validate_blocks()?;
             self.validate_master_key()?;
             self.validate_master_iv()?;
-            self.validate_hmac_key()?;
         }
 
         Ok(())
-    }
-
-    fn create_hmac(&self, plain_secret: &[u8]) -> Result<Vec<u8>> {
-        if let Some(md) = self.digest {
-            let pkey = PKey::hmac(&self.hmac_key)?;
-            let mut signer = Signer::new(md.to_openssl(), &pkey)?;
-
-            let mut hmac = vec![0; md.size() as usize];
-            let len = signer.sign_oneshot(&mut hmac, plain_secret)?;
-            assert_eq!(len, md.size() as usize);
-
-            debug!("HMAC created, {} bytes", md.size());
-
-            Ok(hmac)
-        } else {
-            debug!("HMAC creation skipped");
-            Ok(vec![])
-        }
-    }
-
-    fn verify_hmac(&self, plain_secret: &[u8], hmac: &[u8]) -> Result<()> {
-        if let Some(md) = self.digest {
-            if hmac.len() != md.size() as usize {
-                error!(
-                    "invalid hmac, len: {}, expected: {} ({:?})",
-                    hmac.len(),
-                    md.size(),
-                    md
-                );
-
-                return Err(Error::IoError(invalheader_error!(
-                    InvalHeaderError::InvalHmac
-                )));
-            }
-
-            let pkey = PKey::hmac(&self.hmac_key)?;
-            let mut signer = Signer::new(md.to_openssl(), &pkey)?;
-
-            let calculated_hmac = signer.sign_oneshot_to_vec(plain_secret)?;
-
-            if memcmp::eq(&calculated_hmac, hmac) {
-                debug!("HMAC verified");
-                Ok(())
-            } else {
-                Err(Error::HmacMismatch)
-            }
-        } else {
-            debug!("HMAC verification skipped");
-            Ok(())
-        }
     }
 
     fn validate_revision(&self) -> Result<()> {
@@ -424,39 +360,16 @@ impl Header {
             Ok(())
         }
     }
-
-    fn validate_hmac_key(&self) -> Result<()> {
-        let size = match self.digest {
-            Some(md) => md.size() as usize,
-            None => 0,
-        };
-
-        if self.hmac_key.len() != size {
-            error!(
-                "invalid hmac key, len: {}, expected: {} ({:?})",
-                self.hmac_key.len(),
-                size,
-                self.digest
-            );
-
-            Err(Error::IoError(invalheader_error!(
-                InvalHeaderError::InvalHmacKey
-            )))
-        } else {
-            Ok(())
-        }
-    }
 }
 
 impl fmt::Debug for Header {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let (wrapping_iv, master_key, master_iv, hmac_key, userdata) =
+        let (wrapping_iv, master_key, master_iv, userdata) =
             if cfg!(feature = "debug-plain-keys") && cfg!(debug_assertions) {
                 (
                     format!("{:?}", self.wrapping_iv),
                     format!("{:?}", self.master_key),
                     format!("{:?}", self.master_iv),
-                    format!("{:?}", self.hmac_key),
                     format!("{:?}", self.userdata),
                 )
             } else {
@@ -464,7 +377,6 @@ impl fmt::Debug for Header {
                     format!("<{} bytes>", self.wrapping_iv.len()),
                     format!("<{} bytes>", self.master_key.len()),
                     format!("<{} bytes>", self.master_iv.len()),
-                    format!("<{} bytes>", self.hmac_key.len()),
                     format!("<{} bytes>", self.userdata.len()),
                 )
             };
@@ -480,7 +392,6 @@ impl fmt::Debug for Header {
             .field("blocks", &self.blocks)
             .field("master_key", &master_key)
             .field("master_iv", &master_iv)
-            .field("hmac_key", &hmac_key)
             .field("userdata", &userdata)
             .finish()
     }

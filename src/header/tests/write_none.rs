@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -26,10 +26,15 @@ use crate::header::Header;
 use crate::password::PasswordStore;
 use crate::types::{Cipher, Digest, DiskType, WrappingKey, BLOCK_MIN_SIZE};
 
-const ENCODED_SIZE: u32 = 56;
-const ENCODED_SECRET: [u8; 37] = [
-    0, 0, 0, 33, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 18, 103, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 4, 7, 8, 9, 10,
+const ENCODED_SIZE: u32 = 48;
+const ENCODED_SECRET: [u8; 33] = [
+    0, 0, 0, 29, // secret-size
+    1,  // dtype
+    0, 0, 2, 0, // bsize
+    0, 0, 0, 0, 0, 0, 18, 103, // blocks
+    0, 0, 0, 0, // master-key (incl. len)
+    0, 0, 0, 0, // master-iv (incl. len)
+    0, 0, 0, 4, 7, 8, 9, 10, // userdata (incl. len)
 ];
 
 fn ok_header() -> Header {
@@ -44,7 +49,6 @@ fn ok_header() -> Header {
         blocks: 4711,
         master_key: secure_vec![],
         master_iv: secure_vec![],
-        hmac_key: secure_vec![],
         userdata: vec![7, 8, 9, 10],
     }
 }
@@ -64,9 +68,8 @@ fn ok() {
     assert_eq!(target[9], 0xFF); // digest
     assert_eq!(target[10], 0xFF); // pbkdf2
     assert_eq!(target[11..15], [0x00, 0x00, 0x00, 0x00]); // wrapping_iv
-    assert_eq!(target[15..19], [0x00, 0x00, 0x00, 0x00]); // hmac
-    assert_eq!(target[19..51], ENCODED_SECRET[..32]); // secret, part I
-    assert_eq!(&target[51..56], &ENCODED_SECRET[32..]); // secret, part II
+    assert_eq!(target[15..47], ENCODED_SECRET[..32]); // secret, part I
+    assert_eq!(&target[47..48], &ENCODED_SECRET[32..]); // secret, part II
 }
 
 #[test]
@@ -82,9 +85,8 @@ fn ok_ignored_callback() {
     assert_eq!(target[9], 0xFF); // digest
     assert_eq!(target[10], 0xFF); // pbkdf2
     assert_eq!(target[11..15], [0x00, 0x00, 0x00, 0x00]); // wrapping_iv
-    assert_eq!(target[15..19], [0x00, 0x00, 0x00, 0x00]); // hmac
-    assert_eq!(target[19..51], ENCODED_SECRET[..32]); // secret, part I
-    assert_eq!(&target[51..56], &ENCODED_SECRET[32..]); // secret, part II
+    assert_eq!(target[15..47], ENCODED_SECRET[..32]); // secret, part I
+    assert_eq!(&target[47..48], &ENCODED_SECRET[32..]); // secret, part II
 }
 
 #[test]
@@ -222,14 +224,6 @@ fn master_iv_not_empty() {
     header.master_iv.insert(0, b'x');
 
     assert_inval_header!("master-iv", header.write(&mut target, &mut store));
-}
-
-#[test]
-fn hmac_key_inval_size() {
-    let (mut header, mut target, mut store) = setup();
-    header.hmac_key.insert(0, b'x');
-
-    assert_inval_header!("hmac-key", header.write(&mut target, &mut store));
 }
 
 #[test]
