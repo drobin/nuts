@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -49,7 +49,6 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
 fn print_info(sub: &ArgMatches, container: &Container) -> tool::result::Result<()> {
     if !sub.is_present("quiet") {
         println!("cipher:           {}", container.cipher()?.to_str());
-        println!("digest:           {}", container.digest()?.to_str());
         match container.wrapping_key()? {
             Some(wkey) => {
                 let spec = WrappingKeySpec::from_wrapping_key(&wkey);

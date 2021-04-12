@@ -31,47 +31,6 @@ fn size_sha1() {
 }
 
 #[test]
-fn from_binary_option_sha1() {
-    let mut c = Cursor::new(&[1]);
-    assert_eq!(
-        Option::<Digest>::from_binary(&mut c).unwrap(),
-        Some(Digest::Sha1)
-    );
-}
-
-#[test]
-fn from_binary_option_none() {
-    let mut c = Cursor::new(&[0xFF]);
-    assert_eq!(Option::<Digest>::from_binary(&mut c).unwrap(), None);
-}
-
-#[test]
-fn from_binary_option_inval() {
-    let mut c = Cursor::new(&[2]);
-    let err = Option::<Digest>::from_binary(&mut c).unwrap_err();
-
-    assert_eq!(err.kind(), ErrorKind::InvalidData);
-    assert_eq!(format!("{}", err), "invalid digest detected");
-}
-
-#[test]
-fn into_binary_option_sha1() {
-    let mut c = Cursor::new(Vec::new());
-
-    Some(Digest::Sha1).into_binary(&mut c).unwrap();
-    assert_eq!(c.into_inner(), [1]);
-}
-
-#[test]
-fn into_binary_option_none() {
-    let mut c = Cursor::new(Vec::new());
-    let none: Option<Digest> = None;
-
-    none.into_binary(&mut c).unwrap();
-    assert_eq!(c.into_inner(), [0xFF]);
-}
-
-#[test]
 fn from_binary_sha1() {
     let mut c = Cursor::new(&[1]);
     assert_eq!(Digest::from_binary(&mut c).unwrap(), Digest::Sha1);

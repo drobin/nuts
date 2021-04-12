@@ -230,33 +230,10 @@ impl FromBinary for Digest {
     }
 }
 
-impl FromBinary for Option<Digest> {
-    fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
-        match u8::from_binary(r)? {
-            1 => Ok(Some(Digest::Sha1)),
-            0xFF => Ok(None),
-            _ => Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                InvalHeaderError::InvalDigest,
-            )),
-        }
-    }
-}
-
 impl IntoBinary for Digest {
     fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
         match self {
             Digest::Sha1 => 1u8,
-        }
-        .into_binary(w)
-    }
-}
-
-impl IntoBinary for Option<Digest> {
-    fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
-        match self {
-            Some(Digest::Sha1) => 1u8,
-            None => 0xFFu8,
         }
         .into_binary(w)
     }

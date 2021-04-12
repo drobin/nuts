@@ -26,7 +26,7 @@ use crate::header::Header;
 use crate::password::PasswordStore;
 use crate::types::{Cipher, Digest, DiskType, WrappingKey, BLOCK_MIN_SIZE};
 
-const ENCODED_SIZE: u32 = 48;
+const ENCODED_SIZE: u32 = 47;
 const ENCODED_SECRET: [u8; 33] = [
     0, 0, 0, 29, // secret-size
     1,  // dtype
@@ -41,7 +41,6 @@ fn ok_header() -> Header {
     Header {
         revision: 1,
         cipher: Cipher::None,
-        digest: None,
         wrapping_key: None,
         wrapping_iv: vec![],
         dtype: DiskType::FatRandom,
@@ -65,11 +64,10 @@ fn ok() {
     assert_eq!(target[0..7], [b'n', b'u', b't', b's', b'-', b'i', b'o']); // magic
     assert_eq!(target[7], 1); // revision
     assert_eq!(target[8], 0); // cipher
-    assert_eq!(target[9], 0xFF); // digest
-    assert_eq!(target[10], 0xFF); // pbkdf2
-    assert_eq!(target[11..15], [0x00, 0x00, 0x00, 0x00]); // wrapping_iv
-    assert_eq!(target[15..47], ENCODED_SECRET[..32]); // secret, part I
-    assert_eq!(&target[47..48], &ENCODED_SECRET[32..]); // secret, part II
+    assert_eq!(target[9], 0xFF); // pbkdf2
+    assert_eq!(target[10..14], [0x00, 0x00, 0x00, 0x00]); // wrapping_iv
+    assert_eq!(target[14..46], ENCODED_SECRET[..32]); // secret, part I
+    assert_eq!(&target[46..47], &ENCODED_SECRET[32..]); // secret, part II
 }
 
 #[test]
@@ -82,11 +80,10 @@ fn ok_ignored_callback() {
     assert_eq!(target[0..7], [b'n', b'u', b't', b's', b'-', b'i', b'o']); // magic
     assert_eq!(target[7], 1); // revision
     assert_eq!(target[8], 0); // cipher
-    assert_eq!(target[9], 0xFF); // digest
-    assert_eq!(target[10], 0xFF); // pbkdf2
-    assert_eq!(target[11..15], [0x00, 0x00, 0x00, 0x00]); // wrapping_iv
-    assert_eq!(target[15..47], ENCODED_SECRET[..32]); // secret, part I
-    assert_eq!(&target[47..48], &ENCODED_SECRET[32..]); // secret, part II
+    assert_eq!(target[9], 0xFF); // pbkdf2
+    assert_eq!(target[10..14], [0x00, 0x00, 0x00, 0x00]); // wrapping_iv
+    assert_eq!(target[14..46], ENCODED_SECRET[..32]); // secret, part I
+    assert_eq!(&target[46..47], &ENCODED_SECRET[32..]); // secret, part II
 }
 
 #[test]
@@ -102,29 +99,12 @@ fn no_space() {
 }
 
 #[test]
-fn digest_none() {
-    let (mut header, mut target, mut store) = setup();
-    header.digest = None;
-
-    assert_eq!(header.write(&mut target, &mut store).unwrap(), ENCODED_SIZE);
-    assert_eq!(target[9], 0xFF);
-}
-
-#[test]
-fn digest_sha1() {
-    let (mut header, mut target, mut store) = setup();
-    header.digest = Some(Digest::Sha1);
-
-    assert_inval_header!("digest", header.write(&mut target, &mut store));
-}
-
-#[test]
 fn wrapping_key_data_none() {
     let (mut header, mut target, mut store) = setup();
     header.wrapping_key = None;
 
     assert_eq!(header.write(&mut target, &mut store).unwrap(), ENCODED_SIZE);
-    assert_eq!(target[10], 0xFF);
+    assert_eq!(target[9], 0xFF);
 }
 
 #[test]

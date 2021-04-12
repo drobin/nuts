@@ -27,7 +27,7 @@ use crate::header::Header;
 use crate::password::PasswordStore;
 use crate::types::{Cipher, Digest, DiskType, WrappingKey, BLOCK_MIN_SIZE};
 
-const ENCODED_SIZE: u32 = 108;
+const ENCODED_SIZE: u32 = 107;
 const ENCODED_WKEY_DATA: [u8; 13] = [
     1, 0x01, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3,
 ];
@@ -45,7 +45,6 @@ fn ok_header() -> Header {
     Header {
         revision: 1,
         cipher: Cipher::Aes128Ctr,
-        digest: Some(Digest::Sha1),
         wrapping_key: Some(WrappingKey::Pbkdf2 {
             digest: Digest::Sha1,
             iterations: 4711,
@@ -81,12 +80,11 @@ fn ok() {
     assert_eq!(target[0..7], [b'n', b'u', b't', b's', b'-', b'i', b'o']); // magic
     assert_eq!(target[7], 1); // revision
     assert_eq!(target[8], 1); // cipher
-    assert_eq!(target[9], 1); // digest
-    assert_eq!(target[10..23], ENCODED_WKEY_DATA); // pbkdf2
-    assert_eq!(target[23..43], ENCODED_WRAPPING_IV); // wrapping_iv
-    assert_eq!(target[43..75], ENCODED_SECRET[..32]); // secret, part I
-    assert_eq!(target[75..107], ENCODED_SECRET[32..64]); // secret, part II
-    assert_eq!(&target[107..108], &ENCODED_SECRET[64..]); // secret, part III
+    assert_eq!(target[9..22], ENCODED_WKEY_DATA); // pbkdf2
+    assert_eq!(target[22..42], ENCODED_WRAPPING_IV); // wrapping_iv
+    assert_eq!(target[42..74], ENCODED_SECRET[..32]); // secret, part I
+    assert_eq!(target[74..106], ENCODED_SECRET[32..64]); // secret, part II
+    assert_eq!(&target[106..107], &ENCODED_SECRET[64..]); // secret, part III
 }
 
 #[test]
@@ -109,23 +107,6 @@ fn no_space() {
 }
 
 #[test]
-fn digest_none() {
-    let (mut header, mut target, mut store) = setup(true);
-    header.digest = None;
-
-    assert_inval_header!("digest", header.write(&mut target, &mut store));
-}
-
-#[test]
-fn digest_sha1() {
-    let (mut header, mut target, mut store) = setup(true);
-    header.digest = Some(Digest::Sha1);
-
-    assert_eq!(header.write(&mut target, &mut store).unwrap(), ENCODED_SIZE);
-    assert_eq!(target[9], 1);
-}
-
-#[test]
 fn wrapping_key_data_none() {
     let (mut header, mut target, mut store) = setup(true);
     header.wrapping_key = None;
@@ -143,7 +124,7 @@ fn wrapping_key_data_pbkdf2() {
     });
 
     assert_eq!(header.write(&mut target, &mut store).unwrap(), ENCODED_SIZE);
-    assert_eq!(target[10..23], ENCODED_WKEY_DATA);
+    assert_eq!(target[9..22], ENCODED_WKEY_DATA);
 }
 
 #[test]
@@ -159,7 +140,7 @@ fn wrapping_iv() {
     let (header, mut target, mut store) = setup(true);
 
     assert_eq!(header.write(&mut target, &mut store).unwrap(), ENCODED_SIZE);
-    assert_eq!(target[23..43], ENCODED_WRAPPING_IV);
+    assert_eq!(target[22..42], ENCODED_WRAPPING_IV);
 }
 
 #[test]

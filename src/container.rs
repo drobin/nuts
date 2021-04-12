@@ -29,7 +29,7 @@ use crate::container::inner::Inner;
 use crate::error::Error;
 use crate::password::PasswordStore;
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType, Options, WrappingKey};
+use crate::types::{Cipher, DiskType, Options, WrappingKey};
 
 pub struct Container {
     store: PasswordStore,
@@ -303,27 +303,6 @@ impl Container {
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn cipher(&self) -> Result<Cipher> {
         self.on_open(|inner| Ok(inner.header.cipher))
-    }
-
-    /// Returns the [`Digest`] used by the container.
-    ///
-    /// If encryption is enabled (the cipher is set to something other than
-    /// [`Cipher::None`]), the digest is wrapped into a [`Some`] value. If the
-    /// cipher is set to [`Cipher::None`], no digest is used and a [`None`]
-    /// value is returned.
-    ///
-    /// # Errors
-    ///
-    /// The method will return an [`Error::Closed`] error, if the container is
-    /// closed.
-    ///
-    /// [`Digest`]: ../types/enum.Digest.html
-    /// [`Cipher::None`]: ../types/enum.Cipher.html#variant.None
-    /// [`Some`]: https://doc.rust-lang.org/std/option/enum.Option.html#Some.v
-    /// [`None`]: https://doc.rust-lang.org/std/option/enum.Option.html#None.v
-    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
-    pub fn digest(&self) -> Result<Option<Digest>> {
-        self.on_open(|inner| Ok(inner.header.digest))
     }
 
     /// Returns the [`DiskType`] used by the container.

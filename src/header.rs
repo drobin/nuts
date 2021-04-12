@@ -32,7 +32,7 @@ use crate::io::{BinaryRead, BinaryWrite, FromBinary, IntoBinary};
 use crate::password::PasswordStore;
 use crate::rand::random;
 use crate::result::Result;
-use crate::types::{Cipher, Digest, DiskType, Options, WrappingKey, BLOCK_MIN_SIZE};
+use crate::types::{Cipher, DiskType, Options, WrappingKey, BLOCK_MIN_SIZE};
 use crate::utils::SecureVec;
 
 macro_rules! invalheader_error {
@@ -44,7 +44,6 @@ macro_rules! invalheader_error {
 pub struct Header {
     pub revision: u8,
     pub cipher: Cipher,
-    pub digest: Option<Digest>,
     pub wrapping_key: Option<WrappingKey>,
     pub wrapping_iv: Vec<u8>,
     pub dtype: DiskType,           // part of secret
@@ -60,7 +59,6 @@ impl Header {
         Header {
             revision: 0,
             cipher: Cipher::None,
-            digest: None,
             wrapping_key: None,
             wrapping_iv: vec![],
             dtype: DiskType::FatZero,
@@ -87,7 +85,6 @@ impl Header {
         Ok(Header {
             revision: 1,
             cipher: options.cipher,
-            digest: options.md,
             wrapping_key: options.wkey.clone(),
             wrapping_iv,
             dtype: options.dtype,
@@ -130,7 +127,6 @@ impl Header {
         cursor.read_binary::<Magic>()?;
         self.revision = cursor.read_binary::<Revision>()?.rev;
         self.cipher = cursor.read_binary::<Cipher>()?;
-        self.digest = cursor.read_binary::<Option<Digest>>()?;
         self.wrapping_key = cursor.read_binary::<Option<WrappingKey>>()?;
         self.wrapping_iv = cursor.read_binary::<Vec<u8>>()?;
 
@@ -179,7 +175,6 @@ impl Header {
         cursor.write_binary(&Magic::new())?;
         cursor.write_binary(&Revision::new(self.revision))?;
         cursor.write_binary(&self.cipher)?;
-        cursor.write_binary(&self.digest)?;
         cursor.write_binary(&self.wrapping_key)?;
         cursor.write_binary(&self.wrapping_iv)?;
         cursor.write_binary(secret)?;
@@ -216,7 +211,6 @@ impl Header {
 
     fn validate(&self, include_secure: bool) -> Result<()> {
         self.validate_revision()?;
-        self.validate_digest()?;
         self.validate_wrapping_key_data()?;
         self.validate_wrapping_iv()?;
 
@@ -238,27 +232,6 @@ impl Header {
             Err(Error::IoError(invalheader_error!(
                 InvalHeaderError::InvalRevision
             )))
-        }
-    }
-
-    fn validate_digest(&self) -> Result<()> {
-        if self.cipher == Cipher::None && self.digest.is_some() {
-            error!(
-                "invalid digest {:?} for cipher {:?}",
-                self.digest.unwrap(),
-                self.cipher
-            );
-
-            Err(Error::IoError(invalheader_error!(
-                InvalHeaderError::InvalDigest
-            )))
-        } else if self.cipher != Cipher::None && self.digest.is_none() {
-            error!("invalid digest None for cipher {:?}", self.cipher);
-            Err(Error::IoError(invalheader_error!(
-                InvalHeaderError::InvalDigest
-            )))
-        } else {
-            Ok(())
         }
     }
 
@@ -381,7 +354,6 @@ impl fmt::Debug for Header {
         fmt.debug_struct("Header")
             .field("revision", &self.revision)
             .field("cipher", &self.cipher)
-            .field("digest", &self.digest)
             .field("wrapping_key", &self.wrapping_key)
             .field("wrapping_iv", &wrapping_iv)
             .field("dtype", &self.dtype)

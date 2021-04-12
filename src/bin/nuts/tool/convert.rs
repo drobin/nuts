@@ -60,26 +60,6 @@ impl Convert for Cipher {
     }
 }
 
-impl Convert for Option<Digest> {
-    fn from_str(s: &str) -> Result<Self> {
-        match s {
-            "none" => Ok(None),
-            "sha1" => Ok(Some(Digest::Sha1)),
-            _ => {
-                let msg = format!("invalid digest: {}", s);
-                Err(Error::new(&msg))
-            }
-        }
-    }
-
-    fn to_str(&self) -> String {
-        match self {
-            None => String::from("none"),
-            Some(Digest::Sha1) => String::from("sha1"),
-        }
-    }
-}
-
 impl Convert for Digest {
     fn from_str(s: &str) -> Result<Self> {
         match s {

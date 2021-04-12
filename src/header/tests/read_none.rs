@@ -60,7 +60,6 @@ struct Data {
     magic: Vec<u8>,
     revision: u8,
     cipher: u8,
-    digest: u8,
     wkey_data: Vec<u8>,
     wrapping_iv: Vec<u8>,
     secret: Vec<u8>,
@@ -71,7 +70,6 @@ fn ok_data() -> Data {
         magic: vec![b'n', b'u', b't', b's', b'-', b'i', b'o'],
         revision: 1,
         cipher: 0,
-        digest: 0xFF,
         wkey_data: vec![0xFF],
         wrapping_iv: vec![0x00, 0x00, 0x00, 0x00],
         secret: vec![
@@ -92,7 +90,6 @@ fn mk_data(d: &Data) -> Vec<u8> {
     data.extend_from_slice(&d.magic);
     data.push(d.revision);
     data.push(d.cipher);
-    data.push(d.digest);
     data.extend_from_slice(&d.wkey_data);
     data.extend_from_slice(&d.wrapping_iv);
     data.extend_from_slice(&d.secret);
@@ -106,10 +103,9 @@ fn ok() {
     let mut store = PasswordStore::new();
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
 
-    assert_eq!(nbytes, 48);
+    assert_eq!(nbytes, 47);
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
-    assert_eq!(header.digest, None);
     assert_eq!(header.wrapping_key, None);
     assert_eq!(header.wrapping_iv, []);
     assert_eq!(header.dtype, DiskType::FatZero);
@@ -129,10 +125,9 @@ fn ok_ignored_callback() {
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
 
-    assert_eq!(nbytes, 48);
+    assert_eq!(nbytes, 47);
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
-    assert_eq!(header.digest, None);
     assert_eq!(header.wrapping_key, None);
     assert_eq!(header.wrapping_iv, []);
     assert_eq!(header.dtype, DiskType::FatZero);
@@ -145,7 +140,7 @@ fn ok_ignored_callback() {
 
 #[test]
 fn incomplete() {
-    for i in 1..48 {
+    for i in 1..47 {
         let data = &mk_data(&ok_data())[..i];
         let mut store = PasswordStore::new();
         assert_io_error!(ErrorKind::UnexpectedEof, Header::read(&data, &mut store));
@@ -183,28 +178,6 @@ fn bad_cipher() {
     let mut store = PasswordStore::new();
 
     assert_inval_header!("cipher", Header::read(&data, &mut store));
-}
-
-#[test]
-fn bad_digest() {
-    let data = mk_data(&Data {
-        digest: 99,
-        ..ok_data()
-    });
-    let mut store = PasswordStore::new();
-
-    assert_inval_header!("digest", Header::read(&data, &mut store));
-}
-
-#[test]
-fn digest_sha1() {
-    let data = mk_data(&Data {
-        digest: 1,
-        ..ok_data()
-    });
-    let mut store = PasswordStore::new();
-
-    assert_inval_header!("digest", Header::read(&data, &mut store));
 }
 
 #[test]
@@ -286,7 +259,7 @@ fn bsize_512() {
     let mut store = PasswordStore::new();
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 48);
+    assert_eq!(nbytes, 47);
     assert_eq!(header.bsize, 512);
 }
 
@@ -300,7 +273,7 @@ fn bsize_1024() {
     let mut store = PasswordStore::new();
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 48);
+    assert_eq!(nbytes, 47);
     assert_eq!(header.bsize, 1024);
 }
 
@@ -324,7 +297,7 @@ fn blocks_1() {
     });
     let mut store = PasswordStore::new();
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 48);
+    assert_eq!(nbytes, 47);
     assert_eq!(header.blocks, 1);
 }
 
@@ -337,7 +310,7 @@ fn blocks_2() {
     });
     let mut store = PasswordStore::new();
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 48);
+    assert_eq!(nbytes, 47);
     assert_eq!(header.blocks, 2);
 }
 
@@ -375,6 +348,6 @@ fn empty_userdata() {
     let mut store = PasswordStore::new();
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 44);
+    assert_eq!(nbytes, 43);
     assert_eq!(header.userdata, []);
 }

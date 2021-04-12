@@ -88,7 +88,6 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
 
     if !sub.is_present("quiet") {
         println!("cipher:           {}", container.cipher()?.to_str());
-        println!("digest:           {}", container.digest()?.to_str());
         match container.wrapping_key()? {
             Some(wkey) => {
                 let spec = WrappingKeySpec::from_wrapping_key(&wkey);
