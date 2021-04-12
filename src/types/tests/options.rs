@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -31,6 +31,7 @@ fn default() {
     assert_eq!(
         options.wkey,
         Some(WrappingKey::Pbkdf2 {
+            digest: Digest::Sha1,
             iterations: 65536,
             salt: RND[..16].to_vec()
         })
@@ -59,6 +60,7 @@ fn default_with_cipher_aes128_ctr() {
     assert_eq!(
         options.wkey,
         Some(WrappingKey::Pbkdf2 {
+            digest: Digest::Sha1,
             iterations: 65536,
             salt: RND[..16].to_vec(),
         })
@@ -105,7 +107,7 @@ fn set_dtype_thin_random() {
 fn set_wkey_none_cipher() {
     let mut options = Options::default_with_cipher(Cipher::None).unwrap();
 
-    options.set_wkey(WrappingKey::generate_pbkdf2(1, 2).unwrap());
+    options.set_wkey(WrappingKey::generate_pbkdf2(Digest::Sha1, 1, 2).unwrap());
     assert_eq!(options.wkey, None);
 }
 
@@ -113,8 +115,14 @@ fn set_wkey_none_cipher() {
 fn set_wkey_some_cipher() {
     let mut options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
 
-    options.set_wkey(WrappingKey::generate_pbkdf2(1, 2).unwrap());
-    if let Some(WrappingKey::Pbkdf2 { iterations, salt }) = options.wkey {
+    options.set_wkey(WrappingKey::generate_pbkdf2(Digest::Sha1, 1, 2).unwrap());
+    if let Some(WrappingKey::Pbkdf2 {
+        digest,
+        iterations,
+        salt,
+    }) = options.wkey
+    {
+        assert_eq!(digest, Digest::Sha1);
         assert_eq!(iterations, 1);
         assert_eq!(salt.len(), 2);
     } else {

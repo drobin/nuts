@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -56,9 +56,15 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
             let wkey_spec = WrappingKeySpec::from_str(wkey_spec)?;
 
             let WrappingKey::Pbkdf2 {
+                digest: default_digest,
                 iterations: default_iterations,
                 salt: default_salt,
             } = wkey_data;
+
+            let digest = match wkey_spec.digest {
+                Some(d) => d,
+                None => *default_digest,
+            };
 
             let iterations = match wkey_spec.iterations {
                 Some(n) => n,
@@ -70,7 +76,7 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
                 None => default_salt.len() as u32,
             };
 
-            let wkey = WrappingKey::generate_pbkdf2(iterations, salt_len)?;
+            let wkey = WrappingKey::generate_pbkdf2(digest, iterations, salt_len)?;
             options.set_wkey(wkey);
         }
     };

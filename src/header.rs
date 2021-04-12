@@ -203,11 +203,8 @@ impl Header {
     fn create_wrapping_key(&self, store: &mut PasswordStore) -> Result<SecureVec<u8>> {
         let wrapping_key = match self.wrapping_key.as_ref() {
             Some(wkey_data) => {
-                let digest = self.digest.ok_or(Error::IoError(invalheader_error!(
-                    InvalHeaderError::InvalDigest
-                )))?;
                 let password = store.value()?;
-                wkey_data.create_wrapping_key(password, digest)?
+                wkey_data.create_wrapping_key(password)?
             }
             None => secure_vec![],
         };

@@ -221,7 +221,9 @@ fn bad_wrapping_key_data() {
 #[test]
 fn wrapping_key_data_pbkdf2() {
     let data = mk_data(&Data {
-        wkey_data: vec![1, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3],
+        wkey_data: vec![
+            1, 0x01, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3,
+        ],
         ..ok_data()
     });
     let mut store = PasswordStore::new();

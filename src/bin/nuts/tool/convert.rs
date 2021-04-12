@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -76,6 +76,24 @@ impl Convert for Option<Digest> {
         match self {
             None => String::from("none"),
             Some(Digest::Sha1) => String::from("sha1"),
+        }
+    }
+}
+
+impl Convert for Digest {
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "sha1" => Ok(Digest::Sha1),
+            _ => {
+                let msg = format!("invalid digest: {}", s);
+                Err(Error::new(&msg))
+            }
+        }
+    }
+
+    fn to_str(&self) -> String {
+        match self {
+            Digest::Sha1 => String::from("sha1"),
         }
     }
 }
@@ -210,6 +228,7 @@ where
 
 pub struct WrappingKeySpec {
     pub algorithm: String,
+    pub digest: Option<Digest>,
     pub iterations: Option<u32>,
     pub salt_len: Option<u32>,
 }
@@ -218,16 +237,22 @@ impl WrappingKeySpec {
     fn new(algorithm: &str) -> WrappingKeySpec {
         WrappingKeySpec {
             algorithm: algorithm.to_string(),
+            digest: None,
             iterations: None,
             salt_len: None,
         }
     }
 
     pub fn from_wrapping_key(wrapping_key: &WrappingKey) -> WrappingKeySpec {
-        let WrappingKey::Pbkdf2 { iterations, salt } = wrapping_key;
+        let WrappingKey::Pbkdf2 {
+            digest,
+            iterations,
+            salt,
+        } = wrapping_key;
 
         WrappingKeySpec {
             algorithm: "pbkdf2".to_string(),
+            digest: Some(*digest),
             iterations: Some(*iterations),
             salt_len: Some(salt.len() as u32),
         }
@@ -237,15 +262,19 @@ impl WrappingKeySpec {
 fn from_pbkdf2_str(v: &Vec<&str>) -> Result<WrappingKeySpec> {
     if v.len() == 1 {
         Ok(WrappingKeySpec::new(v[0]))
-    } else if v.len() == 3 {
+    } else if v.len() == 4 {
         let mut spec = WrappingKeySpec::new(v[0]);
 
         if !v[1].is_empty() {
-            spec.iterations = Some(v[1].parse::<u32>()?);
+            spec.digest = Some(Digest::from_str(v[1])?);
         }
 
         if !v[2].is_empty() {
-            spec.salt_len = Some(v[2].parse::<u32>()?);
+            spec.iterations = Some(v[2].parse::<u32>()?);
+        }
+
+        if !v[3].is_empty() {
+            spec.salt_len = Some(v[3].parse::<u32>()?);
         }
 
         Ok(spec)
@@ -277,6 +306,10 @@ impl Convert for WrappingKeySpec {
     }
 
     fn to_str(&self) -> String {
+        let digest = match self.digest {
+            Some(d) => d.to_str(),
+            None => "".to_string(),
+        };
         let iterations = match self.iterations {
             Some(n) => n.to_string(),
             None => "".to_string(),
@@ -286,7 +319,7 @@ impl Convert for WrappingKeySpec {
             None => "".to_string(),
         };
 
-        format!("{}:{}:{}", self.algorithm, iterations, salt_len)
+        format!("{}:{}:{}:{}", self.algorithm, digest, iterations, salt_len)
     }
 }
 

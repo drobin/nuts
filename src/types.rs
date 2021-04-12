@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -218,6 +218,18 @@ impl Digest {
     }
 }
 
+impl FromBinary for Digest {
+    fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
+        match u8::from_binary(r)? {
+            1 => Ok(Digest::Sha1),
+            _ => Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                InvalHeaderError::InvalDigest,
+            )),
+        }
+    }
+}
+
 impl FromBinary for Option<Digest> {
     fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
         match u8::from_binary(r)? {
@@ -228,6 +240,15 @@ impl FromBinary for Option<Digest> {
                 InvalHeaderError::InvalDigest,
             )),
         }
+    }
+}
+
+impl IntoBinary for Digest {
+    fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
+        match self {
+            Digest::Sha1 => 1u8,
+        }
+        .into_binary(w)
     }
 }
 
@@ -255,6 +276,9 @@ impl IntoBinary for Option<Digest> {
 pub enum WrappingKey {
     /// PBKDF2
     Pbkdf2 {
+        /// Digest used by PBKDF2.
+        digest: Digest,
+
         /// Number of iterations used by PBKDF2.
         iterations: u32,
 
@@ -266,21 +290,24 @@ pub enum WrappingKey {
 impl WrappingKey {
     /// Creates a `WrappingKey` instance for the PBKDF2 algorithm.
     ///
-    /// The `iterations` and the `salt` values are used to customize the PBKDF2
-    /// algorithm.
+    /// The `digest`, `iterations` and the `salt` values are used to customize
+    /// the PBKDF2 algorithm.
     ///
     /// # Examples
     ///
     /// ```rust
     /// use nuts::types::*;
     ///
-    /// let WrappingKey::Pbkdf2 { iterations, salt } = WrappingKey::pbkdf2(5, &[1, 2, 3]);
+    /// let WrappingKey::Pbkdf2 { digest, iterations, salt } =
+    ///     WrappingKey::pbkdf2(Digest::Sha1, 5, &[1, 2, 3]);
     ///
+    /// assert_eq!(digest, Digest::Sha1);
     /// assert_eq!(iterations, 5);
     /// assert_eq!(salt, [1, 2, 3]);
     /// ```
-    pub fn pbkdf2(iterations: u32, salt: &[u8]) -> WrappingKey {
+    pub fn pbkdf2(digest: Digest, iterations: u32, salt: &[u8]) -> WrappingKey {
         WrappingKey::Pbkdf2 {
+            digest,
             iterations,
             salt: salt.to_vec(),
         }
@@ -288,8 +315,9 @@ impl WrappingKey {
 
     /// Generates a `WrappingKey` instance for the PBKDF2 algorithm.
     ///
-    /// The `iterations` value is used to customize the PBKDF2 algorithm.
-    /// For the [`salt`] `salt_len` bytes of random data are generated.
+    /// The `digest`and `iterations` value is used to customize the PBKDF2
+    /// algorithm. For the [`salt`] `salt_len` bytes of random data are
+    /// generated.
     ///
     /// # Errors
     ///
@@ -301,34 +329,39 @@ impl WrappingKey {
     /// ```rust
     /// use nuts::types::*;
     ///
-    /// let WrappingKey::Pbkdf2 { iterations, salt } =
-    /// WrappingKey::generate_pbkdf2(5, 3).unwrap();
+    /// let WrappingKey::Pbkdf2 { digest, iterations, salt } =
+    ///     WrappingKey::generate_pbkdf2(Digest::Sha1, 5, 3).unwrap();
     ///
+    /// assert_eq!(digest, Digest::Sha1);
     /// assert_eq!(iterations, 5);
     /// assert_eq!(salt.len(), 3); // salt filled with random data
     /// ```
     ///
     /// [`salt`]: #variant.Pbkdf2.field.salt
     /// [`Error::OpenSSL`]: ../error/enum.Error.html#variant.OpenSSL
-    pub fn generate_pbkdf2(iterations: u32, salt_len: u32) -> Result<WrappingKey> {
+    pub fn generate_pbkdf2(digest: Digest, iterations: u32, salt_len: u32) -> Result<WrappingKey> {
         let mut salt = vec![0; salt_len as usize];
         random(&mut salt)?;
 
-        Ok(WrappingKey::Pbkdf2 { iterations, salt })
+        Ok(WrappingKey::Pbkdf2 {
+            digest,
+            iterations,
+            salt,
+        })
     }
 
-    pub(crate) fn create_wrapping_key(
-        &self,
-        password: &[u8],
-        digest: Digest,
-    ) -> Result<SecureVec<u8>> {
+    pub(crate) fn create_wrapping_key(&self, password: &[u8]) -> Result<SecureVec<u8>> {
         if password.is_empty() {
             let msg = format!("invalid password, cannot be empty");
             error!("{}", msg);
             return Err(Error::InvalArg(msg));
         }
 
-        let WrappingKey::Pbkdf2 { iterations, salt } = self;
+        let WrappingKey::Pbkdf2 {
+            digest,
+            iterations,
+            salt,
+        } = self;
 
         if salt.is_empty() {
             let msg = format!("invalid salt, cannot be empty");
@@ -347,9 +380,14 @@ impl WrappingKey {
 
 impl Clone for WrappingKey {
     fn clone(&self) -> Self {
-        let WrappingKey::Pbkdf2 { iterations, salt } = self;
+        let WrappingKey::Pbkdf2 {
+            digest,
+            iterations,
+            salt,
+        } = self;
 
         WrappingKey::Pbkdf2 {
+            digest: digest.clone(),
             iterations: iterations.clone(),
             salt: salt.to_vec(),
         }
@@ -358,15 +396,18 @@ impl Clone for WrappingKey {
 
 impl fmt::Debug for WrappingKey {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            WrappingKey::Pbkdf2 { iterations, salt } => {
-                let salt = format!("<{} bytes>", salt.len());
-                fmt.debug_struct("Pbkdf2")
-                    .field("iterations", &iterations)
-                    .field("salt", &salt)
-                    .finish()
-            }
-        }
+        let WrappingKey::Pbkdf2 {
+            digest,
+            iterations,
+            salt,
+        } = self;
+
+        let salt = format!("<{} bytes>", salt.len());
+        fmt.debug_struct("Pbkdf2")
+            .field("digest", &digest)
+            .field("iterations", &iterations)
+            .field("salt", &salt)
+            .finish()
     }
 }
 
@@ -374,10 +415,11 @@ impl FromBinary for Option<WrappingKey> {
     fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
         match u8::from_binary(r)? {
             1 => {
+                let digest = Digest::from_binary(r)?;
                 let iterations = u32::from_binary(r)?;
                 let salt = Vec::<u8>::from_binary(r)?;
 
-                Ok(Some(WrappingKey::pbkdf2(iterations, &salt)))
+                Ok(Some(WrappingKey::pbkdf2(digest, iterations, &salt)))
             }
             0xFF => Ok(None),
             _ => Err(io::Error::new(
@@ -392,9 +434,14 @@ impl IntoBinary for Option<WrappingKey> {
     fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
         match self {
             Some(data) => {
-                let WrappingKey::Pbkdf2 { iterations, salt } = data;
+                let WrappingKey::Pbkdf2 {
+                    digest,
+                    iterations,
+                    salt,
+                } = data;
 
                 1u8.into_binary(w)?;
+                digest.into_binary(w)?;
                 iterations.into_binary(w)?;
                 salt.into_binary(w)?;
 
@@ -492,7 +539,8 @@ impl Options {
     ///
     /// let options = Options::default().unwrap();
     ///
-    /// let WrappingKey::Pbkdf2 { iterations, salt } = options.wkey().unwrap();
+    /// let WrappingKey::Pbkdf2 { digest, iterations, salt } = options.wkey().unwrap();
+    /// assert_eq!(*digest, Digest::Sha1);
     /// assert_eq!(*iterations, 65536);
     /// assert_eq!(salt.len(), 16); // salt is filled with random data
     ///
@@ -518,7 +566,8 @@ impl Options {
     ///
     /// let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
     ///
-    /// let WrappingKey::Pbkdf2 { iterations, salt } = options.wkey().unwrap();
+    /// let WrappingKey::Pbkdf2 { digest, iterations, salt } = options.wkey().unwrap();
+    /// assert_eq!(*digest, Digest::Sha1);
     /// assert_eq!(*iterations, 65536);
     /// assert_eq!(salt.len(), 16); // salt is filled with random data
     ///
@@ -558,6 +607,7 @@ impl Options {
                 cipher: cipher,
                 md: Some(DEFAULT_DIGEST),
                 wkey: Some(WrappingKey::generate_pbkdf2(
+                    DEFAULT_DIGEST,
                     DEFAULT_PBKDF2_ITERATIONS,
                     DEFAULT_PBKDF2_SALT_LEN,
                 )?),

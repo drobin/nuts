@@ -131,6 +131,7 @@ fn wrapping_key_data_none() {
 fn wrapping_key_data_pbkdf2() {
     let (mut header, mut target, mut store) = setup();
     header.wrapping_key = Some(WrappingKey::Pbkdf2 {
+        digest: Digest::Sha1,
         iterations: 4711,
         salt: vec![1, 2, 3],
     });

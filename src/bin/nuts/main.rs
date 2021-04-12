@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -26,7 +26,7 @@ extern crate lazy_static;
 mod tool;
 
 use clap::{App, AppSettings, Arg, SubCommand};
-use nuts::types::{Cipher, DiskType, Options, WrappingKey};
+use nuts::types::{Cipher, Digest, DiskType, Options, WrappingKey};
 
 use crate::tool::actions::general_args;
 use crate::tool::contrib::clap::is_valid;
@@ -100,12 +100,13 @@ fn run_tool() -> Result<()> {
     let range_write_help = "Range of block ids to write.";
     let userdata_help = "If set, dumps the userdata stored in the header.";
     let wrapping_key_help = {
-        let (iterations, salt_len) = match options.wkey() {
+        let (digest, iterations, salt_len) = match options.wkey() {
             Some(WrappingKey::Pbkdf2 {
+                digest,
                 iterations,
                 ref salt,
-            }) => (*iterations, salt.len()),
-            None => (0, 0),
+            }) => (*digest, *iterations, salt.len()),
+            None => (Digest::Sha1, 0, 0),
         };
         format!("Specifies the wrapping key algorithm. The default is pbkdf2.\n\n\
             There are two ways to specify the wrapping key algorithm. The short form only specifies the algorithm \
@@ -113,9 +114,10 @@ fn run_tool() -> Result<()> {
             separated by a colon. A section can empty. In this case a default value is taken. The number of sections \
             and its meaning depends on the algorithm.\n\n\
             Algorithm: PBKDF2\n\
-            Value: pbkdf2[:[<ITERATIONS>]:[<SALT_LENGTH>]] (Selects PBKDF2 with the given number of iterations \
-            (default: {pbkdf2_iterations}) and salt length (default: {pbkdf2_salt_len}).",
-            pbkdf2_iterations = iterations, pbkdf2_salt_len = salt_len)
+            Value: pbkdf2[:[<DIGEST>]:[<ITERATIONS>]:[<SALT_LENGTH>]] (Selects PBKDF2 with the given digest (default: \
+            {pbkdf2_digest}), the given number of iterations (default: {pbkdf2_iterations}) and salt length (default: \
+            {pbkdf2_salt_len}).",
+            pbkdf2_digest = digest.to_str(), pbkdf2_iterations = iterations, pbkdf2_salt_len = salt_len)
     };
 
     let matches = App::new("nuts")

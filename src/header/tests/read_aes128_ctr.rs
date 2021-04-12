@@ -55,10 +55,11 @@ fn mk_secret(
 
     // encrypt into secret
     let wkey = WrappingKey::Pbkdf2 {
+        digest: Digest::Sha1,
         iterations: 4711,
         salt: vec![1, 2, 3],
     }
-    .create_wrapping_key(b"123", Digest::Sha1)
+    .create_wrapping_key(b"123")
     .unwrap();
 
     let wiv = [
@@ -90,7 +91,9 @@ fn ok_data() -> Data {
         revision: 1,
         cipher: 1,
         digest: 1,
-        wkey_data: vec![1, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3],
+        wkey_data: vec![
+            1, 0x01, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3,
+        ],
         wrapping_iv: vec![
             0x00, 0x00, 0x00, 0x10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
         ],
@@ -133,13 +136,14 @@ fn ok() {
     let mut store = setup_store(true);
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
 
-    assert_eq!(nbytes, 107);
+    assert_eq!(nbytes, 108);
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::Aes128Ctr);
     assert_eq!(header.digest, Some(Digest::Sha1));
     assert_eq!(
         header.wrapping_key,
         Some(WrappingKey::Pbkdf2 {
+            digest: Digest::Sha1,
             iterations: 4711,
             salt: vec![1, 2, 3]
         })
@@ -166,7 +170,7 @@ fn missing_callback() {
 
 #[test]
 fn incomplete() {
-    for i in 1..107 {
+    for i in 1..108 {
         let data = &mk_data(&ok_data())[..i];
         let mut store = setup_store(true);
         assert_io_error!(ErrorKind::UnexpectedEof, Header::read(&data, &mut store));
@@ -333,7 +337,7 @@ fn bsize_512() {
     let mut store = setup_store(true);
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 107);
+    assert_eq!(nbytes, 108);
     assert_eq!(header.bsize, 512);
 }
 
@@ -347,7 +351,7 @@ fn bsize_1024() {
     let mut store = setup_store(true);
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 107);
+    assert_eq!(nbytes, 108);
     assert_eq!(header.bsize, 1024);
 }
 
@@ -385,7 +389,7 @@ fn blocks_1() {
     });
     let mut store = setup_store(true);
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 107);
+    assert_eq!(nbytes, 108);
     assert_eq!(header.blocks, 1);
 }
 
@@ -405,7 +409,7 @@ fn blocks_2() {
     });
     let mut store = setup_store(true);
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 107);
+    assert_eq!(nbytes, 108);
     assert_eq!(header.blocks, 2);
 }
 
@@ -457,6 +461,6 @@ fn empty_userdata() {
     let mut store = setup_store(true);
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 107 - 4);
+    assert_eq!(nbytes, 108 - 4);
     assert_eq!(header.userdata, []);
 }

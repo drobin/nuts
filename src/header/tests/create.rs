@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -47,6 +47,7 @@ fn cipher_aes128_ctr() {
     assert_eq!(
         header.wrapping_key,
         Some(WrappingKey::Pbkdf2 {
+            digest: Digest::Sha1,
             iterations: 65536,
             salt: RND[..16].to_vec()
         })
