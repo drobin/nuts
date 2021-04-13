@@ -41,6 +41,11 @@ macro_rules! invalheader_error {
     };
 }
 
+const HEADER_MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
+const SECRET_MAGIC: [u8; 11] = [
+    b'n', b'u', b't', b's', b'-', b's', b'e', b'c', b'r', b'e', b't',
+];
+
 pub struct Header {
     pub revision: u8,
     pub cipher: Cipher,
@@ -138,6 +143,17 @@ impl Header {
     fn read_secret(&mut self, source: &[u8]) -> Result<()> {
         let mut cursor = Cursor::new(source);
 
+        if self.cipher != Cipher::None {
+            let mut magic = [0; SECRET_MAGIC.len()]; // nuts-secret
+            cursor.read_exact(&mut magic)?;
+            debug!("secret-magic: {:x?}", magic);
+
+            if magic != SECRET_MAGIC {
+                error!("invalid secret-magic");
+                return Err(Error::WrongPassword);
+            }
+        }
+
         self.dtype = cursor.read_binary::<DiskType>()?;
         self.bsize = cursor.read_binary::<u32>()?;
         self.blocks = cursor.read_binary::<u64>()?;
@@ -184,6 +200,10 @@ impl Header {
 
     fn write_secret(&self, target: &mut [u8]) -> Result<usize> {
         let mut cursor = Cursor::new(target);
+
+        if self.cipher != Cipher::None {
+            cursor.write_all(&SECRET_MAGIC)?;
+        }
 
         cursor.write_binary(&self.dtype)?;
         cursor.write_binary(&self.bsize)?;
@@ -366,15 +386,15 @@ impl fmt::Debug for Header {
     }
 }
 
-const MAGIC: [u8; 7] = [b'n', b'u', b't', b's', b'-', b'i', b'o'];
-
 struct Magic {
     magic: [u8; 7],
 }
 
 impl Magic {
     fn new() -> Magic {
-        Magic { magic: MAGIC }
+        Magic {
+            magic: HEADER_MAGIC,
+        }
     }
 }
 
@@ -386,7 +406,7 @@ impl FromBinary for Magic {
             *n = u8::from_binary(r)?;
         }
 
-        if m.magic == MAGIC {
+        if m.magic == HEADER_MAGIC {
             Ok(m)
         } else {
             error!("invalid magic: {:x?}", m.magic);

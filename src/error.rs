@@ -122,6 +122,9 @@ pub enum Error {
     /// A password is needed by the current cipher.
     NoPassword,
 
+    /// The password is wrong.
+    WrongPassword,
+
     /// An error occured in the unterlaying OpenSSL library.
     OpenSSL(openssl::error::ErrorStack),
 }
@@ -142,6 +145,7 @@ impl fmt::Display for Error {
             Error::NoData => write!(fmt, "Not enough data available to read from a source."),
             Error::NoSpace => write!(fmt, "Not enough space available to write into a target."),
             Error::NoPassword => write!(fmt, "A password is needed by the current cipher."),
+            Error::WrongPassword => write!(fmt, "The password is wrong."),
             Error::OpenSSL(cause) => write!(fmt, "An OpenSSL error occured: {}", cause),
         }
     }
@@ -157,6 +161,7 @@ impl error::Error for Error {
             Error::NoData => None,
             Error::NoSpace => None,
             Error::NoPassword => None,
+            Error::WrongPassword => None,
             Error::OpenSSL(ref err) => Some(err),
         }
     }

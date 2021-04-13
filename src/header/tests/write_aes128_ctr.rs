@@ -27,18 +27,19 @@ use crate::header::Header;
 use crate::password::PasswordStore;
 use crate::types::{Cipher, Digest, DiskType, WrappingKey, BLOCK_MIN_SIZE};
 
-const ENCODED_SIZE: u32 = 107;
+const ENCODED_SIZE: u32 = 118;
 const ENCODED_WKEY_DATA: [u8; 13] = [
     1, 0x01, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3,
 ];
 const ENCODED_WRAPPING_IV: [u8; 20] = [
     0x00, 0x00, 0x00, 0x10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
 ];
-const ENCODED_SECRET: [u8; 65] = [
-    0, 0, 0, 61, 21, 41, 218, 239, 228, 245, 41, 150, 29, 113, 119, 117, 150, 178, 29, 147, 144,
-    100, 134, 111, 47, 5, 92, 46, 136, 34, 229, 149, 229, 214, 30, 226, 197, 251, 52, 53, 192, 49,
-    150, 111, 85, 161, 122, 173, 223, 205, 185, 225, 78, 217, 224, 146, 31, 186, 146, 196, 215,
-    186, 131, 37, 195,
+const ENCODED_SECRET: [u8; 76] = [
+    0, 0, 0, 72, 122, 92, 174, 158, 201, 134, 76, 245, 111, 20, 3, 102, 241, 178, 31, 147,
+    128, 5, 231, 14, 78, 100, 47, 40, 233, 67, 132, 228, 229, 214, 30, 226, 197, 154, 85,
+    84, 177, 50, 149, 108, 86, 162, 121, 174, 189, 175, 219, 147, 78, 217, 224, 146, 31,
+    216, 240, 166, 177, 223, 233, 78, 171, 99, 177, 178, 169, 77, 99, 233, 200, 204, 221,
+    90,
 ];
 
 fn ok_header() -> Header {
@@ -84,7 +85,7 @@ fn ok() {
     assert_eq!(target[22..42], ENCODED_WRAPPING_IV); // wrapping_iv
     assert_eq!(target[42..74], ENCODED_SECRET[..32]); // secret, part I
     assert_eq!(target[74..106], ENCODED_SECRET[32..64]); // secret, part II
-    assert_eq!(&target[106..107], &ENCODED_SECRET[64..]); // secret, part III
+    assert_eq!(&target[106..118], &ENCODED_SECRET[64..]); // secret, part III
 }
 
 #[test]
