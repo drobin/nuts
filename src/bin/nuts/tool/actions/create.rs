@@ -23,7 +23,7 @@
 use clap::ArgMatches;
 
 use nuts::container::Container;
-use nuts::types::{Cipher, DiskType, Options, WrappingKey};
+use nuts::types::{Cipher, DiskType, OptionsBuilder, WrappingKey};
 
 use crate::tool;
 use crate::tool::convert::{Convert, Size, WrappingKeySpec};
@@ -38,20 +38,20 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     };
 
     let path = sub.value_of("PATH").unwrap();
-    let mut options = Options::default_with_cipher(cipher)?;
+    let mut builder = OptionsBuilder::new(cipher);
 
     if let Some(bsize) = sub.value_of("block-size") {
-        options.set_bsize(Size::<u32>::from_str(bsize)?.nbytes)?;
+        builder.with_bsize(Size::<u32>::from_str(bsize)?.nbytes);
     }
 
     let size = Size::<u64>::from_str(sub.value_of("SIZE").unwrap())?.nbytes;
-    options.set_size(size);
+    builder.with_size(size);
 
     if let Some(dtype) = sub.value_of("disk-type") {
-        options.set_dtype(DiskType::from_str(dtype)?);
+        builder.with_dtype(DiskType::from_str(dtype)?);
     }
 
-    if let Some(wkey_data) = options.wkey() {
+    if let Some(wkey_data) = OptionsBuilder::new(cipher).build()?.wkey() {
         if let Some(wkey_spec) = sub.value_of("wrapping-key") {
             let wkey_spec = WrappingKeySpec::from_str(wkey_spec)?;
 
@@ -77,14 +77,14 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
             };
 
             let wkey = WrappingKey::generate_pbkdf2(digest, iterations, salt_len)?;
-            options.set_wkey(wkey);
+            builder.with_wkey(wkey);
         }
     };
 
     let mut container = Container::new();
 
     container.set_password_callback(tool::utils::ask_for_password);
-    container.create(path, &options)?;
+    container.create(path, &builder.build()?)?;
 
     if !sub.is_present("quiet") {
         println!("cipher:           {}", container.cipher()?.to_str());

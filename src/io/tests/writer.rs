@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -28,16 +28,17 @@ use crate::container::Container;
 use crate::io::Writer;
 use crate::rand::RND;
 use crate::result::Result;
-use crate::types::{Cipher, DiskType, Options, BLOCK_MIN_SIZE};
+use crate::types::{Cipher, DiskType, OptionsBuilder, BLOCK_MIN_SIZE};
 
 fn setup() -> (TempDir, Container) {
     let tmp_dir = TempDir::new().unwrap();
     let path: PathBuf = [tmp_dir.path(), Path::new("container")].iter().collect();
-    let mut options = Options::default_with_cipher(Cipher::None).unwrap();
-
-    options.set_dtype(DiskType::FatZero);
-    options.set_bsize(BLOCK_MIN_SIZE).unwrap();
-    options.set_blocks(4).unwrap();
+    let options = OptionsBuilder::new(Cipher::None)
+        .with_dtype(DiskType::FatZero)
+        .with_bsize(BLOCK_MIN_SIZE)
+        .with_blocks(4)
+        .build()
+        .unwrap();
 
     let mut container = Container::new();
     container.create(path, &options).unwrap();

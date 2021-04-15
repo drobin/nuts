@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -25,17 +25,19 @@ use tempfile::TempDir;
 
 use crate::container::inner::Inner;
 use crate::password::PasswordStore;
-use crate::types::{Cipher, DiskType, Options};
+use crate::types::{Cipher, DiskType, Options, OptionsBuilder};
 
 fn setup(dtype: DiskType, bsize: u32) -> (TempDir, PathBuf, Options, PasswordStore) {
     let tmp_dir = TempDir::new().unwrap();
     let path: PathBuf = [tmp_dir.path(), Path::new("container")].iter().collect();
-    let mut options = Options::default_with_cipher(Cipher::None).unwrap();
     let store = PasswordStore::new();
 
-    options.set_dtype(dtype);
-    options.set_bsize(bsize).unwrap();
-    options.set_blocks(3).unwrap();
+    let options = OptionsBuilder::new(Cipher::None)
+        .with_dtype(dtype)
+        .with_bsize(bsize)
+        .with_blocks(3)
+        .build()
+        .unwrap();
 
     (tmp_dir, path, options, store)
 }

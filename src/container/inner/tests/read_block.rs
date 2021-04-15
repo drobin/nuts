@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -29,7 +29,7 @@ use crate::error::Error;
 use crate::header::Header;
 use crate::password::PasswordStore;
 use crate::rand::RND;
-use crate::types::{Cipher, DiskType, Options};
+use crate::types::{Cipher, DiskType, OptionsBuilder};
 
 const SOURCE: [u8; 1024] = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
@@ -90,11 +90,12 @@ fn setup_container(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> In
     let mut store = PasswordStore::new();
 
     {
-        let mut options = Options::default_with_cipher(Cipher::None).unwrap();
-
-        options.set_dtype(dtype);
-        options.set_bsize(bsize).unwrap();
-        options.set_blocks(blocks).unwrap();
+        let options = OptionsBuilder::new(Cipher::None)
+            .with_dtype(dtype)
+            .with_bsize(bsize)
+            .with_blocks(blocks)
+            .build()
+            .unwrap();
 
         let mut inner = Inner::create(&path, &options, &mut store).unwrap();
         let nbytes = (bsize as u64 * (ablocks - 1)) as usize;

@@ -22,11 +22,11 @@
 
 use crate::header::Header;
 use crate::rand::RND;
-use crate::types::{Cipher, Digest, Options, WrappingKey};
+use crate::types::{Cipher, Digest, OptionsBuilder, WrappingKey};
 
 #[test]
 fn cipher_none() {
-    let options = Options::default_with_cipher(Cipher::None).unwrap();
+    let options = OptionsBuilder::new(Cipher::None).build().unwrap();
     let header = Header::create(&options).unwrap();
 
     assert_eq!(header.revision, 1);
@@ -37,7 +37,7 @@ fn cipher_none() {
 
 #[test]
 fn cipher_aes128_ctr() {
-    let options = Options::default_with_cipher(Cipher::Aes128Ctr).unwrap();
+    let options = OptionsBuilder::new(Cipher::Aes128Ctr).build().unwrap();
     let header = Header::create(&options).unwrap();
 
     assert_eq!(header.revision, 1);

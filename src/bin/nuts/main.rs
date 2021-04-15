@@ -26,7 +26,7 @@ extern crate lazy_static;
 mod tool;
 
 use clap::{App, AppSettings, Arg, SubCommand};
-use nuts::types::{Cipher, Digest, DiskType, Options, WrappingKey};
+use nuts::types::{Cipher, Digest, DiskType, OptionsBuilder, WrappingKey};
 
 use crate::tool::actions::general_args;
 use crate::tool::contrib::clap::is_valid;
@@ -48,7 +48,7 @@ fn main() {
 fn run_tool() -> Result<()> {
     tool::logger::init();
 
-    let options = Options::default()?; // for defaults
+    let options = OptionsBuilder::default().build()?; // for defaults
 
     let cipher_list = [Cipher::Aes128Ctr, Cipher::None]
         .iter()

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -36,7 +36,7 @@
 //! // The following example creates a container.
 //!
 //! use nuts::container::Container;
-//! use nuts::types::Options;
+//! use nuts::types::OptionsBuilder;
 //! use tempfile::tempdir;
 //!
 //! // We put the container (named `container`) in a temporary directory.
@@ -50,7 +50,7 @@
 //!
 //! // You need some options to create the container. Here we take some
 //! // defaults for simplicity.
-//! let options = Options::default().unwrap();
+//! let options = OptionsBuilder::default().build().unwrap();
 //!
 //! // Before creating the container using the `create()` method, you need to
 //! // assign a password callback. The returned password encrypts the secret
@@ -66,7 +66,7 @@
 //! // The following example opens an already existing container.
 //!
 //! use nuts::container::Container;
-//! use nuts::types::Options;
+//! use nuts::types::OptionsBuilder;
 //! use std::path::Path;
 //! use tempfile::tempdir;
 //!
@@ -74,7 +74,7 @@
 //! // default options.
 //! fn create_container(file: &Path) {
 //!   let mut container = Container::new();
-//!   let options = Options::default().unwrap();
+//!   let options = OptionsBuilder::default().build().unwrap();
 //!
 //!   container.set_password_callback(|| Ok(vec![1, 2, 3]));
 //!   container.create(&file, &options).unwrap();
@@ -107,7 +107,7 @@
 //! // back.
 //!
 //! use nuts::container::Container;
-//! use nuts::types::Options;
+//! use nuts::types::OptionsBuilder;
 //! use std::path::Path;
 //! use tempfile::tempdir;
 //!
@@ -118,7 +118,7 @@
 //! // For the example we create a container with some default options.
 //!
 //! let mut container = Container::new();
-//! let options = Options::default().unwrap();
+//! let options = OptionsBuilder::default().build().unwrap();
 //!
 //! container.set_password_callback(|| Ok(vec![1, 2, 3]));
 //! container.create(&file, &options).unwrap();
