@@ -75,6 +75,28 @@ impl Header {
         }
     }
 
+    pub(crate) fn key_for(&self, block_id: u64) -> SecureVec<u8> {
+        let mut key = secure_vec![0; self.master_key.len()];
+        let block_id = block_id.to_be_bytes();
+
+        for (idx, by) in key.iter_mut().enumerate() {
+            *by = self.master_key[idx] ^ block_id[idx % block_id.len()];
+        }
+
+        key
+    }
+
+    pub(crate) fn iv_for(&self, block_id: u64) -> SecureVec<u8> {
+        let mut iv = secure_vec![0; self.master_iv.len()];
+        let block_id = block_id.to_be_bytes();
+
+        for (idx, by) in iv.iter_mut().enumerate() {
+            *by = self.master_iv[idx] ^ block_id[idx % block_id.len()];
+        }
+
+        iv
+    }
+
     pub fn create(options: &Options) -> Result<Header> {
         let key_size = options.cipher.key_size() as usize;
         let iv_size = options.cipher.iv_size() as usize;

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -150,8 +150,8 @@ impl Inner {
             self.header.cipher.decrypt(
                 &cipher_block,
                 &mut plain_block,
-                &self.header.master_key,
-                &self.header.master_iv,
+                &self.header.key_for(id),
+                &self.header.iv_for(id),
             )?;
 
             buf.copy_from_slice(&plain_block.get(..buf.len()).unwrap());
@@ -223,8 +223,8 @@ impl Inner {
         cipher.encrypt(
             &plain_block,
             &mut cipher_block,
-            &self.header.master_key,
-            &self.header.master_iv,
+            &self.header.key_for(id),
+            &self.header.iv_for(id),
         )?;
 
         self.seek_block(id)?;
