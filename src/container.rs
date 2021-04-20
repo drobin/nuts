@@ -318,16 +318,52 @@ impl Container {
         self.on_open(|inner| Ok(inner.header.dtype))
     }
 
-    /// Returns the block size of the container.
+    /// Returns the gross block size of the container.
+    ///
+    /// The gross block size is the block size you pass to [`create()`] when
+    /// creating a container. The [net block size] is the number of bytes you
+    /// can actually store in a block. Depending on the selected cipher, you
+    /// might store additionally information in the block, thus the (net)
+    /// number of bytes you can store in a block is smaller than the gross
+    /// block size.
     ///
     /// # Errors
     ///
     /// The method will return an [`Error::Closed`] error, if the container is
     /// closed.
     ///
+    /// [net block size]: #method.bsize
+    /// [`create()`]: #method.create
+    /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
+    pub fn bsize_gross(&self) -> Result<u32> {
+        self.on_open(|inner| Ok(inner.header.bsize))
+    }
+
+    /// Returns the (net) block size of the container.
+    ///
+    /// The net block size is the number of bytes you can store in a block. It
+    /// can be less than the gross block size you pass to [`create()`] when
+    /// creating a container.
+    ///
+    /// Depending on the selected cipher, you need to store additional data in
+    /// a block. I.e. an AE-cipher results into a tag, which needs to be stored
+    /// additionally. Such data must be substracted from the gross block size
+    /// and results into the net block size.
+    ///
+    /// # Errors
+    ///
+    /// The method will return an [`Error::Closed`] error, if the container is
+    /// closed.
+    ///
+    /// [`create()`]: #method.create
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn bsize(&self) -> Result<u32> {
-        self.on_open(|inner| Ok(inner.header.bsize))
+        self.on_open(|inner| {
+            let tag_size = inner.header.cipher.tag_size();
+            let net_bsize = inner.header.bsize - tag_size;
+
+            Ok(net_bsize)
+        })
     }
 
     /// Returns the number of blocks which can be allocated for the container.
