@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -54,6 +54,16 @@ fn block_size_none() {
 #[test]
 fn block_size_aes128_ctr() {
     assert_eq!(Cipher::Aes128Ctr.block_size(), 1);
+}
+
+#[test]
+fn tag_size_none() {
+    assert_eq!(Cipher::None.tag_size(), 0);
+}
+
+#[test]
+fn tag_size_aes128_ctr() {
+    assert_eq!(Cipher::Aes128Ctr.tag_size(), 0);
 }
 
 #[test]

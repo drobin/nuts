@@ -71,6 +71,23 @@ impl Cipher {
         }
     }
 
+    /// Returns the tag size of the cipher.
+    ///
+    /// An AE-cipher results into a
+    ///
+    /// 1. ciphertext
+    /// 2. tag
+    ///
+    /// Ciphertext and tag are both stored in a block of the container. Use
+    /// this method to get the size of the tag. For a non-AE-cipher the
+    /// tag-size is `0`.
+    pub fn tag_size(&self) -> u32 {
+        match self {
+            Cipher::None => 0,
+            Cipher::Aes128Ctr => 0,
+        }
+    }
+
     pub(crate) fn encrypt(
         &self,
         input: &[u8],
