@@ -49,26 +49,22 @@ pub enum Cipher {
 impl Cipher {
     /// Returns the key size of the cipher.
     pub fn key_size(&self) -> u32 {
-        match self {
-            Cipher::None => 0,
-            Cipher::Aes128Ctr => 16,
-        }
+        self.to_openssl()
+            .map_or(0, |cipher| cipher.key_len() as u32)
     }
 
     /// Returns the IV size of the cipher.
     pub fn iv_size(&self) -> u32 {
-        match self {
-            Cipher::None => 0,
-            Cipher::Aes128Ctr => 16,
+        match self.to_openssl() {
+            Some(cipher) => cipher.iv_len().unwrap_or(0) as u32,
+            None => 0,
         }
     }
 
     /// Returns the block size of the cipher.
     pub fn block_size(&self) -> u32 {
-        match self {
-            Cipher::None => 1,
-            Cipher::Aes128Ctr => 1,
-        }
+        self.to_openssl()
+            .map_or(1, |cipher| cipher.block_size() as u32)
     }
 
     /// Returns the tag size of the cipher.
@@ -116,33 +112,48 @@ impl Cipher {
         key: &[u8],
         iv: &[u8],
     ) -> Result<()> {
+        self.assert_input(input)?;
+
         if let Some(cipher) = self.to_openssl() {
-            Cipher::crypt_with_cipher(cipher, mode, input, output, key, iv)
+            let key = Self::assert_key(&cipher, key)?;
+            let iv = Self::assert_iv(&cipher, iv)?;
+
+            let mut crypter = Crypter::new(cipher, mode, key, Some(iv))?;
+            crypter.pad(false);
+
+            let count = crypter.update(input, output)?;
+            assert_eq!(count, output.len());
+
+            Ok(())
         } else {
-            assert_eq!(self, &Cipher::None);
-            Cipher::crypt_none(input, output)
+            output.copy_from_slice(input);
+            Ok(())
         }
     }
 
-    fn crypt_with_cipher(
-        cipher: symm::Cipher,
-        mode: Mode,
-        input: &[u8],
-        output: &mut [u8],
-        key: &[u8],
-        iv: &[u8],
-    ) -> Result<()> {
-        if input.len() % cipher.block_size() != 0 {
+    pub(crate) fn to_openssl(&self) -> Option<symm::Cipher> {
+        match self {
+            Cipher::Aes128Ctr => Some(symm::Cipher::aes_128_ctr()),
+            Cipher::None => None,
+        }
+    }
+
+    fn assert_input(&self, buf: &[u8]) -> Result<()> {
+        if buf.len() % self.block_size() as usize != 0 {
             let msg = format!(
                 "length of input {} mut be a multiple of block-size {}",
-                input.len(),
-                cipher.block_size()
+                buf.len(),
+                self.block_size()
             );
             error!("{}", msg);
             return Err(Error::InvalArg(msg));
+        } else {
+            Ok(())
         }
+    }
 
-        let key = key.get(..cipher.key_len()).ok_or_else(|| {
+    fn assert_key<'a>(cipher: &symm::Cipher, key: &'a [u8]) -> Result<&'a [u8]> {
+        key.get(..cipher.key_len()).ok_or_else(|| {
             let msg = format!(
                 "key too short, at least {} bytes needed but got {}",
                 cipher.key_len(),
@@ -150,9 +161,11 @@ impl Cipher {
             );
             error!("{}", msg);
             Error::InvalArg(msg)
-        })?;
+        })
+    }
 
-        let iv = if let Some(len) = cipher.iv_len() {
+    fn assert_iv<'a>(cipher: &symm::Cipher, iv: &'a [u8]) -> Result<&'a [u8]> {
+        if let Some(len) = cipher.iv_len() {
             iv.get(..len).ok_or_else(|| {
                 let msg = format!(
                     "iv too short, at least {} bytes needed but got {}",
@@ -161,29 +174,9 @@ impl Cipher {
                 );
                 error!("{}", msg);
                 Error::InvalArg(msg)
-            })?
+            })
         } else {
             panic!("no support for a cipher without iv");
-        };
-
-        let mut crypter = Crypter::new(cipher, mode, key, Some(iv))?;
-        crypter.pad(false);
-
-        let count = crypter.update(input, output)?;
-        assert_eq!(count, output.len());
-
-        Ok(())
-    }
-
-    fn crypt_none(input: &[u8], output: &mut [u8]) -> Result<()> {
-        output.copy_from_slice(input);
-        Ok(())
-    }
-
-    pub(crate) fn to_openssl(&self) -> Option<symm::Cipher> {
-        match self {
-            Cipher::Aes128Ctr => Some(symm::Cipher::aes_128_ctr()),
-            Cipher::None => None,
         }
     }
 }
