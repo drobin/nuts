@@ -45,6 +45,7 @@ impl Convert for Cipher {
         match s.as_ref() {
             "none" => Ok(Cipher::None),
             "aes128-ctr" => Ok(Cipher::Aes128Ctr),
+            "aes128-gcm" => Ok(Cipher::Aes128Gcm),
             _ => {
                 let msg = format!("invalid cipher: {}", s);
                 Err(Error::new(&msg))
@@ -56,6 +57,7 @@ impl Convert for Cipher {
         match self {
             Cipher::None => String::from("none"),
             Cipher::Aes128Ctr => String::from("aes128-ctr"),
+            Cipher::Aes128Gcm => String::from("aes128-gcm"),
         }
     }
 }

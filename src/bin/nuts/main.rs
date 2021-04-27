@@ -50,7 +50,7 @@ fn run_tool() -> Result<()> {
 
     let options = OptionsBuilder::default().build()?; // for defaults
 
-    let cipher_list = [Cipher::Aes128Ctr, Cipher::None]
+    let cipher_list = [Cipher::Aes128Ctr, Cipher::Aes128Gcm, Cipher::None]
         .iter()
         .map(|c| c.to_str())
         .collect::<Vec<String>>();

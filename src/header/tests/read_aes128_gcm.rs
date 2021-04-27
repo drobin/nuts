@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020, 2021 Robin Doer
+// Copyright (c) 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -63,17 +63,14 @@ fn mk_secret(
     .create_wrapping_key(b"123")
     .unwrap();
 
-    let wiv = [
-        13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
-    ];
+    let wiv = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
 
-    let mut secret = (plain_secret.len() as u32).to_be_bytes().to_vec();
-    secret.extend(
-        Cipher::Aes128Ctr
-            .encrypt(&plain_secret, &wkey, &wiv)
-            .unwrap()
-            .iter(),
-    );
+    let cipher_secret = Cipher::Aes128Gcm
+        .encrypt(&plain_secret, &wkey, &wiv)
+        .unwrap();
+
+    let mut secret = (cipher_secret.len() as u32).to_be_bytes().to_vec();
+    secret.extend(cipher_secret.iter());
 
     secret
 }
@@ -91,19 +88,19 @@ fn ok_data() -> Data {
     Data {
         magic: vec![b'n', b'u', b't', b's', b'-', b'i', b'o'],
         revision: 1,
-        cipher: 1,
+        cipher: 2,
         wkey_data: vec![
             1, 0x01, 0x00, 0x00, 0x12, 0x67, 0x00, 0x00, 0x00, 0x03, 1, 2, 3,
         ],
         wrapping_iv: vec![
-            0x00, 0x00, 0x00, 0x10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+            0x00, 0x00, 0x00, 0x0C, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
         ],
         secret: vec![
-            0, 0, 0, 72, 122, 92, 174, 158, 201, 134, 76, 245, 111, 20, 3, 102, 241, 178, 31, 147,
-            128, 5, 231, 14, 78, 100, 47, 40, 233, 67, 132, 228, 229, 214, 30, 226, 197, 154, 85,
-            84, 177, 50, 149, 108, 86, 162, 121, 174, 189, 175, 219, 147, 78, 217, 224, 146, 31,
-            216, 240, 166, 177, 223, 233, 78, 171, 99, 177, 178, 169, 77, 99, 233, 200, 204, 221,
-            90,
+            0, 0, 0, 84, 154, 41, 211, 179, 118, 226, 161, 149, 137, 43, 50, 183, 157, 123, 241,
+            236, 2, 66, 199, 128, 86, 76, 85, 222, 114, 226, 29, 55, 103, 176, 59, 204, 136, 27,
+            56, 131, 100, 0, 99, 41, 160, 168, 235, 176, 57, 66, 191, 59, 190, 41, 106, 54, 95,
+            100, 197, 219, 62, 23, 27, 140, 82, 73, 87, 249, 175, 211, 249, 11, 140, 26, 210, 168,
+            222, 159, 97, 115, 72, 206, 182, 128, 146, 136, 110, 210,
         ],
     }
 }
@@ -137,9 +134,9 @@ fn ok() {
     let mut store = setup_store(true);
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
 
-    assert_eq!(nbytes, 118);
+    assert_eq!(nbytes, 126);
     assert_eq!(header.revision, 1);
-    assert_eq!(header.cipher, Cipher::Aes128Ctr);
+    assert_eq!(header.cipher, Cipher::Aes128Gcm);
     assert_eq!(
         header.wrapping_key,
         Some(WrappingKey::Pbkdf2 {
@@ -150,13 +147,13 @@ fn ok() {
     );
     assert_eq!(
         header.wrapping_iv,
-        [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
+        [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
     );
     assert_eq!(header.dtype, DiskType::FatRandom);
     assert_eq!(header.bsize, 512);
     assert_eq!(header.blocks, 4711);
     assert_eq!(header.master_key, vec![b'a'; 16]);
-    assert_eq!(header.master_iv, vec![b'b'; 16]);
+    assert_eq!(header.master_iv, vec![b'b'; 12]);
     assert_eq!(header.userdata, [7, 8, 9, 10]);
 }
 
@@ -170,7 +167,7 @@ fn missing_callback() {
 
 #[test]
 fn incomplete() {
-    for i in 1..118 {
+    for i in 1..126 {
         let data = &mk_data(&ok_data())[..i];
         let mut store = setup_store(true);
         assert_io_error!(ErrorKind::UnexpectedEof, Header::read(&data, &mut store));
@@ -196,7 +193,7 @@ fn bad_secret_magic() {
         BLOCK_MIN_SIZE,
         4711,
         &[b'a'; 16],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -272,7 +269,7 @@ fn bad_dtype() {
         BLOCK_MIN_SIZE,
         4711,
         &[b'a'; 16],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -292,7 +289,7 @@ fn bsize_lt_512() {
         BLOCK_MIN_SIZE - 1,
         4711,
         &[b'a'; 16],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -311,7 +308,7 @@ fn bsize_inval_modulo() {
         BLOCK_MIN_SIZE + 1,
         4711,
         &[b'a'; 16],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -330,7 +327,7 @@ fn bsize_512() {
         BLOCK_MIN_SIZE,
         4711,
         &[b'a'; 16],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -340,7 +337,7 @@ fn bsize_512() {
     let mut store = setup_store(true);
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 118);
+    assert_eq!(nbytes, 126);
     assert_eq!(header.bsize, 512);
 }
 
@@ -352,7 +349,7 @@ fn bsize_1024() {
         1024,
         4711,
         &[b'a'; 16],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -362,7 +359,7 @@ fn bsize_1024() {
     let mut store = setup_store(true);
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 118);
+    assert_eq!(nbytes, 126);
     assert_eq!(header.bsize, 1024);
 }
 
@@ -374,7 +371,7 @@ fn blocks_0() {
         BLOCK_MIN_SIZE,
         0,
         &[b'a'; 16],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -393,7 +390,7 @@ fn blocks_1() {
         BLOCK_MIN_SIZE,
         1,
         &[b'a'; 16],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -402,7 +399,7 @@ fn blocks_1() {
     });
     let mut store = setup_store(true);
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 118);
+    assert_eq!(nbytes, 126);
     assert_eq!(header.blocks, 1);
 }
 
@@ -414,7 +411,7 @@ fn blocks_2() {
         BLOCK_MIN_SIZE,
         2,
         &[b'a'; 16],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -423,7 +420,7 @@ fn blocks_2() {
     });
     let mut store = setup_store(true);
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 118);
+    assert_eq!(nbytes, 126);
     assert_eq!(header.blocks, 2);
 }
 
@@ -435,7 +432,7 @@ fn master_key_inval_size() {
         BLOCK_MIN_SIZE,
         4711,
         &[b'a'; 15],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -455,7 +452,7 @@ fn master_iv_inval_size() {
         BLOCK_MIN_SIZE,
         4711,
         &[b'a'; 16],
-        &[b'b'; 15],
+        &[b'b'; 11],
         &[7, 8, 9, 10],
     );
     let data = mk_data(&Data {
@@ -475,7 +472,7 @@ fn empty_userdata() {
         BLOCK_MIN_SIZE,
         4711,
         &[b'a'; 16],
-        &[b'b'; 16],
+        &[b'b'; 12],
         &[],
     );
     let data = mk_data(&Data {
@@ -485,6 +482,6 @@ fn empty_userdata() {
     let mut store = setup_store(true);
 
     let (header, nbytes) = Header::read(&data, &mut store).unwrap();
-    assert_eq!(nbytes, 118 - 4);
+    assert_eq!(nbytes, 126 - 4);
     assert_eq!(header.userdata, []);
 }

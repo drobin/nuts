@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -27,10 +27,16 @@ mod create;
 mod read_aes128_ctr;
 
 #[cfg(test)]
+mod read_aes128_gcm;
+
+#[cfg(test)]
 mod read_none;
 
 #[cfg(test)]
 mod write_aes128_ctr;
+
+#[cfg(test)]
+mod write_aes128_gcm;
 
 #[cfg(test)]
 mod write_none;

@@ -33,7 +33,7 @@ use crate::header::Header;
 use crate::password::PasswordStore;
 use crate::rand::random;
 use crate::result::Result;
-use crate::types::{Cipher, DiskType, Options, BLOCK_MIN_SIZE};
+use crate::types::{DiskType, Options, BLOCK_MIN_SIZE};
 
 pub struct Inner {
     pub header: Header,
@@ -101,7 +101,7 @@ impl Inner {
         let offset = self.header.write(&mut buf, store)?;
         let end = offset as usize;
 
-        self.write_block_unchecked(&buf[..end], 0, true)?;
+        self.write_header_block(&buf[..end])?;
 
         Ok(())
     }
@@ -124,7 +124,15 @@ impl Inner {
     pub fn read_block(&mut self, buf: &mut [u8], id: u64) -> Result<u32> {
         self.assert_id(id)?;
 
-        let len = std::cmp::min(buf.len(), self.header.bsize as usize);
+        // The header block is always unencrypted, so you expect bsize bytes,
+        // even if encryption is turned on (and bsize_net is smaller).
+        let bsize = if id == 0 {
+            self.header.bsize as usize
+        } else {
+            self.header.bsize_net() as usize
+        };
+
+        let len = std::cmp::min(buf.len(), bsize);
         let buf = buf.get_mut(0..len).unwrap();
 
         if id < self.ablocks {
@@ -143,13 +151,11 @@ impl Inner {
 
         if id > 0 {
             let mut cipher_block = vec![0; self.header.bsize as usize];
-            let mut plain_block = vec![0; self.header.bsize as usize];
 
             self.fh.read_exact(&mut cipher_block)?;
 
-            self.header.cipher.decrypt(
+            let plain_block = self.header.cipher.decrypt(
                 &cipher_block,
-                &mut plain_block,
                 &self.header.key_for(id),
                 &self.header.iv_for(id),
             )?;
@@ -182,11 +188,7 @@ impl Inner {
     }
 
     pub fn write_block(&mut self, buf: &[u8], id: u64) -> Result<u32> {
-        self.write_block_unchecked(buf, id, false)
-    }
-
-    fn write_block_unchecked(&mut self, buf: &[u8], id: u64, allow_header: bool) -> Result<u32> {
-        if !allow_header && id == 0 {
+        if id == 0 {
             let err =
                 std::io::Error::new(ErrorKind::Other, String::from("cannot overwrite header"));
             return Err(Error::IoError(err));
@@ -195,34 +197,17 @@ impl Inner {
         self.assert_id(id)?;
         self.ensure_capacity(id + 1)?;
 
-        let len = std::cmp::min(buf.len(), self.header.bsize as usize);
-        let pad_len = self.header.bsize as usize - len;
+        let bsize_net = self.header.bsize_net() as usize;
+        let len = std::cmp::min(buf.len(), bsize_net);
 
         let buf = buf.get(0..len).unwrap();
+        let pad = self.make_padding(bsize_net, len)?;
+        let plain_block = [buf, &pad].concat();
 
-        let pad = match self.header.dtype {
-            DiskType::FatZero | DiskType::ThinZero => vec![0; pad_len],
-            DiskType::FatRandom | DiskType::ThinRandom => {
-                let mut rnd: Vec<u8> = vec![0; pad_len];
-                random(&mut rnd[..])?;
-                rnd
-            }
-        };
+        assert_eq!(plain_block.len(), bsize_net);
 
-        // Choose the configured cipher,
-        // block 0 (header-block) is not encrypted.
-        let cipher = if id > 0 {
-            self.header.cipher
-        } else {
-            Cipher::None
-        };
-
-        let plain_block = [buf, &pad[..]].concat();
-        let mut cipher_block = vec![0; plain_block.len()];
-
-        cipher.encrypt(
+        let cipher_block = self.header.cipher.encrypt(
             &plain_block,
-            &mut cipher_block,
             &self.header.key_for(id),
             &self.header.iv_for(id),
         )?;
@@ -233,6 +218,41 @@ impl Inner {
         debug!("block {} written, len = {}, pad = {}", id, len, pad.len());
 
         Ok(len as u32)
+    }
+
+    fn write_header_block(&mut self, buf: &[u8]) -> Result<u32> {
+        self.ensure_capacity(1)?;
+
+        let bsize = self.header.bsize as usize;
+        let len = std::cmp::min(buf.len(), bsize);
+
+        let buf = buf.get(0..len).unwrap();
+        let pad = self.make_padding(bsize, len)?;
+        let block = [buf, &pad].concat();
+
+        assert_eq!(block.len(), bsize);
+
+        self.seek_block(0)?;
+        self.fh.write_all(&block)?;
+
+        debug!("header-block written, len = {}, pad = {}", len, pad.len());
+
+        Ok(len as u32)
+    }
+
+    fn make_padding(&self, bsize: usize, len: usize) -> Result<Vec<u8>> {
+        let pad_len = bsize - len;
+
+        let pad = match self.header.dtype {
+            DiskType::FatZero | DiskType::ThinZero => vec![0; pad_len],
+            DiskType::FatRandom | DiskType::ThinRandom => {
+                let mut rnd: Vec<u8> = vec![0; pad_len];
+                random(&mut rnd[..])?;
+                rnd
+            }
+        };
+
+        Ok(pad)
     }
 
     fn ensure_capacity(&mut self, blocks: u64) -> Result<()> {

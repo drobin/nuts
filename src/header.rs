@@ -97,6 +97,10 @@ impl Header {
         iv
     }
 
+    pub(crate) fn bsize_net(&self) -> u32 {
+        self.bsize - self.cipher.tag_size()
+    }
+
     pub fn create(options: &Options) -> Result<Header> {
         let key_size = options.cipher.key_size() as usize;
         let iv_size = options.cipher.iv_size() as usize;
@@ -132,15 +136,12 @@ impl Header {
         // so you can create the wrapping key.
         header.validate(false)?;
 
-        let mut plain_secret = secure_vec![0; cipher_secret.len()];
         let wrapping_key = header.create_wrapping_key(store)?;
 
-        header.cipher.decrypt(
-            &cipher_secret,
-            &mut plain_secret,
-            &wrapping_key,
-            &header.wrapping_iv,
-        )?;
+        let plain_secret =
+            header
+                .cipher
+                .decrypt(&cipher_secret, &wrapping_key, &header.wrapping_iv)?;
 
         header.read_secret(&plain_secret)?;
         header.validate(true)?;
@@ -195,14 +196,10 @@ impl Header {
         plain_secret.resize(secret_size, 0);
 
         let wrapping_key = self.create_wrapping_key(store)?;
-        let mut cipher_secret = vec![0; secret_size];
 
-        self.cipher.encrypt(
-            &plain_secret,
-            &mut cipher_secret,
-            &wrapping_key,
-            &self.wrapping_iv,
-        )?;
+        let cipher_secret = self
+            .cipher
+            .encrypt(&plain_secret, &wrapping_key, &self.wrapping_iv)?;
 
         Ok(self.write_header(target, &cipher_secret)?)
     }

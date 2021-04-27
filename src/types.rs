@@ -44,6 +44,9 @@ pub enum Cipher {
 
     /// AES with a 128-bit key in CTR mode
     Aes128Ctr,
+
+    /// AES with a 128-bit key in GCM mode
+    Aes128Gcm,
 }
 
 impl Cipher {
@@ -81,65 +84,93 @@ impl Cipher {
         match self {
             Cipher::None => 0,
             Cipher::Aes128Ctr => 0,
+            Cipher::Aes128Gcm => 16,
         }
     }
 
-    pub(crate) fn encrypt(
-        &self,
-        input: &[u8],
-        output: &mut [u8],
-        key: &[u8],
-        iv: &[u8],
-    ) -> Result<()> {
-        self.crypt(Mode::Encrypt, input, output, key, iv)
-    }
-
-    pub(crate) fn decrypt(
-        &self,
-        input: &[u8],
-        output: &mut [u8],
-        key: &[u8],
-        iv: &[u8],
-    ) -> Result<()> {
-        self.crypt(Mode::Decrypt, input, output, key, iv)
-    }
-
-    fn crypt(
-        &self,
-        mode: Mode,
-        input: &[u8],
-        output: &mut [u8],
-        key: &[u8],
-        iv: &[u8],
-    ) -> Result<()> {
-        self.assert_input(input)?;
+    pub(crate) fn encrypt(&self, input: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
+        let (input, _) = self.assert_input(input, Some(0))?;
+        let mut output = vec![0; input.len()];
 
         if let Some(cipher) = self.to_openssl() {
-            let key = Self::assert_key(&cipher, key)?;
-            let iv = Self::assert_iv(&cipher, iv)?;
+            let mut crypter = Self::new_crypter(cipher, Mode::Encrypt, key, iv)?;
 
-            let mut crypter = Crypter::new(cipher, mode, key, Some(iv))?;
-            crypter.pad(false);
-
-            let count = crypter.update(input, output)?;
+            let count = crypter.update(input, &mut output)?;
             assert_eq!(count, output.len());
 
-            Ok(())
+            if self.tag_size() > 0 {
+                let mut tag = vec![0; self.tag_size() as usize];
+
+                crypter.finalize(&mut [])?;
+                crypter.get_tag(&mut tag)?;
+
+                output.extend(tag.iter());
+            }
         } else {
             output.copy_from_slice(input);
-            Ok(())
         }
+
+        Ok(output)
+    }
+
+    pub(crate) fn decrypt(&self, input: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
+        let (input, tag) = self.assert_input(input, None)?;
+        let mut output = vec![0; input.len()];
+
+        if let Some(cipher) = self.to_openssl() {
+            let mut crypter = Self::new_crypter(cipher, Mode::Decrypt, key, iv)?;
+
+            let count = crypter.update(input, &mut output)?;
+            assert_eq!(count, output.len());
+
+            if self.tag_size() > 0 {
+                crypter.set_tag(tag)?;
+                crypter.finalize(&mut [])?;
+            }
+        } else {
+            output.copy_from_slice(input);
+        }
+
+        Ok(output)
+    }
+
+    fn new_crypter(cipher: symm::Cipher, mode: Mode, key: &[u8], iv: &[u8]) -> Result<Crypter> {
+        let key = Self::assert_key(&cipher, key)?;
+        let iv = Self::assert_iv(&cipher, iv)?;
+
+        let mut crypter = Crypter::new(cipher, mode, key, Some(iv))?;
+        crypter.pad(false);
+
+        Ok(crypter)
     }
 
     pub(crate) fn to_openssl(&self) -> Option<symm::Cipher> {
         match self {
             Cipher::Aes128Ctr => Some(symm::Cipher::aes_128_ctr()),
+            Cipher::Aes128Gcm => Some(symm::Cipher::aes_128_gcm()),
             Cipher::None => None,
         }
     }
 
-    fn assert_input(&self, buf: &[u8]) -> Result<()> {
-        if buf.len() % self.block_size() as usize != 0 {
+    fn assert_input<'a>(
+        &self,
+        buf: &'a [u8],
+        tag_len: Option<usize>,
+    ) -> Result<(&'a [u8], &'a [u8])> {
+        let tag_len = tag_len.unwrap_or_else(|| self.tag_size() as usize);
+
+        if buf.len() < tag_len {
+            let msg = format!(
+                "input too small, length: {}, needed: {}",
+                buf.len(),
+                tag_len
+            );
+            return Err(Error::InvalArg(msg));
+        }
+
+        let input_len = buf.len() - tag_len;
+
+        if input_len % self.block_size() as usize != 0 {
             let msg = format!(
                 "length of input {} mut be a multiple of block-size {}",
                 buf.len(),
@@ -148,7 +179,10 @@ impl Cipher {
             error!("{}", msg);
             return Err(Error::InvalArg(msg));
         } else {
-            Ok(())
+            let input = &buf[..input_len];
+            let tag = &buf[(buf.len() - tag_len)..];
+
+            Ok((input, tag))
         }
     }
 
@@ -186,6 +220,7 @@ impl FromBinary for Cipher {
         match u8::from_binary(r)? {
             0 => Ok(Cipher::None),
             1 => Ok(Cipher::Aes128Ctr),
+            2 => Ok(Cipher::Aes128Gcm),
             _ => Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 InvalHeaderError::InvalCipher,
@@ -199,6 +234,7 @@ impl IntoBinary for Cipher {
         match self {
             Cipher::None => 0u8,
             Cipher::Aes128Ctr => 1u8,
+            Cipher::Aes128Gcm => 2u8,
         }
         .into_binary(w)
     }

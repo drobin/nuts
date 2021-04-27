@@ -358,12 +358,7 @@ impl Container {
     /// [`create()`]: #method.create
     /// [`Error::Closed`]: ../error/enum.Error.html#variant.Closed
     pub fn bsize(&self) -> Result<u32> {
-        self.on_open(|inner| {
-            let tag_size = inner.header.cipher.tag_size();
-            let net_bsize = inner.header.bsize - tag_size;
-
-            Ok(net_bsize)
-        })
+        self.on_open(|inner| Ok(inner.header.bsize_net()))
     }
 
     /// Returns the number of blocks which can be allocated for the container.
