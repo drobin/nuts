@@ -108,7 +108,7 @@ impl Container {
     /// [`Error`]: ../error/enum.Error.html
     /// [`Error::Opened`]: ../error/enum.Error.html#variant.Opened
     /// [`Error::NoPassword`]: ../error/enum.Error.html#variant.NoPassword
-    pub fn create(&mut self, path: impl AsRef<Path>, options: &Options) -> Result<()> {
+    pub fn create(&mut self, path: impl AsRef<Path>, options: Options) -> Result<()> {
         if self.inner.is_none() {
             let inner = Inner::create(&path, options, &mut self.store)?;
 

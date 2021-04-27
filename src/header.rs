@@ -101,7 +101,7 @@ impl Header {
         self.bsize - self.cipher.tag_size()
     }
 
-    pub fn create(options: &Options) -> Result<Header> {
+    pub fn create(options: Options) -> Result<Header> {
         let key_size = options.cipher.key_size() as usize;
         let iv_size = options.cipher.iv_size() as usize;
 

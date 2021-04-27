@@ -39,7 +39,7 @@ fn setup() -> (TempDir, Container) {
         .unwrap();
 
     let mut container = Container::new();
-    container.create(path, &options).unwrap();
+    container.create(path, options).unwrap();
 
     assert_eq!(container.write(0, &RND[..512]).unwrap(), 512);
     assert_eq!(container.write(1, &RND[512..1024]).unwrap(), 512);

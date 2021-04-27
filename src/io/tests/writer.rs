@@ -41,7 +41,7 @@ fn setup() -> (TempDir, Container) {
         .unwrap();
 
     let mut container = Container::new();
-    container.create(path, &options).unwrap();
+    container.create(path, options).unwrap();
 
     (tmp_dir, container)
 }

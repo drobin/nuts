@@ -84,7 +84,7 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     let mut container = Container::new();
 
     container.set_password_callback(tool::utils::ask_for_password);
-    container.create(path, &builder.build()?)?;
+    container.create(path, builder.build()?)?;
 
     if !sub.is_present("quiet") {
         println!("cipher:           {}", container.cipher()?.to_str());

@@ -97,7 +97,7 @@ fn setup_container(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> In
             .build()
             .unwrap();
 
-        let mut inner = Inner::create(&path, &options, &mut store).unwrap();
+        let mut inner = Inner::create(&path, options, &mut store).unwrap();
 
         inner.header.master_key = secure_vec![b'a'; 16];
         inner.header.master_iv = secure_vec![b'b'; 12];

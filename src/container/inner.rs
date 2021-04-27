@@ -44,7 +44,7 @@ pub struct Inner {
 impl Inner {
     pub fn create(
         path: &dyn AsRef<Path>,
-        options: &Options,
+        options: Options,
         store: &mut PasswordStore,
     ) -> Result<Inner> {
         let header = Header::create(options)?;

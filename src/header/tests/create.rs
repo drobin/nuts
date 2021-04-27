@@ -27,7 +27,7 @@ use crate::types::{Cipher, Digest, OptionsBuilder, WrappingKey};
 #[test]
 fn cipher_none() {
     let options = OptionsBuilder::new(Cipher::None).build().unwrap();
-    let header = Header::create(&options).unwrap();
+    let header = Header::create(options).unwrap();
 
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
@@ -38,7 +38,7 @@ fn cipher_none() {
 #[test]
 fn cipher_aes128_ctr() {
     let options = OptionsBuilder::new(Cipher::Aes128Ctr).build().unwrap();
-    let header = Header::create(&options).unwrap();
+    let header = Header::create(options).unwrap();
 
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::Aes128Ctr);

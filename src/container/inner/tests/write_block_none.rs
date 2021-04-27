@@ -45,7 +45,7 @@ fn setup(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> (TempDir, Pa
             .build()
             .unwrap();
 
-        let mut inner = Inner::create(&path, &options, &mut store).unwrap();
+        let mut inner = Inner::create(&path, options, &mut store).unwrap();
         let nbytes = (bsize as u64 * (ablocks - 1)) as usize;
 
         inner.fh.seek(SeekFrom::Start(bsize as u64)).unwrap();

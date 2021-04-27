@@ -38,7 +38,7 @@ fn setup(dtype: DiskType, bsize: u32) -> (TempDir, PathBuf, PasswordStore) {
         .build()
         .unwrap();
 
-    Inner::create(&path, &options, &mut store).unwrap();
+    Inner::create(&path, options, &mut store).unwrap();
 
     (tmp_dir, path, store)
 }

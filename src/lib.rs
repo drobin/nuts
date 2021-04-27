@@ -58,7 +58,7 @@
 //! // the data in the container.
 //! // Afterwards the container is open.
 //! container.set_password_callback(|| Ok(vec![1, 2, 3]));
-//! container.create(&file, &options).unwrap();
+//! container.create(&file, options).unwrap();
 //! assert!(container.is_open());
 //! ```
 //!
@@ -77,7 +77,7 @@
 //!   let options = OptionsBuilder::default().build().unwrap();
 //!
 //!   container.set_password_callback(|| Ok(vec![1, 2, 3]));
-//!   container.create(&file, &options).unwrap();
+//!   container.create(&file, options).unwrap();
 //! }
 //!
 //! // We put the container (named `container`) in a temporary directory.
@@ -121,7 +121,7 @@
 //! let options = OptionsBuilder::default().build().unwrap();
 //!
 //! container.set_password_callback(|| Ok(vec![1, 2, 3]));
-//! container.create(&file, &options).unwrap();
+//! container.create(&file, options).unwrap();
 //!
 //! // Write 3 bytes into the block 1.
 //! let nbytes = container.write(1, b"123").unwrap();
