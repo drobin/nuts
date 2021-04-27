@@ -20,9 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::io::{ErrorKind, Seek, SeekFrom, Write};
-use std::path::{Path, PathBuf};
-use tempfile::TempDir;
+use std::io::{Cursor, ErrorKind, Seek, SeekFrom, Write};
 
 use crate::container::inner::tests::PLAINTEXT;
 use crate::container::inner::Inner;
@@ -32,12 +30,15 @@ use crate::password::PasswordStore;
 use crate::rand::RND;
 use crate::types::{Cipher, DiskType, OptionsBuilder};
 
-fn setup_container(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> Inner {
-    let tmp_dir = TempDir::new().unwrap();
-    let path: PathBuf = [tmp_dir.path(), Path::new("container")].iter().collect();
+fn setup_container(
+    dtype: DiskType,
+    bsize: u32,
+    blocks: u64,
+    ablocks: u64,
+) -> Inner<Cursor<Vec<u8>>> {
     let mut store = PasswordStore::new();
 
-    {
+    let data = {
         let options = OptionsBuilder::new(Cipher::None)
             .with_dtype(dtype)
             .with_bsize(bsize)
@@ -45,15 +46,18 @@ fn setup_container(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> In
             .build()
             .unwrap();
 
-        let mut inner = Inner::create(&path, options, &mut store).unwrap();
+        let cursor = Cursor::new(vec![]);
+        let mut inner = Inner::create(cursor, options, &mut store).unwrap();
         let nbytes = (bsize as u64 * (ablocks - 1)) as usize;
 
         inner.fh.seek(SeekFrom::Start(bsize as u64)).unwrap();
         inner.fh.write_all(&PLAINTEXT[..nbytes]).unwrap();
         inner.fh.flush().unwrap();
+
+        inner.as_ref().get_ref().to_vec()
     };
 
-    Inner::open(&path, &mut store).unwrap()
+    Inner::open(Cursor::new(data), &mut store).unwrap()
 }
 
 #[test]

@@ -24,9 +24,7 @@
 mod tests;
 
 use log::debug;
-use std::fs::{File, OpenOptions};
 use std::io::{ErrorKind, Read, Seek, SeekFrom, Write};
-use std::path::Path;
 
 use crate::error::Error;
 use crate::header::Header;
@@ -35,28 +33,17 @@ use crate::rand::random;
 use crate::result::Result;
 use crate::types::{DiskType, Options, BLOCK_MIN_SIZE};
 
-pub struct Inner {
+pub struct Inner<T: Read + Write + Seek> {
     pub header: Header,
     pub ablocks: u64,
-    fh: File,
+    fh: T,
 }
 
-impl Inner {
-    pub fn create(
-        path: &dyn AsRef<Path>,
-        options: Options,
-        store: &mut PasswordStore,
-    ) -> Result<Inner> {
+impl<T: Read + Write + Seek> Inner<T> {
+    pub fn create(fh: T, options: Options, store: &mut PasswordStore) -> Result<Inner<T>> {
         let header = Header::create(options)?;
 
         debug!("header: {:?}", header);
-
-        let fh = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .truncate(true)
-            .create(true)
-            .open(path)?;
 
         let mut inner = Inner {
             header,
@@ -69,13 +56,7 @@ impl Inner {
         Ok(inner)
     }
 
-    pub fn open(path: &dyn AsRef<Path>, store: &mut PasswordStore) -> Result<Inner> {
-        let mut fh = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .truncate(false)
-            .open(path)?;
-
+    pub fn open(mut fh: T, store: &mut PasswordStore) -> Result<Inner<T>> {
         // Create a temp. block with a size of BLOCK_MIN_SIZE bytes.
         // This is enough to read the header.
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
@@ -318,5 +299,11 @@ impl Inner {
                 std::io::Error::new(ErrorKind::Other, format!("unable to locate block {}", id));
             Err(Error::IoError(err))
         }
+    }
+}
+
+impl<T: Read + Write + Seek> AsRef<T> for Inner<T> {
+    fn as_ref(&self) -> &T {
+        &self.fh
     }
 }

@@ -20,10 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::fs::read;
-use std::io::{ErrorKind, Seek, SeekFrom, Write};
-use std::path::{Path, PathBuf};
-use tempfile::TempDir;
+use std::io::{Cursor, ErrorKind, Seek, SeekFrom, Write};
 
 use crate::container::inner::tests::{setup_store, PLAINTEXT};
 use crate::container::inner::Inner;
@@ -84,12 +81,10 @@ const CIPHERTEXT: [u8; 1024] = [
     5, 242, 172, 0, 228, 171, 200, 16, 31, 139, 13, 18, 231,
 ];
 
-fn setup(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> (TempDir, PathBuf, Inner) {
-    let tmp_dir = TempDir::new().unwrap();
-    let path: PathBuf = [tmp_dir.path(), Path::new("container")].iter().collect();
+fn setup(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> Inner<Cursor<Vec<u8>>> {
     let mut store = setup_store();
 
-    {
+    let data = {
         let options = OptionsBuilder::new(Cipher::Aes128Ctr)
             .with_dtype(dtype)
             .with_bsize(bsize)
@@ -97,7 +92,8 @@ fn setup(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> (TempDir, Pa
             .build()
             .unwrap();
 
-        let mut inner = Inner::create(&path, options, &mut store).unwrap();
+        let cursor = Cursor::new(vec![]);
+        let mut inner = Inner::create(cursor, options, &mut store).unwrap();
 
         inner.header.master_key = secure_vec![b'a'; 16];
         inner.header.master_iv = secure_vec![b'b'; 16];
@@ -109,11 +105,11 @@ fn setup(dtype: DiskType, bsize: u32, blocks: u64, ablocks: u64) -> (TempDir, Pa
         inner.fh.seek(SeekFrom::Start(bsize as u64)).unwrap();
         inner.fh.write_all(&CIPHERTEXT[..nbytes]).unwrap();
         inner.fh.flush().unwrap();
+
+        inner.as_ref().get_ref().to_vec()
     };
 
-    let inner = Inner::open(&path, &mut store).unwrap();
-
-    (tmp_dir, path, inner)
+    Inner::open(Cursor::new(data), &mut store).unwrap()
 }
 
 macro_rules! assert_header {
@@ -170,7 +166,7 @@ fn make_cipher(block_id: u64, plain: &[u8]) -> Vec<u8> {
 
 #[test]
 fn thin_zero_header() {
-    let (_tmp_dir, _path, mut inner) = setup(DiskType::ThinZero, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinZero, 512, 3, 2);
 
     if let Error::IoError(err) = inner.write_block(&vec![9; 512], 0).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::Other);
@@ -182,10 +178,10 @@ fn thin_zero_header() {
 
 #[test]
 fn thin_zero_allocated_full() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinZero, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinZero, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 512], 1).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, false);
     assert_block!(1, &buf, &vec![9; 512][..], false);
@@ -193,10 +189,10 @@ fn thin_zero_allocated_full() {
 
 #[test]
 fn thin_zero_allocated_part() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinZero, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinZero, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 3], 1).unwrap(), 3);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, false);
     assert_block!(1, &buf, &[9, 9, 9], false);
@@ -204,10 +200,10 @@ fn thin_zero_allocated_part() {
 
 #[test]
 fn thin_zero_allocated_more() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinZero, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinZero, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 513], 1).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, false);
     assert_block!(1, &buf, &vec![9; 512][..], false);
@@ -215,10 +211,10 @@ fn thin_zero_allocated_more() {
 
 #[test]
 fn thin_zero_unallocated_full() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinZero, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinZero, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 512], 2).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1536);
     assert_header!(&buf, false);
     assert_block!(1, &buf, &PLAINTEXT[..512], false);
@@ -227,10 +223,10 @@ fn thin_zero_unallocated_full() {
 
 #[test]
 fn thin_zero_unallocated_part() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinZero, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinZero, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 3], 2).unwrap(), 3);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1536);
     assert_header!(&buf, false);
     assert_block!(1, &buf, &PLAINTEXT[..512], false);
@@ -239,10 +235,10 @@ fn thin_zero_unallocated_part() {
 
 #[test]
 fn thin_zero_unallocated_more() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinZero, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinZero, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 513], 2).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1536);
     assert_header!(&buf, false);
     assert_block!(1, &buf, &PLAINTEXT[..512], false);
@@ -251,7 +247,7 @@ fn thin_zero_unallocated_more() {
 
 #[test]
 fn thin_zero_no_such_block() {
-    let (_tmp_dir, _path, mut inner) = setup(DiskType::ThinZero, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinZero, 512, 3, 2);
 
     if let Error::IoError(err) = inner.write_block(&vec![9; 512], 3).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::Other);
@@ -263,7 +259,7 @@ fn thin_zero_no_such_block() {
 
 #[test]
 fn fat_zero_header() {
-    let (_tmp_dir, _path, mut inner) = setup(DiskType::FatZero, 512, 2, 2);
+    let mut inner = setup(DiskType::FatZero, 512, 2, 2);
 
     if let Error::IoError(err) = inner.write_block(&vec![9; 512], 0).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::Other);
@@ -275,10 +271,10 @@ fn fat_zero_header() {
 
 #[test]
 fn fat_zero_allocated_full() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::FatZero, 512, 2, 2);
+    let mut inner = setup(DiskType::FatZero, 512, 2, 2);
     assert_eq!(inner.write_block(&vec![9; 512], 1).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, false);
     assert_block!(1, &buf, &vec![9; 512], false);
@@ -286,10 +282,10 @@ fn fat_zero_allocated_full() {
 
 #[test]
 fn fat_zero_allocated_part() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::FatZero, 512, 2, 2);
+    let mut inner = setup(DiskType::FatZero, 512, 2, 2);
     assert_eq!(inner.write_block(&vec![9; 3], 1).unwrap(), 3);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, false);
     assert_block!(1, &buf, &[9, 9, 9], false);
@@ -297,10 +293,10 @@ fn fat_zero_allocated_part() {
 
 #[test]
 fn fat_zero_allocated_more() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::FatZero, 512, 2, 2);
+    let mut inner = setup(DiskType::FatZero, 512, 2, 2);
     assert_eq!(inner.write_block(&vec![9; 513], 1).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, false);
     assert_block!(1, &buf, &vec![9; 512], false);
@@ -308,7 +304,7 @@ fn fat_zero_allocated_more() {
 
 #[test]
 fn fat_zero_no_such_block() {
-    let (_tmp_dir, _path, mut inner) = setup(DiskType::FatZero, 512, 2, 2);
+    let mut inner = setup(DiskType::FatZero, 512, 2, 2);
 
     if let Error::IoError(err) = inner.write_block(&vec![9; 512], 2).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::Other);
@@ -320,7 +316,7 @@ fn fat_zero_no_such_block() {
 
 #[test]
 fn thin_random_header() {
-    let (_tmp_dir, _path, mut inner) = setup(DiskType::ThinRandom, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinRandom, 512, 3, 2);
 
     if let Error::IoError(err) = inner.write_block(&vec![9; 512], 0).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::Other);
@@ -332,10 +328,10 @@ fn thin_random_header() {
 
 #[test]
 fn thin_random_allocated_full() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinRandom, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinRandom, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 512], 1).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, true);
     assert_block!(1, &buf, &vec![9; 512][..], true);
@@ -343,10 +339,10 @@ fn thin_random_allocated_full() {
 
 #[test]
 fn thin_random_allocated_part() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinRandom, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinRandom, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 3], 1).unwrap(), 3);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, true);
     assert_block!(1, &buf, &[9, 9, 9], true);
@@ -354,10 +350,10 @@ fn thin_random_allocated_part() {
 
 #[test]
 fn thin_random_allocated_more() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinRandom, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinRandom, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 513], 1).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, true);
     assert_block!(1, &buf, &vec![9; 512][..], true);
@@ -365,10 +361,10 @@ fn thin_random_allocated_more() {
 
 #[test]
 fn thin_random_unallocated_full() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinRandom, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinRandom, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 512], 2).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1536);
     assert_header!(&buf, true);
     assert_block!(1, &buf, &PLAINTEXT[..512], true);
@@ -377,10 +373,10 @@ fn thin_random_unallocated_full() {
 
 #[test]
 fn thin_random_unallocated_part() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinRandom, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinRandom, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 3], 2).unwrap(), 3);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1536);
     assert_header!(&buf, true);
     assert_block!(1, &buf, &PLAINTEXT[..512], true);
@@ -389,10 +385,10 @@ fn thin_random_unallocated_part() {
 
 #[test]
 fn thin_random_unallocated_more() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::ThinRandom, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinRandom, 512, 3, 2);
     assert_eq!(inner.write_block(&vec![9; 513], 2).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1536);
     assert_header!(&buf, true);
     assert_block!(1, &buf, &PLAINTEXT[..512], true);
@@ -401,7 +397,7 @@ fn thin_random_unallocated_more() {
 
 #[test]
 fn thin_random_no_such_block() {
-    let (_tmp_dir, _path, mut inner) = setup(DiskType::ThinRandom, 512, 3, 2);
+    let mut inner = setup(DiskType::ThinRandom, 512, 3, 2);
 
     if let Error::IoError(err) = inner.write_block(&vec![9; 512], 3).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::Other);
@@ -413,7 +409,7 @@ fn thin_random_no_such_block() {
 
 #[test]
 fn fat_random_header() {
-    let (_tmp_dir, _path, mut inner) = setup(DiskType::FatRandom, 512, 2, 2);
+    let mut inner = setup(DiskType::FatRandom, 512, 2, 2);
 
     if let Error::IoError(err) = inner.write_block(&vec![9; 512], 0).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::Other);
@@ -425,10 +421,10 @@ fn fat_random_header() {
 
 #[test]
 fn fat_random_allocated_full() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::FatRandom, 512, 2, 2);
+    let mut inner = setup(DiskType::FatRandom, 512, 2, 2);
     assert_eq!(inner.write_block(&vec![9; 512], 1).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, true);
     assert_block!(1, &buf, &vec![9; 512][..], true);
@@ -436,10 +432,10 @@ fn fat_random_allocated_full() {
 
 #[test]
 fn fat_random_allocated_part() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::FatRandom, 512, 2, 2);
+    let mut inner = setup(DiskType::FatRandom, 512, 2, 2);
     assert_eq!(inner.write_block(&vec![9; 3], 1).unwrap(), 3);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, true);
     assert_block!(1, &buf, &[9, 9, 9], true);
@@ -447,10 +443,10 @@ fn fat_random_allocated_part() {
 
 #[test]
 fn fat_random_allocated_more() {
-    let (_tmp_dir, path, mut inner) = setup(DiskType::FatRandom, 512, 2, 2);
+    let mut inner = setup(DiskType::FatRandom, 512, 2, 2);
     assert_eq!(inner.write_block(&vec![9; 513], 1).unwrap(), 512);
 
-    let buf = read(path).unwrap();
+    let buf = inner.as_ref().get_ref();
     assert_eq!(buf.len(), 1024);
     assert_header!(&buf, true);
     assert_block!(1, &buf, &vec![9; 512][..], true);
@@ -458,7 +454,7 @@ fn fat_random_allocated_more() {
 
 #[test]
 fn fat_random_no_such_block() {
-    let (_tmp_dir, _path, mut inner) = setup(DiskType::FatRandom, 512, 2, 2);
+    let mut inner = setup(DiskType::FatRandom, 512, 2, 2);
 
     if let Error::IoError(err) = inner.write_block(&vec![9; 512], 2).unwrap_err() {
         assert_eq!(err.kind(), ErrorKind::Other);

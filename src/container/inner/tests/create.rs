@@ -20,16 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::path::{Path, PathBuf};
-use tempfile::TempDir;
+use std::io::Cursor;
 
 use crate::container::inner::Inner;
 use crate::password::PasswordStore;
 use crate::types::{Cipher, DiskType, Options, OptionsBuilder};
 
-fn setup(dtype: DiskType, bsize: u32) -> (TempDir, PathBuf, Options, PasswordStore) {
-    let tmp_dir = TempDir::new().unwrap();
-    let path: PathBuf = [tmp_dir.path(), Path::new("container")].iter().collect();
+fn setup(dtype: DiskType, bsize: u32) -> (Cursor<Vec<u8>>, Options, PasswordStore) {
+    let cursor = Cursor::new(vec![]);
     let store = PasswordStore::new();
 
     let options = OptionsBuilder::new(Cipher::None)
@@ -39,77 +37,77 @@ fn setup(dtype: DiskType, bsize: u32) -> (TempDir, PathBuf, Options, PasswordSto
         .build()
         .unwrap();
 
-    (tmp_dir, path, options, store)
+    (cursor, options, store)
 }
 
 #[test]
 fn thin_random_512() {
-    let (_tmp_dir, path, options, mut store) = setup(DiskType::ThinRandom, 512);
-    let inner = Inner::create(&path, options, &mut store).unwrap();
+    let (cursor, options, mut store) = setup(DiskType::ThinRandom, 512);
+    let inner = Inner::create(cursor, options, &mut store).unwrap();
 
     assert_eq!(inner.ablocks, 1);
-    assert_eq!(path.as_path().metadata().unwrap().len(), 512);
+    assert_eq!(inner.as_ref().get_ref().len(), 512);
 }
 
 #[test]
 fn thin_zero_512() {
-    let (_tmp_dir, path, options, mut store) = setup(DiskType::ThinZero, 512);
-    let inner = Inner::create(&path, options, &mut store).unwrap();
+    let (cursor, options, mut store) = setup(DiskType::ThinZero, 512);
+    let inner = Inner::create(cursor, options, &mut store).unwrap();
 
     assert_eq!(inner.ablocks, 1);
-    assert_eq!(path.as_path().metadata().unwrap().len(), 512);
+    assert_eq!(inner.as_ref().get_ref().len(), 512);
 }
 
 #[test]
 fn fat_random_512() {
-    let (_tmp_dir, path, options, mut store) = setup(DiskType::FatRandom, 512);
-    let inner = Inner::create(&path, options, &mut store).unwrap();
+    let (cursor, options, mut store) = setup(DiskType::FatRandom, 512);
+    let inner = Inner::create(cursor, options, &mut store).unwrap();
 
     assert_eq!(inner.ablocks, 3);
-    assert_eq!(path.as_path().metadata().unwrap().len(), 1536);
+    assert_eq!(inner.as_ref().get_ref().len(), 1536);
 }
 
 #[test]
 fn fat_zero_512() {
-    let (_tmp_dir, path, options, mut store) = setup(DiskType::FatZero, 512);
-    let inner = Inner::create(&path, options, &mut store).unwrap();
+    let (cursor, options, mut store) = setup(DiskType::FatZero, 512);
+    let inner = Inner::create(cursor, options, &mut store).unwrap();
 
     assert_eq!(inner.ablocks, 3);
-    assert_eq!(path.as_path().metadata().unwrap().len(), 1536);
+    assert_eq!(inner.as_ref().get_ref().len(), 1536);
 }
 
 #[test]
 fn thin_random_1024() {
-    let (_tmp_dir, path, options, mut store) = setup(DiskType::ThinRandom, 1024);
-    let inner = Inner::create(&path, options, &mut store).unwrap();
+    let (cursor, options, mut store) = setup(DiskType::ThinRandom, 1024);
+    let inner = Inner::create(cursor, options, &mut store).unwrap();
 
     assert_eq!(inner.ablocks, 1);
-    assert_eq!(path.as_path().metadata().unwrap().len(), 1024);
+    assert_eq!(inner.as_ref().get_ref().len(), 1024);
 }
 
 #[test]
 fn thin_zero_1024() {
-    let (_tmp_dir, path, options, mut store) = setup(DiskType::ThinZero, 1024);
-    let inner = Inner::create(&path, options, &mut store).unwrap();
+    let (cursor, options, mut store) = setup(DiskType::ThinZero, 1024);
+    let inner = Inner::create(cursor, options, &mut store).unwrap();
 
     assert_eq!(inner.ablocks, 1);
-    assert_eq!(path.as_path().metadata().unwrap().len(), 1024);
+    assert_eq!(inner.as_ref().get_ref().len(), 1024);
 }
 
 #[test]
 fn fat_random_1024() {
-    let (_tmp_dir, path, options, mut store) = setup(DiskType::FatRandom, 1024);
-    let inner = Inner::create(&path, options, &mut store).unwrap();
+    let (cursor, options, mut store) = setup(DiskType::FatRandom, 1024);
+    let inner = Inner::create(cursor, options, &mut store).unwrap();
 
     assert_eq!(inner.ablocks, 3);
-    assert_eq!(path.as_path().metadata().unwrap().len(), 3072);
+    assert_eq!(inner.as_ref().get_ref().len(), 3072);
 }
 
 #[test]
 fn fat_zero_1024() {
-    let (_tmp_dir, path, options, mut store) = setup(DiskType::FatZero, 1024);
-    let inner = Inner::create(&path, options, &mut store).unwrap();
+    let (cursor, options, mut store) = setup(DiskType::FatZero, 1024);
+    let inner = Inner::create(cursor, options, &mut store).unwrap();
 
     assert_eq!(inner.ablocks, 3);
-    assert_eq!(path.as_path().metadata().unwrap().len(), 3072);
+    assert_eq!(inner.as_ref().get_ref().len(), 3072);
 }

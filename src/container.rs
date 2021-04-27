@@ -23,6 +23,7 @@
 pub(crate) mod inner;
 
 use log::debug;
+use std::fs::{File, OpenOptions};
 use std::path::Path;
 
 use crate::container::inner::Inner;
@@ -33,7 +34,7 @@ use crate::types::{Cipher, DiskType, Options, WrappingKey};
 
 pub struct Container {
     store: PasswordStore,
-    inner: Option<Inner>,
+    inner: Option<Inner<File>>,
 }
 
 impl Container {
@@ -110,7 +111,13 @@ impl Container {
     /// [`Error::NoPassword`]: ../error/enum.Error.html#variant.NoPassword
     pub fn create(&mut self, path: impl AsRef<Path>, options: Options) -> Result<()> {
         if self.inner.is_none() {
-            let inner = Inner::create(&path, options, &mut self.store)?;
+            let fh = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .truncate(true)
+                .create(true)
+                .open(path)?;
+            let inner = Inner::create(fh, options, &mut self.store)?;
 
             debug!(
                 "allocating container, dtype = {:?}, bsize = {}, blocks = {}",
@@ -159,7 +166,12 @@ impl Container {
     /// [`Error::NoPassword`]: ../error/enum.Error.html#variant.NoPassword
     pub fn open(&mut self, path: impl AsRef<Path>, userdata: Option<&mut Vec<u8>>) -> Result<()> {
         if self.inner.is_none() {
-            let inner = Inner::open(&path, &mut self.store)?;
+            let fh = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .truncate(false)
+                .open(path)?;
+            let inner = Inner::open(fh, &mut self.store)?;
 
             if let Some(userdata) = userdata {
                 userdata.clear();
@@ -419,7 +431,7 @@ impl Container {
         self.on_open(|inner| Ok(inner.ablocks))
     }
 
-    fn on_open<'a, R>(&'a self, f: impl Fn(&'a Inner) -> Result<R>) -> Result<R> {
+    fn on_open<'a, R>(&'a self, f: impl Fn(&'a Inner<File>) -> Result<R>) -> Result<R> {
         self.inner
             .as_ref()
             .map_or(Err(Error::Closed), |inner| f(inner))
@@ -427,7 +439,7 @@ impl Container {
 
     fn on_open_mut<'a, R>(
         &'a mut self,
-        mut f: impl FnMut(&'a mut Inner) -> Result<R>,
+        mut f: impl FnMut(&'a mut Inner<File>) -> Result<R>,
     ) -> Result<R> {
         self.inner
             .as_mut()
