@@ -23,9 +23,8 @@
 use clap::ArgMatches;
 use log::debug;
 use nuts::container::Container;
-use nuts::io::Writer;
 use std::cmp;
-use std::io::{stdin, Read, Write};
+use std::io::{stdin, Read};
 
 use crate::tool::convert::Convert;
 use crate::tool::id::IdRange;
@@ -60,14 +59,11 @@ fn write(
     range: &IdRange,
     max_bytes: usize,
 ) -> Result<()> {
-    let mut writer = Writer::new(container);
-
-    for id in range.iter() {
-        writer.push_id(id);
-    }
-
     let mut nbytes = 0;
-    let mut buf = [0; 64];
+    let mut blocks = 0;
+    let mut iter = range.iter();
+
+    let mut buf = vec![0; container.bsize()? as usize];
 
     while nbytes < max_bytes {
         let n = cmp::min(buf.len(), max_bytes - nbytes);
@@ -78,13 +74,18 @@ fn write(
         }
 
         nbytes += nread;
-        writer.write_all(&buf[..nread])?;
+
+        match iter.next() {
+            Some(id) => {
+                container.write(id, &buf[..nread])?;
+                blocks += 1;
+            }
+            None => break,
+        }
     }
 
-    writer.flush()?;
-
     if !sub.is_present("quiet") {
-        println!("{} bytes written to {} block(s).", nbytes, writer.blocks());
+        println!("{} bytes written to {} block(s).", nbytes, blocks);
     }
 
     Ok(())

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -62,13 +62,5 @@ macro_rules! assert_inval_header {
             }
             _ => panic!("unexpected error: {:?}", err),
         }
-    };
-}
-
-#[cfg(test)]
-macro_rules! assert_large_array {
-    ($lhs:expr, $rhs:expr) => {
-        assert_eq!($lhs.len(), $rhs.len());
-        assert!($lhs.iter().zip($rhs.iter()).all(|(a, b)| a == b));
     };
 }

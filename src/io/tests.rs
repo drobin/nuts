@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -25,9 +25,3 @@ mod from_binary;
 
 #[cfg(test)]
 mod into_binary;
-
-#[cfg(test)]
-mod reader;
-
-#[cfg(test)]
-mod writer;

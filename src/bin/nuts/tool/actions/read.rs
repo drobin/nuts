@@ -23,8 +23,7 @@
 use clap::ArgMatches;
 use log::debug;
 use nuts::container::Container;
-use nuts::io::Reader;
-use std::io::Read;
+use std::cmp;
 
 use crate::tool;
 use crate::tool::convert::Convert;
@@ -67,28 +66,26 @@ fn read(
     range: &IdRange,
     max_bytes: u64,
 ) -> Result<()> {
-    let mut reader = Reader::new(container);
+    let mut output = Output::new(format);
 
-    reader.set_max_bytes(max_bytes);
+    let mut remaining_bytes = max_bytes;
+    let mut buf = vec![0; container.bsize()? as usize];
 
     for id in range.iter() {
-        reader.push_id(id);
-    }
+        let read_bytes = container.read(id, &mut buf)?;
+        let num_bytes = cmp::min(read_bytes as usize, remaining_bytes as usize);
 
-    let mut output = Output::new(format);
-    let mut buf = [0; 64];
-
-    loop {
-        let nbytes = reader.read(&mut buf)?;
-
-        if nbytes == 0 {
-            break;
-        }
+        remaining_bytes = remaining_bytes - num_bytes as u64;
 
         if !sub.is_present("quiet") {
-            output.push(&buf[..nbytes]).print();
+            output.push(&buf[..num_bytes]).print();
+        }
+
+        if remaining_bytes == 0 {
+            break;
         }
     }
+
     if !sub.is_present("quiet") {
         output.flush();
     }
