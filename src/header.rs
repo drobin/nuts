@@ -405,30 +405,26 @@ impl fmt::Debug for Header {
     }
 }
 
-struct Magic {
-    magic: [u8; 7],
-}
+struct Magic([u8; 7]);
 
 impl Magic {
     fn new() -> Magic {
-        Magic {
-            magic: HEADER_MAGIC,
-        }
+        Magic(HEADER_MAGIC)
     }
 }
 
 impl FromBinary for Magic {
     fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
-        let mut m = Magic { magic: [0; 7] };
+        let mut magic = [0; 7];
 
-        for n in m.magic.iter_mut() {
+        for n in magic.iter_mut() {
             *n = u8::from_binary(r)?;
         }
 
-        if m.magic == HEADER_MAGIC {
-            Ok(m)
+        if magic == HEADER_MAGIC {
+            Ok(Magic(magic))
         } else {
-            error!("invalid magic: {:x?}", m.magic);
+            error!("invalid magic: {:x?}", magic);
             Err(invalheader_error!(InvalHeaderError::InvalMagic))
         }
     }
@@ -436,7 +432,7 @@ impl FromBinary for Magic {
 
 impl IntoBinary for Magic {
     fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
-        w.write_all(&self.magic)?;
+        w.write_all(&self.0)?;
         Ok(())
     }
 }
