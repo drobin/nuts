@@ -153,7 +153,7 @@ impl Header {
         let mut cursor = Cursor::new(source);
 
         cursor.read_binary::<Magic>()?;
-        self.revision = cursor.read_binary::<Revision>()?.rev;
+        self.revision = cursor.read_binary::<Revision>()?.0;
         self.cipher = cursor.read_binary::<Cipher>()?;
         self.wrapping_key = cursor.read_binary::<Option<WrappingKey>>()?;
         self.wrapping_iv = cursor.read_binary::<Vec<u8>>()?;
@@ -437,13 +437,11 @@ impl IntoBinary for Magic {
     }
 }
 
-struct Revision {
-    rev: u8,
-}
+struct Revision(u8);
 
 impl Revision {
     fn new(rev: u8) -> Revision {
-        Revision { rev }
+        Revision(rev)
     }
 }
 
@@ -451,7 +449,7 @@ impl FromBinary for Revision {
     fn from_binary(r: &mut dyn Read) -> io::Result<Self> {
         let r = Revision::new(u8::from_binary(r)?);
 
-        if r.rev == 1 {
+        if r.0 == 1 {
             Ok(r)
         } else {
             Err(invalheader_error!(InvalHeaderError::InvalRevision))
@@ -461,6 +459,6 @@ impl FromBinary for Revision {
 
 impl IntoBinary for Revision {
     fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
-        self.rev.into_binary(w)
+        self.0.into_binary(w)
     }
 }
