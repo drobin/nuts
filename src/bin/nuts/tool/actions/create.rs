@@ -87,18 +87,19 @@ pub fn run(sub: &ArgMatches) -> tool::result::Result<()> {
     container.create(path, builder.build()?)?;
 
     if !sub.is_present("quiet") {
-        println!("cipher:           {}", container.cipher()?.to_str());
+        println!("cipher:             {}", container.cipher()?.to_str());
         match container.wrapping_key()? {
             Some(wkey) => {
                 let spec = WrappingKeySpec::from_wrapping_key(&wkey);
-                println!("wrapping key:     {}", spec.to_str());
+                println!("wrapping key:       {}", spec.to_str());
             }
-            None => println!("wrapping key:     none"),
+            None => println!("wrapping key:       none"),
         };
-        println!("disk type:        {}", container.dtype()?.to_str());
-        println!("block size:       {}", container.bsize()?);
-        println!("blocks:           {}", container.blocks()?);
-        println!("allocated blocks: {}", container.ablocks()?);
+        println!("disk type:          {}", container.dtype()?.to_str());
+        println!("block size (gross): {}", container.bsize_gross()?);
+        println!("block size (net):   {}", container.bsize()?);
+        println!("blocks:             {}", container.blocks()?);
+        println!("allocated blocks:   {}", container.ablocks()?);
     }
 
     Ok(())
