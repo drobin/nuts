@@ -20,7 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use byteorder::{ByteOrder, NetworkEndian};
 use std::io::{Cursor, ErrorKind};
 
 use crate::header::Header;
@@ -50,7 +49,8 @@ fn mk_secret(
         cursor.position() as usize
     };
 
-    NetworkEndian::write_u32(&mut secret[..4], nbytes as u32);
+    let len = &((nbytes as u32).to_be_bytes()[..]);
+    secret[..4].copy_from_slice(len);
     secret.resize(4 + nbytes, 0);
 
     secret

@@ -23,7 +23,6 @@
 #[cfg(test)]
 mod tests;
 
-use byteorder::{ByteOrder, NetworkEndian};
 use std::convert::TryFrom;
 use std::io::{self, Read, Write};
 
@@ -69,7 +68,7 @@ impl FromBinary for u16 {
         let mut buf = [0; 2];
 
         r.read_exact(&mut buf)?;
-        Ok(NetworkEndian::read_u16(&buf))
+        Ok(u16::from_be_bytes(buf))
     }
 }
 
@@ -81,7 +80,7 @@ impl FromBinary for u32 {
         let mut buf = [0; 4];
 
         r.read_exact(&mut buf)?;
-        Ok(NetworkEndian::read_u32(&buf))
+        Ok(u32::from_be_bytes(buf))
     }
 }
 
@@ -93,7 +92,7 @@ impl FromBinary for u64 {
         let mut buf = [0; 8];
 
         r.read_exact(&mut buf)?;
-        Ok(NetworkEndian::read_u64(&buf))
+        Ok(u64::from_be_bytes(buf))
     }
 }
 
@@ -154,11 +153,7 @@ impl IntoBinary for u8 {
 /// It writes the number in network byte order (big endian).
 impl IntoBinary for u16 {
     fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
-        let mut buf = [0; 2];
-
-        NetworkEndian::write_u16(&mut buf, *self);
-        w.write_all(&buf)?;
-
+        w.write_all(&self.to_be_bytes())?;
         Ok(())
     }
 }
@@ -168,11 +163,7 @@ impl IntoBinary for u16 {
 /// It writes the number in network byte order (big endian).
 impl IntoBinary for u32 {
     fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
-        let mut buf = [0; 4];
-
-        NetworkEndian::write_u32(&mut buf, *self);
-        w.write_all(&buf)?;
-
+        w.write_all(&self.to_be_bytes())?;
         Ok(())
     }
 }
@@ -182,11 +173,7 @@ impl IntoBinary for u32 {
 /// It writes the number in network byte order (big endian).
 impl IntoBinary for u64 {
     fn into_binary(&self, w: &mut dyn Write) -> io::Result<()> {
-        let mut buf = [0; 8];
-
-        NetworkEndian::write_u64(&mut buf, *self);
-        w.write_all(&buf)?;
-
+        w.write_all(&self.to_be_bytes())?;
         Ok(())
     }
 }
