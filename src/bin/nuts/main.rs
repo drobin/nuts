@@ -63,7 +63,7 @@ fn run_tool() -> Result<()> {
     .iter()
     .map(|d| d.to_str())
     .collect::<Vec<String>>();
-    let format_list = [Format::Raw, Format::String, Format::Hex]
+    let format_list = [Format::Raw, Format::Hex]
         .iter()
         .map(|f| f.to_str())
         .collect::<Vec<String>>();

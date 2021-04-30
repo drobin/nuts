@@ -108,7 +108,6 @@ impl Convert for Format {
     fn from_str(s: &str) -> Result<Self> {
         match s {
             "raw" => Ok(Format::Raw),
-            "string" => Ok(Format::String),
             "hex" => Ok(Format::Hex),
             _ => Err(Error::new(&format!("invalid format: {}", s))),
         }
@@ -117,7 +116,6 @@ impl Convert for Format {
     fn to_str(&self) -> String {
         match self {
             Format::Raw => String::from("raw"),
-            Format::String => String::from("string"),
             Format::Hex => String::from("hex"),
         }
     }

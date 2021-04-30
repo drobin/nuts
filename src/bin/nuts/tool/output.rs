@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Robin Doer
+// Copyright (c) 2020, 2021 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,7 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use log::debug;
 use std::cmp;
 use std::io::{self, Write};
 
@@ -60,7 +59,6 @@ impl Output {
     pub fn print(&mut self) {
         match self.fmt {
             Format::Raw => self.print_raw(),
-            Format::String => self.print_utf8(self.buf.len(), false),
             Format::Hex => self.print_hex(),
         }
     }
@@ -68,41 +66,8 @@ impl Output {
     pub fn flush(&mut self) {
         match self.fmt {
             Format::Raw => self.flush_raw(),
-            Format::String => self.flush_utf8(),
             Format::Hex => self.flush_hex(),
         }
-    }
-
-    fn print_utf8(&mut self, len: usize, retry: bool) {
-        match std::str::from_utf8(&self.buf[..len]) {
-            Ok(s) => {
-                // Successful conversion.
-                // Simply print the result and remove data from buffer
-                // to prevent re-parsing.
-                print!("{}", s);
-                self.offset += self.buf.drain(..len).len();
-            }
-            Err(err) => {
-                if err.error_len().is_none() && !retry {
-                    // Retry in case of no error_len until last valid char.
-                    self.print_utf8(err.valid_up_to(), true);
-                } else {
-                    debug!(
-                        "print_utf8(offset: {}, len: {}, retry: {}): {:?}",
-                        self.offset, len, retry, err
-                    );
-                    eprintln!(
-                        "An invalid UTF-8 character was detected at offset {}.",
-                        self.offset
-                    );
-                }
-            }
-        }
-    }
-
-    fn flush_utf8(&mut self) {
-        self.print_utf8(self.buf.len(), true); // don't retry
-        println!();
     }
 
     fn print_hex(&mut self) {
