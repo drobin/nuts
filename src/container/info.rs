@@ -20,6 +20,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod backend;
-pub mod bytes;
-pub mod container;
+use crate::backend::Backend;
+use crate::container::cipher::Cipher;
+
+/// Information from the container.
+#[derive(Debug)]
+pub struct Info<B: Backend> {
+    /// Information from the lower backend.
+    pub backend: B::Info,
+
+    /// The cipher used for encryption.
+    pub cipher: Cipher,
+}

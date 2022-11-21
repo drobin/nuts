@@ -20,6 +20,34 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod backend;
-pub mod bytes;
-pub mod container;
+use std::io::{Read, Write};
+
+use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
+
+/// Supported cipher algorithms.
+#[derive(Clone, Copy, Debug)]
+pub enum Cipher {
+    /// No encryption.
+    None,
+}
+
+impl FromBytes for Cipher {
+    fn from_bytes<R: Read>(source: &mut R) -> bytes::Result<Self> {
+        let n = source.from_bytes()?;
+
+        match n {
+            0u8 => Ok(Cipher::None),
+            _ => Err(bytes::Error::invalid(format!("invalid cipher: {}", n))),
+        }
+    }
+}
+
+impl ToBytes for Cipher {
+    fn to_bytes<W: Write>(&self, target: &mut W) -> bytes::Result<()> {
+        let n = match self {
+            Cipher::None => 0u8,
+        };
+
+        target.to_bytes(&n)
+    }
+}
