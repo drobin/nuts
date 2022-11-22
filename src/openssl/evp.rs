@@ -20,11 +20,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-#[macro_use]
-pub(crate) mod asserts;
-pub mod backend;
-pub mod bytes;
-pub mod container;
-pub mod directory;
-pub mod openssl;
+use std::os::raw::c_int;
+
+#[allow(non_camel_case_types)]
+enum EVP_CIPHER {}
+
+extern "C" {
+    fn EVP_aes_128_ctr() -> *const EVP_CIPHER;
+
+    fn EVP_CIPHER_block_size(e: *const EVP_CIPHER) -> c_int;
+    fn EVP_CIPHER_key_length(e: *const EVP_CIPHER) -> c_int;
+    fn EVP_CIPHER_iv_length(e: *const EVP_CIPHER) -> c_int;
+}
+
+pub struct Cipher(*const EVP_CIPHER);
+
+impl Cipher {
+    pub fn aes128_ctr() -> Cipher {
+        Cipher(unsafe { EVP_aes_128_ctr() })
+    }
+
+    pub fn block_size(&self) -> usize {
+        let n = unsafe { EVP_CIPHER_block_size(self.0) };
+        n as usize
+    }
+
+    pub fn key_length(&self) -> usize {
+        let n = unsafe { EVP_CIPHER_key_length(self.0) };
+        n as usize
+    }
+
+    pub fn iv_length(&self) -> usize {
+        let n = unsafe { EVP_CIPHER_iv_length(self.0) };
+        n as usize
+    }
+}

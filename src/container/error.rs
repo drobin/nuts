@@ -24,6 +24,7 @@ use std::{error, fmt, result};
 
 use crate::backend::Backend;
 use crate::bytes;
+use crate::openssl::OpenSSLError;
 
 /// Error type used by this module.
 pub enum ContainerError<B: Backend> {
@@ -32,6 +33,9 @@ pub enum ContainerError<B: Backend> {
 
     /// Error while (de-) serializing binary data.
     Bytes(bytes::Error),
+
+    /// An error in the OpenSSL library occured.
+    OpenSSL(OpenSSLError),
 }
 
 impl<B: Backend> fmt::Display for ContainerError<B> {
@@ -39,6 +43,7 @@ impl<B: Backend> fmt::Display for ContainerError<B> {
         match self {
             ContainerError::Backend(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::Bytes(cause) => fmt::Display::fmt(cause, fmt),
+            ContainerError::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
         }
     }
 }
@@ -48,6 +53,7 @@ impl<B: Backend> fmt::Debug for ContainerError<B> {
         match self {
             ContainerError::Backend(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::Bytes(cause) => fmt::Debug::fmt(cause, fmt),
+            ContainerError::OpenSSL(cause) => fmt::Debug::fmt(cause, fmt),
         }
     }
 }
@@ -57,6 +63,7 @@ impl<B: Backend + 'static> error::Error for ContainerError<B> {
         match self {
             ContainerError::Backend(cause) => Some(cause),
             ContainerError::Bytes(cause) => Some(cause),
+            ContainerError::OpenSSL(cause) => Some(cause),
         }
     }
 }
@@ -64,6 +71,12 @@ impl<B: Backend + 'static> error::Error for ContainerError<B> {
 impl<B: Backend> From<bytes::Error> for ContainerError<B> {
     fn from(cause: bytes::Error) -> Self {
         ContainerError::Bytes(cause)
+    }
+}
+
+impl<B: Backend> From<OpenSSLError> for ContainerError<B> {
+    fn from(cause: OpenSSLError) -> Self {
+        ContainerError::OpenSSL(cause)
     }
 }
 

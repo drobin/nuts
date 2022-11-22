@@ -34,6 +34,7 @@ impl Convert for Cipher {
     fn from_str(s: &str) -> Result<Self, String> {
         match s.as_ref() {
             "none" => Ok(Cipher::None),
+            "aes128-ctr" => Ok(Cipher::Aes128Ctr),
             _ => Err(format!("invalid cipher: {}", s)),
         }
     }
@@ -41,6 +42,7 @@ impl Convert for Cipher {
     fn to_str(&self) -> String {
         match self {
             Cipher::None => "none",
+            Cipher::Aes128Ctr => "aes128-ctr",
         }
         .to_string()
     }

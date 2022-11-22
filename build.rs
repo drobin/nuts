@@ -20,11 +20,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-#[macro_use]
-pub(crate) mod asserts;
-pub mod backend;
-pub mod bytes;
-pub mod container;
-pub mod directory;
-pub mod openssl;
+use pkg_config;
+use std::env;
+use std::path::Path;
+
+fn setup_pkg_config_path() {
+    if cfg!(target_os = "macos") {
+        let path = Path::new("/usr/local/opt/openssl");
+
+        if path.exists() {
+            env::set_var("PKG_CONFIG_PATH", path.join("lib/pkgconfig"));
+        }
+    }
+}
+
+fn main() {
+    setup_pkg_config_path();
+
+    pkg_config::Config::new()
+        .atleast_version("1.1.0")
+        .statik(true)
+        .probe("libcrypto")
+        .unwrap();
+}

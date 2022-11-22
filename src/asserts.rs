@@ -20,11 +20,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-#[macro_use]
-pub(crate) mod asserts;
-pub mod backend;
-pub mod bytes;
-pub mod container;
-pub mod directory;
-pub mod openssl;
+macro_rules! assert_error {
+    ($err:expr, $type:ident :: $memb:ident) => {
+        match $err {
+            $type::$memb => {}
+            _ => panic!("invalid error"),
+        }
+    };
+}
+
+macro_rules! into_error {
+    ($err:expr, $type:ident :: $memb:ident) => {
+        match $err {
+            $type::$memb(cause) => cause,
+            _ => panic!("invalid error:"),
+        }
+    };
+}
