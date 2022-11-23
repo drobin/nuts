@@ -27,9 +27,10 @@ mod info;
 mod options;
 
 use log::debug;
-use std::any;
+use std::{any, cmp};
 
 use crate::backend::{Backend, BLOCK_MIN_SIZE};
+use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
 
 pub use cipher::Cipher;
@@ -52,10 +53,10 @@ macro_rules! map_err {
 /// open an existing container with the [`Container::open`] method. With the
 /// [`Container::read`] and [`Container::write`] methods you can read data from
 /// the container resp. write data into the container.
-#[derive(Debug)]
 pub struct Container<B> {
     backend: B,
     header: Header,
+    ctx: CipherCtx<B>,
 }
 
 impl<B: Backend> Container<B> {
@@ -83,6 +84,7 @@ impl<B: Backend> Container<B> {
     pub fn create(options: CreateOptions<B>) -> ContainerResult<Container<B>, B> {
         let header = Header::create(&options)?;
         let (mut backend, settings) = map_err!(B::create(options.backend))?;
+        let ctx = CipherCtx::new(header.cipher, backend.block_size())?;
 
         Self::write_header(&mut backend, &header, &settings)?;
 
@@ -92,7 +94,11 @@ impl<B: Backend> Container<B> {
             header
         );
 
-        Ok(Container { backend, header })
+        Ok(Container {
+            backend,
+            header,
+            ctx,
+        })
     }
 
     /// Opens an existing container.
@@ -114,13 +120,19 @@ impl<B: Backend> Container<B> {
 
         backend.open_ready(settings);
 
+        let ctx = CipherCtx::new(header.cipher, backend.block_size())?;
+
         debug!(
             "Container opened, backend: {}, header: {:?}",
             any::type_name::<B>(),
             header
         );
 
-        Ok(Container { backend, header })
+        Ok(Container {
+            backend,
+            header,
+            ctx,
+        })
     }
 
     /// Returns the backend of this container.
@@ -189,7 +201,17 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`ContainerError`] type.
     pub fn read(&mut self, id: &B::Id, buf: &mut [u8]) -> ContainerResult<usize, B> {
-        map_err!(self.backend.read(id, buf))
+        let mut ctext = vec![0; self.backend.block_size() as usize];
+        let n = map_err!(self.backend.read(id, &mut ctext))?;
+
+        let key = &self.header.key;
+        let iv = &self.header.iv;
+        let ptext = self.ctx.decrypt(key, iv, &ctext[..n])?;
+
+        let n = cmp::min(ptext.len(), buf.len());
+        buf[..n].copy_from_slice(&ptext[..n]);
+
+        Ok(n)
     }
 
     /// Writes a block into the container.
@@ -201,12 +223,7 @@ impl<B: Backend> Container<B> {
     /// the container.
     ///
     /// If `buf` is not large enough to fill the whole block, the destination
-    /// block is automatically padded:
-    ///
-    /// * If encryption is enabled, than the padding is filled with random
-    ///   data.
-    /// * If encryption is disabled, than the padding is initialized with
-    ///   all zeros.
+    /// block is automatically padded with all zeros.
     ///
     /// If `buf` holds more data than the block-size, then the first
     /// [block-size](Backend::block_size) bytes are copied into the block.
@@ -217,7 +234,12 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`ContainerError`] type.
     pub fn write(&mut self, id: &B::Id, buf: &[u8]) -> ContainerResult<usize, B> {
-        map_err!(self.backend.write(id, buf))
+        let key = &self.header.key;
+        let iv = &self.header.iv;
+
+        let ctext = self.ctx.encrypt(key, iv, buf)?;
+
+        map_err!(self.backend.write(id, ctext))
     }
 
     fn read_header(backend: &mut B) -> ContainerResult<(Header, B::Settings), B> {
