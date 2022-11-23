@@ -23,4 +23,52 @@
 mod error;
 pub(crate) mod evp;
 
+use std::os::raw::c_int;
+use std::ptr;
+
+use crate::openssl::error::OpenSSLResult;
+
 pub use error::OpenSSLError;
+
+trait MapResult
+where
+    Self: PartialOrd<c_int> + Sized,
+{
+    fn into_result(self) -> OpenSSLResult<Self> {
+        self.map_result(|n| n)
+    }
+
+    fn map_result<F, T>(self, op: F) -> OpenSSLResult<T>
+    where
+        F: FnOnce(Self) -> T,
+    {
+        if self > 0 {
+            Ok(op(self))
+        } else {
+            Err(OpenSSLError::library())
+        }
+    }
+}
+
+trait MapResultPtr<T>
+where
+    Self: PartialEq<*mut T> + Sized,
+{
+    fn into_result(self) -> OpenSSLResult<Self> {
+        self.map_result(|n| n)
+    }
+
+    fn map_result<F, R>(self, op: F) -> OpenSSLResult<R>
+    where
+        F: FnOnce(Self) -> R,
+    {
+        if self == ptr::null_mut() {
+            Err(OpenSSLError::library())
+        } else {
+            Ok(op(self))
+        }
+    }
+}
+
+impl MapResult for c_int {}
+impl<T> MapResultPtr<T> for *mut T {}

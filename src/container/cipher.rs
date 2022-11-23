@@ -24,9 +24,13 @@
 mod tests;
 
 use std::io::{Read, Write};
+use std::marker::PhantomData;
 
+use crate::backend::Backend;
 use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
+use crate::container::error::ContainerResult;
 use crate::openssl::evp;
+use crate::whiteout_vec;
 
 /// Supported cipher algorithms.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -91,5 +95,80 @@ impl ToBytes for Cipher {
         };
 
         target.to_bytes(&n)
+    }
+}
+
+pub struct CipherCtx<B> {
+    _data: PhantomData<B>,
+    ctx: evp::CipherCtx,
+    cipher: Cipher,
+    out: Vec<u8>,
+}
+
+impl<B: Backend> CipherCtx<B> {
+    pub fn new(cipher: Cipher) -> ContainerResult<CipherCtx<B>, B> {
+        Ok(CipherCtx {
+            _data: PhantomData,
+            ctx: evp::CipherCtx::new()?,
+            cipher,
+            out: vec![],
+        })
+    }
+
+    pub fn encrypt(&mut self, key: &[u8], iv: &[u8], input: &[u8]) -> ContainerResult<&[u8], B> {
+        match self.cipher.to_evp() {
+            Some(cipher) => self.encrypt_some(cipher, key, iv, input),
+            None => self.update_none(input),
+        }
+    }
+
+    pub fn decrypt(&mut self, key: &[u8], iv: &[u8], input: &[u8]) -> ContainerResult<&[u8], B> {
+        match self.cipher.to_evp() {
+            Some(cipher) => self.decrypt_some(cipher, key, iv, input),
+            None => self.update_none(input),
+        }
+    }
+
+    fn encrypt_some(
+        &mut self,
+        cipher: evp::Cipher,
+        key: &[u8],
+        iv: &[u8],
+        input: &[u8],
+    ) -> ContainerResult<&[u8], B> {
+        self.out.resize(input.len(), 0);
+        let n = self.ctx.encrypt(cipher, key, iv, input, &mut self.out)?;
+
+        self.out.resize(n, 0);
+
+        Ok(&self.out)
+    }
+
+    fn decrypt_some(
+        &mut self,
+        cipher: evp::Cipher,
+        key: &[u8],
+        iv: &[u8],
+        input: &[u8],
+    ) -> ContainerResult<&[u8], B> {
+        self.out.resize(input.len(), 0);
+        let n = self.ctx.decrypt(cipher, key, iv, input, &mut self.out)?;
+
+        self.out.resize(n, 0);
+
+        Ok(&self.out)
+    }
+
+    fn update_none(&mut self, input: &[u8]) -> ContainerResult<&[u8], B> {
+        self.out.clear();
+        self.out.extend_from_slice(input);
+
+        Ok(&self.out)
+    }
+}
+
+impl<B> Drop for CipherCtx<B> {
+    fn drop(&mut self) {
+        whiteout_vec(&mut self.out);
     }
 }

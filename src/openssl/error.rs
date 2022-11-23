@@ -31,17 +31,51 @@ extern "C" {
     fn ERR_reason_error_string(e: c_ulong) -> *const c_char;
 }
 
-/// Error type which collects error from the underlaying OpenSSL library.
 #[derive(Debug)]
-pub struct OpenSSLError(c_ulong);
+pub enum OpenSSLError {
+    Library(LibraryError),
+    InvalidKey,
+    InvalidIv,
+    InvalidBlockSize,
+}
 
 impl OpenSSLError {
+    pub(crate) fn library() -> OpenSSLError {
+        OpenSSLError::Library(LibraryError::get())
+    }
+}
+
+impl fmt::Display for OpenSSLError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            OpenSSLError::Library(cause) => fmt::Display::fmt(cause, fmt),
+            OpenSSLError::InvalidKey => write!(fmt, "Invalid key"),
+            OpenSSLError::InvalidIv => write!(fmt, "Invalid iv"),
+            OpenSSLError::InvalidBlockSize => write!(fmt, "Invalid block-size"),
+        }
+    }
+}
+
+impl error::Error for OpenSSLError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            OpenSSLError::Library(cause) => Some(cause),
+            _ => None,
+        }
+    }
+}
+
+/// Error type which collects error from the underlaying OpenSSL library.
+#[derive(Debug)]
+pub struct LibraryError(c_ulong);
+
+impl LibraryError {
     /// Returns the earliest error from the thread's error queue and removes
     /// the entry. This function can be called repeatedly until there are no
     /// more errors to return.
-    pub(crate) fn get() -> OpenSSLError {
+    fn get() -> LibraryError {
         let error_code = unsafe { ERR_get_error() };
-        OpenSSLError(error_code)
+        LibraryError(error_code)
     }
 
     /// Returns the library name of the latest error.
@@ -63,7 +97,7 @@ impl OpenSSLError {
     }
 }
 
-impl fmt::Display for OpenSSLError {
+impl fmt::Display for LibraryError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(
             fmt,
@@ -76,6 +110,6 @@ impl fmt::Display for OpenSSLError {
     }
 }
 
-impl error::Error for OpenSSLError {}
+impl error::Error for LibraryError {}
 
 pub type OpenSSLResult<T> = result::Result<T, OpenSSLError>;

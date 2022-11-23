@@ -28,3 +28,15 @@ pub mod bytes;
 pub mod container;
 pub mod directory;
 pub mod openssl;
+
+fn whiteout_slice(buf: &mut [u8]) {
+    for i in buf.iter_mut() {
+        *i = 0;
+    }
+}
+
+fn whiteout_vec(vec: &mut Vec<u8>) {
+    vec.resize(vec.capacity(), 0);
+    whiteout_slice(&mut vec[..]);
+    vec.clear();
+}
