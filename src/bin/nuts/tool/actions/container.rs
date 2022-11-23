@@ -22,6 +22,8 @@
 
 pub mod create;
 pub mod info;
+pub mod read;
+pub mod write;
 
 use anyhow::{anyhow, Result};
 use clap::{App, AppSettings, ArgMatches, SubCommand};
@@ -31,12 +33,16 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(create::command(SubCommand::with_name("create")))
         .subcommand(info::command(SubCommand::with_name("info")))
+        .subcommand(read::command(SubCommand::with_name("read")))
+        .subcommand(write::command(SubCommand::with_name("write")))
 }
 
 pub fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
         ("create", Some(matches)) => create::run(matches),
         ("info", Some(matches)) => info::run(matches),
+        ("read", Some(matches)) => read::run(matches),
+        ("write", Some(matches)) => write::run(matches),
         _ => Err(anyhow!("Missing implementation for subcommand")),
     }
 }

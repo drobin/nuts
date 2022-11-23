@@ -20,42 +20,60 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts::container::Cipher;
-use nuts::directory::DirectoryId;
+use std::io::{self, Write};
+use std::result::Result;
 
-pub trait Convert
-where
-    Self: Sized,
-{
-    fn from_str(s: &str) -> Result<Self, String>;
-    fn to_str(&self) -> String;
+use crate::tool::convert::Convert;
+use crate::tool::hex::HexWriter;
+
+#[derive(Clone, Copy, Debug)]
+pub enum Format {
+    Raw,
+    Hex,
 }
 
-impl Convert for DirectoryId {
+impl Convert for Format {
     fn from_str(s: &str) -> Result<Self, String> {
-        s.parse::<DirectoryId>()
-            .map_err(|_| format!("invalid id: {}", s))
-    }
-
-    fn to_str(&self) -> String {
-        self.to_string()
-    }
-}
-
-impl Convert for Cipher {
-    fn from_str(s: &str) -> Result<Self, String> {
-        match s.as_ref() {
-            "none" => Ok(Cipher::None),
-            "aes128-ctr" => Ok(Cipher::Aes128Ctr),
-            _ => Err(format!("invalid cipher: {}", s)),
+        match s {
+            "raw" => Ok(Format::Raw),
+            "hex" => Ok(Format::Hex),
+            _ => Err(format!("invalid format: {}", s)),
         }
     }
 
     fn to_str(&self) -> String {
         match self {
-            Cipher::None => "none",
-            Cipher::Aes128Ctr => "aes128-ctr",
+            Format::Raw => String::from("raw"),
+            Format::Hex => String::from("hex"),
         }
-        .to_string()
+    }
+}
+
+#[derive(Debug)]
+pub struct Output(Option<HexWriter>);
+
+impl Output {
+    pub fn new(format: Format) -> Output {
+        match format {
+            Format::Raw => Output(None),
+            Format::Hex => Output(Some(HexWriter::new())),
+        }
+    }
+
+    pub fn print<T: AsRef<[u8]>>(&mut self, buf: T) {
+        match self.0 {
+            Some(ref mut hex) => {
+                hex.fill(buf);
+                hex.print();
+            }
+            None => io::stdout().write_all(&buf.as_ref()).unwrap(),
+        }
+    }
+
+    pub fn flush(&mut self) {
+        match self.0 {
+            Some(ref mut hex) => hex.flush(),
+            None => io::stdout().flush().unwrap(),
+        }
     }
 }
