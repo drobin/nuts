@@ -26,6 +26,9 @@ mod header;
 mod info;
 mod options;
 
+use log::debug;
+use std::any;
+
 use crate::backend::{Backend, BLOCK_MIN_SIZE};
 use crate::container::header::Header;
 
@@ -78,13 +81,16 @@ impl<B: Backend> Container<B> {
     //
     // Further errors are listed in the [`Error`] type.
     pub fn create(options: CreateOptions<B>) -> ContainerResult<Container<B>, B> {
+        let header = Header::create(&options)?;
         let (mut backend, settings) = map_err!(B::create(options.backend))?;
 
-        let mut header = Header::new();
-
-        header.cipher = options.cipher;
-
         Self::write_header(&mut backend, &header, &settings)?;
+
+        debug!(
+            "Container created, backend: {}, header: {:?}",
+            any::type_name::<B>(),
+            header
+        );
 
         Ok(Container { backend, header })
     }
@@ -107,6 +113,12 @@ impl<B: Backend> Container<B> {
         let (header, settings) = Self::read_header(&mut backend)?;
 
         backend.open_ready(settings);
+
+        debug!(
+            "Container opened, backend: {}, header: {:?}",
+            any::type_name::<B>(),
+            header
+        );
 
         Ok(Container { backend, header })
     }
@@ -226,7 +238,7 @@ impl<B: Backend> Container<B> {
         let id = backend.header_id();
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
-        Header::write::<B>(&header, &envelope, &mut buf)?;
+        header.write::<B>(&envelope, &mut buf)?;
 
         map_err!(backend.write(&id, &buf))
     }

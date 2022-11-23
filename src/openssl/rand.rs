@@ -20,56 +20,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod error;
-pub(crate) mod evp;
-pub(crate) mod rand;
-
-use std::os::raw::c_int;
-use std::ptr;
+use std::os::raw::{c_int, c_uchar};
 
 use crate::openssl::error::OpenSSLResult;
+use crate::openssl::MapResult;
 
-pub use error::OpenSSLError;
-
-trait MapResult
-where
-    Self: PartialOrd<c_int> + Sized,
-{
-    fn into_result(self) -> OpenSSLResult<Self> {
-        self.map_result(|n| n)
-    }
-
-    fn map_result<F, T>(self, op: F) -> OpenSSLResult<T>
-    where
-        F: FnOnce(Self) -> T,
-    {
-        if self > 0 {
-            Ok(op(self))
-        } else {
-            Err(OpenSSLError::library())
-        }
-    }
+extern "C" {
+    fn RAND_bytes(buf: *mut c_uchar, num: c_int) -> c_int;
 }
 
-trait MapResultPtr<T>
-where
-    Self: PartialEq<*mut T> + Sized,
-{
-    fn into_result(self) -> OpenSSLResult<Self> {
-        self.map_result(|n| n)
-    }
-
-    fn map_result<F, R>(self, op: F) -> OpenSSLResult<R>
-    where
-        F: FnOnce(Self) -> R,
-    {
-        if self == ptr::null_mut() {
-            Err(OpenSSLError::library())
-        } else {
-            Ok(op(self))
-        }
-    }
+pub fn rand_bytes(buf: &mut [u8]) -> OpenSSLResult<()> {
+    unsafe { RAND_bytes(buf.as_mut_ptr(), buf.len() as c_int) }.map_result(|_| ())
 }
-
-impl MapResult for c_int {}
-impl<T> MapResultPtr<T> for *mut T {}
