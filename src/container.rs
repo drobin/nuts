@@ -25,6 +25,7 @@ mod digest;
 mod error;
 mod header;
 mod info;
+mod kdf;
 mod options;
 
 use log::debug;
@@ -38,6 +39,7 @@ pub use cipher::Cipher;
 pub use digest::Digest;
 pub use error::{ContainerError, ContainerResult};
 pub use info::Info;
+pub use kdf::Kdf;
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
 
 macro_rules! map_err {

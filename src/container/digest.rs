@@ -26,6 +26,7 @@ mod tests;
 use std::io::{Read, Write};
 
 use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
+use crate::openssl::evp;
 
 /// Supported message digests.
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -41,6 +42,12 @@ impl Digest {
     pub fn size(&self) -> usize {
         match self {
             Digest::Sha1 => 20,
+        }
+    }
+
+    pub(crate) fn to_evp(&self) -> evp::Digest {
+        match self {
+            Digest::Sha1 => evp::Digest::sha1(),
         }
     }
 }

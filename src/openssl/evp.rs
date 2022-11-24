@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::os::raw::{c_int, c_uchar};
+use std::os::raw::{c_char, c_int, c_uchar};
 use std::ptr;
 
 use crate::openssl::error::{OpenSSLError, OpenSSLResult};
@@ -31,9 +31,13 @@ enum EVP_CIPHER {}
 #[allow(non_camel_case_types)]
 enum EVP_CIPHER_CTX {}
 enum ENGINE {}
+#[allow(non_camel_case_types)]
+enum EVP_MD {}
 
 extern "C" {
     fn EVP_aes_128_ctr() -> *const EVP_CIPHER;
+
+    fn EVP_sha1() -> *const EVP_MD;
 
     fn EVP_CIPHER_block_size(e: *const EVP_CIPHER) -> c_int;
     fn EVP_CIPHER_key_length(e: *const EVP_CIPHER) -> c_int;
@@ -60,6 +64,17 @@ extern "C" {
         r#in: *const c_uchar,
         inl: c_int,
     ) -> c_int;
+
+    fn PKCS5_PBKDF2_HMAC(
+        pass: *const c_char,
+        passlen: c_int,
+        salt: *const c_uchar,
+        saltlen: c_int,
+        iter: c_int,
+        digest: *const EVP_MD,
+        keylen: c_int,
+        out: *mut c_uchar,
+    ) -> c_int;
 }
 
 pub struct Cipher(*const EVP_CIPHER);
@@ -82,6 +97,14 @@ impl Cipher {
     pub fn iv_length(&self) -> usize {
         let n = unsafe { EVP_CIPHER_iv_length(self.0) };
         n as usize
+    }
+}
+
+pub struct Digest(*const EVP_MD);
+
+impl Digest {
+    pub fn sha1() -> Digest {
+        Digest(unsafe { EVP_sha1() })
     }
 }
 
@@ -169,4 +192,26 @@ impl Drop for CipherCtx {
     fn drop(&mut self) {
         unsafe { EVP_CIPHER_CTX_free(self.0) }
     }
+}
+
+pub fn pbkdf2_hmac(
+    pass: &[u8],
+    salt: &[u8],
+    iter: u32,
+    digest: Digest,
+    key: &mut [u8],
+) -> OpenSSLResult<()> {
+    unsafe {
+        PKCS5_PBKDF2_HMAC(
+            pass.as_ptr() as *const i8,
+            pass.len() as c_int,
+            salt.as_ptr(),
+            salt.len() as c_int,
+            iter as c_int,
+            digest.0,
+            key.len() as c_int,
+            key.as_mut_ptr(),
+        )
+    }
+    .map_result(|_| ())
 }
