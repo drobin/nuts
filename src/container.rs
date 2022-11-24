@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 mod cipher;
+mod digest;
 mod error;
 mod header;
 mod info;
@@ -34,6 +35,7 @@ use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
 
 pub use cipher::Cipher;
+pub use digest::Digest;
 pub use error::{ContainerError, ContainerResult};
 pub use info::Info;
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
