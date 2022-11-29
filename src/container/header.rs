@@ -27,7 +27,9 @@ use std::io::{Cursor, Read, Write};
 use crate::backend::Backend;
 use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 use crate::container::cipher::{Cipher, CipherCtx};
+use crate::container::digest::Digest;
 use crate::container::error::ContainerResult;
+use crate::container::kdf::Kdf;
 use crate::container::options::CreateOptions;
 use crate::openssl::rand;
 use crate::whiteout_vec;
@@ -129,7 +131,9 @@ impl Header {
                 settings,
             ))
         } else {
-            let secret = Self::read_secret(cipher, cursor)?;
+            let iv = cursor.from_bytes()?;
+            let kdf = cursor.from_bytes()?;
+            let secret = Self::read_secret(cipher, iv, kdf, cursor)?;
 
             Ok((
                 Header {
@@ -144,14 +148,24 @@ impl Header {
 
     fn read_secret<'a, B: Backend>(
         cipher: Cipher,
+        iv: Vec<u8>,
+        kdf: Kdf,
         mut cursor: Cursor<&[u8]>,
     ) -> ContainerResult<Secret<'a, B>, B> {
-        let cbuf = cursor.from_bytes::<Vec<u8>>()?;
+        let mut key = kdf.create_key(b"123")?;
 
-        let mut ctx = CipherCtx::new(cipher, cbuf.len() as u32)?;
-        let pbuf = ctx.decrypt(&[b'x'; 16], &[b'x'; 16], &cbuf)?;
+        let result = {
+            let cbuf = cursor.from_bytes::<Vec<u8>>()?;
 
-        Ok(Cursor::new(pbuf).from_bytes()?)
+            let mut ctx = CipherCtx::new(cipher, cbuf.len() as u32)?;
+            let pbuf = ctx.decrypt(&key, &iv, &cbuf)?;
+
+            Ok(Cursor::new(pbuf).from_bytes()?)
+        };
+
+        whiteout_vec(&mut key);
+
+        result
     }
 
     pub fn write<B: Backend>(
@@ -171,16 +185,27 @@ impl Header {
             Ok(())
         } else {
             let secret = Secret::<B>::borrowed(&self.key, &self.iv, settings);
-            self.write_secret(secret, cursor)
+            let mut iv = vec![0; self.cipher.iv_len()];
+
+            rand::rand_bytes(&mut iv)?;
+
+            let kdf = Kdf::generate_pbkdf2(Digest::Sha1, 65536, 16)?;
+
+            cursor.to_bytes(&iv.as_ref())?;
+            cursor.to_bytes(&kdf)?;
+            self.write_secret(secret, iv, kdf, cursor)
         }
     }
 
     fn write_secret<B: Backend>(
         &self,
         secret: Secret<B>,
+        iv: Vec<u8>,
+        kdf: Kdf,
         mut cursor: Cursor<&mut [u8]>,
     ) -> ContainerResult<(), B> {
         let mut pbuf: Vec<u8> = vec![];
+        let mut key = kdf.create_key(b"123")?;
 
         let result = {
             let mut sec_cursor = Cursor::new(&mut pbuf);
@@ -188,12 +213,13 @@ impl Header {
             sec_cursor.to_bytes(&secret)?;
 
             let mut ctx = CipherCtx::new(self.cipher, pbuf.len() as u32)?;
-            let cbuf = ctx.encrypt(&[b'x'; 16], &[b'x'; 16], &pbuf)?;
+            let cbuf = ctx.encrypt(&key, &iv, &pbuf)?;
 
             Ok(cursor.to_bytes(&cbuf)?)
         };
 
         whiteout_vec(&mut pbuf);
+        whiteout_vec(&mut key);
 
         result
     }
