@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts::container::Cipher;
+use nuts::container::{Cipher, Digest};
 use nuts::directory::DirectoryId;
 
 pub trait Convert
@@ -57,5 +57,20 @@ impl Convert for Cipher {
             Cipher::Aes128Ctr => "aes128-ctr",
         }
         .to_string()
+    }
+}
+
+impl Convert for Digest {
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "sha1" => Ok(Digest::Sha1),
+            _ => Err(format!("invalid digest: {}", s)),
+        }
+    }
+
+    fn to_str(&self) -> String {
+        match self {
+            Digest::Sha1 => String::from("sha1"),
+        }
     }
 }

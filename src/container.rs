@@ -155,6 +155,7 @@ impl<B: Backend> Container<B> {
         Ok(Info {
             backend,
             cipher: self.header.cipher,
+            kdf: self.header.kdf.clone(),
         })
     }
 

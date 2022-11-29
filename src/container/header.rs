@@ -82,6 +82,7 @@ impl<'a, B: Backend> ToBytes for Secret<'a, B> {
 
 pub struct Header {
     pub(crate) cipher: Cipher,
+    pub(crate) kdf: Option<Kdf>,
     pub(crate) key: Vec<u8>,
     pub(crate) iv: Vec<u8>,
 }
@@ -95,7 +96,17 @@ impl Header {
         rand::rand_bytes(&mut key)?;
         rand::rand_bytes(&mut iv)?;
 
-        Ok(Header { cipher, key, iv })
+        let kdf = match cipher {
+            Cipher::None => None,
+            _ => Some(Kdf::generate_pbkdf2(Digest::Sha1, 65536, 16)?),
+        };
+
+        Ok(Header {
+            cipher,
+            kdf,
+            key,
+            iv,
+        })
     }
 
     pub fn read<B: Backend>(buf: &[u8]) -> ContainerResult<(Header, B::Settings), B> {
@@ -125,6 +136,7 @@ impl Header {
             Ok((
                 Header {
                     cipher: Cipher::None,
+                    kdf: None,
                     key: vec![],
                     iv: vec![],
                 },
@@ -133,11 +145,12 @@ impl Header {
         } else {
             let iv = cursor.from_bytes()?;
             let kdf = cursor.from_bytes()?;
-            let secret = Self::read_secret(cipher, iv, kdf, cursor)?;
+            let secret = Self::read_secret(cipher, iv, &kdf, cursor)?;
 
             Ok((
                 Header {
                     cipher,
+                    kdf: Some(kdf),
                     key: secret.key.into_owned(),
                     iv: secret.iv.into_owned(),
                 },
@@ -149,7 +162,7 @@ impl Header {
     fn read_secret<'a, B: Backend>(
         cipher: Cipher,
         iv: Vec<u8>,
-        kdf: Kdf,
+        kdf: &Kdf,
         mut cursor: Cursor<&[u8]>,
     ) -> ContainerResult<Secret<'a, B>, B> {
         let mut key = kdf.create_key(b"123")?;
@@ -189,11 +202,9 @@ impl Header {
 
             rand::rand_bytes(&mut iv)?;
 
-            let kdf = Kdf::generate_pbkdf2(Digest::Sha1, 65536, 16)?;
-
             cursor.to_bytes(&iv.as_ref())?;
-            cursor.to_bytes(&kdf)?;
-            self.write_secret(secret, iv, kdf, cursor)
+            cursor.to_bytes(self.kdf.as_ref().unwrap())?;
+            self.write_secret(secret, iv, cursor)
         }
     }
 
@@ -201,11 +212,10 @@ impl Header {
         &self,
         secret: Secret<B>,
         iv: Vec<u8>,
-        kdf: Kdf,
         mut cursor: Cursor<&mut [u8]>,
     ) -> ContainerResult<(), B> {
         let mut pbuf: Vec<u8> = vec![];
-        let mut key = kdf.create_key(b"123")?;
+        let mut key = self.kdf.as_ref().unwrap().create_key(b"123")?;
 
         let result = {
             let mut sec_cursor = Cursor::new(&mut pbuf);

@@ -24,4 +24,5 @@ pub mod actions;
 pub mod convert;
 pub mod format;
 pub mod hex;
+pub mod kdf;
 pub mod size;

@@ -22,6 +22,7 @@
 
 use crate::backend::Backend;
 use crate::container::cipher::Cipher;
+use crate::container::kdf::Kdf;
 
 /// Information from the container.
 #[derive(Debug)]
@@ -31,4 +32,7 @@ pub struct Info<B: Backend> {
 
     /// The cipher used for encryption.
     pub cipher: Cipher,
+
+    /// The key derivation function.
+    pub kdf: Option<Kdf>,
 }
