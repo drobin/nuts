@@ -88,7 +88,7 @@ impl Options<DirectoryBackend> for DirectoryOpenOptions {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct DirectorySettings {
     pub(crate) bsize: u32,
 }

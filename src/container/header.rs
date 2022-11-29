@@ -26,7 +26,7 @@ use std::io::{Cursor, Read, Write};
 
 use crate::backend::Backend;
 use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
-use crate::container::cipher::Cipher;
+use crate::container::cipher::{Cipher, CipherCtx};
 use crate::container::error::ContainerResult;
 use crate::container::options::CreateOptions;
 use crate::openssl::rand;
@@ -34,40 +34,45 @@ use crate::whiteout_vec;
 
 const MAGIC: [u8; 7] = *b"nuts-io";
 
-struct Secret<'a> {
+struct Secret<'a, B: Backend> {
     key: Cow<'a, [u8]>,
     iv: Cow<'a, [u8]>,
+    settings: Cow<'a, B::Settings>,
 }
 
-impl<'a> Secret<'a> {
-    fn owned(key: Vec<u8>, iv: Vec<u8>) -> Secret<'a> {
+impl<'a, B: Backend> Secret<'a, B> {
+    fn owned(key: Vec<u8>, iv: Vec<u8>, settings: B::Settings) -> Secret<'a, B> {
         Secret {
             key: Cow::Owned(key),
             iv: Cow::Owned(iv),
+            settings: Cow::Owned(settings),
         }
     }
 
-    fn borrowed(key: &'a [u8], iv: &'a [u8]) -> Secret<'a> {
+    fn borrowed(key: &'a [u8], iv: &'a [u8], settings: &'a B::Settings) -> Secret<'a, B> {
         Secret {
             key: Cow::Borrowed(key),
             iv: Cow::Borrowed(iv),
+            settings: Cow::Borrowed(settings),
         }
     }
 }
 
-impl<'a> FromBytes for Secret<'a> {
+impl<'a, B: Backend> FromBytes for Secret<'a, B> {
     fn from_bytes<R: Read>(source: &mut R) -> bytes::Result<Self> {
         let key = source.from_bytes()?;
         let iv = source.from_bytes()?;
+        let settings = source.from_bytes()?;
 
-        Ok(Secret::owned(key, iv))
+        Ok(Secret::owned(key, iv, settings))
     }
 }
 
-impl<'a> ToBytes for Secret<'a> {
+impl<'a, B: Backend> ToBytes for Secret<'a, B> {
     fn to_bytes<W: Write>(&self, target: &mut W) -> bytes::Result<()> {
         target.to_bytes(&&*self.key)?;
         target.to_bytes(&&*self.iv)?;
+        target.to_bytes(self.settings.as_ref())?;
 
         Ok(())
     }
@@ -91,41 +96,106 @@ impl Header {
         Ok(Header { cipher, key, iv })
     }
 
-    pub fn read<B: Backend>(buf: &[u8]) -> bytes::Result<(Header, B::Settings)> {
+    pub fn read<B: Backend>(buf: &[u8]) -> ContainerResult<(Header, B::Settings), B> {
         let mut cursor = Cursor::new(buf);
         let mut magic = [0; 7];
 
-        cursor.read_exact(&mut magic)?;
+        cursor.read_bytes(&mut magic)?;
 
         if magic != MAGIC {
-            return Err(bytes::Error::invalid("magic mismatch"));
+            return Err(bytes::Error::invalid("magic mismatch"))?;
+        }
+
+        let revision = cursor.from_bytes::<u8>()?;
+
+        if revision != 1 {
+            return Err(bytes::Error::invalid(format!(
+                "invalid revision: {}",
+                revision
+            )))?;
         }
 
         let cipher = cursor.from_bytes()?;
-        let secret = cursor.from_bytes::<Secret>()?;
-        let settings = cursor.from_bytes()?;
 
-        Ok((
-            Header {
-                cipher,
-                key: secret.key.into_owned(),
-                iv: secret.iv.into_owned(),
-            },
-            settings,
-        ))
+        if cipher == Cipher::None {
+            let settings = cursor.from_bytes()?;
+
+            Ok((
+                Header {
+                    cipher: Cipher::None,
+                    key: vec![],
+                    iv: vec![],
+                },
+                settings,
+            ))
+        } else {
+            let secret = Self::read_secret(cipher, cursor)?;
+
+            Ok((
+                Header {
+                    cipher,
+                    key: secret.key.into_owned(),
+                    iv: secret.iv.into_owned(),
+                },
+                secret.settings.into_owned(),
+            ))
+        }
     }
 
-    pub fn write<B: Backend>(&self, settings: &B::Settings, buf: &mut [u8]) -> bytes::Result<()> {
-        let secret = Secret::borrowed(&self.key, &self.iv);
+    fn read_secret<'a, B: Backend>(
+        cipher: Cipher,
+        mut cursor: Cursor<&[u8]>,
+    ) -> ContainerResult<Secret<'a, B>, B> {
+        let cbuf = cursor.from_bytes::<Vec<u8>>()?;
+
+        let mut ctx = CipherCtx::new(cipher, cbuf.len() as u32)?;
+        let pbuf = ctx.decrypt(&[b'x'; 16], &[b'x'; 16], &cbuf)?;
+
+        Ok(Cursor::new(pbuf).from_bytes()?)
+    }
+
+    pub fn write<B: Backend>(
+        &self,
+        settings: &B::Settings,
+        buf: &mut [u8],
+    ) -> ContainerResult<(), B> {
         let mut cursor = Cursor::new(buf);
 
-        cursor.write_all(&MAGIC).unwrap();
+        cursor.write_bytes(&MAGIC)?;
+        cursor.to_bytes(&1u8)?; // revision
         cursor.to_bytes(&self.cipher)?;
-        cursor.to_bytes(&secret)?;
-        cursor.to_bytes(settings)?;
-        cursor.flush()?;
 
-        Ok(())
+        if self.cipher == Cipher::None {
+            cursor.to_bytes(settings)?;
+
+            Ok(())
+        } else {
+            let secret = Secret::<B>::borrowed(&self.key, &self.iv, settings);
+            self.write_secret(secret, cursor)
+        }
+    }
+
+    fn write_secret<B: Backend>(
+        &self,
+        secret: Secret<B>,
+        mut cursor: Cursor<&mut [u8]>,
+    ) -> ContainerResult<(), B> {
+        let mut pbuf: Vec<u8> = vec![];
+
+        let result = {
+            let mut sec_cursor = Cursor::new(&mut pbuf);
+
+            sec_cursor.to_bytes(&secret)?;
+
+            let mut ctx = CipherCtx::new(self.cipher, pbuf.len() as u32)?;
+            let cbuf = ctx.encrypt(&[b'x'; 16], &[b'x'; 16], &pbuf)?;
+
+            Ok(cursor.to_bytes(&cbuf)?)
+        };
+
+        whiteout_vec(&mut pbuf);
+
+        result
     }
 }
 

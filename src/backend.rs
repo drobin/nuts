@@ -70,7 +70,7 @@ where
     /// [`Backend::open`] method is called to open the backend. Next, the
     /// container reads its header, extracts the settings from it and pass it
     /// down to the backend by calling the [`Backend::open_ready`] method.
-    type Settings: FromBytes + ToBytes;
+    type Settings: Clone + FromBytes + ToBytes;
 
     /// The error type used by methods of this trait.
     type Err: error::Error;

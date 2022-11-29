@@ -159,11 +159,29 @@ pub trait ToBytes {
 /// assert_eq!(cursor.from_bytes::<u64>().unwrap(), 0x08090A0B0C0D0E0F);
 /// ```
 ///
+/// ```rust
+/// use nuts::bytes::FromBytesExt;
+/// use std::io::Cursor;
+///
+/// let binary_data = [1, 2, 3, 4, 5, 6];
+/// let mut cursor = Cursor::new(&binary_data);
+/// let mut buf = [0; 3];
+///
+/// cursor.read_bytes(&mut buf).unwrap();
+/// assert_eq!(buf, [1, 2, 3]);
+///
+/// cursor.read_bytes(&mut buf).unwrap();
+/// assert_eq!(buf, [4, 5, 6]);
+/// ```
 /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
 /// [`FromBytes`]: trait.FromBytes.html
 pub trait FromBytesExt: Read + Sized {
     fn from_bytes<B: FromBytes>(&mut self) -> Result<B> {
         B::from_bytes(self)
+    }
+
+    fn read_bytes(&mut self, buf: &mut [u8]) -> Result<()> {
+        Ok(self.read_exact(buf)?)
     }
 }
 
@@ -176,7 +194,7 @@ pub trait FromBytesExt: Read + Sized {
 /// use nuts::bytes::ToBytesExt;
 /// use std::io::Cursor;
 ///
-/// let mut cursor = Cursor::new(Vec::new());
+/// let mut cursor = Cursor::new(vec![]);
 ///
 /// cursor.to_bytes(&0x01u8).unwrap();
 /// cursor.to_bytes(&0x0203u16).unwrap();
@@ -186,11 +204,27 @@ pub trait FromBytesExt: Read + Sized {
 /// assert_eq!(cursor.into_inner(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
 /// ```
 ///
+/// ```rust
+/// use nuts::bytes::ToBytesExt;
+/// use std::io::Cursor;
+///
+/// let mut cursor = Cursor::new(vec![]);
+///
+/// cursor.write_bytes(&[1, 2, 3]).unwrap();
+/// cursor.write_bytes(&[4, 5, 6]).unwrap();
+///
+/// assert_eq!(cursor.into_inner(), [1, 2, 3, 4, 5, 6]);
+/// ```
+///
 /// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
 /// [`ToBytes`]: trait.ToBytes.html
 pub trait ToBytesExt: Write + Sized {
     fn to_bytes<B: ToBytes>(&mut self, b: &B) -> Result<()> {
         b.to_bytes(self)
+    }
+
+    fn write_bytes(&mut self, buf: &[u8]) -> Result<()> {
+        Ok(self.write_all(buf)?)
     }
 }
 
