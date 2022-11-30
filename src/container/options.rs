@@ -22,9 +22,27 @@
 
 use crate::backend::{Backend, Options};
 use crate::container::cipher::Cipher;
-use crate::container::error::ContainerResult;
+use crate::container::digest::Digest;
+use crate::container::error::{ContainerError, ContainerResult};
+use crate::container::kdf::Kdf;
 
-use super::ContainerError;
+#[derive(Debug)]
+pub(crate) enum KdfBuilder {
+    Create(Digest, u32, u32),
+    Kdf(Kdf),
+}
+
+impl KdfBuilder {
+    pub(crate) fn build<B: Backend>(&self) -> ContainerResult<Option<Kdf>, B> {
+        match self {
+            KdfBuilder::Create(digest, iterations, salt_len) => {
+                let kdf = Kdf::generate_pbkdf2(*digest, *iterations, *salt_len)?;
+                Ok(Some(kdf))
+            }
+            KdfBuilder::Kdf(ref kdf) => Ok(Some(kdf.clone())),
+        }
+    }
+}
 
 /// Options used to create a new container.
 ///
@@ -34,23 +52,42 @@ use super::ContainerError;
 pub struct CreateOptions<B: Backend> {
     pub(crate) backend: B::CreateOptions,
     pub(crate) cipher: Cipher,
+    pub(crate) kdf: Option<KdfBuilder>,
 }
 
 /// Utility used to create a [`CreateOptions`] instance.
 pub struct CreateOptionsBuilder<B: Backend>(CreateOptions<B>);
 
 impl<B: Backend> CreateOptionsBuilder<B> {
-    /// Creates a builder instance using the given [`Backend::CreateOptions`] instance.
-    pub fn for_backend(options: B::CreateOptions) -> Self {
+    /// Creates a builder instance.
+    ///
+    /// Assigns the [`Backend::CreateOptions`] of the backend to the builder.
+    /// The container should use the given `cipher`.
+    pub fn new(options: B::CreateOptions, cipher: Cipher) -> Self {
+        let kdf = if cipher == Cipher::None {
+            None
+        } else {
+            Some(KdfBuilder::Create(Digest::Sha1, 65536, 16))
+        };
+
         CreateOptionsBuilder(CreateOptions {
             backend: options,
-            cipher: Cipher::None,
+            cipher,
+            kdf,
         })
     }
 
-    /// Use the given `cipher` for encryption.
-    pub fn with_cipher(mut self, cipher: Cipher) -> Self {
-        self.0.cipher = cipher;
+    /// Uses the given key derivation function.
+    ///
+    /// If the cipher is set to [`Cipher::None`], then the setting is
+    /// discarded;  you don't need a KDF for the None cipher.
+    pub fn with_kdf(mut self, kdf: Kdf) -> Self {
+        if self.0.cipher == Cipher::None {
+            self.0.kdf = None;
+        } else {
+            self.0.kdf = Some(KdfBuilder::Kdf(kdf));
+        }
+
         self
     }
 

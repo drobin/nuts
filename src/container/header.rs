@@ -27,7 +27,6 @@ use std::io::{Cursor, Read, Write};
 use crate::backend::Backend;
 use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 use crate::container::cipher::{Cipher, CipherCtx};
-use crate::container::digest::Digest;
 use crate::container::error::ContainerResult;
 use crate::container::kdf::Kdf;
 use crate::container::options::CreateOptions;
@@ -96,9 +95,9 @@ impl Header {
         rand::rand_bytes(&mut key)?;
         rand::rand_bytes(&mut iv)?;
 
-        let kdf = match cipher {
-            Cipher::None => None,
-            _ => Some(Kdf::generate_pbkdf2(Digest::Sha1, 65536, 16)?),
+        let kdf = match options.kdf.as_ref() {
+            Some(builder) => builder.build()?,
+            None => None,
         };
 
         Ok(Header {
@@ -266,6 +265,7 @@ impl fmt::Debug for Header {
 
         fmt.debug_struct("Header")
             .field("cipher", &self.cipher)
+            .field("kdf", &self.kdf)
             .field("key", &key)
             .field("iv", &iv)
             .finish()

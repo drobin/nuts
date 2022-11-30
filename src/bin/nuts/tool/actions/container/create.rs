@@ -23,15 +23,30 @@
 use anyhow::Result;
 use clap::{App, Arg, ArgMatches};
 use log::debug;
-use nuts::container::{Cipher, Container, CreateOptionsBuilder};
+use nuts::container::{Cipher, Container, CreateOptionsBuilder, Digest, Kdf};
 use nuts::directory::{DirectoryBackend, DirectoryCreateOptions};
 
 use crate::tool::actions::{is_valid, path_arg};
 use crate::tool::convert::Convert;
+use crate::tool::kdf::KdfSpec;
 use crate::tool::size::Size;
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     let cipher_help = "Set the cipher to CIPHER. Can be one of: none";
+    let kdf_help = "Specifies the key derivation function. The default is \
+                    pbkdf2.\n\n\
+                    There are two ways to specify the KDF. The short form \
+                    only specifies the algorithm name. The long form can \
+                    customize the algorithm; it starts with the algorithm \
+                    name followed by sections separated by a colon. A section \
+                    can empty. In this case a default value is taken. The \
+                    number of sections and its meaning depends on the \
+                    algorithm.\n\n\
+                    Algorithm: PBKDF2\n\
+                    Value: pbkdf2[:[<DIGEST>]:[<ITERATIONS>]:[<SALT_LENGTH>]] - \
+                    Selects PBKDF2 with the given digest (default: sha1), \
+                    the given number of iterations (default: 65536) and salt \
+                    length (default: 16).";
 
     app.about("Creates a nuts-container.")
         .arg(path_arg(1))
@@ -54,6 +69,14 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
                 .help(cipher_help),
         )
         .arg(
+            Arg::with_name("kdf")
+                .short("k")
+                .long("kdf")
+                .value_name("SPEC")
+                .validator(is_valid::<KdfSpec>)
+                .help(&kdf_help),
+        )
+        .arg(
             Arg::with_name("overwrite")
                 .long("overwrite")
                 .help("If set, overwrites an existing container."),
@@ -74,11 +97,40 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     let backend_options = DirectoryCreateOptions::for_path(path)
         .with_bsize(*bsize)
         .with_overwrite(overwrite);
-    let builder =
-        CreateOptionsBuilder::<DirectoryBackend>::for_backend(backend_options).with_cipher(cipher);
+    let mut builder = CreateOptionsBuilder::<DirectoryBackend>::new(backend_options, cipher);
+
+    if cipher != Cipher::None {
+        let kdf = create_kdf(args)?;
+        debug!("kdf: {:?}", kdf);
+
+        builder = builder.with_kdf(kdf);
+    }
+
     let options = builder.build()?;
 
     Container::create(options)?;
 
     Ok(())
+}
+
+fn create_kdf(args: &ArgMatches) -> Result<Kdf> {
+    let default_digest = Digest::Sha1;
+    let default_iterations = 65536;
+    let default_salt_len = 16;
+
+    let (digest, iterations, salt_len) = match args.value_of("kdf") {
+        Some(s) => {
+            let spec = KdfSpec::from_str(s).unwrap();
+            let digest = spec.digest.unwrap_or(default_digest);
+            let iterations = spec.iterations.unwrap_or(default_iterations);
+            let salt_len = spec.salt_len.unwrap_or(default_salt_len);
+
+            (digest, iterations, salt_len)
+        }
+        None => (default_digest, default_iterations, default_salt_len),
+    };
+
+    Ok(Kdf::generate_pbkdf2::<DirectoryBackend>(
+        digest, iterations, salt_len,
+    )?)
 }

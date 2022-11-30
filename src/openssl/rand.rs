@@ -20,6 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(not(test))]
 use std::os::raw::{c_int, c_uchar};
 
 use crate::openssl::error::OpenSSLResult;
@@ -127,6 +128,7 @@ pub const RND: [u8; 1536] = [
 ];
 
 extern "C" {
+    #[cfg(not(test))]
     fn RAND_bytes(buf: *mut c_uchar, num: c_int) -> c_int;
 }
 
