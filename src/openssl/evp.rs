@@ -108,6 +108,21 @@ impl Digest {
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum CipherMode {
+    Encrypt,
+    Decrypt,
+}
+
+impl CipherMode {
+    pub fn into_enc(self) -> c_int {
+        match self {
+            CipherMode::Encrypt => 1,
+            CipherMode::Decrypt => 0,
+        }
+    }
+}
+
 pub struct CipherCtx(*mut EVP_CIPHER_CTX);
 
 impl CipherCtx {
@@ -115,10 +130,14 @@ impl CipherCtx {
         unsafe { EVP_CIPHER_CTX_new() }.map_result(|ctx| CipherCtx(ctx))
     }
 
-    unsafe fn init(
-        &mut self,
+    pub fn reset(&mut self) -> OpenSSLResult<()> {
+        unsafe { EVP_CIPHER_CTX_reset(self.0) }.map_result(|_| ())
+    }
+
+    pub fn init(
+        &self,
         cipher: Cipher,
-        enc: c_int,
+        mode: CipherMode,
         key: &[u8],
         iv: &[u8],
     ) -> OpenSSLResult<()> {
@@ -131,15 +150,15 @@ impl CipherCtx {
             .ok_or(OpenSSLError::InvalidIv)?
             .as_ptr();
 
-        EVP_CIPHER_CTX_reset(self.0).into_result()?;
-        EVP_CipherInit_ex(self.0, cipher.0, ptr::null_mut(), key, iv, enc).into_result()?;
-        EVP_CIPHER_CTX_set_padding(self.0, 0).into_result()?;
-
-        Ok(())
+        unsafe {
+            EVP_CipherInit_ex(self.0, cipher.0, ptr::null_mut(), key, iv, mode.into_enc())
+                .into_result()
+                .and_then(|_| EVP_CIPHER_CTX_set_padding(self.0, 0).map_result(|_| ()))
+        }
     }
 
-    unsafe fn update(&mut self, inp: &[u8], outp: &mut [u8]) -> OpenSSLResult<usize> {
-        let block_size = EVP_CIPHER_CTX_block_size(self.0) as usize;
+    pub fn update(&mut self, inp: &[u8], outp: &mut [u8]) -> OpenSSLResult<usize> {
+        let block_size = unsafe { EVP_CIPHER_CTX_block_size(self.0) } as usize;
 
         if inp.len() % block_size != 0 {
             return Err(OpenSSLError::InvalidBlockSize);
@@ -147,44 +166,16 @@ impl CipherCtx {
 
         let outl = outp.len();
 
-        EVP_CipherUpdate(
-            self.0,
-            outp.as_mut_ptr(),
-            &mut (outl as c_int),
-            inp.as_ptr(),
-            inp.len() as c_int,
-        )
-        .into_result()?;
-
-        Ok(outl)
-    }
-
-    pub fn encrypt(
-        &mut self,
-        cipher: Cipher,
-        key: &[u8],
-        iv: &[u8],
-        inp: &[u8],
-        outp: &mut [u8],
-    ) -> OpenSSLResult<usize> {
         unsafe {
-            self.init(cipher, 1, key, iv)
-                .and_then(|()| self.update(inp, outp))
+            EVP_CipherUpdate(
+                self.0,
+                outp.as_mut_ptr(),
+                &mut (outl as c_int),
+                inp.as_ptr(),
+                inp.len() as c_int,
+            )
         }
-    }
-
-    pub fn decrypt(
-        &mut self,
-        cipher: Cipher,
-        key: &[u8],
-        iv: &[u8],
-        inp: &[u8],
-        outp: &mut [u8],
-    ) -> OpenSSLResult<usize> {
-        unsafe {
-            self.init(cipher, 0, key, iv)
-                .and_then(|()| self.update(inp, outp))
-        }
+        .map_result(|_| outl)
     }
 }
 

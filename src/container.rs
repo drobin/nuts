@@ -30,12 +30,14 @@ mod options;
 mod password;
 
 use log::debug;
+use std::borrow::Cow;
 use std::{any, cmp};
 
 use crate::backend::{Backend, BLOCK_MIN_SIZE};
 use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;
+use crate::whiteout_vec;
 
 pub use cipher::Cipher;
 pub use digest::Digest;
@@ -62,7 +64,7 @@ macro_rules! map_err {
 pub struct Container<B> {
     backend: B,
     header: Header,
-    ctx: CipherCtx<B>,
+    ctx: CipherCtx,
 }
 
 impl<B: Backend> Container<B> {
@@ -247,11 +249,25 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`ContainerError`] type.
     pub fn write(&mut self, id: &B::Id, buf: &[u8]) -> ContainerResult<usize, B> {
+        let block_size = self.backend.block_size() as usize;
         let key = &self.header.key;
         let iv = &self.header.iv;
 
-        let ctext = self.ctx.encrypt(key, iv, buf)?;
+        let mut ptext = Cow::from(buf);
 
+        if ptext.len() < block_size {
+            // pad with 0 if not a complete block
+            ptext.to_mut().resize(block_size, 0);
+        }
+
+        let result = self.ctx.encrypt(key, iv, &ptext);
+
+        match ptext {
+            Cow::Owned(mut buf) => whiteout_vec(&mut buf),
+            _ => {}
+        };
+
+        let ctext = result?;
         map_err!(self.backend.write(id, ctext))
     }
 

@@ -25,7 +25,6 @@ mod tests;
 
 use std::borrow::Cow;
 use std::io::{Read, Write};
-use std::marker::PhantomData;
 
 use crate::backend::Backend;
 use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
@@ -99,18 +98,16 @@ impl ToBytes for Cipher {
     }
 }
 
-pub struct CipherCtx<B> {
-    _data: PhantomData<B>,
+pub struct CipherCtx {
     ctx: evp::CipherCtx,
     cipher: Cipher,
     block_size: usize,
     out: Vec<u8>,
 }
 
-impl<B: Backend> CipherCtx<B> {
-    pub fn new(cipher: Cipher, block_size: u32) -> ContainerResult<CipherCtx<B>, B> {
+impl CipherCtx {
+    pub fn new<B: Backend>(cipher: Cipher, block_size: u32) -> ContainerResult<CipherCtx, B> {
         Ok(CipherCtx {
-            _data: PhantomData,
             ctx: evp::CipherCtx::new()?,
             cipher,
             block_size: block_size as usize,
@@ -118,7 +115,12 @@ impl<B: Backend> CipherCtx<B> {
         })
     }
 
-    pub fn encrypt(&mut self, key: &[u8], iv: &[u8], input: &[u8]) -> ContainerResult<&[u8], B> {
+    pub fn encrypt<B: Backend>(
+        &mut self,
+        key: &[u8],
+        iv: &[u8],
+        input: &[u8],
+    ) -> ContainerResult<&[u8], B> {
         let ptext = self.prepare_ptext(input);
 
         let result = match self.cipher.to_evp() {
@@ -134,7 +136,12 @@ impl<B: Backend> CipherCtx<B> {
         result
     }
 
-    pub fn decrypt(&mut self, key: &[u8], iv: &[u8], input: &[u8]) -> ContainerResult<&[u8], B> {
+    pub fn decrypt<B: Backend>(
+        &mut self,
+        key: &[u8],
+        iv: &[u8],
+        input: &[u8],
+    ) -> ContainerResult<&[u8], B> {
         match self.cipher.to_evp() {
             Some(cipher) => self.decrypt_some(cipher, key, iv, input),
             None => self.update_none(input),
@@ -152,7 +159,7 @@ impl<B: Backend> CipherCtx<B> {
         ptext
     }
 
-    fn encrypt_some(
+    fn encrypt_some<B: Backend>(
         &mut self,
         cipher: evp::Cipher,
         key: &[u8],
@@ -160,14 +167,17 @@ impl<B: Backend> CipherCtx<B> {
         input: &[u8],
     ) -> ContainerResult<&[u8], B> {
         self.out.resize(input.len(), 0);
-        let n = self.ctx.encrypt(cipher, key, iv, input, &mut self.out)?;
+
+        self.ctx.reset()?;
+        self.ctx.init(cipher, evp::CipherMode::Encrypt, key, iv)?;
+        let n = self.ctx.update(input, &mut self.out)?;
 
         self.out.resize(n, 0);
 
         Ok(&self.out)
     }
 
-    fn decrypt_some(
+    fn decrypt_some<B: Backend>(
         &mut self,
         cipher: evp::Cipher,
         key: &[u8],
@@ -175,14 +185,17 @@ impl<B: Backend> CipherCtx<B> {
         input: &[u8],
     ) -> ContainerResult<&[u8], B> {
         self.out.resize(input.len(), 0);
-        let n = self.ctx.decrypt(cipher, key, iv, input, &mut self.out)?;
+
+        self.ctx.reset()?;
+        self.ctx.init(cipher, evp::CipherMode::Decrypt, key, iv)?;
+        let n = self.ctx.update(input, &mut self.out)?;
 
         self.out.resize(n, 0);
 
         Ok(&self.out)
     }
 
-    fn update_none(&mut self, input: &[u8]) -> ContainerResult<&[u8], B> {
+    fn update_none<B: Backend>(&mut self, input: &[u8]) -> ContainerResult<&[u8], B> {
         self.out.clear();
         self.out.extend_from_slice(input);
 
@@ -190,7 +203,7 @@ impl<B: Backend> CipherCtx<B> {
     }
 }
 
-impl<B> Drop for CipherCtx<B> {
+impl Drop for CipherCtx {
     fn drop(&mut self) {
         whiteout_vec(&mut self.out);
     }
