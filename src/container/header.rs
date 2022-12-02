@@ -27,7 +27,7 @@ use std::io::{Cursor, Read, Write};
 use crate::backend::Backend;
 use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 use crate::container::cipher::{Cipher, CipherCtx};
-use crate::container::error::ContainerResult;
+use crate::container::error::{ContainerError, ContainerResult};
 use crate::container::kdf::Kdf;
 use crate::container::options::CreateOptions;
 use crate::container::password::PasswordStore;
@@ -178,7 +178,18 @@ impl Header {
             let mut ctx = CipherCtx::new(cipher, cbuf.len() as u32)?;
             let pbuf = ctx.decrypt(&key, &iv, &cbuf)?;
 
-            Ok(Cursor::new(pbuf).from_bytes()?)
+            let mut sec_cursor = Cursor::new(pbuf);
+
+            let sec_magic1 = sec_cursor.from_bytes::<u32>()?;
+            let sec_magic2 = sec_cursor.from_bytes::<u32>()?;
+
+            if sec_magic1 != sec_magic2 {
+                return Err(ContainerError::WrongPassword);
+            }
+
+            let secret = sec_cursor.from_bytes()?;
+
+            Ok(secret)
         };
 
         whiteout_vec(&mut key);
@@ -227,7 +238,10 @@ impl Header {
 
         let result = {
             let mut sec_cursor = Cursor::new(&mut pbuf);
+            let sec_magic = rand::rand_u32()?;
 
+            sec_cursor.to_bytes(&sec_magic)?;
+            sec_cursor.to_bytes(&sec_magic)?;
             sec_cursor.to_bytes(&secret)?;
 
             let mut ctx = CipherCtx::new(self.cipher, pbuf.len() as u32)?;

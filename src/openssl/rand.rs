@@ -143,3 +143,11 @@ pub fn rand_bytes(buf: &mut [u8]) -> OpenSSLResult<()> {
 pub fn rand_bytes(buf: &mut [u8]) -> OpenSSLResult<()> {
     unsafe { RAND_bytes(buf.as_mut_ptr(), buf.len() as c_int) }.map_result(|_| ())
 }
+
+pub fn rand_u32() -> OpenSSLResult<u32> {
+    let mut bytes = [0; 4];
+
+    rand_bytes(&mut bytes)?;
+
+    Ok(u32::from_be_bytes(bytes))
+}
