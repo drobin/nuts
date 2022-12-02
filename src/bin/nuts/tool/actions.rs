@@ -30,6 +30,7 @@ use nuts::directory::{DirectoryBackend, DirectoryOpenOptions};
 use std::{env, result};
 
 use crate::tool::convert::Convert;
+use crate::tool::password::ask_for_password;
 
 fn is_valid<T: Convert>(s: String) -> result::Result<(), String> {
     T::from_str(&s).map(|_| ())
@@ -73,7 +74,8 @@ fn container_path(args: &ArgMatches) -> Result<String> {
 
 fn open_container(args: &ArgMatches) -> Result<Container<DirectoryBackend>> {
     let path = container_path(args)?;
-    let builder = OpenOptionsBuilder::for_backend(DirectoryOpenOptions::for_path(path));
+    let builder = OpenOptionsBuilder::new(DirectoryOpenOptions::for_path(path))
+        .with_password_callback(ask_for_password);
     let options = builder.build()?;
 
     Ok(Container::open(options)?)

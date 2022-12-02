@@ -36,6 +36,9 @@ pub enum ContainerError<B: Backend> {
 
     /// An error in the OpenSSL library occured.
     OpenSSL(OpenSSLError),
+
+    /// A password is needed by the current cipher.
+    NoPassword(Option<String>),
 }
 
 impl<B: Backend> fmt::Display for ContainerError<B> {
@@ -44,6 +47,12 @@ impl<B: Backend> fmt::Display for ContainerError<B> {
             ContainerError::Backend(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::Bytes(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
+            ContainerError::NoPassword(Some(msg)) => {
+                write!(fmt, "A password is needed by the current cipher: {}", msg)
+            }
+            ContainerError::NoPassword(None) => {
+                write!(fmt, "A password is needed by the current cipher")
+            }
         }
     }
 }
@@ -54,6 +63,7 @@ impl<B: Backend> fmt::Debug for ContainerError<B> {
             ContainerError::Backend(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::Bytes(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::OpenSSL(cause) => fmt::Debug::fmt(cause, fmt),
+            ContainerError::NoPassword(option) => fmt::Debug::fmt(option, fmt),
         }
     }
 }
@@ -64,6 +74,7 @@ impl<B: Backend + 'static> error::Error for ContainerError<B> {
             ContainerError::Backend(cause) => Some(cause),
             ContainerError::Bytes(cause) => Some(cause),
             ContainerError::OpenSSL(cause) => Some(cause),
+            ContainerError::NoPassword(_) => None,
         }
     }
 }

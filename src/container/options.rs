@@ -20,6 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::rc::Rc;
+use std::result;
+
 use crate::backend::{Backend, Options};
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
@@ -48,9 +51,9 @@ impl KdfBuilder {
 ///
 /// Use the [`CreateOptionsBuilder`] utility to create a `CreateOptions`
 /// instance.
-#[derive(Debug)]
 pub struct CreateOptions<B: Backend> {
     pub(crate) backend: B::CreateOptions,
+    pub(crate) callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>,
     pub(crate) cipher: Cipher,
     pub(crate) kdf: Option<KdfBuilder>,
 }
@@ -72,9 +75,33 @@ impl<B: Backend> CreateOptionsBuilder<B> {
 
         CreateOptionsBuilder(CreateOptions {
             backend: options,
+            callback: None,
             cipher,
             kdf,
         })
+    }
+
+    /// Assigns a password callback to the container.
+    ///
+    /// A password is needed, when encryption is enabled for the container.
+    /// Based on the password a wrapping key is generated, which encrypts the
+    /// secret part of the header. If encryption is enabled but no password
+    /// callback is assigned, an [`Error::NoPassword`] error is raised. If
+    /// encryption is disabled, no password is needed and an assigned callback
+    /// is never called.
+    ///
+    /// On success the callback returns the password (represented as an
+    /// [`Vec<u8>`](`Vec`)) wrapped into an [`Ok`](`Result::Ok`). On any
+    /// failure an [`Err`](`Result::Err`) with an error message must be
+    /// returned.
+    ///
+    /// [`Error::NoPassword`]: enum.Error.html#variant.NoPassword
+    pub fn with_password_callback<Cb: Fn() -> result::Result<Vec<u8>, String> + 'static>(
+        mut self,
+        callback: Cb,
+    ) -> Self {
+        self.0.callback = Some(Rc::new(callback));
+        self
     }
 
     /// Uses the given key derivation function.
@@ -110,9 +137,9 @@ impl<B: Backend> CreateOptionsBuilder<B> {
 /// Options used to open a container.
 ///
 /// Use the [`OpenOptionsBuilder`] utility to create a `OpenOptions` instance.
-#[derive(Debug)]
 pub struct OpenOptions<B: Backend> {
     pub(crate) backend: B::OpenOptions,
+    pub(crate) callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>,
 }
 
 /// Utility used to create a [`OpenOptions`] instance.
@@ -120,8 +147,34 @@ pub struct OpenOptionsBuilder<B: Backend>(OpenOptions<B>);
 
 impl<B: Backend> OpenOptionsBuilder<B> {
     /// Creates a builder instance using the given [`Backend::OpenOptions`] instance.
-    pub fn for_backend(options: B::OpenOptions) -> Self {
-        OpenOptionsBuilder(OpenOptions { backend: options })
+    pub fn new(options: B::OpenOptions) -> Self {
+        OpenOptionsBuilder(OpenOptions {
+            backend: options,
+            callback: None,
+        })
+    }
+
+    /// Assigns a password callback to the container.
+    ///
+    /// A password is needed, when encryption is enabled for the container.
+    /// Based on the password a wrapping key is generated, which encrypts the
+    /// secret part of the header. If encryption is enabled but no password
+    /// callback is assigned, an [`Error::NoPassword`] error is raised. If
+    /// encryption is disabled, no password is needed and an assigned callback
+    /// is never called.
+    ///
+    /// On success the callback returns the password (represented as an
+    /// [`Vec<u8>`](`Vec`)) wrapped into an [`Ok`](`Result::Ok`). On any
+    /// failure an [`Err`](`Result::Err`) with an error message must be
+    /// returned.
+    ///
+    /// [`Error::NoPassword`]: enum.Error.html#variant.NoPassword
+    pub fn with_password_callback<Cb: Fn() -> result::Result<Vec<u8>, String> + 'static>(
+        mut self,
+        callback: Cb,
+    ) -> Self {
+        self.0.callback = Some(Rc::new(callback));
+        self
     }
 
     /// Creates the [`OpenOptions`] instance.

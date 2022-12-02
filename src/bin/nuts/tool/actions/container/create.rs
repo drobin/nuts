@@ -29,6 +29,7 @@ use nuts::directory::{DirectoryBackend, DirectoryCreateOptions};
 use crate::tool::actions::{is_valid, path_arg};
 use crate::tool::convert::Convert;
 use crate::tool::kdf::KdfSpec;
+use crate::tool::password::ask_for_password;
 use crate::tool::size::Size;
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
@@ -97,7 +98,8 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     let backend_options = DirectoryCreateOptions::for_path(path)
         .with_bsize(*bsize)
         .with_overwrite(overwrite);
-    let mut builder = CreateOptionsBuilder::<DirectoryBackend>::new(backend_options, cipher);
+    let mut builder = CreateOptionsBuilder::<DirectoryBackend>::new(backend_options, cipher)
+        .with_password_callback(ask_for_password);
 
     if cipher != Cipher::None {
         let kdf = create_kdf(args)?;

@@ -27,6 +27,7 @@ mod header;
 mod info;
 mod kdf;
 mod options;
+mod password;
 
 use log::debug;
 use std::{any, cmp};
@@ -34,6 +35,7 @@ use std::{any, cmp};
 use crate::backend::{Backend, BLOCK_MIN_SIZE};
 use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
+use crate::container::password::PasswordStore;
 
 pub use cipher::Cipher;
 pub use digest::Digest;
@@ -90,7 +92,10 @@ impl<B: Backend> Container<B> {
         let (mut backend, settings) = map_err!(B::create(options.backend))?;
         let ctx = CipherCtx::new(header.cipher, backend.block_size())?;
 
-        Self::write_header(&mut backend, &header, &settings)?;
+        let callback = options.callback.map(|cb| cb.clone());
+        let mut store = PasswordStore::new(callback);
+
+        Self::write_header(&mut backend, &header, &settings, &mut store)?;
 
         debug!(
             "Container created, backend: {}, header: {:?}",
@@ -119,8 +124,11 @@ impl<B: Backend> Container<B> {
     ///
     // Further errors are listed in the [`Error`] type.
     pub fn open(options: OpenOptions<B>) -> ContainerResult<Container<B>, B> {
+        let callback = options.callback.map(|cb| cb.clone());
+        let mut store = PasswordStore::new(callback);
+
         let mut backend = map_err!(B::open(options.backend))?;
-        let (header, settings) = Self::read_header(&mut backend)?;
+        let (header, settings) = Self::read_header(&mut backend, &mut store)?;
 
         backend.open_ready(settings);
 
@@ -247,12 +255,15 @@ impl<B: Backend> Container<B> {
         map_err!(self.backend.write(id, ctext))
     }
 
-    fn read_header(backend: &mut B) -> ContainerResult<(Header, B::Settings), B> {
+    fn read_header(
+        backend: &mut B,
+        store: &mut PasswordStore,
+    ) -> ContainerResult<(Header, B::Settings), B> {
         let id = backend.header_id();
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
         match backend.read(&id, &mut buf) {
-            Ok(_) => Ok(Header::read::<B>(&buf)?),
+            Ok(_) => Ok(Header::read(&buf, store)?),
             Err(cause) => Err(ContainerError::Backend(cause)),
         }
     }
@@ -261,11 +272,12 @@ impl<B: Backend> Container<B> {
         backend: &mut B,
         header: &Header,
         envelope: &B::Settings,
+        store: &mut PasswordStore,
     ) -> ContainerResult<usize, B> {
         let id = backend.header_id();
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
-        header.write::<B>(&envelope, &mut buf)?;
+        header.write::<B>(&envelope, &mut buf, store)?;
 
         map_err!(backend.write(&id, &buf))
     }

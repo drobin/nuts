@@ -20,10 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod actions;
-pub mod convert;
-pub mod format;
-pub mod hex;
-pub mod kdf;
-pub mod password;
-pub mod size;
+use rpassword::read_password_from_tty;
+
+pub fn ask_for_password() -> Result<Vec<u8>, String> {
+    let password =
+        read_password_from_tty(Some("Enter a password:")).map_err(|err| err.to_string())?;
+    Ok(password.as_bytes().to_vec())
+}
