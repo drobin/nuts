@@ -42,6 +42,17 @@ pub trait Options<B: Backend> {
     fn validate(&self) -> result::Result<(), B::Err>;
 }
 
+/// Trait identifies a block in the storage.
+pub trait BlockId: Clone + Debug + Display + FromBytes + FromStr + PartialEq + ToBytes {
+    /// Creates a null-id.
+    ///
+    /// A null-id does not point to a block. It points to nowhere.
+    fn null() -> Self;
+
+    /// Tests whether this id is a null-id.
+    fn is_null(&self) -> bool;
+}
+
 pub trait Backend
 where
     Self: Sized,
@@ -77,7 +88,7 @@ where
 
     /// The id identifies a block in the storage. It is used everywhere you
     /// need a pointer to a block.
-    type Id: Clone + Debug + Display + FromBytes + FromStr + PartialEq + ToBytes;
+    type Id: BlockId;
 
     /// Information of the backend.
     ///

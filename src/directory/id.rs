@@ -26,6 +26,7 @@ use std::str::FromStr;
 use std::{fmt, result};
 use uuid::Uuid;
 
+use crate::backend::BlockId;
 use crate::bytes::{self, FromBytes, ToBytes};
 use crate::directory::DirectoryError;
 
@@ -96,5 +97,15 @@ impl ToBytes for DirectoryId {
     fn to_bytes<W: Write>(&self, target: &mut W) -> result::Result<(), bytes::Error> {
         let bytes = self.0.as_u128().to_be_bytes();
         Ok(target.write_all(&bytes)?)
+    }
+}
+
+impl BlockId for DirectoryId {
+    fn null() -> DirectoryId {
+        DirectoryId(Uuid::from_u128(u128::MAX))
+    }
+
+    fn is_null(&self) -> bool {
+        self.0.as_u128() == u128::MAX
     }
 }

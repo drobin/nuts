@@ -42,6 +42,9 @@ pub enum ContainerError<B: Backend> {
 
     /// The password is wrong.
     WrongPassword,
+
+    /// Try to read/write from/to a null-id which is forbidden.
+    NullId,
 }
 
 impl<B: Backend> fmt::Display for ContainerError<B> {
@@ -57,6 +60,7 @@ impl<B: Backend> fmt::Display for ContainerError<B> {
                 write!(fmt, "A password is needed by the current cipher")
             }
             ContainerError::WrongPassword => write!(fmt, "The password is wrong."),
+            ContainerError::NullId => write!(fmt, "Try to read or write a null id"),
         }
     }
 }
@@ -68,7 +72,7 @@ impl<B: Backend> fmt::Debug for ContainerError<B> {
             ContainerError::Bytes(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::OpenSSL(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::NoPassword(option) => fmt::Debug::fmt(option, fmt),
-            ContainerError::WrongPassword => write!(fmt, "{:?}", self),
+            ContainerError::WrongPassword | ContainerError::NullId => write!(fmt, "{:?}", self),
         }
     }
 }
@@ -79,7 +83,9 @@ impl<B: Backend + 'static> error::Error for ContainerError<B> {
             ContainerError::Backend(cause) => Some(cause),
             ContainerError::Bytes(cause) => Some(cause),
             ContainerError::OpenSSL(cause) => Some(cause),
-            ContainerError::NoPassword(_) | ContainerError::WrongPassword => None,
+            ContainerError::NoPassword(_)
+            | ContainerError::WrongPassword
+            | ContainerError::NullId => None,
         }
     }
 }

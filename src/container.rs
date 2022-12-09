@@ -33,7 +33,7 @@ use log::debug;
 use std::borrow::Cow;
 use std::{any, cmp};
 
-use crate::backend::{Backend, BLOCK_MIN_SIZE};
+use crate::backend::{Backend, BlockId, BLOCK_MIN_SIZE};
 use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;
@@ -216,6 +216,10 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`ContainerError`] type.
     pub fn read(&mut self, id: &B::Id, buf: &mut [u8]) -> ContainerResult<usize, B> {
+        if id.is_null() {
+            return Err(ContainerError::NullId);
+        }
+
         let mut ctext = vec![0; self.backend.block_size() as usize];
         let n = map_err!(self.backend.read(id, &mut ctext))?;
 
@@ -249,6 +253,10 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`ContainerError`] type.
     pub fn write(&mut self, id: &B::Id, buf: &[u8]) -> ContainerResult<usize, B> {
+        if id.is_null() {
+            return Err(ContainerError::NullId);
+        }
+
         let block_size = self.backend.block_size() as usize;
         let key = &self.header.key;
         let iv = &self.header.iv;
