@@ -27,6 +27,8 @@ pub mod backend;
 pub mod bytes;
 pub mod container;
 pub mod directory;
+#[cfg(test)]
+pub mod memory;
 pub mod openssl;
 
 fn whiteout_slice(buf: &mut [u8]) {
