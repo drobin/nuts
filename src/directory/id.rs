@@ -23,7 +23,7 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::{fmt, result};
+use std::{fmt, mem, result};
 use uuid::Uuid;
 
 use crate::backend::BlockId;
@@ -107,5 +107,9 @@ impl BlockId for DirectoryId {
 
     fn is_null(&self) -> bool {
         self.0.as_u128() == u128::MAX
+    }
+
+    fn size() -> usize {
+        mem::size_of::<u128>()
     }
 }

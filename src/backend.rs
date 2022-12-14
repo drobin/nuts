@@ -51,6 +51,9 @@ pub trait BlockId: Clone + Debug + Display + FromBytes + FromStr + PartialEq + T
 
     /// Tests whether this id is a null-id.
     fn is_null(&self) -> bool;
+
+    /// Returns the number of bytes needed to store the id.
+    fn size() -> usize;
 }
 
 pub trait Backend
