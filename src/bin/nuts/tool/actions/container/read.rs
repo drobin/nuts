@@ -24,7 +24,9 @@ use anyhow::Result;
 use clap::{App, Arg, ArgMatches};
 use log::debug;
 use nuts::backend::Backend;
-use nuts::directory::DirectoryBackend;
+use nuts::container::Container;
+use nuts::directory::{DirectoryBackend, DirectoryId};
+use nuts::stream::Stream;
 use std::cmp;
 
 use crate::tool::actions::{container_arg, is_valid, open_container};
@@ -43,6 +45,12 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
         )
         .arg(container_arg())
         .arg(
+            Arg::with_name("stream")
+                .long("--stream")
+                .short("s")
+                .help("Enables streaming mode."),
+        )
+        .arg(
             Arg::with_name("format")
                 .long("format")
                 .short("f")
@@ -59,30 +67,19 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
                 .long("max-bytes")
                 .short("m")
                 .value_name("SIZE")
-                .validator(is_valid::<Size<u32>>)
+                .validator(is_valid::<Size<u64>>)
                 .help("Reads up to SIZE bytes. Default is unlimited."),
         )
 }
 
-pub fn run(args: &ArgMatches) -> Result<()> {
-    let mut container = open_container(args)?;
+fn read_block(
+    mut container: Container<DirectoryBackend>,
+    id: DirectoryId,
+    format: Format,
+    max_bytes: u64,
+) -> Result<()> {
     let block_size = container.backend().block_size();
-
-    let id = args
-        .value_of("ID")
-        .unwrap()
-        .parse::<<DirectoryBackend as Backend>::Id>()
-        .unwrap();
-
-    let format = Format::from_str(args.value_of("format").unwrap()).unwrap();
-    let max_bytes = args
-        .value_of("max-bytes")
-        .map_or(block_size, |s| *Size::<u32>::from_str(s).unwrap());
-    let max_bytes = cmp::min(max_bytes, block_size);
-
-    debug!("id: {}", id);
-    debug!("format: {:?}", format);
-    debug!("max_bytes: {}", max_bytes);
+    let max_bytes = cmp::min(max_bytes, block_size as u64);
 
     let mut buf = vec![0; max_bytes as usize];
     let mut out = Output::new(format);
@@ -93,4 +90,72 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     out.flush();
 
     Ok(())
+}
+
+fn read_stream(
+    mut container: Container<DirectoryBackend>,
+    id: DirectoryId,
+    format: Format,
+    max_bytes: u64,
+) -> Result<()> {
+    let mut stream = Stream::new(&mut container, &id);
+    let mut out = Output::new(format);
+    let mut cur_bytes: usize = 0;
+
+    loop {
+        match stream.next_block() {
+            Some(result) => {
+                let id = result?.clone();
+                let payload = stream.current_payload().unwrap();
+
+                debug!("switch to next id {}, payload: {}", id, payload.len());
+
+                if cur_bytes + payload.len() > max_bytes as usize {
+                    let remaining = max_bytes as usize - cur_bytes;
+                    out.print(&payload[..remaining]);
+
+                    debug!("max-bytes ({}) reached", max_bytes);
+                    break;
+                } else {
+                    cur_bytes += payload.len();
+                    out.print(payload);
+                }
+            }
+            None => {
+                debug!("end of stream reached");
+                break;
+            }
+        }
+    }
+
+    out.flush();
+
+    Ok(())
+}
+
+pub fn run(args: &ArgMatches) -> Result<()> {
+    let container = open_container(args)?;
+
+    let id = args
+        .value_of("ID")
+        .unwrap()
+        .parse::<<DirectoryBackend as Backend>::Id>()
+        .unwrap();
+
+    let streaming = args.is_present("stream");
+    let format = Format::from_str(args.value_of("format").unwrap()).unwrap();
+    let max_bytes = args
+        .value_of("max-bytes")
+        .map_or(u64::MAX, |s| *Size::<u64>::from_str(s).unwrap());
+
+    debug!("id: {}", id);
+    debug!("streaming: {}", streaming);
+    debug!("format: {:?}", format);
+    debug!("max_bytes: {}", max_bytes);
+
+    if streaming {
+        read_stream(container, id, format, max_bytes)
+    } else {
+        read_block(container, id, format, max_bytes)
+    }
 }

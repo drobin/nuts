@@ -20,11 +20,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{App, Arg, ArgMatches};
 use log::{debug, trace};
 use nuts::backend::Backend;
-use nuts::directory::DirectoryBackend;
+use nuts::container::Container;
+use nuts::directory::{DirectoryBackend, DirectoryId};
+use nuts::stream::Stream;
 use std::cmp;
 use std::io::{self, Read};
 
@@ -60,34 +62,42 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
         )
         .arg(container_arg())
         .arg(
+            Arg::with_name("stream")
+                .long("--stream")
+                .short("s")
+                .help("Enables streaming mode."),
+        )
+        .arg(
             Arg::with_name("max-bytes")
                 .long("max-bytes")
                 .short("b")
                 .value_name("SIZE")
-                .validator(is_valid::<Size<u32>>)
+                .validator(is_valid::<Size<u64>>)
                 .help("Specifies the maximum number of bytes to write."),
         )
 }
 
-pub fn run(args: &ArgMatches) -> Result<()> {
-    let mut container = open_container(args)?;
+fn write_block(
+    mut container: Container<DirectoryBackend>,
+    id: Option<DirectoryId>,
+    max_bytes: u64,
+) -> Result<()> {
     let block_size = container.backend().block_size();
+    let max_bytes = cmp::min(max_bytes as usize, block_size as usize);
 
-    let id = match args.value_of("ID") {
-        Some(s) => s.parse::<<DirectoryBackend as Backend>::Id>()?,
-        None => container.aquire()?,
+    let id = match id {
+        Some(id) => {
+            debug!("use id from cmdline: {}", id);
+            id
+        }
+        None => {
+            let id = container.aquire()?;
+            debug!("aquire new id: {}", id);
+            id
+        }
     };
 
-    let max_bytes = args
-        .value_of("max-bytes")
-        .map_or(block_size, |s| *Size::<u32>::from_str(s).unwrap());
-    let max_bytes = cmp::min(max_bytes, block_size);
-
-    debug!("id: {}", id);
-    debug!("max_bytes: {:?}", max_bytes);
-    debug!("block_size: {}", block_size);
-
-    let mut buf = vec![0; max_bytes as usize];
+    let mut buf = vec![0; max_bytes];
     let n = fill_buf(&mut buf)?;
 
     debug!("{} bytes read from stdin", n);
@@ -97,4 +107,93 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     println!("{} bytes written into {}.", n, id);
 
     Ok(())
+}
+
+fn write_stream(
+    mut container: Container<DirectoryBackend>,
+    id: Option<DirectoryId>,
+    max_bytes: u64,
+) -> Result<()> {
+    let mut stream = Stream::create(&mut container);
+    let payload_len = stream.max_payload();
+
+    let mut payload = vec![0; payload_len];
+    let mut front_id = None;
+    let mut num_blocks = 0;
+    let mut num_bytes: usize = 0;
+
+    while num_bytes < max_bytes as usize {
+        let num_read = fill_buf(&mut payload)?;
+
+        if num_read > 0 {
+            debug!("{} bytes read from stdin", num_read);
+            num_bytes += num_read;
+
+            let cur_id = if front_id.is_none() {
+                let id_x = stream.insert(id.clone())?;
+
+                front_id = Some(id_x.clone());
+
+                id_x
+            } else {
+                stream.insert(None)?
+            }
+            .clone();
+
+            let num_written = stream.set_current_payload(&payload[..num_read])?;
+
+            if num_written == num_read {
+                debug!("{} bytes written into {}", num_written, cur_id);
+            } else {
+                return Err(anyhow!(
+                    "{} bytes read but {} bytes written into {}",
+                    num_read,
+                    num_written,
+                    cur_id
+                ));
+            }
+        } else {
+            debug!("eof reached");
+            break;
+        }
+
+        num_blocks += 1;
+    }
+
+    match front_id {
+        Some(id) => {
+            let s = if num_blocks == 1 { "block" } else { "blocks" };
+            println!(
+                "{} bytes written into a stream ({} {}) starting at {}",
+                num_bytes, num_blocks, s, id
+            )
+        }
+        None => println!("No stream is created."),
+    };
+
+    Ok(())
+}
+
+pub fn run(args: &ArgMatches) -> Result<()> {
+    let container = open_container(args)?;
+
+    let id = match args.value_of("ID") {
+        Some(s) => Some(s.parse::<<DirectoryBackend as Backend>::Id>()?),
+        None => None,
+    };
+
+    let streaming = args.is_present("stream");
+    let max_bytes = args
+        .value_of("max-bytes")
+        .map_or(u64::MAX, |s| *Size::<u64>::from_str(s).unwrap());
+
+    debug!("id: {:?}", id);
+    debug!("streaming: {}", streaming);
+    debug!("max_bytes: {:?}", max_bytes);
+
+    if streaming {
+        write_stream(container, id, max_bytes)
+    } else {
+        write_block(container, id, max_bytes)
+    }
 }
