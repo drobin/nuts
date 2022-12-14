@@ -30,6 +30,7 @@ pub mod directory;
 #[cfg(test)]
 pub mod memory;
 pub mod openssl;
+pub mod stream;
 
 fn whiteout_slice(buf: &mut [u8]) {
     for i in buf.iter_mut() {
