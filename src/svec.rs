@@ -21,14 +21,53 @@
 // IN THE SOFTWARE.
 
 #[cfg(test)]
-#[macro_use]
-pub(crate) mod asserts;
-pub mod backend;
-pub mod bytes;
-pub mod container;
-pub mod directory;
-#[cfg(test)]
-pub mod memory;
-pub mod openssl;
-pub mod stream;
-pub(crate) mod svec;
+mod tests;
+
+use std::ops::{Deref, DerefMut};
+
+#[derive(Clone, Debug)]
+pub struct SecureVec(Vec<u8>);
+
+impl SecureVec {
+    pub fn from_vec(inner: Vec<u8>) -> SecureVec {
+        SecureVec(inner)
+    }
+
+    pub fn empty() -> SecureVec {
+        SecureVec(vec![])
+    }
+
+    pub fn zero(len: usize) -> SecureVec {
+        SecureVec(vec![0; len])
+    }
+}
+
+impl Deref for SecureVec {
+    type Target = Vec<u8>;
+
+    fn deref(&self) -> &Vec<u8> {
+        &self.0
+    }
+}
+
+impl DerefMut for SecureVec {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl From<Vec<u8>> for SecureVec {
+    fn from(inner: Vec<u8>) -> Self {
+        SecureVec::from_vec(inner)
+    }
+}
+
+impl Drop for SecureVec {
+    fn drop(&mut self) {
+        self.0.resize(self.0.capacity(), 0);
+
+        for elem in self.0.iter_mut() {
+            *elem = 0;
+        }
+    }
+}

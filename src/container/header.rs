@@ -32,7 +32,7 @@ use crate::container::kdf::Kdf;
 use crate::container::options::CreateOptions;
 use crate::container::password::PasswordStore;
 use crate::openssl::rand;
-use crate::whiteout_vec;
+use crate::svec::SecureVec;
 
 const MAGIC: [u8; 7] = *b"nuts-io";
 
@@ -83,15 +83,15 @@ impl<'a, B: Backend> ToBytes for Secret<'a, B> {
 pub struct Header {
     pub(crate) cipher: Cipher,
     pub(crate) kdf: Option<Kdf>,
-    pub(crate) key: Vec<u8>,
-    pub(crate) iv: Vec<u8>,
+    pub(crate) key: SecureVec,
+    pub(crate) iv: SecureVec,
 }
 
 impl Header {
     pub fn create<B: Backend>(options: &CreateOptions<B>) -> ContainerResult<Header, B> {
         let cipher = options.cipher;
-        let mut key = vec![0; cipher.key_len()];
-        let mut iv = vec![0; cipher.iv_len()];
+        let mut key = SecureVec::zero(cipher.key_len());
+        let mut iv = SecureVec::zero(cipher.iv_len());
 
         rand::rand_bytes(&mut key)?;
         rand::rand_bytes(&mut iv)?;
@@ -140,8 +140,8 @@ impl Header {
                 Header {
                     cipher: Cipher::None,
                     kdf: None,
-                    key: vec![],
-                    iv: vec![],
+                    key: SecureVec::empty(),
+                    iv: SecureVec::empty(),
                 },
                 settings,
             ))
@@ -155,8 +155,8 @@ impl Header {
                 Header {
                     cipher,
                     kdf: Some(kdf),
-                    key: secret.key.into_owned(),
-                    iv: secret.iv.into_owned(),
+                    key: secret.key.into_owned().into(),
+                    iv: secret.iv.into_owned().into(),
                 },
                 secret.settings.into_owned(),
             ))
@@ -170,31 +170,24 @@ impl Header {
         kdf: &Kdf,
         mut cursor: Cursor<&[u8]>,
     ) -> ContainerResult<Secret<'a, B>, B> {
-        let mut key = kdf.create_key(password)?;
+        let cbuf = cursor.from_bytes::<Vec<u8>>()?;
 
-        let result = {
-            let cbuf = cursor.from_bytes::<Vec<u8>>()?;
+        let mut ctx = CipherCtx::new(cipher, cbuf.len() as u32)?;
+        let key = kdf.create_key(password)?;
+        let pbuf = ctx.decrypt(&key, &iv, &cbuf)?;
 
-            let mut ctx = CipherCtx::new(cipher, cbuf.len() as u32)?;
-            let pbuf = ctx.decrypt(&key, &iv, &cbuf)?;
+        let mut sec_cursor = Cursor::new(pbuf);
 
-            let mut sec_cursor = Cursor::new(pbuf);
+        let sec_magic1 = sec_cursor.from_bytes::<u32>()?;
+        let sec_magic2 = sec_cursor.from_bytes::<u32>()?;
 
-            let sec_magic1 = sec_cursor.from_bytes::<u32>()?;
-            let sec_magic2 = sec_cursor.from_bytes::<u32>()?;
+        if sec_magic1 != sec_magic2 {
+            return Err(ContainerError::WrongPassword);
+        }
 
-            if sec_magic1 != sec_magic2 {
-                return Err(ContainerError::WrongPassword);
-            }
+        let secret = sec_cursor.from_bytes()?;
 
-            let secret = sec_cursor.from_bytes()?;
-
-            Ok(secret)
-        };
-
-        whiteout_vec(&mut key);
-
-        result
+        Ok(secret)
     }
 
     pub fn write<B: Backend>(
@@ -233,34 +226,19 @@ impl Header {
         password: &[u8],
         mut cursor: Cursor<&mut [u8]>,
     ) -> ContainerResult<(), B> {
-        let mut pbuf: Vec<u8> = vec![];
-        let mut key = self.kdf.as_ref().unwrap().create_key(password)?;
+        let mut pbuf: SecureVec = SecureVec::empty();
+        let mut sec_cursor = Cursor::new(&mut *pbuf);
+        let sec_magic = rand::rand_u32()?;
 
-        let result = {
-            let mut sec_cursor = Cursor::new(&mut pbuf);
-            let sec_magic = rand::rand_u32()?;
+        sec_cursor.to_bytes(&sec_magic)?;
+        sec_cursor.to_bytes(&sec_magic)?;
+        sec_cursor.to_bytes(&secret)?;
 
-            sec_cursor.to_bytes(&sec_magic)?;
-            sec_cursor.to_bytes(&sec_magic)?;
-            sec_cursor.to_bytes(&secret)?;
+        let mut ctx = CipherCtx::new(self.cipher, pbuf.len() as u32)?;
+        let key = self.kdf.as_ref().unwrap().create_key(password)?;
+        let cbuf = ctx.encrypt(&key, &iv, &pbuf)?;
 
-            let mut ctx = CipherCtx::new(self.cipher, pbuf.len() as u32)?;
-            let cbuf = ctx.encrypt(&key, &iv, &pbuf)?;
-
-            Ok(cursor.to_bytes(&cbuf)?)
-        };
-
-        whiteout_vec(&mut pbuf);
-        whiteout_vec(&mut key);
-
-        result
-    }
-}
-
-impl Drop for Header {
-    fn drop(&mut self) {
-        whiteout_vec(&mut self.key);
-        whiteout_vec(&mut self.iv);
+        Ok(cursor.to_bytes(&cbuf)?)
     }
 }
 

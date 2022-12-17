@@ -30,7 +30,7 @@ use crate::backend::Backend;
 use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 use crate::container::error::ContainerResult;
 use crate::openssl::evp;
-use crate::whiteout_vec;
+use crate::svec::SecureVec;
 
 /// Supported cipher algorithms.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -102,7 +102,7 @@ pub struct CipherCtx {
     ctx: evp::CipherCtx,
     cipher: Cipher,
     block_size: usize,
-    out: Vec<u8>,
+    out: SecureVec,
 }
 
 impl CipherCtx {
@@ -111,7 +111,7 @@ impl CipherCtx {
             ctx: evp::CipherCtx::new()?,
             cipher,
             block_size: block_size as usize,
-            out: vec![],
+            out: SecureVec::empty(),
         })
     }
 
@@ -123,17 +123,10 @@ impl CipherCtx {
     ) -> ContainerResult<&[u8], B> {
         let ptext = self.prepare_ptext(input);
 
-        let result = match self.cipher.to_evp() {
+        match self.cipher.to_evp() {
             Some(cipher) => self.encrypt_some(cipher, key, iv, &ptext),
             None => self.update_none(&ptext),
-        };
-
-        match ptext {
-            Cow::Owned(mut buf) => whiteout_vec(&mut buf),
-            _ => {}
-        };
-
-        result
+        }
     }
 
     pub fn decrypt<B: Backend>(
@@ -200,11 +193,5 @@ impl CipherCtx {
         self.out.extend_from_slice(input);
 
         Ok(&self.out)
-    }
-}
-
-impl Drop for CipherCtx {
-    fn drop(&mut self) {
-        whiteout_vec(&mut self.out);
     }
 }

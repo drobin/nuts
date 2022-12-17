@@ -37,7 +37,7 @@ use crate::backend::{Backend, BlockId, BLOCK_MIN_SIZE};
 use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;
-use crate::whiteout_vec;
+use crate::svec::SecureVec;
 
 pub use cipher::Cipher;
 pub use digest::Digest;
@@ -271,7 +271,9 @@ impl<B: Backend> Container<B> {
         let result = self.ctx.encrypt(key, iv, &ptext);
 
         match ptext {
-            Cow::Owned(mut buf) => whiteout_vec(&mut buf),
+            Cow::Owned(buf) => {
+                SecureVec::from_vec(buf);
+            }
             _ => {}
         };
 

@@ -20,15 +20,34 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-#[macro_use]
-pub(crate) mod asserts;
-pub mod backend;
-pub mod bytes;
-pub mod container;
-pub mod directory;
-#[cfg(test)]
-pub mod memory;
-pub mod openssl;
-pub mod stream;
-pub(crate) mod svec;
+use super::SecureVec;
+
+#[test]
+fn from_vec_empty() {
+    let v = SecureVec::from_vec(vec![]);
+    assert!(v.is_empty());
+}
+
+#[test]
+fn from_vec() {
+    let v = SecureVec::from_vec(vec![1, 2, 3]);
+    assert_eq!(*v, [1, 2, 3]);
+}
+
+#[test]
+fn empty() {
+    let v = SecureVec::empty();
+    assert!(v.is_empty());
+}
+
+#[test]
+fn zero_empty() {
+    let v = SecureVec::zero(0);
+    assert!(v.is_empty());
+}
+
+#[test]
+fn zero() {
+    let v = SecureVec::zero(3);
+    assert_eq!(*v, [0, 0, 0]);
+}

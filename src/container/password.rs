@@ -25,11 +25,11 @@ use std::{fmt, result};
 
 use crate::backend::Backend;
 use crate::container::error::{ContainerError, ContainerResult};
-use crate::whiteout_vec;
+use crate::svec::SecureVec;
 
 pub struct PasswordStore {
     callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>,
-    value: Option<Vec<u8>>,
+    value: Option<SecureVec>,
 }
 
 impl PasswordStore {
@@ -50,19 +50,10 @@ impl PasswordStore {
                     .ok_or_else(|| ContainerError::NoPassword(None))?;
                 let value = callback().map_err(|cause| ContainerError::NoPassword(Some(cause)))?;
 
-                self.value = Some(value);
+                self.value = Some(value.into());
 
                 Ok(self.value.as_ref().unwrap())
             }
-        }
-    }
-}
-
-impl Drop for PasswordStore {
-    fn drop(&mut self) {
-        match &mut self.value {
-            Some(vec) => whiteout_vec(vec),
-            None => {}
         }
     }
 }

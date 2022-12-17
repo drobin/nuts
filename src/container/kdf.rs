@@ -31,6 +31,7 @@ use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 use crate::container::digest::Digest;
 use crate::container::error::ContainerResult;
 use crate::openssl::{evp, rand};
+use crate::svec::SecureVec;
 
 /// Supported key derivation functions.
 ///
@@ -125,7 +126,7 @@ impl Kdf {
         })
     }
 
-    pub(crate) fn create_key<B: Backend>(&self, password: &[u8]) -> ContainerResult<Vec<u8>, B> {
+    pub(crate) fn create_key<B: Backend>(&self, password: &[u8]) -> ContainerResult<SecureVec, B> {
         if password.is_empty() {
             panic!("invalid password, cannot be empty");
         }
@@ -141,7 +142,7 @@ impl Kdf {
         }
 
         let md = digest.to_evp();
-        let mut key = vec![0; digest.size()];
+        let mut key = SecureVec::zero(digest.size());
 
         evp::pbkdf2_hmac(password, salt, *iterations, md, &mut key)?;
 
