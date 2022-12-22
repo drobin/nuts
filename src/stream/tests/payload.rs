@@ -20,23 +20,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use testx::testx;
+
+use crate::container::Container;
+use crate::memory::{MemId, MemoryBackend};
 use crate::stream::Stream;
 
-use super::{assert_next_is_none, next, setup_container, setup_one, setup_three, setup_two};
+use super::{assert_next_is_none, next};
 
-#[test]
-fn empty() {
-    let mut container = setup_container();
+#[testx(setup = super::setup_container)]
+fn empty(mut container: Container<MemoryBackend>) {
     let mut stream = Stream::create(&mut container);
 
     assert_eq!(stream.set_current_payload(&[b'x'; 4]).unwrap(), 0);
 }
 
-#[test]
-fn one_0() {
-    let mut container = setup_container();
-    let id = setup_one(&mut container);
-
+#[testx(setup = super::setup_one)]
+fn one_0(mut container: Container<MemoryBackend>, id: MemId) {
     {
         let mut stream = Stream::new(&mut container, &id);
 
@@ -50,11 +50,8 @@ fn one_0() {
     assert_next_is_none!(stream);
 }
 
-#[test]
-fn one_1() {
-    let mut container = setup_container();
-    let id = setup_one(&mut container);
-
+#[testx(setup = super::setup_one)]
+fn one_1(mut container: Container<MemoryBackend>, id: MemId) {
     {
         let mut stream = Stream::new(&mut container, &id);
 
@@ -69,11 +66,8 @@ fn one_1() {
     assert_next_is_none!(stream);
 }
 
-#[test]
-fn two_0() {
-    let mut container = setup_container();
-    let (id1, id2) = setup_two(&mut container);
-
+#[testx(setup = super::setup_two)]
+fn two_0(mut container: Container<MemoryBackend>, (id1, id2): (MemId, MemId)) {
     {
         let mut stream = Stream::new(&mut container, &id1);
 
@@ -89,11 +83,8 @@ fn two_0() {
     assert_next_is_none!(stream);
 }
 
-#[test]
-fn two_1() {
-    let mut container = setup_container();
-    let (id1, id2) = setup_two(&mut container);
-
+#[testx(setup = super::setup_two)]
+fn two_1(mut container: Container<MemoryBackend>, (id1, id2): (MemId, MemId)) {
     {
         let mut stream = Stream::new(&mut container, &id1);
 
@@ -110,11 +101,8 @@ fn two_1() {
     assert_next_is_none!(stream);
 }
 
-#[test]
-fn two_2() {
-    let mut container = setup_container();
-    let (id1, id2) = setup_two(&mut container);
-
+#[testx(setup = super::setup_two)]
+fn two_2(mut container: Container<MemoryBackend>, (id1, id2): (MemId, MemId)) {
     {
         let mut stream = Stream::new(&mut container, &id1);
 
@@ -132,11 +120,8 @@ fn two_2() {
     assert_next_is_none!(stream);
 }
 
-#[test]
-fn three_0() {
-    let mut container = setup_container();
-    let (id1, id2, id3) = setup_three(&mut container);
-
+#[testx(setup = super::setup_three)]
+fn three_0(mut container: Container<MemoryBackend>, (id1, id2, id3): (MemId, MemId, MemId)) {
     {
         let mut stream = Stream::new(&mut container, &id1);
 
@@ -154,11 +139,8 @@ fn three_0() {
     assert_next_is_none!(stream);
 }
 
-#[test]
-fn three_1() {
-    let mut container = setup_container();
-    let (id1, id2, id3) = setup_three(&mut container);
-
+#[testx(setup = super::setup_three)]
+fn three_1(mut container: Container<MemoryBackend>, (id1, id2, id3): (MemId, MemId, MemId)) {
     {
         let mut stream = Stream::new(&mut container, &id1);
 
@@ -177,11 +159,8 @@ fn three_1() {
     assert_next_is_none!(stream);
 }
 
-#[test]
-fn three_2() {
-    let mut container = setup_container();
-    let (id1, id2, id3) = setup_three(&mut container);
-
+#[testx(setup = super::setup_three)]
+fn three_2(mut container: Container<MemoryBackend>, (id1, id2, id3): (MemId, MemId, MemId)) {
     {
         let mut stream = Stream::new(&mut container, &id1);
 
@@ -201,11 +180,8 @@ fn three_2() {
     assert_next_is_none!(stream);
 }
 
-#[test]
-fn three_3() {
-    let mut container = setup_container();
-    let (id1, id2, id3) = setup_three(&mut container);
-
+#[testx(setup = super::setup_three)]
+fn three_3(mut container: Container<MemoryBackend>, (id1, id2, id3): (MemId, MemId, MemId)) {
     {
         let mut stream = Stream::new(&mut container, &id1);
 

@@ -20,13 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use testx::testx;
+
+use crate::container::Container;
+use crate::memory::{MemId, MemoryBackend};
 use crate::stream::Stream;
 
-use super::{setup_container, setup_one, setup_three, setup_two};
-
-#[test]
-fn create() {
-    let mut container = setup_container();
+#[testx(setup = super::setup_container)]
+fn create(mut container: Container<MemoryBackend>) {
     let mut stream = Stream::create(&mut container);
 
     assert!(stream.current_id().is_none());
@@ -36,11 +37,8 @@ fn create() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn one_first() {
-    let mut container = setup_container();
-    let id = setup_one(&mut container);
-
+#[testx(setup = super::setup_one)]
+fn one_first(mut container: Container<MemoryBackend>, id: MemId) {
     let mut stream = Stream::new(&mut container, &id);
 
     assert_eq!(stream.first_block().unwrap().unwrap(), &id);
@@ -48,11 +46,8 @@ fn one_first() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn one_last() {
-    let mut container = setup_container();
-    let id = setup_one(&mut container);
-
+#[testx(setup = super::setup_one)]
+fn one_last(mut container: Container<MemoryBackend>, id: MemId) {
     let mut stream = Stream::new(&mut container, &id);
 
     assert_eq!(stream.last_block().unwrap().unwrap(), &id);
@@ -60,11 +55,8 @@ fn one_last() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn one_next() {
-    let mut container = setup_container();
-    let id = setup_one(&mut container);
-
+#[testx(setup = super::setup_one)]
+fn one_next(mut container: Container<MemoryBackend>, id: MemId) {
     let mut stream = Stream::new(&mut container, &id);
 
     assert_eq!(stream.next_block().unwrap().unwrap(), &id);
@@ -72,11 +64,8 @@ fn one_next() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn one_prev() {
-    let mut container = setup_container();
-    let id = setup_one(&mut container);
-
+#[testx(setup = super::setup_one)]
+fn one_prev(mut container: Container<MemoryBackend>, id: MemId) {
     let mut stream = Stream::new(&mut container, &id);
 
     assert!(stream.prev_block().is_none());
@@ -85,11 +74,8 @@ fn one_prev() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn two_first() {
-    let mut container = setup_container();
-    let (id1, id2) = setup_two(&mut container);
-
+#[testx(setup = super::setup_two)]
+fn two_first(mut container: Container<MemoryBackend>, (id1, id2): (MemId, MemId)) {
     let mut stream = Stream::new(&mut container, &id1);
 
     assert_eq!(stream.first_block().unwrap().unwrap(), &id1);
@@ -99,11 +85,8 @@ fn two_first() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn two_last() {
-    let mut container = setup_container();
-    let (id1, id2) = setup_two(&mut container);
-
+#[testx(setup = super::setup_two)]
+fn two_last(mut container: Container<MemoryBackend>, (id1, id2): (MemId, MemId)) {
     let mut stream = Stream::new(&mut container, &id1);
 
     assert_eq!(stream.last_block().unwrap().unwrap(), &id2);
@@ -112,11 +95,8 @@ fn two_last() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn two_next() {
-    let mut container = setup_container();
-    let (id1, id2) = setup_two(&mut container);
-
+#[testx(setup = super::setup_two)]
+fn two_next(mut container: Container<MemoryBackend>, (id1, id2): (MemId, MemId)) {
     let mut stream = Stream::new(&mut container, &id1);
 
     assert_eq!(stream.next_block().unwrap().unwrap(), &id1);
@@ -126,11 +106,8 @@ fn two_next() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn two_prev() {
-    let mut container = setup_container();
-    let (id1, id2) = setup_two(&mut container);
-
+#[testx(setup = super::setup_two)]
+fn two_prev(mut container: Container<MemoryBackend>, (id1, id2): (MemId, MemId)) {
     let mut stream = Stream::new(&mut container, &id1);
 
     assert!(stream.prev_block().is_none());
@@ -141,11 +118,8 @@ fn two_prev() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn three_first() {
-    let mut container = setup_container();
-    let (id1, id2, id3) = setup_three(&mut container);
-
+#[testx(setup = super::setup_three)]
+fn three_first(mut container: Container<MemoryBackend>, (id1, id2, id3): (MemId, MemId, MemId)) {
     let mut stream = Stream::new(&mut container, &id1);
 
     assert_eq!(stream.first_block().unwrap().unwrap(), &id1);
@@ -157,11 +131,8 @@ fn three_first() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn three_last() {
-    let mut container = setup_container();
-    let (id1, id2, id3) = setup_three(&mut container);
-
+#[testx(setup = super::setup_three)]
+fn three_last(mut container: Container<MemoryBackend>, (id1, id2, id3): (MemId, MemId, MemId)) {
     let mut stream = Stream::new(&mut container, &id1);
 
     assert_eq!(stream.last_block().unwrap().unwrap(), &id3);
@@ -171,11 +142,8 @@ fn three_last() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn three_next() {
-    let mut container = setup_container();
-    let (id1, id2, id3) = setup_three(&mut container);
-
+#[testx(setup = super::setup_three)]
+fn three_next(mut container: Container<MemoryBackend>, (id1, id2, id3): (MemId, MemId, MemId)) {
     let mut stream = Stream::new(&mut container, &id1);
 
     assert_eq!(stream.next_block().unwrap().unwrap(), &id1);
@@ -187,11 +155,8 @@ fn three_next() {
     assert!(stream.prev_block().is_none());
 }
 
-#[test]
-fn three_prev() {
-    let mut container = setup_container();
-    let (id1, id2, id3) = setup_three(&mut container);
-
+#[testx(setup = super::setup_three)]
+fn three_prev(mut container: Container<MemoryBackend>, (id1, id2, id3): (MemId, MemId, MemId)) {
     let mut stream = Stream::new(&mut container, &id1);
 
     assert!(stream.prev_block().is_none());

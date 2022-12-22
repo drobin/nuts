@@ -23,6 +23,9 @@ rpassword = { version = "5.0.1", optional = true }
 [build-dependencies]
 pkg-config = "0.3.25"
 
+[dev-dependencies]
+testx = "0.1.2"
+
 [[bin]]
 name = "nuts"
 required-features = ["nuts-tool"]

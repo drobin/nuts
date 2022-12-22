@@ -31,7 +31,7 @@ use std::io::{Cursor, Write};
 use crate::backend::{Backend, BlockId};
 use crate::bytes::ToBytesExt;
 use crate::container::{Cipher, Container, CreateOptionsBuilder};
-use crate::memory::{MemOptions, MemoryBackend};
+use crate::memory::{MemId, MemOptions, MemoryBackend};
 
 macro_rules! next {
     ($stream:expr) => {
@@ -92,35 +92,38 @@ fn make_block<B: Backend>(
     container.write(&id, &cursor.into_inner()).unwrap();
 }
 
-fn setup_one<B: Backend>(container: &mut Container<B>) -> B::Id {
+fn setup_one() -> (Container<MemoryBackend>, MemId) {
+    let mut container = setup_container();
     let id = container.aquire().unwrap();
-    let next = B::Id::null();
+    let next = MemId::null();
 
-    make_block(container, &id, true, &id, &next, &[1, 2, 3]);
+    make_block(&mut container, &id, true, &id, &next, &[1, 2, 3]);
 
-    id
+    (container, id)
 }
 
-fn setup_two<B: Backend>(container: &mut Container<B>) -> (B::Id, B::Id) {
+fn setup_two() -> (Container<MemoryBackend>, (MemId, MemId)) {
+    let mut container = setup_container();
     let id1 = container.aquire().unwrap();
     let id2 = container.aquire().unwrap();
-    let null = B::Id::null();
+    let null = MemId::null();
 
-    make_block(container, &id1, true, &id2, &id2, &[1, 2, 3]);
-    make_block(container, &id2, false, &id1, &null, &[4, 5, 6]);
+    make_block(&mut container, &id1, true, &id2, &id2, &[1, 2, 3]);
+    make_block(&mut container, &id2, false, &id1, &null, &[4, 5, 6]);
 
-    (id1, id2)
+    (container, (id1, id2))
 }
 
-fn setup_three<B: Backend>(container: &mut Container<B>) -> (B::Id, B::Id, B::Id) {
+fn setup_three() -> (Container<MemoryBackend>, (MemId, MemId, MemId)) {
+    let mut container = setup_container();
     let id1 = container.aquire().unwrap();
     let id2 = container.aquire().unwrap();
     let id3 = container.aquire().unwrap();
-    let null = B::Id::null();
+    let null = MemId::null();
 
-    make_block(container, &id1, true, &id3, &id2, &[1, 2, 3]);
-    make_block(container, &id2, false, &id1, &id3, &[4, 5, 6]);
-    make_block(container, &id3, false, &id2, &null, &[7, 8, 9]);
+    make_block(&mut container, &id1, true, &id3, &id2, &[1, 2, 3]);
+    make_block(&mut container, &id2, false, &id1, &id3, &[4, 5, 6]);
+    make_block(&mut container, &id3, false, &id2, &null, &[7, 8, 9]);
 
-    (id1, id2, id3)
+    (container, (id1, id2, id3))
 }
