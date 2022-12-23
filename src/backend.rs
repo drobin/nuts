@@ -87,7 +87,7 @@ where
     type Settings: Clone + FromBytes + ToBytes;
 
     /// The error type used by methods of this trait.
-    type Err: error::Error;
+    type Err: error::Error + Send + Sync;
 
     /// The id identifies a block in the storage. It is used everywhere you
     /// need a pointer to a block.

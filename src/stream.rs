@@ -22,6 +22,7 @@
 
 mod block;
 mod error;
+mod read;
 #[cfg(test)]
 mod tests;
 
@@ -47,6 +48,7 @@ pub struct Stream<'a, B: Backend> {
     first: Option<B::Id>,
     last: Option<B::Id>,
     cur: Option<Block<B>>,
+    offs: usize,
 }
 
 impl<'a, B: Backend> Stream<'a, B> {
@@ -56,6 +58,7 @@ impl<'a, B: Backend> Stream<'a, B> {
             first: Some(id.clone()),
             last: None,
             cur: None,
+            offs: 0,
         }
     }
 
@@ -65,6 +68,7 @@ impl<'a, B: Backend> Stream<'a, B> {
             first: None,
             last: None,
             cur: None,
+            offs: 0,
         }
     }
 
@@ -97,6 +101,37 @@ impl<'a, B: Backend> Stream<'a, B> {
         } else {
             warn!("cannot update payload, no current block");
             return Ok(0);
+        }
+    }
+
+    fn remaining_payload(&self) -> Option<&[u8]> {
+        if let Some(payload) = self.current_payload() {
+            let offs = cmp::min(self.offs, payload.len());
+            let len = payload.len() - offs;
+
+            if len > 0 {
+                payload.get(self.offs..self.offs + len)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn copy_remaining_payload(&mut self, buf: &mut [u8]) -> usize {
+        match self.remaining_payload() {
+            Some(payload) => {
+                let len = cmp::min(payload.len(), buf.len());
+                let source = &payload[..len];
+                let target = &mut buf[..len];
+
+                target.copy_from_slice(source);
+                self.offs += len;
+
+                len
+            }
+            None => 0,
         }
     }
 
@@ -276,6 +311,7 @@ impl<'a, B: Backend> Stream<'a, B> {
 
     fn set_current(&mut self, block: Block<B>) -> Option<&B::Id> {
         self.cur = Some(block);
+        self.offs = 0;
         self.current_id()
     }
 }
@@ -287,6 +323,7 @@ impl<'a, B: Backend> fmt::Debug for Stream<'a, B> {
             .field("first", &self.first)
             .field("last", &self.last)
             .field("cur", &self.cur.as_ref().map(|b| b.id()))
+            .field("offs", &self.offs)
             .finish()
     }
 }
