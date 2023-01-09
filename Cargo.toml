@@ -1,2 +1,5 @@
 [workspace]
-members = ["nuts"]
+members = [
+  "nuts",
+  "nuts-tool",
+]
