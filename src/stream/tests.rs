@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -26,6 +26,7 @@ mod insert_front;
 mod payload;
 mod read;
 mod walk;
+mod write;
 
 use std::io::{Cursor, Write};
 
@@ -33,6 +34,9 @@ use crate::backend::{Backend, BlockId};
 use crate::bytes::ToBytesExt;
 use crate::container::{Cipher, Container, CreateOptionsBuilder};
 use crate::memory::{MemId, MemOptions, MemoryBackend};
+use crate::openssl::rand::RND;
+
+const MAX_PAYLOAD: usize = 493;
 
 macro_rules! next {
     ($stream:expr) => {
@@ -103,6 +107,16 @@ fn setup_one() -> (Container<MemoryBackend>, MemId) {
     (container, id)
 }
 
+fn setup_one_full() -> (Container<MemoryBackend>, MemId) {
+    let mut container = setup_container();
+    let id = container.aquire().unwrap();
+    let next = MemId::null();
+
+    make_block(&mut container, &id, true, &id, &next, &RND[..MAX_PAYLOAD]);
+
+    (container, id)
+}
+
 fn setup_two() -> (Container<MemoryBackend>, (MemId, MemId)) {
     let mut container = setup_container();
     let id1 = container.aquire().unwrap();
@@ -111,6 +125,25 @@ fn setup_two() -> (Container<MemoryBackend>, (MemId, MemId)) {
 
     make_block(&mut container, &id1, true, &id2, &id2, &[1, 2, 3]);
     make_block(&mut container, &id2, false, &id1, &null, &[4, 5, 6]);
+
+    (container, (id1, id2))
+}
+
+fn setup_two_full() -> (Container<MemoryBackend>, (MemId, MemId)) {
+    let mut container = setup_container();
+    let id1 = container.aquire().unwrap();
+    let id2 = container.aquire().unwrap();
+    let null = MemId::null();
+
+    make_block(&mut container, &id1, true, &id2, &id2, &[1, 2, 3]);
+    make_block(
+        &mut container,
+        &id2,
+        false,
+        &id1,
+        &null,
+        &RND[..MAX_PAYLOAD],
+    );
 
     (container, (id1, id2))
 }

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -192,6 +192,10 @@ impl<B: Backend> Block<B> {
 
     pub fn set_payload(&mut self, payload: &[u8]) {
         self.payload.clear();
+        self.add_payload(payload);
+    }
+
+    pub fn add_payload(&mut self, payload: &[u8]) {
         self.payload.extend_from_slice(payload);
     }
 

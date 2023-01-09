@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -25,9 +25,10 @@ mod error;
 mod read;
 #[cfg(test)]
 mod tests;
+mod write;
 
 use log::{debug, warn};
-use std::{any, cmp, fmt};
+use std::{any, cmp, fmt, io};
 
 use crate::backend::Backend;
 use crate::container::Container;
@@ -41,6 +42,12 @@ macro_rules! init_last {
             return Some(Err(err));
         }
     };
+}
+
+impl<'a, B: 'static + Backend> From<StreamError<B>> for io::Error {
+    fn from(cause: StreamError<B>) -> Self {
+        io::Error::new(io::ErrorKind::Other, cause)
+    }
 }
 
 pub struct Stream<'a, B: Backend> {
@@ -72,6 +79,10 @@ impl<'a, B: Backend> Stream<'a, B> {
         }
     }
 
+    pub fn first_id(&self) -> Option<&B::Id> {
+        self.first.as_ref()
+    }
+
     pub fn current_id(&self) -> Option<&B::Id> {
         self.cur.as_ref().map(|cur| cur.id())
     }
@@ -101,6 +112,28 @@ impl<'a, B: Backend> Stream<'a, B> {
         } else {
             warn!("cannot update payload, no current block");
             return Ok(0);
+        }
+    }
+
+    fn flush_current_block(&mut self) -> StreamResult<(), B> {
+        if let Some(cur_block) = self.cur.as_mut() {
+            cur_block.write(&mut self.container)?;
+        }
+
+        Ok(())
+    }
+
+    fn append_payload(&mut self, payload: &[u8]) -> usize {
+        let max = self.max_payload();
+        let len = cmp::min(max - self.offs, payload.len());
+
+        if let Some(cur_block) = self.cur.as_mut() {
+            cur_block.add_payload(&payload[..len]);
+            self.offs += len;
+
+            len
+        } else {
+            0
         }
     }
 
@@ -137,6 +170,18 @@ impl<'a, B: Backend> Stream<'a, B> {
 
     pub fn max_payload(&self) -> usize {
         self.container.backend().block_size() as usize - Block::<B>::header_size()
+    }
+
+    pub fn available_payload(&self) -> usize {
+        let max = self.max_payload();
+
+        match self.current_payload() {
+            Some(payload) => {
+                let len = cmp::min(payload.len(), max);
+                max - len
+            }
+            None => 0,
+        }
     }
 
     pub fn first_block(&mut self) -> Option<StreamResult<&B::Id, B>> {
