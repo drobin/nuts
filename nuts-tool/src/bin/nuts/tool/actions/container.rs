@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -21,7 +21,9 @@
 // IN THE SOFTWARE.
 
 pub mod create;
+pub mod delete;
 pub mod info;
+pub mod list;
 pub mod read;
 pub mod write;
 
@@ -32,7 +34,9 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.about("General container tasks")
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(create::command(SubCommand::with_name("create")))
+        .subcommand(delete::command(SubCommand::with_name("delete")))
         .subcommand(info::command(SubCommand::with_name("info")))
+        .subcommand(list::command(SubCommand::with_name("list")))
         .subcommand(read::command(SubCommand::with_name("read")))
         .subcommand(write::command(SubCommand::with_name("write")))
 }
@@ -40,7 +44,9 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
 pub fn run(args: &ArgMatches) -> Result<()> {
     match args.subcommand() {
         ("create", Some(matches)) => create::run(matches),
+        ("delete", Some(matches)) => delete::run(matches),
         ("info", Some(matches)) => info::run(matches),
+        ("list", Some(matches)) => list::run(matches),
         ("read", Some(matches)) => read::run(matches),
         ("write", Some(matches)) => write::run(matches),
         _ => Err(anyhow!("Missing implementation for subcommand")),

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -24,10 +24,10 @@ pub mod container;
 
 use anyhow::{anyhow, Result};
 use clap::{Arg, ArgMatches};
-use log::debug;
 use nuts::container::{Container, OpenOptionsBuilder};
 use nuts::directory::{DirectoryBackend, DirectoryOpenOptions};
-use std::{env, result};
+use std::path::PathBuf;
+use std::{fs, result};
 
 use crate::tool::convert::Convert;
 use crate::tool::password::ask_for_password;
@@ -36,47 +36,50 @@ fn is_valid<T: Convert>(s: String) -> result::Result<(), String> {
     T::from_str(&s).map(|_| ())
 }
 
-pub fn path_arg<'a, 'b>(idx: u64) -> Arg<'a, 'b> {
-    Arg::with_name("PATH")
+pub fn name_arg<'a, 'b>(idx: u64) -> Arg<'a, 'b> {
+    Arg::with_name("NAME")
         .required(true)
         .index(idx)
-        .help("The path to the container.")
-}
-
-pub fn container_arg<'a, 'b>() -> Arg<'a, 'b> {
-    let help = "Specifies the path of the container. Overwrites the path from \
-              the NUTS_CONTAINER environment variable.";
-
-    Arg::with_name("container")
-        .long("container")
-        .value_name("PATH")
-        .help(help)
-}
-
-fn container_path(args: &ArgMatches) -> Result<String> {
-    if let Some(s) = args.value_of("container") {
-        debug!("path from cmdline: {}", s);
-        Ok(s.to_string())
-    } else {
-        match env::var("NUTS_CONTAINER") {
-            Ok(s) => {
-                debug!("path from env: {}", s);
-                Ok(s)
-            }
-            Err(env::VarError::NotPresent) => Err(anyhow!("Cannot obtain path to container.")),
-            Err(env::VarError::NotUnicode(err)) => Err(anyhow!(
-                "Invalid path to container: {}",
-                err.to_string_lossy()
-            )),
-        }
-    }
+        .help("The name of the container.")
 }
 
 fn open_container(args: &ArgMatches) -> Result<Container<DirectoryBackend>> {
-    let path = container_path(args)?;
+    let name = args.value_of("NAME").unwrap();
+    let path = container_dir_for(name)?;
     let builder = OpenOptionsBuilder::new(DirectoryOpenOptions::for_path(path))
         .with_password_callback(ask_for_password);
     let options = builder.build()?;
 
     Ok(Container::open(options)?)
+}
+
+fn nuts_tool_dir() -> Result<PathBuf> {
+    match home::home_dir() {
+        Some(dir) => {
+            let tool_dir = dir.join(".nuts");
+
+            if !tool_dir.is_dir() {
+                fs::create_dir(&tool_dir)?;
+            }
+
+            Ok(tool_dir)
+        }
+        None => Err(anyhow!("unable to locate home-directory")),
+    }
+}
+
+fn container_dir() -> Result<PathBuf> {
+    let parent = nuts_tool_dir()?;
+    let dir = parent.join("container");
+
+    if !dir.is_dir() {
+        fs::create_dir(&dir)?;
+    }
+
+    Ok(dir)
+}
+
+fn container_dir_for<S: AsRef<str>>(name: S) -> Result<PathBuf> {
+    let parent = container_dir()?;
+    Ok(parent.join(name.as_ref()))
 }

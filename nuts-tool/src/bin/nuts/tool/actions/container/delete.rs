@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,30 +22,19 @@
 
 use anyhow::Result;
 use clap::{App, ArgMatches};
+use std::fs;
 
-use crate::tool::actions::{name_arg, open_container};
-use crate::tool::convert::Convert;
-use crate::tool::kdf::KdfSpec;
+use crate::tool::actions::{container_dir_for, name_arg};
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
-    app.about("Prints general information about the container.")
-        .arg(name_arg(1))
+    app.about("Removes a container again.").arg(name_arg(1))
 }
 
 pub fn run(args: &ArgMatches) -> Result<()> {
-    let container = open_container(args)?;
-    let info = container.info()?;
+    let name = args.value_of("NAME").unwrap();
+    let dir = container_dir_for(name)?;
 
-    println!("block size: {}", info.backend.bsize);
-    println!("cipher:     {}", info.cipher.to_str());
-
-    match info.kdf {
-        Some(kdf) => {
-            let spec: KdfSpec = kdf.into();
-            println!("kdf:        {}", spec.to_str());
-        }
-        None => println!("kdf:        none"),
-    };
+    fs::remove_dir_all(dir)?;
 
     Ok(())
 }

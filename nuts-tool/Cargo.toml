@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = "1.0.44"
 clap = "2.33.3"
 env_logger = "0.9.0"
+home = "0.5.4"
 log = "0.4.14"
 nuts = { path = "../nuts" }
 rpassword = "5.0.1"

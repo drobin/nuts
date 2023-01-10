@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,29 +23,23 @@
 use anyhow::Result;
 use clap::{App, ArgMatches};
 
-use crate::tool::actions::{name_arg, open_container};
-use crate::tool::convert::Convert;
-use crate::tool::kdf::KdfSpec;
+use crate::tool::actions::container_dir;
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
-    app.about("Prints general information about the container.")
-        .arg(name_arg(1))
+    app.about("Lists all available container.")
 }
 
-pub fn run(args: &ArgMatches) -> Result<()> {
-    let container = open_container(args)?;
-    let info = container.info()?;
-
-    println!("block size: {}", info.backend.bsize);
-    println!("cipher:     {}", info.cipher.to_str());
-
-    match info.kdf {
-        Some(kdf) => {
-            let spec: KdfSpec = kdf.into();
-            println!("kdf:        {}", spec.to_str());
+pub fn run(_args: &ArgMatches) -> Result<()> {
+    for entry in container_dir()?.read_dir()? {
+        match entry {
+            Ok(entry) => {
+                if entry.file_type()?.is_dir() {
+                    println!("{}", entry.file_name().to_string_lossy());
+                }
+            }
+            Err(cause) => return Err(cause.into()),
         }
-        None => println!("kdf:        none"),
-    };
+    }
 
     Ok(())
 }

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -29,21 +29,21 @@ use nuts::directory::{DirectoryBackend, DirectoryId};
 use nuts::stream::Stream;
 use std::cmp;
 
-use crate::tool::actions::{container_arg, is_valid, open_container};
+use crate::tool::actions::{is_valid, name_arg, open_container};
 use crate::tool::convert::Convert;
 use crate::tool::format::{Format, Output};
 use crate::tool::size::Size;
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.about("Reads a block from the container.")
+        .arg(name_arg(1))
         .arg(
             Arg::with_name("ID")
                 .required(true)
-                .index(1)
+                .index(2)
                 .validator(is_valid::<<DirectoryBackend as Backend>::Id>)
                 .help("Range of block-ids to read."),
         )
-        .arg(container_arg())
         .arg(
             Arg::with_name("stream")
                 .long("--stream")
