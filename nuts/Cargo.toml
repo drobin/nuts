@@ -10,6 +10,7 @@ debug-plain-keys = []
 
 [dependencies]
 log = "0.4.14"
+nuts-backend = { path = "../nuts-backend" }
 nuts-bytes = { path = "../nuts-bytes" }
 uuid = { version = "1.1.2", features = ["v4"] }
 

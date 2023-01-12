@@ -24,9 +24,9 @@ use std::borrow::Cow;
 use std::fmt::{self, Write as FmtWrite};
 use std::io::{Cursor, Read, Write};
 
+use nuts_backend::Backend;
 use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
-use crate::backend::Backend;
 use crate::container::cipher::{Cipher, CipherCtx};
 use crate::container::error::{ContainerError, ContainerResult};
 use crate::container::kdf::Kdf;

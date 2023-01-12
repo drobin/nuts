@@ -2,5 +2,6 @@
 members = [
   "nuts-bytes",
   "nuts",
+  "nuts-backend",
   "nuts-tool",
 ]

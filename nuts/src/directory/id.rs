@@ -26,9 +26,9 @@ use std::str::FromStr;
 use std::{fmt, mem, result};
 use uuid::Uuid;
 
+use nuts_backend::BlockId;
 use nuts_bytes::{FromBytes, ToBytes};
 
-use crate::backend::BlockId;
 use crate::directory::DirectoryError;
 
 #[derive(Clone, Debug, PartialEq)]

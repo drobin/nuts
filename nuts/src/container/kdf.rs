@@ -26,9 +26,9 @@ mod tests;
 use std::fmt;
 use std::io::{Read, Write};
 
+use nuts_backend::Backend;
 use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
-use crate::backend::Backend;
 use crate::container::digest::Digest;
 use crate::container::error::ContainerResult;
 use crate::openssl::{evp, rand};

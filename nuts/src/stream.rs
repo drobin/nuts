@@ -30,7 +30,8 @@ mod write;
 use log::{debug, warn};
 use std::{any, cmp, fmt, io};
 
-use crate::backend::Backend;
+use nuts_backend::Backend;
+
 use crate::container::Container;
 use crate::stream::block::Block;
 

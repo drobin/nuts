@@ -23,7 +23,6 @@
 #[cfg(test)]
 #[macro_use]
 pub(crate) mod asserts;
-pub mod backend;
 pub mod container;
 pub mod directory;
 #[cfg(test)]

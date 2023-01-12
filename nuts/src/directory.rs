@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -31,7 +31,7 @@ use std::io::{self, ErrorKind, Read, Write};
 use std::path::PathBuf;
 use std::{cmp, result};
 
-use crate::backend::{Backend, BLOCK_MIN_SIZE};
+use nuts_backend::{Backend, BLOCK_MIN_SIZE};
 
 pub use error::{DirectoryError, DirectoryResult};
 pub use id::DirectoryId;

@@ -23,7 +23,8 @@
 use log::trace;
 use std::io::{self, Write};
 
-use crate::backend::Backend;
+use nuts_backend::Backend;
+
 use crate::stream::Stream;
 
 impl<'a, B: 'static + Backend> Write for Stream<'a, B> {

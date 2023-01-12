@@ -23,7 +23,9 @@
 use log::trace;
 use std::io::{self, Read};
 
-use crate::{backend::Backend, stream::Stream};
+use nuts_backend::Backend;
+
+use crate::stream::Stream;
 
 macro_rules! eval_stream_op {
     ($expr:expr) => {

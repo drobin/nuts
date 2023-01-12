@@ -23,9 +23,9 @@
 use std::io::Cursor;
 use std::{cmp, mem};
 
+use nuts_backend::{Backend, BlockId};
 use nuts_bytes::{FromBytesExt, ToBytesExt};
 
-use crate::backend::{Backend, BlockId};
 use crate::container::Container;
 use crate::stream::error::{StreamError, StreamResult};
 

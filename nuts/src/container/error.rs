@@ -22,7 +22,8 @@
 
 use std::{error, fmt, result};
 
-use crate::backend::Backend;
+use nuts_backend::Backend;
+
 use crate::openssl::OpenSSLError;
 
 /// Error type used by this module.

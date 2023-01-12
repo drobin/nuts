@@ -26,9 +26,9 @@ mod tests;
 use std::borrow::Cow;
 use std::io::{Read, Write};
 
+use nuts_backend::Backend;
 use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
-use crate::backend::Backend;
 use crate::container::error::ContainerResult;
 use crate::openssl::evp;
 use crate::svec::SecureVec;

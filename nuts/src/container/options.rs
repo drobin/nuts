@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,7 +23,8 @@
 use std::rc::Rc;
 use std::result;
 
-use crate::backend::{Backend, Options};
+use nuts_backend::{Backend, Options};
+
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
 use crate::container::error::{ContainerError, ContainerResult};

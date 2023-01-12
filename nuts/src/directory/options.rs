@@ -24,9 +24,9 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::result;
 
+use nuts_backend::{Options, BLOCK_MIN_SIZE};
 use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
-use crate::backend::{Options, BLOCK_MIN_SIZE};
 use crate::directory::error::{DirectoryError, DirectoryResult};
 use crate::directory::DirectoryBackend;
 

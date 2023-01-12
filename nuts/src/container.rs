@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -33,7 +33,8 @@ use log::debug;
 use std::borrow::Cow;
 use std::{any, cmp};
 
-use crate::backend::{Backend, BlockId, BLOCK_MIN_SIZE};
+use nuts_backend::{Backend, BlockId, BLOCK_MIN_SIZE};
+
 use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;
