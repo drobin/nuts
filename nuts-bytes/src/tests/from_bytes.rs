@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
 
 use std::io::Cursor;
 
-use crate::bytes::FromBytesExt;
+use crate::FromBytesExt;
 
 #[test]
 fn u8_eof() {

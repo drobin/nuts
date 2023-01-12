@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -24,7 +24,7 @@ use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use std::{error, result};
 
-use crate::bytes::{FromBytes, ToBytes};
+use nuts_bytes::{FromBytes, ToBytes};
 
 /// The minimum size of a block.
 pub const BLOCK_MIN_SIZE: u32 = 512;

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -147,7 +147,7 @@ pub trait ToBytes {
 /// # Examples
 ///
 /// ```rust
-/// use nuts::bytes::FromBytesExt;
+/// use nuts_bytes::FromBytesExt;
 /// use std::io::Cursor;
 ///
 /// let binary_data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
@@ -160,7 +160,7 @@ pub trait ToBytes {
 /// ```
 ///
 /// ```rust
-/// use nuts::bytes::FromBytesExt;
+/// use nuts_bytes::FromBytesExt;
 /// use std::io::Cursor;
 ///
 /// let binary_data = [1, 2, 3, 4, 5, 6];
@@ -191,7 +191,7 @@ pub trait FromBytesExt: Read + Sized {
 /// # Examples
 ///
 /// ```rust
-/// use nuts::bytes::ToBytesExt;
+/// use nuts_bytes::ToBytesExt;
 /// use std::io::Cursor;
 ///
 /// let mut cursor = Cursor::new(vec![]);
@@ -205,7 +205,7 @@ pub trait FromBytesExt: Read + Sized {
 /// ```
 ///
 /// ```rust
-/// use nuts::bytes::ToBytesExt;
+/// use nuts_bytes::ToBytesExt;
 /// use std::io::Cursor;
 ///
 /// let mut cursor = Cursor::new(vec![]);

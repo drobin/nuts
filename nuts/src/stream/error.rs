@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,11 +23,10 @@
 use std::{error, fmt, result};
 
 use crate::backend::Backend;
-use crate::bytes;
 use crate::container::ContainerError;
 
 pub enum StreamError<B: Backend> {
-    Bytes(bytes::Error),
+    Bytes(nuts_bytes::Error),
     Container(ContainerError<B>),
     InvalidMagic,
 }
@@ -64,8 +63,8 @@ impl<B: Backend + 'static> error::Error for StreamError<B> {
     }
 }
 
-impl<B: Backend> From<bytes::Error> for StreamError<B> {
-    fn from(cause: bytes::Error) -> Self {
+impl<B: Backend> From<nuts_bytes::Error> for StreamError<B> {
+    fn from(cause: nuts_bytes::Error) -> Self {
         StreamError::Bytes(cause)
     }
 }

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -26,8 +26,9 @@ use std::str::FromStr;
 use std::{fmt, mem, result};
 use uuid::Uuid;
 
+use nuts_bytes::{FromBytes, ToBytes};
+
 use crate::backend::BlockId;
-use crate::bytes::{self, FromBytes, ToBytes};
 use crate::directory::DirectoryError;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -80,7 +81,7 @@ impl FromStr for DirectoryId {
 }
 
 impl FromBytes for DirectoryId {
-    fn from_bytes<R: Read>(source: &mut R) -> result::Result<Self, bytes::Error> {
+    fn from_bytes<R: Read>(source: &mut R) -> result::Result<Self, nuts_bytes::Error> {
         const SIZE: usize = std::mem::size_of::<u128>();
         let mut bytes = [0; SIZE];
 
@@ -94,7 +95,7 @@ impl FromBytes for DirectoryId {
 }
 
 impl ToBytes for DirectoryId {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> result::Result<(), bytes::Error> {
+    fn to_bytes<W: Write>(&self, target: &mut W) -> result::Result<(), nuts_bytes::Error> {
         let bytes = self.0.as_u128().to_be_bytes();
         Ok(target.write_all(&bytes)?)
     }

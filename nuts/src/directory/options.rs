@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -24,8 +24,9 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::result;
 
+use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
+
 use crate::backend::{Options, BLOCK_MIN_SIZE};
-use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 use crate::directory::error::{DirectoryError, DirectoryResult};
 use crate::directory::DirectoryBackend;
 
@@ -94,7 +95,7 @@ pub struct DirectorySettings {
 }
 
 impl FromBytes for DirectorySettings {
-    fn from_bytes<R: Read>(source: &mut R) -> result::Result<Self, bytes::Error> {
+    fn from_bytes<R: Read>(source: &mut R) -> result::Result<Self, nuts_bytes::Error> {
         let bsize = source.from_bytes()?;
 
         Ok(DirectorySettings { bsize })
@@ -102,7 +103,7 @@ impl FromBytes for DirectorySettings {
 }
 
 impl ToBytes for DirectorySettings {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> result::Result<(), bytes::Error> {
+    fn to_bytes<W: Write>(&self, target: &mut W) -> result::Result<(), nuts_bytes::Error> {
         target.to_bytes(&self.bsize)?;
 
         Ok(())

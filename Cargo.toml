@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "nuts-bytes",
   "nuts",
   "nuts-tool",
 ]

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -25,7 +25,8 @@ mod tests;
 
 use std::io::{Read, Write};
 
-use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
+use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
+
 use crate::openssl::evp;
 
 /// Supported message digests.
@@ -53,18 +54,18 @@ impl Digest {
 }
 
 impl FromBytes for Digest {
-    fn from_bytes<R: Read>(source: &mut R) -> bytes::Result<Self> {
+    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
         let n = source.from_bytes()?;
 
         match n {
             1u8 => Ok(Digest::Sha1),
-            _ => Err(bytes::Error::invalid(format!("invalid digest: {}", n))),
+            _ => Err(nuts_bytes::Error::invalid(format!("invalid digest: {}", n))),
         }
     }
 }
 
 impl ToBytes for Digest {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> bytes::Result<()> {
+    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
         let n = match self {
             Digest::Sha1 => 1u8,
         };

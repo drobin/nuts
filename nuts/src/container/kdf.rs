@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -26,8 +26,9 @@ mod tests;
 use std::fmt;
 use std::io::{Read, Write};
 
+use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
+
 use crate::backend::Backend;
-use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 use crate::container::digest::Digest;
 use crate::container::error::ContainerResult;
 use crate::openssl::{evp, rand};
@@ -151,7 +152,7 @@ impl Kdf {
 }
 
 impl FromBytes for Kdf {
-    fn from_bytes<R: Read>(source: &mut R) -> bytes::Result<Self> {
+    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
         let n = source.from_bytes()?;
 
         match n {
@@ -162,13 +163,13 @@ impl FromBytes for Kdf {
 
                 Ok(Kdf::pbkdf2(digest, iterations, &salt))
             }
-            _ => Err(bytes::Error::invalid(format!("invalid kdf: {}", n))),
+            _ => Err(nuts_bytes::Error::invalid(format!("invalid kdf: {}", n))),
         }
     }
 }
 
 impl ToBytes for Kdf {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> bytes::Result<()> {
+    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
         let Kdf::Pbkdf2 {
             digest,
             iterations,

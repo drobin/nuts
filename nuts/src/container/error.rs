@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,7 +23,6 @@
 use std::{error, fmt, result};
 
 use crate::backend::Backend;
-use crate::bytes;
 use crate::openssl::OpenSSLError;
 
 /// Error type used by this module.
@@ -32,7 +31,7 @@ pub enum ContainerError<B: Backend> {
     Backend(B::Err),
 
     /// Error while (de-) serializing binary data.
-    Bytes(bytes::Error),
+    Bytes(nuts_bytes::Error),
 
     /// An error in the OpenSSL library occured.
     OpenSSL(OpenSSLError),
@@ -90,8 +89,8 @@ impl<B: Backend + 'static> error::Error for ContainerError<B> {
     }
 }
 
-impl<B: Backend> From<bytes::Error> for ContainerError<B> {
-    fn from(cause: bytes::Error) -> Self {
+impl<B: Backend> From<nuts_bytes::Error> for ContainerError<B> {
+    fn from(cause: nuts_bytes::Error) -> Self {
         ContainerError::Bytes(cause)
     }
 }

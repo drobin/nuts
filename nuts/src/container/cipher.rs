@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -26,8 +26,9 @@ mod tests;
 use std::borrow::Cow;
 use std::io::{Read, Write};
 
+use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
+
 use crate::backend::Backend;
-use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 use crate::container::error::ContainerResult;
 use crate::openssl::evp;
 use crate::svec::SecureVec;
@@ -76,19 +77,19 @@ impl Cipher {
 }
 
 impl FromBytes for Cipher {
-    fn from_bytes<R: Read>(source: &mut R) -> bytes::Result<Self> {
+    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
         let n = source.from_bytes()?;
 
         match n {
             0u8 => Ok(Cipher::None),
             1u8 => Ok(Cipher::Aes128Ctr),
-            _ => Err(bytes::Error::invalid(format!("invalid cipher: {}", n))),
+            _ => Err(nuts_bytes::Error::invalid(format!("invalid cipher: {}", n))),
         }
     }
 }
 
 impl ToBytes for Cipher {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> bytes::Result<()> {
+    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
         let n = match self {
             Cipher::None => 0u8,
             Cipher::Aes128Ctr => 1u8,

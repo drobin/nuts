@@ -30,8 +30,9 @@ mod write;
 
 use std::io::{Cursor, Write};
 
+use nuts_bytes::ToBytesExt;
+
 use crate::backend::{Backend, BlockId};
-use crate::bytes::ToBytesExt;
 use crate::container::{Cipher, Container, CreateOptionsBuilder};
 use crate::memory::{MemId, MemOptions, MemoryBackend};
 use crate::openssl::rand::RND;

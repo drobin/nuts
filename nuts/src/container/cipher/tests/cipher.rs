@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,8 +22,8 @@
 
 use std::io::Cursor;
 
-use crate::bytes::Error as BytesError;
-use crate::bytes::{FromBytesExt, ToBytesExt};
+use nuts_bytes::{Error as BytesError, FromBytesExt, ToBytesExt};
+
 use crate::container::cipher::Cipher;
 
 #[test]

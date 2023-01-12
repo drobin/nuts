@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -24,8 +24,9 @@ use std::borrow::Cow;
 use std::fmt::{self, Write as FmtWrite};
 use std::io::{Cursor, Read, Write};
 
+use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
+
 use crate::backend::Backend;
-use crate::bytes::{self, FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 use crate::container::cipher::{Cipher, CipherCtx};
 use crate::container::error::{ContainerError, ContainerResult};
 use crate::container::kdf::Kdf;
@@ -61,7 +62,7 @@ impl<'a, B: Backend> Secret<'a, B> {
 }
 
 impl<'a, B: Backend> FromBytes for Secret<'a, B> {
-    fn from_bytes<R: Read>(source: &mut R) -> bytes::Result<Self> {
+    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
         let key = source.from_bytes()?;
         let iv = source.from_bytes()?;
         let settings = source.from_bytes()?;
@@ -71,7 +72,7 @@ impl<'a, B: Backend> FromBytes for Secret<'a, B> {
 }
 
 impl<'a, B: Backend> ToBytes for Secret<'a, B> {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> bytes::Result<()> {
+    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
         target.to_bytes(&&*self.key)?;
         target.to_bytes(&&*self.iv)?;
         target.to_bytes(self.settings.as_ref())?;
@@ -119,13 +120,13 @@ impl Header {
         cursor.read_bytes(&mut magic)?;
 
         if magic != MAGIC {
-            return Err(bytes::Error::invalid("magic mismatch"))?;
+            return Err(nuts_bytes::Error::invalid("magic mismatch"))?;
         }
 
         let revision = cursor.from_bytes::<u8>()?;
 
         if revision != 1 {
-            return Err(bytes::Error::invalid(format!(
+            return Err(nuts_bytes::Error::invalid(format!(
                 "invalid revision: {}",
                 revision
             )))?;

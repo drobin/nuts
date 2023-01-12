@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -27,8 +27,9 @@ use std::num::ParseIntError;
 use std::str::FromStr;
 use std::{cmp, error, fmt, mem, result};
 
+use nuts_bytes::{FromBytes, ToBytes};
+
 use crate::backend::{Backend, BlockId, Options};
-use crate::bytes::{self, FromBytes, ToBytes};
 
 #[derive(Debug)]
 pub struct MemError(String);
@@ -59,13 +60,13 @@ impl Options<MemoryBackend> for MemOptions {
 pub struct MemSettings();
 
 impl FromBytes for MemSettings {
-    fn from_bytes<R: Read>(_source: &mut R) -> bytes::Result<Self> {
+    fn from_bytes<R: Read>(_source: &mut R) -> nuts_bytes::Result<Self> {
         Ok(MemSettings())
     }
 }
 
 impl ToBytes for MemSettings {
-    fn to_bytes<W: Write>(&self, _target: &mut W) -> bytes::Result<()> {
+    fn to_bytes<W: Write>(&self, _target: &mut W) -> nuts_bytes::Result<()> {
         Ok(())
     }
 }
@@ -80,13 +81,13 @@ impl fmt::Display for MemId {
 }
 
 impl FromBytes for MemId {
-    fn from_bytes<R: Read>(source: &mut R) -> bytes::Result<Self> {
+    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
         FromBytes::from_bytes(source).map(|n| MemId(n))
     }
 }
 
 impl ToBytes for MemId {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> bytes::Result<()> {
+    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
         ToBytes::to_bytes(&self.0, target)
     }
 }
