@@ -29,7 +29,7 @@ use uuid::Uuid;
 use nuts_backend::BlockId;
 use nuts_bytes::{FromBytes, ToBytes};
 
-use crate::directory::DirectoryError;
+use crate::error::DirectoryError;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct DirectoryId(Uuid);

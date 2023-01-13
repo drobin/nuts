@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
 
 use crate::container::cipher::{Cipher, CipherCtx};
 use crate::container::ContainerError;
-use crate::directory::DirectoryBackend as Backend;
+use crate::memory::MemoryBackend as Backend;
 use crate::openssl::OpenSSLError;
 
 const KEY: [u8; 16] = [b'x'; 16];

@@ -100,7 +100,7 @@ impl Kdf {
     ///
     /// ```rust
     /// use nuts::container::*;
-    /// use nuts::directory::DirectoryBackend;
+    /// use nutsbackend_directory::DirectoryBackend;
     ///
     /// let Kdf::Pbkdf2 { digest, iterations, salt } =
     ///     Kdf::generate_pbkdf2::<DirectoryBackend>(Digest::Sha1, 5, 3).unwrap();

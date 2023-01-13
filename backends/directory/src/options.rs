@@ -27,8 +27,8 @@ use std::result;
 use nuts_backend::{Options, BLOCK_MIN_SIZE};
 use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
-use crate::directory::error::{DirectoryError, DirectoryResult};
-use crate::directory::DirectoryBackend;
+use crate::error::{DirectoryError, DirectoryResult};
+use crate::DirectoryBackend;
 
 #[derive(Debug)]
 pub struct DirectoryCreateOptions {

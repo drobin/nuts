@@ -24,7 +24,7 @@ use anyhow::Result;
 use clap::{App, Arg, ArgMatches};
 use log::debug;
 use nuts::container::{Cipher, Container, CreateOptionsBuilder, Digest, Kdf};
-use nuts::directory::{DirectoryBackend, DirectoryCreateOptions};
+use nutsbackend_directory::{DirectoryBackend, DirectoryCreateOptions};
 
 use crate::tool::actions::{container_dir_for, is_valid, name_arg};
 use crate::tool::convert::Convert;

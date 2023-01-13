@@ -24,7 +24,6 @@
 #[macro_use]
 pub(crate) mod asserts;
 pub mod container;
-pub mod directory;
 #[cfg(test)]
 pub mod memory;
 pub mod openssl;

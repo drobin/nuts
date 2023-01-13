@@ -24,9 +24,9 @@ use anyhow::{anyhow, Result};
 use clap::{App, Arg, ArgMatches};
 use log::{debug, trace};
 use nuts::container::Container;
-use nuts::directory::{DirectoryBackend, DirectoryId};
 use nuts::stream::Stream;
 use nuts_backend::Backend;
+use nutsbackend_directory::{DirectoryBackend, DirectoryId};
 use std::cmp;
 use std::io::{self, Read};
 

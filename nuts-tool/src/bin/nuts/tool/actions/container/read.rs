@@ -24,9 +24,9 @@ use anyhow::Result;
 use clap::{App, Arg, ArgMatches};
 use log::debug;
 use nuts::container::Container;
-use nuts::directory::{DirectoryBackend, DirectoryId};
 use nuts::stream::Stream;
 use nuts_backend::Backend;
+use nutsbackend_directory::{DirectoryBackend, DirectoryId};
 use std::cmp;
 
 use crate::tool::actions::{is_valid, name_arg, open_container};

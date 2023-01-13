@@ -26,7 +26,7 @@ use nuts_bytes::{Error as BytesError, FromBytesExt, ToBytesExt};
 
 use crate::container::digest::Digest;
 use crate::container::kdf::Kdf;
-use crate::directory::DirectoryBackend;
+use crate::memory::MemoryBackend as Backend;
 use crate::openssl::rand::RND;
 
 #[test]
@@ -48,7 +48,7 @@ fn generate_pbkdf2_empty_salt() {
         digest,
         iterations,
         salt,
-    } = Kdf::generate_pbkdf2::<DirectoryBackend>(Digest::Sha1, 5, 0).unwrap();
+    } = Kdf::generate_pbkdf2::<Backend>(Digest::Sha1, 5, 0).unwrap();
 
     assert_eq!(digest, Digest::Sha1);
     assert_eq!(iterations, 5);
@@ -61,7 +61,7 @@ fn generate_pbkdf2_with_salt() {
         digest,
         iterations,
         salt,
-    } = Kdf::generate_pbkdf2::<DirectoryBackend>(Digest::Sha1, 5, 3).unwrap();
+    } = Kdf::generate_pbkdf2::<Backend>(Digest::Sha1, 5, 3).unwrap();
 
     assert_eq!(digest, Digest::Sha1);
     assert_eq!(iterations, 5);
@@ -77,7 +77,7 @@ fn pbkdf2_create_key_empty_password() {
         iterations: 1,
         salt: vec![1, 2, 3],
     }
-    .create_key::<DirectoryBackend>(b"")
+    .create_key::<Backend>(b"")
     .unwrap();
 }
 
@@ -89,7 +89,7 @@ fn pbkdf2_create_key_empty_salt() {
         iterations: 1,
         salt: vec![],
     }
-    .create_key::<DirectoryBackend>(b"123")
+    .create_key::<Backend>(b"123")
     .unwrap();
 }
 
@@ -100,7 +100,7 @@ fn pbkdf2_create_key() {
         iterations: 1,
         salt: vec![1, 2, 3],
     }
-    .create_key::<DirectoryBackend>(b"123")
+    .create_key::<Backend>(b"123")
     .unwrap();
 
     assert_eq!(

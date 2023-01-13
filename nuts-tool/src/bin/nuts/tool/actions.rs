@@ -25,7 +25,7 @@ pub mod container;
 use anyhow::{anyhow, Result};
 use clap::{Arg, ArgMatches};
 use nuts::container::{Container, OpenOptionsBuilder};
-use nuts::directory::{DirectoryBackend, DirectoryOpenOptions};
+use nutsbackend_directory::{DirectoryBackend, DirectoryOpenOptions};
 use std::path::PathBuf;
 use std::{fs, result};
 
