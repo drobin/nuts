@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,40 +20,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod tool;
+pub mod get;
+pub mod set;
 
 use anyhow::{anyhow, Result};
-use clap::{App, AppSettings, SubCommand};
+use clap::{App, AppSettings, ArgMatches, SubCommand};
 
-macro_rules! subcommand {
-    ($action:ident) => {
-        tool::actions::$action::command(SubCommand::with_name(stringify!($action)))
-    };
+pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
+    app.about("Get and set options")
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .subcommand(get::command(SubCommand::with_name("get")))
+        .subcommand(set::command(SubCommand::with_name("set")))
 }
 
-fn main() {
-    std::process::exit(match run_tool() {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("{}", err);
-            1
-        }
-    })
-}
-
-fn run_tool() -> Result<()> {
-    env_logger::init();
-
-    let matches = App::new("nuts")
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .setting(AppSettings::VersionlessSubcommands)
-        .subcommand(subcommand!(config))
-        .subcommand(subcommand!(container))
-        .get_matches();
-
-    match matches.subcommand() {
-        ("config", Some(matches)) => tool::actions::config::run(matches),
-        ("container", Some(matches)) => tool::actions::container::run(matches),
+pub fn run(args: &ArgMatches) -> Result<()> {
+    match args.subcommand() {
+        ("get", Some(matches)) => get::run(matches),
+        ("set", Some(matches)) => set::run(matches),
         _ => Err(anyhow!("Missing implementation for subcommand")),
     }
 }

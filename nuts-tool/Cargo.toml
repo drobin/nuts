@@ -15,3 +15,5 @@ nuts = { path = "../nuts" }
 nuts-backend = { path = "../nuts-backend" }
 nutsbackend-directory = { path = "../backends/directory" }
 rpassword = "5.0.1"
+serde = "1.0.152"
+toml = "0.6.0"
