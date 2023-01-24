@@ -22,13 +22,13 @@
 
 pub mod container;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{Arg, ArgMatches};
 use nuts::container::{Container, OpenOptionsBuilder};
 use nutsbackend_directory::{DirectoryBackend, DirectoryOpenOptions};
-use std::path::PathBuf;
-use std::{fs, result};
+use std::result;
 
+use crate::tool::container_dir_for;
 use crate::tool::convert::Convert;
 use crate::tool::password::ask_for_password;
 
@@ -51,35 +51,4 @@ fn open_container(args: &ArgMatches) -> Result<Container<DirectoryBackend>> {
     let options = builder.build()?;
 
     Ok(Container::open(options)?)
-}
-
-fn nuts_tool_dir() -> Result<PathBuf> {
-    match home::home_dir() {
-        Some(dir) => {
-            let tool_dir = dir.join(".nuts");
-
-            if !tool_dir.is_dir() {
-                fs::create_dir(&tool_dir)?;
-            }
-
-            Ok(tool_dir)
-        }
-        None => Err(anyhow!("unable to locate home-directory")),
-    }
-}
-
-fn container_dir() -> Result<PathBuf> {
-    let parent = nuts_tool_dir()?;
-    let dir = parent.join("container");
-
-    if !dir.is_dir() {
-        fs::create_dir(&dir)?;
-    }
-
-    Ok(dir)
-}
-
-fn container_dir_for<S: AsRef<str>>(name: S) -> Result<PathBuf> {
-    let parent = container_dir()?;
-    Ok(parent.join(name.as_ref()))
 }

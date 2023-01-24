@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,6 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use anyhow::{anyhow, Result};
+use log::debug;
+use std::fs;
+use std::path::PathBuf;
+
 pub mod actions;
 pub mod convert;
 pub mod format;
@@ -27,3 +32,44 @@ pub mod hex;
 pub mod kdf;
 pub mod password;
 pub mod size;
+
+fn tool_dir() -> Result<PathBuf> {
+    match home::home_dir() {
+        Some(dir) => {
+            let tool_dir = dir.join(".nuts");
+
+            debug!("tool_dir: {}", tool_dir.display());
+
+            if !tool_dir.is_dir() {
+                debug!("creating tool dir {}", tool_dir.display());
+                fs::create_dir(&tool_dir)?;
+            }
+
+            Ok(tool_dir)
+        }
+        None => Err(anyhow!("unable to locate home-directory")),
+    }
+}
+
+fn container_dir() -> Result<PathBuf> {
+    let parent = tool_dir()?;
+    let dir = parent.join("container");
+
+    debug!("container_dir: {}", dir.display());
+
+    if !dir.is_dir() {
+        debug!("creating container dir {}", dir.display());
+        fs::create_dir(&dir)?;
+    }
+
+    Ok(dir)
+}
+
+fn container_dir_for<S: AsRef<str>>(name: S) -> Result<PathBuf> {
+    let parent = container_dir()?;
+    let dir = parent.join(name.as_ref());
+
+    debug!("container_dir for {}: {}", name.as_ref(), dir.display());
+
+    Ok(dir)
+}

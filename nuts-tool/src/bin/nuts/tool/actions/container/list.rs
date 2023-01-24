@@ -23,7 +23,7 @@
 use anyhow::Result;
 use clap::{App, ArgMatches};
 
-use crate::tool::actions::container_dir;
+use crate::tool::container_dir;
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.about("Lists all available container.")
