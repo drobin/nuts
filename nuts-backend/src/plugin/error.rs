@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,42 +20,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod tool;
+use std::{error, fmt, result};
 
-use anyhow::{anyhow, Result};
-use clap::{App, AppSettings, SubCommand};
-
-macro_rules! subcommand {
-    ($action:ident) => {
-        tool::actions::$action::command(SubCommand::with_name(stringify!($action)))
-    };
+#[derive(Debug)]
+pub enum Error {
+    Open,
+    Closed,
+    Bytes(nuts_bytes::Error),
+    NoSuchOption(String),
+    InvalidOption(String),
+    Backend(Box<dyn error::Error + Send + Sync>),
 }
 
-fn main() {
-    std::process::exit(match run_tool() {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("{}", err);
-            1
+impl fmt::Display for Error {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Open => write!(fmt, "The backend is already open"),
+            Error::Closed => write!(fmt, "The backend is not open"),
+            Error::Bytes(cause) => fmt::Display::fmt(cause, fmt),
+            Error::NoSuchOption(option) => write!(fmt, "No such option: {}", option),
+            Error::InvalidOption(option) => write!(fmt, "Invalid option: {}", option),
+            Error::Backend(cause) => fmt::Display::fmt(cause, fmt),
         }
-    })
-}
-
-fn run_tool() -> Result<()> {
-    env_logger::init();
-
-    let matches = App::new("nuts")
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .setting(AppSettings::VersionlessSubcommands)
-        .subcommand(subcommand!(backends))
-        .subcommand(subcommand!(config))
-        .subcommand(subcommand!(container))
-        .get_matches();
-
-    match matches.subcommand() {
-        ("backends", Some(matches)) => tool::actions::backends::run(matches),
-        ("config", Some(matches)) => tool::actions::config::run(matches),
-        ("container", Some(matches)) => tool::actions::container::run(matches),
-        _ => Err(anyhow!("Missing implementation for subcommand")),
     }
 }
+
+impl error::Error for Error {}
+
+impl From<nuts_bytes::Error> for Error {
+    fn from(cause: nuts_bytes::Error) -> Self {
+        Error::Bytes(cause)
+    }
+}
+
+pub type Result<T> = result::Result<T, Error>;

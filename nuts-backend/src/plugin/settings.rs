@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,42 +20,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod tool;
+use std::io::{Cursor, Read, Write};
 
-use anyhow::{anyhow, Result};
-use clap::{App, AppSettings, SubCommand};
+use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
-macro_rules! subcommand {
-    ($action:ident) => {
-        tool::actions::$action::command(SubCommand::with_name(stringify!($action)))
-    };
+#[derive(Clone)]
+pub struct Settings(Vec<u8>);
+
+impl Settings {
+    pub fn to_bytes<B: ToBytes>(b: &B) -> nuts_bytes::Result<Settings> {
+        let mut cursor = Cursor::new(vec![]);
+
+        cursor.to_bytes(b)?;
+        cursor.flush()?;
+
+        Ok(Settings(cursor.into_inner()))
+    }
+
+    pub fn from_bytes<B: FromBytes>(self) -> nuts_bytes::Result<B> {
+        Cursor::new(&self.0).from_bytes()
+    }
 }
 
-fn main() {
-    std::process::exit(match run_tool() {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("{}", err);
-            1
-        }
-    })
+impl FromBytes for Settings {
+    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
+        let mut vec = vec![];
+        source.read_to_end(&mut vec).unwrap();
+
+        Ok(Settings(vec))
+    }
 }
 
-fn run_tool() -> Result<()> {
-    env_logger::init();
-
-    let matches = App::new("nuts")
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .setting(AppSettings::VersionlessSubcommands)
-        .subcommand(subcommand!(backends))
-        .subcommand(subcommand!(config))
-        .subcommand(subcommand!(container))
-        .get_matches();
-
-    match matches.subcommand() {
-        ("backends", Some(matches)) => tool::actions::backends::run(matches),
-        ("config", Some(matches)) => tool::actions::config::run(matches),
-        ("container", Some(matches)) => tool::actions::container::run(matches),
-        _ => Err(anyhow!("Missing implementation for subcommand")),
+impl ToBytes for Settings {
+    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
+        target.write_bytes(&self.0)
     }
 }

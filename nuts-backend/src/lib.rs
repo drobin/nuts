@@ -20,6 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+pub mod plugin;
+
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use std::{error, result};
@@ -80,7 +82,7 @@ where
     /// container stores the settings (possibly encrypted) in the header of the
     /// container.
     ///
-    /// When the container is [opened](crate::container::Container::open), the
+    /// When the container is [opened](nuts::container::Container::open), the
     /// [`Backend::open`] method is called to open the backend. Next, the
     /// container reads its header, extracts the settings from it and pass it
     /// down to the backend by calling the [`Backend::open_ready`] method.

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,42 +20,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod tool;
+use anyhow::Result;
+use clap::{App, Arg, ArgMatches};
+use nuts_backend::plugin::locate_plugins;
 
-use anyhow::{anyhow, Result};
-use clap::{App, AppSettings, SubCommand};
+use crate::tool::config::Config;
 
-macro_rules! subcommand {
-    ($action:ident) => {
-        tool::actions::$action::command(SubCommand::with_name(stringify!($action)))
-    };
+pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
+    app.about("Lists backends")
+        .arg(Arg::with_name("long").long("long").short("l"))
 }
 
-fn main() {
-    std::process::exit(match run_tool() {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("{}", err);
-            1
+pub fn run(args: &ArgMatches) -> Result<()> {
+    let long = args.is_present("long");
+    let config = Config::parse()?;
+
+    for plugin in locate_plugins(&config.search_path)? {
+        if long {
+            println!("{} ({})", plugin.name(), plugin.path().display());
+        } else {
+            println!("{}", plugin.name());
         }
-    })
-}
-
-fn run_tool() -> Result<()> {
-    env_logger::init();
-
-    let matches = App::new("nuts")
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .setting(AppSettings::VersionlessSubcommands)
-        .subcommand(subcommand!(backends))
-        .subcommand(subcommand!(config))
-        .subcommand(subcommand!(container))
-        .get_matches();
-
-    match matches.subcommand() {
-        ("backends", Some(matches)) => tool::actions::backends::run(matches),
-        ("config", Some(matches)) => tool::actions::config::run(matches),
-        ("container", Some(matches)) => tool::actions::container::run(matches),
-        _ => Err(anyhow!("Missing implementation for subcommand")),
     }
+
+    Ok(())
 }

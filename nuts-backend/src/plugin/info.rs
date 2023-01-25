@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,42 +20,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod tool;
+use std::collections::HashMap;
+use std::ops::Deref;
 
-use anyhow::{anyhow, Result};
-use clap::{App, AppSettings, SubCommand};
+pub struct Info(HashMap<String, String>);
 
-macro_rules! subcommand {
-    ($action:ident) => {
-        tool::actions::$action::command(SubCommand::with_name(stringify!($action)))
-    };
+impl Info {
+    pub fn new() -> Info {
+        Info(HashMap::new())
+    }
+
+    pub fn put<K: AsRef<str>, V: AsRef<str>>(mut self, key: K, value: V) -> Self {
+        self.0
+            .insert(key.as_ref().to_string(), value.as_ref().to_string());
+        self
+    }
+
+    pub fn into_map(self) -> HashMap<String, String> {
+        self.0
+    }
 }
 
-fn main() {
-    std::process::exit(match run_tool() {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("{}", err);
-            1
-        }
-    })
-}
+impl Deref for Info {
+    type Target = HashMap<String, String>;
 
-fn run_tool() -> Result<()> {
-    env_logger::init();
-
-    let matches = App::new("nuts")
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .setting(AppSettings::VersionlessSubcommands)
-        .subcommand(subcommand!(backends))
-        .subcommand(subcommand!(config))
-        .subcommand(subcommand!(container))
-        .get_matches();
-
-    match matches.subcommand() {
-        ("backends", Some(matches)) => tool::actions::backends::run(matches),
-        ("config", Some(matches)) => tool::actions::config::run(matches),
-        ("container", Some(matches)) => tool::actions::container::run(matches),
-        _ => Err(anyhow!("Missing implementation for subcommand")),
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
