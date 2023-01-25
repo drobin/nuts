@@ -21,7 +21,6 @@
 // IN THE SOFTWARE.
 
 use nuts::container::{Cipher, Digest};
-use nutsbackend_directory::DirectoryId;
 
 pub trait Convert
 where
@@ -29,17 +28,6 @@ where
 {
     fn from_str(s: &str) -> Result<Self, String>;
     fn to_str(&self) -> String;
-}
-
-impl Convert for DirectoryId {
-    fn from_str(s: &str) -> Result<Self, String> {
-        s.parse::<DirectoryId>()
-            .map_err(|_| format!("invalid id: {}", s))
-    }
-
-    fn to_str(&self) -> String {
-        self.to_string()
-    }
 }
 
 impl Convert for Cipher {

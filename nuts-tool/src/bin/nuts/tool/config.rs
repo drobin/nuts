@@ -20,12 +20,41 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::debug;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 
 use crate::tool::tool_dir;
+
+fn parse_toml<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
+    let content = if path.is_file() {
+        debug!("read from {}", path.display());
+        fs::read_to_string(path)?
+    } else {
+        debug!("no such file: {}", path.display());
+        "".to_string()
+    };
+
+    Ok(toml::from_str(&content)?)
+}
+
+fn save_toml<T: serde::ser::Serialize>(path: &Path, obj: &T) -> Result<()> {
+    let content = [
+        "# Config file is generated automatically.",
+        "\n",
+        "# Any manual inserted content is replaced with the next write attempt!",
+        "\n",
+        "\n",
+        &toml::to_string(obj)?,
+    ]
+    .concat();
+
+    debug!("write config to {}", path.display());
+    Ok(fs::write(path, content)?)
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -38,34 +67,64 @@ impl Config {
         let file = tool_dir()?.join("config");
         debug!("config file: {}", file.display());
 
-        let content = if file.is_file() {
-            debug!("read config from {}", file.display());
-            fs::read_to_string(file)?
-        } else {
-            debug!("no such file: {}", file.display());
-            "".to_string()
-        };
-
-        let config: Config = toml::from_str(&content)?;
-
-        Ok(config)
+        parse_toml(&file)
     }
 
     pub fn save(&self) -> Result<()> {
         let file = tool_dir()?.join("config");
         debug!("config file: {}", file.display());
 
-        let content = [
-            "# Config file is generated automatically.",
-            "\n",
-            "# Any manual inserted content is replaced with the next write attempt!",
-            "\n",
-            "\n",
-            &toml::to_string(self)?,
-        ]
-        .concat();
+        save_toml(&file, self)
+    }
+}
 
-        debug!("write config to {}", file.display());
-        Ok(fs::write(file, content)?)
+#[derive(Serialize, Deserialize)]
+struct Inner {
+    pub backend: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ContainerConfig(HashMap<String, Inner>);
+
+impl ContainerConfig {
+    fn parse() -> Result<ContainerConfig> {
+        let file = tool_dir()?.join("container");
+        debug!("container config file: {}", file.display());
+
+        parse_toml(&file)
+    }
+
+    fn save(&self) -> Result<()> {
+        let file = tool_dir()?.join("container");
+        debug!("container config file: {}", file.display());
+
+        save_toml(&file, self)
+    }
+
+    pub fn get_backend(name: &str) -> Result<String> {
+        Self::parse()?.0.get(name).map_or_else(
+            || Err(anyhow!("No such container: {}", name)),
+            |inner| Ok(inner.backend.clone()),
+        )
+    }
+
+    pub fn put_backend(name: &str, backend: &str) -> Result<()> {
+        let mut config = ContainerConfig::parse()?;
+
+        config.0.insert(
+            name.to_string(),
+            Inner {
+                backend: backend.to_string(),
+            },
+        );
+        config.save()?;
+
+        Ok(())
+    }
+
+    pub fn remove_backend(name: &str) -> Result<()> {
+        let mut config = ContainerConfig::parse()?;
+        config.0.remove(name);
+        config.save()
     }
 }

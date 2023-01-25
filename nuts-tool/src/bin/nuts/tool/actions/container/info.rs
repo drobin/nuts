@@ -36,15 +36,23 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     let container = open_container(args)?;
     let info = container.info()?;
 
-    println!("block size: {}", info.backend.bsize);
-    println!("cipher:     {}", info.cipher.to_str());
+    println!("* from backend");
+
+    for (key, value) in info.backend.iter() {
+        println!("{}: {}", key, value);
+    }
+
+    println!();
+    println!("* from container");
+
+    println!("cipher: {}", info.cipher.to_str());
 
     match info.kdf {
         Some(kdf) => {
             let spec: KdfSpec = kdf.into();
-            println!("kdf:        {}", spec.to_str());
+            println!("kdf:    {}", spec.to_str());
         }
-        None => println!("kdf:        none"),
+        None => println!("kdf:    none"),
     };
 
     Ok(())

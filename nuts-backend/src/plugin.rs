@@ -32,7 +32,7 @@ use std::path::Path;
 pub use error::{Error, Result};
 pub use id::Id;
 pub use info::Info;
-pub use loader::{locate_plugins, LoaderError, PluginLoader};
+pub use loader::{locate_backend, locate_plugins, LoaderError, PluginLoader};
 pub use options::{CreateOptions, OpenOptions};
 pub use settings::Settings;
 

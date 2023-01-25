@@ -33,6 +33,7 @@ type PluginCreate = unsafe fn() -> *mut dyn Plugin;
 
 #[derive(Debug)]
 pub enum LoaderError {
+    NoSuchPlugin(String),
     Libloading(libloading::Error),
     Io(io::Error),
 }
@@ -40,6 +41,7 @@ pub enum LoaderError {
 impl fmt::Display for LoaderError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            LoaderError::NoSuchPlugin(name) => write!(fmt, "no such plugin: {}", name),
             LoaderError::Libloading(cause) => fmt::Display::fmt(cause, fmt),
             LoaderError::Io(cause) => fmt::Display::fmt(cause, fmt),
         }
@@ -117,9 +119,11 @@ impl DerefMut for PluginLoader {
     }
 }
 
-pub fn locate_plugins(search_path: &[String]) -> result::Result<Vec<PluginLoader>, LoaderError> {
-    let mut plugins = vec![];
-
+fn traverse_plugins<T, CB: FnMut(&mut T, PluginLoader) -> bool>(
+    search_path: &[String],
+    mut value: T,
+    mut callback: CB,
+) -> result::Result<T, LoaderError> {
     for parent in search_path {
         trace!("testing directory {:?}", parent);
 
@@ -129,7 +133,13 @@ pub fn locate_plugins(search_path: &[String]) -> result::Result<Vec<PluginLoader
             if entry.file_type()?.is_file() {
                 if PluginLoader::is_plugin(entry.path()) {
                     debug!("plugin detected in {:?}", entry.file_name());
-                    plugins.push(PluginLoader::load(entry.path())?);
+
+                    let loader = PluginLoader::load(entry.path())?;
+                    let cont = callback(&mut value, loader);
+
+                    if !cont {
+                        return Ok(value);
+                    }
                 } else {
                     trace!("skipping file {:?}", entry.file_name());
                 }
@@ -139,5 +149,27 @@ pub fn locate_plugins(search_path: &[String]) -> result::Result<Vec<PluginLoader
         }
     }
 
-    Ok(plugins)
+    Ok(value)
+}
+
+pub fn locate_plugins(search_path: &[String]) -> result::Result<Vec<PluginLoader>, LoaderError> {
+    traverse_plugins(search_path, vec![], |vec, loader| {
+        vec.push(loader);
+        true
+    })
+}
+
+pub fn locate_backend<N: AsRef<str>>(
+    name: N,
+    search_path: &[String],
+) -> result::Result<PluginLoader, LoaderError> {
+    traverse_plugins(search_path, None, |value, loader| {
+        if loader.name() == name.as_ref() {
+            let _ = value.insert(loader);
+            false
+        } else {
+            true
+        }
+    })?
+    .ok_or_else(|| LoaderError::NoSuchPlugin(name.as_ref().to_string()))
 }

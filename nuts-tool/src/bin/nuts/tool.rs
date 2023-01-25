@@ -26,6 +26,7 @@ use std::fs;
 use std::path::PathBuf;
 
 pub mod actions;
+pub mod backend;
 pub mod config;
 pub mod convert;
 pub mod format;
@@ -54,7 +55,7 @@ fn tool_dir() -> Result<PathBuf> {
 
 fn container_dir() -> Result<PathBuf> {
     let parent = tool_dir()?;
-    let dir = parent.join("container");
+    let dir = parent.join("container.d");
 
     debug!("container_dir: {}", dir.display());
 
