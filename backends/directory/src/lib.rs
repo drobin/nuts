@@ -24,6 +24,7 @@ mod error;
 mod id;
 mod info;
 mod options;
+pub mod plugin;
 
 use log::warn;
 use std::fs::{self, File, OpenOptions};
