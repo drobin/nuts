@@ -262,6 +262,18 @@ impl_from_bytes_for!(u16);
 impl_from_bytes_for!(u32);
 impl_from_bytes_for!(u64);
 
+impl FromBytes for bool {
+    fn from_bytes<R: Read>(source: &mut R) -> Result<Self> {
+        let n: u8 = FromBytes::from_bytes(source)?;
+
+        if n == 0 {
+            Ok(false)
+        } else {
+            Ok(true)
+        }
+    }
+}
+
 impl FromBytes for Vec<u8> {
     fn from_bytes<R: Read>(source: &mut R) -> Result<Self> {
         let len = source.from_bytes::<u32>()? as usize;
@@ -287,6 +299,13 @@ impl_to_bytes_for!(u8);
 impl_to_bytes_for!(u16);
 impl_to_bytes_for!(u32);
 impl_to_bytes_for!(u64);
+
+impl ToBytes for bool {
+    fn to_bytes<W: Write>(&self, target: &mut W) -> Result<()> {
+        let n = if *self { 1u8 } else { 0u8 };
+        ToBytes::to_bytes(&n, target)
+    }
+}
 
 impl ToBytes for &[u8] {
     fn to_bytes<W: Write>(&self, target: &mut W) -> Result<()> {

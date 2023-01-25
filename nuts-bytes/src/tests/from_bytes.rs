@@ -127,3 +127,29 @@ fn vec_eof() {
         assert_eq!(format!("{:?}", err), "Eof");
     }
 }
+
+#[test]
+fn bool_eof() {
+    let mut cursor = Cursor::new([]);
+    let err = cursor.from_bytes::<bool>().unwrap_err();
+
+    assert_eq!(format!("{:?}", err), "Eof");
+}
+
+#[test]
+fn bool_true_1() {
+    for n in [1u8, 2u8, 3u8] {
+        let mut cursor = Cursor::new([n]);
+        let b = cursor.from_bytes::<bool>().unwrap();
+
+        assert_eq!(b, true);
+    }
+}
+
+#[test]
+fn bool_false() {
+    let mut cursor = Cursor::new([0]);
+    let b = cursor.from_bytes::<bool>().unwrap();
+
+    assert_eq!(b, false);
+}

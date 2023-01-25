@@ -135,3 +135,29 @@ fn slice_nospace() {
         assert_eq!(format!("{:?}", err), "NoSpace");
     }
 }
+
+#[test]
+fn bool_nospace() {
+    let mut buf = [1];
+    let mut cursor = Cursor::new(&mut buf[..0]);
+
+    let err = cursor.to_bytes(&true).unwrap_err();
+    assert_eq!(format!("{:?}", err), "NoSpace");
+}
+
+#[test]
+fn bool_true() {
+    let mut cursor = Cursor::new(vec![]);
+
+    cursor.to_bytes(&true).unwrap();
+
+    assert_eq!(cursor.into_inner(), [1]);
+}
+#[test]
+fn bool_false() {
+    let mut cursor = Cursor::new(vec![]);
+
+    cursor.to_bytes(&false).unwrap();
+
+    assert_eq!(cursor.into_inner(), [0]);
+}
