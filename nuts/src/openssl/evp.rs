@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,61 +20,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::os::raw::{c_char, c_int, c_uchar};
+use openssl_sys::{
+    EVP_CIPHER_CTX_block_size, EVP_CIPHER_CTX_free, EVP_CIPHER_CTX_new, EVP_CIPHER_CTX_set_padding,
+    EVP_CIPHER_block_size, EVP_CIPHER_iv_length, EVP_CIPHER_key_length, EVP_CipherInit_ex,
+    EVP_CipherUpdate, EVP_aes_128_ctr, EVP_sha1, EVP_CIPHER, EVP_CIPHER_CTX, EVP_MD,
+    PKCS5_PBKDF2_HMAC,
+};
+use std::os::raw::c_int;
 use std::ptr;
 
 use crate::openssl::error::{OpenSSLError, OpenSSLResult};
 use crate::openssl::{MapResult, MapResultPtr};
 
-#[allow(non_camel_case_types)]
-enum EVP_CIPHER {}
-#[allow(non_camel_case_types)]
-enum EVP_CIPHER_CTX {}
-enum ENGINE {}
-#[allow(non_camel_case_types)]
-enum EVP_MD {}
-
 extern "C" {
-    fn EVP_aes_128_ctr() -> *const EVP_CIPHER;
-
-    fn EVP_sha1() -> *const EVP_MD;
-
-    fn EVP_CIPHER_block_size(e: *const EVP_CIPHER) -> c_int;
-    fn EVP_CIPHER_key_length(e: *const EVP_CIPHER) -> c_int;
-    fn EVP_CIPHER_iv_length(e: *const EVP_CIPHER) -> c_int;
-
-    fn EVP_CIPHER_CTX_new() -> *mut EVP_CIPHER_CTX;
     fn EVP_CIPHER_CTX_reset(ctx: *mut EVP_CIPHER_CTX) -> c_int;
-    fn EVP_CIPHER_CTX_free(ctx: *mut EVP_CIPHER_CTX);
-    fn EVP_CIPHER_CTX_block_size(ctx: *const EVP_CIPHER_CTX) -> c_int;
-    fn EVP_CIPHER_CTX_set_padding(x: *mut EVP_CIPHER_CTX, padding: c_int) -> c_int;
-
-    fn EVP_CipherInit_ex(
-        ctx: *mut EVP_CIPHER_CTX,
-        r#type: *const EVP_CIPHER,
-        r#impl: *mut ENGINE,
-        key: *const c_uchar,
-        iv: *const c_uchar,
-        enc: c_int,
-    ) -> c_int;
-    fn EVP_CipherUpdate(
-        ctx: *mut EVP_CIPHER_CTX,
-        out: *mut c_uchar,
-        outl: *mut c_int,
-        r#in: *const c_uchar,
-        inl: c_int,
-    ) -> c_int;
-
-    fn PKCS5_PBKDF2_HMAC(
-        pass: *const c_char,
-        passlen: c_int,
-        salt: *const c_uchar,
-        saltlen: c_int,
-        iter: c_int,
-        digest: *const EVP_MD,
-        keylen: c_int,
-        out: *mut c_uchar,
-    ) -> c_int;
 }
 
 pub struct Cipher(*const EVP_CIPHER);

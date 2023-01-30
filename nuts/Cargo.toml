@@ -12,10 +12,8 @@ debug-plain-keys = []
 log = "0.4.14"
 nuts-backend = { path = "../nuts-backend" }
 nuts-bytes = { path = "../nuts-bytes" }
+openssl-sys = "0.9.80"
 uuid = { version = "1.1.2", features = ["v4"] }
-
-[build-dependencies]
-pkg-config = "0.3.25"
 
 [dev-dependencies]
 nutsbackend-directory = { path = "../backends/directory" }

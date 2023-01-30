@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,16 +20,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use openssl_sys::{
+    ERR_func_error_string, ERR_get_error, ERR_lib_error_string, ERR_reason_error_string,
+};
 use std::ffi::CStr;
-use std::os::raw::{c_char, c_ulong};
+use std::os::raw::c_ulong;
 use std::{error, fmt, result};
-
-extern "C" {
-    fn ERR_get_error() -> c_ulong;
-    fn ERR_lib_error_string(e: c_ulong) -> *const c_char;
-    fn ERR_func_error_string(e: c_ulong) -> *const c_char;
-    fn ERR_reason_error_string(e: c_ulong) -> *const c_char;
-}
 
 #[derive(Debug)]
 pub enum OpenSSLError {

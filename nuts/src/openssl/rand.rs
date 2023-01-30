@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,14 +22,11 @@
 
 #[cfg(not(test))]
 mod production {
-    use std::os::raw::{c_int, c_uchar};
+    use openssl_sys::RAND_bytes;
+    use std::os::raw::c_int;
 
     use crate::openssl::error::OpenSSLResult;
     use crate::openssl::MapResult;
-
-    extern "C" {
-        fn RAND_bytes(buf: *mut c_uchar, num: c_int) -> c_int;
-    }
 
     pub fn rand_bytes(buf: &mut [u8]) -> OpenSSLResult<()> {
         unsafe { RAND_bytes(buf.as_mut_ptr(), buf.len() as c_int) }.map_result(|_| ())
