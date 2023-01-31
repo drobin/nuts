@@ -80,7 +80,7 @@ impl Backend for DirectoryBackend {
         let path = options.path.clone();
 
         if !options.overwrite {
-            let header_path = DirectoryId::header().to_pathbuf(&path);
+            let header_path = DirectoryId::min().to_pathbuf(&path);
 
             if header_path.exists() {
                 return Err(DirectoryError::Exists);
@@ -116,7 +116,7 @@ impl Backend for DirectoryBackend {
     }
 
     fn header_id(&self) -> DirectoryId {
-        DirectoryId::header()
+        DirectoryId::min()
     }
 
     fn aquire(&mut self) -> DirectoryResult<Self::Id> {

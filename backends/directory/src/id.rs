@@ -20,44 +20,88 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::{fmt, mem, result};
-use uuid::Uuid;
+use std::{fmt, result};
 
 use nuts_backend::BlockId;
 use nuts_bytes::{FromBytes, ToBytes};
 
-use crate::error::DirectoryError;
+use crate::error::{DirectoryError, DirectoryResult};
 
+#[cfg(test)]
+fn rand_bytes() -> [u8; SIZE] {
+    [
+        0xdb, 0x3d, 0x05, 0x23, 0xd4, 0x50, 0x75, 0x30, 0xe8, 0x6d, 0xf9, 0x6a, 0x1b, 0x76, 0xaa,
+        0x0c,
+    ]
+}
+
+#[cfg(not(test))]
+fn rand_bytes() -> [u8; SIZE] {
+    let mut buf = [0; SIZE];
+
+    getrandom::getrandom(&mut buf).unwrap();
+
+    buf
+}
+
+const SIZE: usize = 16;
+const HEX: [char; SIZE] = [
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
+];
+
+/// The id of the backend.
+///
+/// This id as an 16 byte random number.
+///
+/// When storing a block to disks the path to the file is derive from the id:
+/// * The id is converted into a hex string.
+/// * Ths path then would be: `<first two chars>/<next two chars>/<remaining chars>`
 #[derive(Clone, Debug, PartialEq)]
-pub struct DirectoryId(Uuid);
+pub struct DirectoryId([u8; SIZE]);
 
 impl DirectoryId {
     pub(crate) fn generate() -> DirectoryId {
-        DirectoryId(Uuid::new_v4())
+        DirectoryId(rand_bytes())
     }
 
-    pub(crate) fn header() -> DirectoryId {
-        DirectoryId(Uuid::nil())
+    pub(crate) fn min() -> DirectoryId {
+        DirectoryId([u8::MIN; SIZE])
     }
 
-    pub(crate) fn to_pathbuf<P: AsRef<Path>>(&self, parent: &P) -> PathBuf {
-        let mut buf = Uuid::encode_buffer();
-        let uuid = self.0.simple().encode_lower(&mut buf);
+    pub(crate) fn max() -> DirectoryId {
+        DirectoryId([u8::MAX; SIZE])
+    }
 
+    fn as_hex(&self) -> String {
+        let mut target = String::with_capacity(2 * SIZE);
+
+        for b in self.0.iter() {
+            target.push(HEX[(*b as usize >> 4) & 0x0f]);
+            target.push(HEX[(*b as usize) & 0x0f]);
+        }
+
+        target
+    }
+
+    pub(crate) fn to_pathbuf<P: AsRef<Path> + ?Sized>(&self, parent: &P) -> PathBuf {
+        let hex = self.as_hex();
         let mut path = PathBuf::new();
         let mut pos = 0;
 
         path.push(parent);
 
         for _ in 0..2 {
-            path.push(&uuid[pos..pos + 2]);
+            path.push(&hex[pos..pos + 2]);
             pos += 2;
         }
 
-        path.push(&uuid[pos..]);
+        path.push(&hex[pos..]);
 
         path
     }
@@ -65,52 +109,64 @@ impl DirectoryId {
 
 impl fmt::Display for DirectoryId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
+        fmt.write_str(&self.as_hex())
     }
 }
 
 impl FromStr for DirectoryId {
     type Err = DirectoryError;
 
-    fn from_str(s: &str) -> result::Result<Self, <Self as FromStr>::Err> {
-        <Uuid as FromStr>::from_str(s).map_or_else(
-            |cause| Err(DirectoryError::InvalidId(cause)),
-            |uuid| Ok(DirectoryId(uuid)),
-        )
+    fn from_str(s: &str) -> DirectoryResult<Self> {
+        if s.len() != 2 * SIZE {
+            return Err(DirectoryError::InvalidId(s.to_string()));
+        }
+
+        let mut id = DirectoryId::min();
+        let mut iter = s.chars();
+
+        for n in id.0.iter_mut() {
+            let b1 = iter.next().unwrap().to_digit(16).map_or_else(
+                || Err(DirectoryError::InvalidId(s.to_string())),
+                |n| Ok(n as u8),
+            )?;
+            let b2 = iter.next().unwrap().to_digit(16).map_or_else(
+                || Err(DirectoryError::InvalidId(s.to_string())),
+                |n| Ok(n as u8),
+            )?;
+
+            *n = (b1 << 4) | b2;
+        }
+
+        Ok(id)
     }
 }
 
 impl FromBytes for DirectoryId {
     fn from_bytes<R: Read>(source: &mut R) -> result::Result<Self, nuts_bytes::Error> {
-        const SIZE: usize = std::mem::size_of::<u128>();
-        let mut bytes = [0; SIZE];
+        let mut id = DirectoryId::min();
 
-        source.read_exact(&mut bytes)?;
+        source.read_exact(&mut id.0)?;
 
-        let n = u128::from_be_bytes(bytes);
-        let uuid = Uuid::from_u128(n);
-
-        Ok(DirectoryId(uuid))
+        Ok(id)
     }
 }
 
 impl ToBytes for DirectoryId {
     fn to_bytes<W: Write>(&self, target: &mut W) -> result::Result<(), nuts_bytes::Error> {
-        let bytes = self.0.as_u128().to_be_bytes();
-        Ok(target.write_all(&bytes)?)
+        Ok(target.write_all(&self.0)?)
     }
 }
 
 impl BlockId for DirectoryId {
     fn null() -> DirectoryId {
-        DirectoryId(Uuid::from_u128(u128::MAX))
+        DirectoryId::max()
     }
 
     fn is_null(&self) -> bool {
-        self.0.as_u128() == u128::MAX
+        self.0 == DirectoryId::max().0
     }
 
     fn size() -> usize {
-        mem::size_of::<u128>()
+        SIZE
     }
 }

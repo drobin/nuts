@@ -6,10 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+getrandom = "0.2.8"
 log = "0.4.14"
 nuts-backend = { path = "../../nuts-backend" }
 nuts-bytes = { path = "../../nuts-bytes" }
-uuid = { version = "1.1.2", features = ["v4"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]

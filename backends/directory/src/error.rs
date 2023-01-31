@@ -20,17 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::str::FromStr;
 use std::{error, fmt, io, result};
-
-use uuid::Uuid;
 
 #[derive(Debug)]
 pub enum DirectoryError {
     Io(io::Error),
     Exists,
     UniqueId,
-    InvalidId(<Uuid as FromStr>::Err),
+    InvalidId(String),
     InvalidBlockSize(u32),
 }
 
@@ -40,7 +37,7 @@ impl fmt::Display for DirectoryError {
             DirectoryError::Io(cause) => fmt::Display::fmt(cause, fmt),
             DirectoryError::Exists => write!(fmt, "The container already exists"),
             DirectoryError::UniqueId => write!(fmt, "could not generate a unique id"),
-            DirectoryError::InvalidId(cause) => write!(fmt, "The id is invalid: {}", cause),
+            DirectoryError::InvalidId(id) => write!(fmt, "The id '{}' is invalid", id),
             DirectoryError::InvalidBlockSize(n) => write!(fmt, "The block-size is invalid: {}", n),
         }
     }
@@ -51,7 +48,7 @@ impl error::Error for DirectoryError {
         match self {
             DirectoryError::Io(cause) => Some(cause),
             DirectoryError::Exists | DirectoryError::UniqueId => None,
-            DirectoryError::InvalidId(cause) => Some(cause),
+            DirectoryError::InvalidId(_) => None,
             DirectoryError::InvalidBlockSize(_) => None,
         }
     }
