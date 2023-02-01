@@ -31,7 +31,7 @@ use std::{fmt, result};
 use nuts_backend::BlockId;
 use nuts_bytes::{FromBytes, ToBytes};
 
-use crate::error::{DirectoryError, DirectoryResult};
+use crate::error::{Error, Result};
 
 #[cfg(test)]
 fn rand_bytes() -> [u8; SIZE] {
@@ -114,25 +114,27 @@ impl fmt::Display for DirectoryId {
 }
 
 impl FromStr for DirectoryId {
-    type Err = DirectoryError;
+    type Err = Error;
 
-    fn from_str(s: &str) -> DirectoryResult<Self> {
+    fn from_str(s: &str) -> Result<Self> {
         if s.len() != 2 * SIZE {
-            return Err(DirectoryError::InvalidId(s.to_string()));
+            return Err(Error::InvalidId(s.to_string()));
         }
 
         let mut id = DirectoryId::min();
         let mut iter = s.chars();
 
         for n in id.0.iter_mut() {
-            let b1 = iter.next().unwrap().to_digit(16).map_or_else(
-                || Err(DirectoryError::InvalidId(s.to_string())),
-                |n| Ok(n as u8),
-            )?;
-            let b2 = iter.next().unwrap().to_digit(16).map_or_else(
-                || Err(DirectoryError::InvalidId(s.to_string())),
-                |n| Ok(n as u8),
-            )?;
+            let b1 = iter
+                .next()
+                .unwrap()
+                .to_digit(16)
+                .map_or_else(|| Err(Error::InvalidId(s.to_string())), |n| Ok(n as u8))?;
+            let b2 = iter
+                .next()
+                .unwrap()
+                .to_digit(16)
+                .map_or_else(|| Err(Error::InvalidId(s.to_string())), |n| Ok(n as u8))?;
 
             *n = (b1 << 4) | b2;
         }

@@ -27,7 +27,7 @@ use std::result;
 use nuts_backend::{Options, BLOCK_MIN_SIZE};
 use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
-use crate::error::{DirectoryError, DirectoryResult};
+use crate::error::{Error, Result};
 use crate::DirectoryBackend;
 
 #[derive(Debug)]
@@ -56,17 +56,17 @@ impl DirectoryCreateOptions {
         self
     }
 
-    fn bsize_validate(&self) -> DirectoryResult<()> {
+    fn bsize_validate(&self) -> Result<()> {
         if self.bsize >= BLOCK_MIN_SIZE {
             Ok(())
         } else {
-            Err(DirectoryError::InvalidBlockSize(self.bsize))
+            Err(Error::InvalidBlockSize(self.bsize))
         }
     }
 }
 
 impl Options<DirectoryBackend> for DirectoryCreateOptions {
-    fn validate(&self) -> DirectoryResult<()> {
+    fn validate(&self) -> Result<()> {
         self.bsize_validate()
     }
 }
@@ -84,7 +84,7 @@ impl DirectoryOpenOptions {
 }
 
 impl Options<DirectoryBackend> for DirectoryOpenOptions {
-    fn validate(&self) -> DirectoryResult<()> {
+    fn validate(&self) -> Result<()> {
         Ok(())
     }
 }

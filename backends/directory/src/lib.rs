@@ -34,10 +34,12 @@ use std::{cmp, result};
 
 use nuts_backend::{Backend, BLOCK_MIN_SIZE};
 
-pub use error::{DirectoryError, DirectoryResult};
+pub use error::Error;
 pub use id::DirectoryId;
 pub use info::DirectoryInfo;
 pub use options::{DirectoryCreateOptions, DirectoryOpenOptions, DirectorySettings};
+
+use error::Result;
 
 #[derive(Debug)]
 pub struct DirectoryBackend {
@@ -72,18 +74,18 @@ impl Backend for DirectoryBackend {
     type CreateOptions = DirectoryCreateOptions;
     type OpenOptions = DirectoryOpenOptions;
     type Settings = DirectorySettings;
-    type Err = DirectoryError;
+    type Err = Error;
     type Id = DirectoryId;
     type Info = DirectoryInfo;
 
-    fn create(options: DirectoryCreateOptions) -> DirectoryResult<(Self, DirectorySettings)> {
+    fn create(options: DirectoryCreateOptions) -> Result<(Self, DirectorySettings)> {
         let path = options.path.clone();
 
         if !options.overwrite {
             let header_path = DirectoryId::min().to_pathbuf(&path);
 
             if header_path.exists() {
-                return Err(DirectoryError::Exists);
+                return Err(Error::Exists);
             }
         }
 
@@ -96,7 +98,7 @@ impl Backend for DirectoryBackend {
         Ok((backend, envelope))
     }
 
-    fn open(options: DirectoryOpenOptions) -> DirectoryResult<Self> {
+    fn open(options: DirectoryOpenOptions) -> Result<Self> {
         Ok(DirectoryBackend {
             bsize: BLOCK_MIN_SIZE,
             path: options.path,
@@ -107,7 +109,7 @@ impl Backend for DirectoryBackend {
         self.bsize = envelope.bsize;
     }
 
-    fn info(&self) -> DirectoryResult<DirectoryInfo> {
+    fn info(&self) -> Result<DirectoryInfo> {
         Ok(DirectoryInfo { bsize: self.bsize })
     }
 
@@ -119,7 +121,7 @@ impl Backend for DirectoryBackend {
         DirectoryId::min()
     }
 
-    fn aquire(&mut self) -> DirectoryResult<Self::Id> {
+    fn aquire(&mut self) -> Result<Self::Id> {
         const MAX: u8 = 3;
 
         for n in 0..MAX {
@@ -140,10 +142,10 @@ impl Backend for DirectoryBackend {
             }
         }
 
-        Err(DirectoryError::UniqueId)
+        Err(Error::UniqueId)
     }
 
-    fn release(&mut self, id: Self::Id) -> DirectoryResult<()> {
+    fn release(&mut self, id: Self::Id) -> Result<()> {
         let path = id.to_pathbuf(&self.path);
 
         Ok(fs::remove_file(&path)?)

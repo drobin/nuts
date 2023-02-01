@@ -22,42 +22,53 @@
 
 use std::{error, fmt, io, result};
 
+/// The error type for the directory backend.
 #[derive(Debug)]
-pub enum DirectoryError {
+pub enum Error {
+    /// An I/O error occured.
     Io(io::Error),
+
+    /// You are creating a new backend which already exists.
     Exists,
+
+    /// Could not generate a unique [id](crate::DirectoryId).
     UniqueId,
+
+    /// The [id](crate::DirectoryId) is invalid, is not a hex string.
     InvalidId(String),
+
+    /// The block size passed to
+    /// [DirectoryCreateOptions](crate::DirectoryCreateOptions) is invalid.
     InvalidBlockSize(u32),
 }
 
-impl fmt::Display for DirectoryError {
+impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            DirectoryError::Io(cause) => fmt::Display::fmt(cause, fmt),
-            DirectoryError::Exists => write!(fmt, "The container already exists"),
-            DirectoryError::UniqueId => write!(fmt, "could not generate a unique id"),
-            DirectoryError::InvalidId(id) => write!(fmt, "The id '{}' is invalid", id),
-            DirectoryError::InvalidBlockSize(n) => write!(fmt, "The block-size is invalid: {}", n),
+            Error::Io(cause) => fmt::Display::fmt(cause, fmt),
+            Error::Exists => write!(fmt, "The container already exists"),
+            Error::UniqueId => write!(fmt, "could not generate a unique id"),
+            Error::InvalidId(id) => write!(fmt, "The id '{}' is invalid", id),
+            Error::InvalidBlockSize(n) => write!(fmt, "The block-size is invalid: {}", n),
         }
     }
 }
 
-impl error::Error for DirectoryError {
+impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            DirectoryError::Io(cause) => Some(cause),
-            DirectoryError::Exists | DirectoryError::UniqueId => None,
-            DirectoryError::InvalidId(_) => None,
-            DirectoryError::InvalidBlockSize(_) => None,
+            Error::Io(cause) => Some(cause),
+            Error::Exists | Error::UniqueId | Error::InvalidId(_) | Error::InvalidBlockSize(_) => {
+                None
+            }
         }
     }
 }
 
-impl From<io::Error> for DirectoryError {
+impl From<io::Error> for Error {
     fn from(cause: io::Error) -> Self {
-        DirectoryError::Io(cause)
+        Error::Io(cause)
     }
 }
 
-pub type DirectoryResult<T> = result::Result<T, DirectoryError>;
+pub type Result<T> = result::Result<T, Error>;
