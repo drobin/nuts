@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,53 +20,48 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod digest;
-mod serde;
-
-use std::io::Cursor;
-
-use nuts_bytes::{Error as BytesError, FromBytesExt, ToBytesExt};
-
-use crate::container::Digest;
+use crate::bytes::Options;
+use crate::container::digest::Digest;
+use crate::container::kdf::Kdf;
 
 #[test]
-fn fromn_bytes_sha1() {
-    let mut cursor = Cursor::new([1]);
+fn de_pbkdf2() {
+    let kdf = Options::new()
+        .from_bytes::<Kdf>(&[
+            0, // pbkdf2 variant
+            0, // sha1
+            252, 0x00, 0x01, 0x00, 0x00, // iterations
+            3, 1, 2, 3, // salt
+        ])
+        .unwrap();
 
-    assert_eq!(cursor.from_bytes::<Digest>().unwrap(), Digest::Sha1);
+    assert_eq!(
+        kdf,
+        Kdf::Pbkdf2 {
+            digest: Digest::Sha1,
+            iterations: 65536,
+            salt: vec![1, 2, 3]
+        }
+    );
 }
 
 #[test]
-fn from_bytes_eof() {
-    let mut cursor = Cursor::new([]);
-    let err = cursor.from_bytes::<Digest>().unwrap_err();
+fn ser_pbkdf2() {
+    let vec = Options::new()
+        .to_vec(&Kdf::Pbkdf2 {
+            digest: Digest::Sha1,
+            iterations: 65536,
+            salt: vec![1, 2, 3],
+        })
+        .unwrap();
 
-    assert_error!(err, BytesError::Eof);
-}
-
-#[test]
-fn from_bytes_inval() {
-    let mut cursor = Cursor::new([2]);
-    let err = cursor.from_bytes::<Digest>().unwrap_err();
-
-    let msg = into_error!(err, BytesError::Invalid);
-    assert_eq!(msg, "invalid digest: 2");
-}
-
-#[test]
-fn to_bytes_nospace() {
-    let mut buf = [];
-    let mut cursor = Cursor::new(&mut buf[..]);
-
-    let err = cursor.to_bytes(&Digest::Sha1).unwrap_err();
-    assert_error!(err, BytesError::NoSpace);
-}
-
-#[test]
-fn to_bytes_sha1() {
-    let mut cursor = Cursor::new(vec![]);
-
-    cursor.to_bytes(&Digest::Sha1).unwrap();
-
-    assert_eq!(cursor.into_inner(), [1]);
+    assert_eq!(
+        vec,
+        [
+            0, // pbkdf2 variant
+            0, // sha1
+            252, 0x000, 0x01, 0x00, 0x00, // iterations
+            3, 1, 2, 3 // salt
+        ]
+    );
 }

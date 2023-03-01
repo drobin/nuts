@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::io::{Read, Write};
 
@@ -34,7 +35,7 @@ use crate::openssl::evp;
 use crate::svec::SecureVec;
 
 /// Supported cipher algorithms.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum Cipher {
     /// No encryption.
     None,

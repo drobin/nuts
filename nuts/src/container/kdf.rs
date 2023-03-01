@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::io::{Read, Write};
 
@@ -44,7 +45,7 @@ use crate::svec::SecureVec;
 /// Based on a password provided by the user one of the algorithms are used to
 /// calculate a wrapping key. The wrapping key then is used for encryption of
 /// the secret in the header of the container.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub enum Kdf {
     /// PBKDF2
     Pbkdf2 {

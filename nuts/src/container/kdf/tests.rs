@@ -20,96 +20,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+mod pbkdf2;
+mod serde;
+
 use std::io::Cursor;
 
 use nuts_bytes::{Error as BytesError, FromBytesExt, ToBytesExt};
 
 use crate::container::digest::Digest;
 use crate::container::kdf::Kdf;
-use crate::memory::MemoryBackend as Backend;
-use crate::openssl::rand::RND;
-
-#[test]
-fn pbkdf2() {
-    let Kdf::Pbkdf2 {
-        digest,
-        iterations,
-        salt,
-    } = Kdf::pbkdf2(Digest::Sha1, 5, &[1, 2, 3]);
-
-    assert_eq!(digest, Digest::Sha1);
-    assert_eq!(iterations, 5);
-    assert_eq!(salt, [1, 2, 3]);
-}
-
-#[test]
-fn generate_pbkdf2_empty_salt() {
-    let Kdf::Pbkdf2 {
-        digest,
-        iterations,
-        salt,
-    } = Kdf::generate_pbkdf2::<Backend>(Digest::Sha1, 5, 0).unwrap();
-
-    assert_eq!(digest, Digest::Sha1);
-    assert_eq!(iterations, 5);
-    assert_eq!(salt, [0; 0]);
-}
-
-#[test]
-fn generate_pbkdf2_with_salt() {
-    let Kdf::Pbkdf2 {
-        digest,
-        iterations,
-        salt,
-    } = Kdf::generate_pbkdf2::<Backend>(Digest::Sha1, 5, 3).unwrap();
-
-    assert_eq!(digest, Digest::Sha1);
-    assert_eq!(iterations, 5);
-    assert_eq!(salt.len(), 3); // salt filled with random data
-    assert_eq!(salt, &RND[..3]);
-}
-
-#[test]
-#[should_panic(expected = "invalid password, cannot be empty")]
-fn pbkdf2_create_key_empty_password() {
-    Kdf::Pbkdf2 {
-        digest: Digest::Sha1,
-        iterations: 1,
-        salt: vec![1, 2, 3],
-    }
-    .create_key::<Backend>(b"")
-    .unwrap();
-}
-
-#[test]
-#[should_panic(expected = "invalid salt, cannot be empty")]
-fn pbkdf2_create_key_empty_salt() {
-    Kdf::Pbkdf2 {
-        digest: Digest::Sha1,
-        iterations: 1,
-        salt: vec![],
-    }
-    .create_key::<Backend>(b"123")
-    .unwrap();
-}
-
-#[test]
-fn pbkdf2_create_key() {
-    let wkey = Kdf::Pbkdf2 {
-        digest: Digest::Sha1,
-        iterations: 1,
-        salt: vec![1, 2, 3],
-    }
-    .create_key::<Backend>(b"123")
-    .unwrap();
-
-    assert_eq!(
-        *wkey,
-        vec![
-            96, 23, 159, 91, 244, 187, 88, 88, 95, 129, 91, 252, 136, 14, 242, 207, 92, 3, 153, 56
-        ]
-    );
-}
 
 #[test]
 fn from_bytes_nospace() {

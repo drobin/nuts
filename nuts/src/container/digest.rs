@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 
 use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
@@ -30,7 +31,7 @@ use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 use crate::openssl::evp;
 
 /// Supported message digests.
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum Digest {
     /// SHA1
     Sha1,
