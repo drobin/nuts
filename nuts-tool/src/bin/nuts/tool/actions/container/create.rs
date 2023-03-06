@@ -132,24 +132,40 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn create_kdf(args: &ArgMatches) -> Result<Kdf> {
-    let default_digest = Digest::Sha1;
-    let default_iterations = 65536;
-    let default_salt_len = 16;
+fn create_pbkdf2(
+    digest: Option<Digest>,
+    iterations: Option<u32>,
+    salt_len: Option<u32>,
+) -> Result<Kdf> {
+    const DEFAULT_DIGEST: Digest = Digest::Sha1;
+    const DEFAULT_ITERATIONS: u32 = 65536;
+    const DEFAULT_SALT_LEN: u32 = 16;
 
-    let (digest, iterations, salt_len) = match args.value_of("kdf") {
-        Some(s) => {
-            let spec = KdfSpec::from_str(s).unwrap();
-            let digest = spec.digest.unwrap_or(default_digest);
-            let iterations = spec.iterations.unwrap_or(default_iterations);
-            let salt_len = spec.salt_len.unwrap_or(default_salt_len);
-
-            (digest, iterations, salt_len)
-        }
-        None => (default_digest, default_iterations, default_salt_len),
-    };
+    let digest = digest.unwrap_or(DEFAULT_DIGEST);
+    let iterations = iterations.unwrap_or(DEFAULT_ITERATIONS);
+    let salt_len = salt_len.unwrap_or(DEFAULT_SALT_LEN);
 
     Ok(Kdf::generate_pbkdf2::<ProxyBackend>(
         digest, iterations, salt_len,
     )?)
+}
+
+fn create_kdf(args: &ArgMatches) -> Result<Kdf> {
+    let kdf = match args.value_of("kdf") {
+        Some(s) => {
+            let spec = KdfSpec::from_str(s).unwrap();
+
+            match spec {
+                KdfSpec::None => todo!(),
+                KdfSpec::Pbkdf2 {
+                    digest,
+                    iterations,
+                    salt_len,
+                } => create_pbkdf2(digest, iterations, salt_len)?,
+            }
+        }
+        None => create_pbkdf2(None, None, None)?,
+    };
+
+    Ok(kdf)
 }

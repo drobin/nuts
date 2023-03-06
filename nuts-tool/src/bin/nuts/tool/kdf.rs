@@ -24,24 +24,20 @@ use nuts::container::{Digest, Kdf};
 
 use crate::tool::convert::Convert;
 
+const NONE: &str = "none";
+const PBKDF2: &str = "pbkdf2";
+
 #[derive(Debug)]
-pub struct KdfSpec {
-    pub algorithm: String,
-    pub digest: Option<Digest>,
-    pub iterations: Option<u32>,
-    pub salt_len: Option<u32>,
+pub enum KdfSpec {
+    None,
+    Pbkdf2 {
+        digest: Option<Digest>,
+        iterations: Option<u32>,
+        salt_len: Option<u32>,
+    },
 }
 
 impl KdfSpec {
-    fn new(algorithm: &str) -> KdfSpec {
-        KdfSpec {
-            algorithm: algorithm.to_string(),
-            digest: None,
-            iterations: None,
-            salt_len: None,
-        }
-    }
-
     fn parse(s: &str) -> Result<Self, String> {
         let v: Vec<&str> = s
             .split(':')
@@ -53,30 +49,43 @@ impl KdfSpec {
         }
 
         match v[0] {
-            "pbkdf2" => Self::parse_pbkdf2(&v),
+            NONE => Ok(KdfSpec::None),
+            PBKDF2 => Self::parse_pbkdf2(&v),
             _ => Err(format!("unknown KDF: {}", v[0])),
         }
     }
 
     fn parse_pbkdf2(v: &[&str]) -> Result<KdfSpec, String> {
         if v.len() == 1 {
-            Ok(KdfSpec::new(v[0]))
+            Ok(KdfSpec::Pbkdf2 {
+                digest: None,
+                iterations: None,
+                salt_len: None,
+            })
         } else if v.len() == 4 {
-            let mut spec = KdfSpec::new(v[0]);
+            let digest = if !v[1].is_empty() {
+                Some(Digest::from_str(v[1])?)
+            } else {
+                None
+            };
 
-            if !v[1].is_empty() {
-                spec.digest = Some(Digest::from_str(v[1])?);
-            }
+            let iterations = if !v[2].is_empty() {
+                Some(Self::parse_u32(v[2])?)
+            } else {
+                None
+            };
 
-            if !v[2].is_empty() {
-                spec.iterations = Some(Self::parse_u32(v[2])?);
-            }
+            let salt_len = if !v[3].is_empty() {
+                Some(Self::parse_u32(v[3])?)
+            } else {
+                None
+            };
 
-            if !v[3].is_empty() {
-                spec.salt_len = Some(Self::parse_u32(v[3])?);
-            }
-
-            Ok(spec)
+            Ok(KdfSpec::Pbkdf2 {
+                digest,
+                iterations,
+                salt_len,
+            })
         } else {
             Err(String::from("invalid KDF specification"))
         }
@@ -89,17 +98,17 @@ impl KdfSpec {
 
 impl From<Kdf> for KdfSpec {
     fn from(kdf: Kdf) -> Self {
-        let Kdf::Pbkdf2 {
-            digest,
-            iterations,
-            salt,
-        } = kdf;
-
-        KdfSpec {
-            algorithm: "pbkdf2".to_string(),
-            digest: Some(digest),
-            iterations: Some(iterations),
-            salt_len: Some(salt.len() as u32),
+        match kdf {
+            Kdf::None => KdfSpec::None,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt,
+            } => KdfSpec::Pbkdf2 {
+                digest: Some(digest),
+                iterations: Some(iterations),
+                salt_len: Some(salt.len() as u32),
+            },
         }
     }
 }
@@ -110,19 +119,28 @@ impl Convert for KdfSpec {
     }
 
     fn to_str(&self) -> String {
-        let digest = match self.digest {
-            Some(d) => d.to_str(),
-            None => "".to_string(),
-        };
-        let iterations = match self.iterations {
-            Some(n) => n.to_string(),
-            None => "".to_string(),
-        };
-        let salt_len = match self.salt_len {
-            Some(n) => n.to_string(),
-            None => "".to_string(),
-        };
+        match self {
+            KdfSpec::None => NONE.to_string(),
+            KdfSpec::Pbkdf2 {
+                digest,
+                iterations,
+                salt_len,
+            } => {
+                let digest = match digest {
+                    Some(d) => d.to_str(),
+                    None => "".to_string(),
+                };
+                let iterations = match iterations {
+                    Some(n) => n.to_string(),
+                    None => "".to_string(),
+                };
+                let salt_len = match salt_len {
+                    Some(n) => n.to_string(),
+                    None => "".to_string(),
+                };
 
-        format!("{}:{}:{}:{}", self.algorithm, digest, iterations, salt_len)
+                format!("{}:{}:{}:{}", PBKDF2, digest, iterations, salt_len)
+            }
+        }
     }
 }

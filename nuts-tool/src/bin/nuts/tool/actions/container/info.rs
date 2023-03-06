@@ -47,13 +47,8 @@ pub fn run(args: &ArgMatches) -> Result<()> {
 
     println!("cipher: {}", info.cipher.to_str());
 
-    match info.kdf {
-        Some(kdf) => {
-            let spec: KdfSpec = kdf.into();
-            println!("kdf:    {}", spec.to_str());
-        }
-        None => println!("kdf:    none"),
-    };
+    let kdf: KdfSpec = info.kdf.into();
+    println!("kdf:    {}", kdf.to_str());
 
     Ok(())
 }

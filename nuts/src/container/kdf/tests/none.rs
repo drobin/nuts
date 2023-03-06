@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,20 +20,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_backend::Backend;
-
-use crate::container::cipher::Cipher;
 use crate::container::kdf::Kdf;
+use crate::memory::MemoryBackend as Backend;
 
-/// Information from the container.
-#[derive(Debug)]
-pub struct Info<B: Backend> {
-    /// Information from the lower backend.
-    pub backend: B::Info,
+#[test]
+fn create_key_empty_password() {
+    let key = Kdf::None.create_key::<Backend>(b"").unwrap();
+    assert_eq!(*key, []);
+}
 
-    /// The cipher used for encryption.
-    pub cipher: Cipher,
+#[test]
+fn create_key() {
+    let key = Kdf::None.create_key::<Backend>(b"123").unwrap();
 
-    /// The key derivation function.
-    pub kdf: Kdf,
+    assert_eq!(*key, []);
 }

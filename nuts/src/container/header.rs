@@ -97,10 +97,7 @@ impl Header {
         rand::rand_bytes(&mut key)?;
         rand::rand_bytes(&mut iv)?;
 
-        let kdf = match options.kdf.as_ref() {
-            Some(builder) => builder.build()?,
-            None => None,
-        };
+        let kdf = Some(options.kdf.build()?);
 
         Ok(Header {
             cipher,

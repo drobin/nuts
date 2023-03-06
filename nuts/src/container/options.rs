@@ -32,18 +32,18 @@ use crate::container::kdf::Kdf;
 
 #[derive(Debug)]
 pub(crate) enum KdfBuilder {
-    Create(Digest, u32, u32),
+    Pbkdf2(Digest, u32, u32),
     Kdf(Kdf),
 }
 
 impl KdfBuilder {
-    pub(crate) fn build<B: Backend>(&self) -> ContainerResult<Option<Kdf>, B> {
+    pub(crate) fn build<B: Backend>(&self) -> ContainerResult<Kdf, B> {
         match self {
-            KdfBuilder::Create(digest, iterations, salt_len) => {
+            KdfBuilder::Pbkdf2(digest, iterations, salt_len) => {
                 let kdf = Kdf::generate_pbkdf2(*digest, *iterations, *salt_len)?;
-                Ok(Some(kdf))
+                Ok(kdf)
             }
-            KdfBuilder::Kdf(ref kdf) => Ok(Some(kdf.clone())),
+            KdfBuilder::Kdf(ref kdf) => Ok(kdf.clone()),
         }
     }
 }
@@ -56,7 +56,7 @@ pub struct CreateOptions<B: Backend> {
     pub(crate) backend: B::CreateOptions,
     pub(crate) callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>,
     pub(crate) cipher: Cipher,
-    pub(crate) kdf: Option<KdfBuilder>,
+    pub(crate) kdf: KdfBuilder,
 }
 
 /// Utility used to create a [`CreateOptions`] instance.
@@ -69,9 +69,9 @@ impl<B: Backend> CreateOptionsBuilder<B> {
     /// The container should use the given `cipher`.
     pub fn new(options: B::CreateOptions, cipher: Cipher) -> Self {
         let kdf = if cipher == Cipher::None {
-            None
+            KdfBuilder::Kdf(Kdf::None)
         } else {
-            Some(KdfBuilder::Create(Digest::Sha1, 65536, 16))
+            KdfBuilder::Pbkdf2(Digest::Sha1, 65536, 16)
         };
 
         CreateOptionsBuilder(CreateOptions {
@@ -110,10 +110,8 @@ impl<B: Backend> CreateOptionsBuilder<B> {
     /// If the cipher is set to [`Cipher::None`], then the setting is
     /// discarded;  you don't need a KDF for the None cipher.
     pub fn with_kdf(mut self, kdf: Kdf) -> Self {
-        if self.0.cipher == Cipher::None {
-            self.0.kdf = None;
-        } else {
-            self.0.kdf = Some(KdfBuilder::Kdf(kdf));
+        if self.0.cipher != Cipher::None {
+            self.0.kdf = KdfBuilder::Kdf(kdf);
         }
 
         self

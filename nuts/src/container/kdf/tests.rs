@@ -20,6 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+mod none;
 mod pbkdf2;
 mod serde;
 
@@ -45,6 +46,14 @@ fn from_bytes_inval() {
 
     let msg = into_error!(err, BytesError::Invalid);
     assert_eq!(msg, "invalid kdf: 2");
+}
+
+#[test]
+fn from_bytes_none() {
+    let mut cursor = Cursor::new([0]);
+    let wkey = cursor.from_bytes::<Kdf>().unwrap();
+
+    assert_eq!(wkey, Kdf::None);
 }
 
 #[test]
@@ -94,7 +103,16 @@ fn to_bytes_nospace() {
 }
 
 #[test]
-fn write_attribute_pbkdf2() {
+fn to_bytes_none() {
+    let mut cursor = Cursor::new(vec![]);
+
+    cursor.to_bytes(&Kdf::None).unwrap();
+
+    assert_eq!(cursor.into_inner(), [0]);
+}
+
+#[test]
+fn to_bytes_pbkdf2() {
     let mut cursor = Cursor::new(vec![]);
 
     cursor

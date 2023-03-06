@@ -27,42 +27,55 @@ use crate::openssl::rand::RND;
 
 #[test]
 fn ok() {
-    let Kdf::Pbkdf2 {
-        digest,
-        iterations,
-        salt,
-    } = Kdf::pbkdf2(Digest::Sha1, 5, &[1, 2, 3]);
-
-    assert_eq!(digest, Digest::Sha1);
-    assert_eq!(iterations, 5);
-    assert_eq!(salt, [1, 2, 3]);
+    match Kdf::pbkdf2(Digest::Sha1, 5, &[1, 2, 3]) {
+        Kdf::Pbkdf2 {
+            digest,
+            iterations,
+            salt,
+        } => {
+            assert_eq!(digest, Digest::Sha1);
+            assert_eq!(iterations, 5);
+            assert_eq!(salt, [1, 2, 3]);
+        }
+        _ => panic!("invalid kdf"),
+    }
 }
 
 #[test]
 fn generate_empty_salt() {
-    let Kdf::Pbkdf2 {
-        digest,
-        iterations,
-        salt,
-    } = Kdf::generate_pbkdf2::<Backend>(Digest::Sha1, 5, 0).unwrap();
+    let kdf = Kdf::generate_pbkdf2::<Backend>(Digest::Sha1, 5, 0).unwrap();
 
-    assert_eq!(digest, Digest::Sha1);
-    assert_eq!(iterations, 5);
-    assert_eq!(salt, [0; 0]);
+    match kdf {
+        Kdf::Pbkdf2 {
+            digest,
+            iterations,
+            salt,
+        } => {
+            assert_eq!(digest, Digest::Sha1);
+            assert_eq!(iterations, 5);
+            assert_eq!(salt, [0; 0]);
+        }
+        _ => panic!("invalid kdf"),
+    }
 }
 
 #[test]
 fn generate_with_salt() {
-    let Kdf::Pbkdf2 {
-        digest,
-        iterations,
-        salt,
-    } = Kdf::generate_pbkdf2::<Backend>(Digest::Sha1, 5, 3).unwrap();
+    let kdf = Kdf::generate_pbkdf2::<Backend>(Digest::Sha1, 5, 3).unwrap();
 
-    assert_eq!(digest, Digest::Sha1);
-    assert_eq!(iterations, 5);
-    assert_eq!(salt.len(), 3); // salt filled with random data
-    assert_eq!(salt, &RND[..3]);
+    match kdf {
+        Kdf::Pbkdf2 {
+            digest,
+            iterations,
+            salt,
+        } => {
+            assert_eq!(digest, Digest::Sha1);
+            assert_eq!(iterations, 5);
+            assert_eq!(salt.len(), 3); // salt filled with random data
+            assert_eq!(salt, &RND[..3]);
+        }
+        _ => panic!("invalid kdf"),
+    }
 }
 
 #[test]
