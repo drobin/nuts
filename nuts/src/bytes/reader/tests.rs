@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,13 +20,5 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-#[macro_use]
-pub(crate) mod asserts;
-pub mod bytes;
-pub mod container;
-#[cfg(test)]
-pub mod memory;
-pub mod openssl;
-pub mod stream;
-pub(crate) mod svec;
+mod de;
+mod reader;
