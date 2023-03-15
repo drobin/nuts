@@ -20,10 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::bytes::error::{Error, Result};
 use crate::bytes::reader::Reader;
+use crate::bytes::writer::Writer;
 
 #[derive(Debug)]
 pub(crate) enum Int {
@@ -83,5 +84,26 @@ impl Options {
         } else {
             Err(Error::TrailingBytes)
         }
+    }
+
+    /// Serializes the given `value` into a byte stream.
+    pub fn to_vec<T: Serialize>(self, value: &T) -> Result<Vec<u8>> {
+        let mut writer = Writer::for_vec(self.int, vec![]);
+
+        value.serialize(&mut writer)?;
+
+        Ok(writer.into_vec())
+    }
+
+    /// Serializes the given `value` into the `bytes` slice.
+    ///
+    /// # Errors
+    ///
+    /// When there is not enough space available in `bytes` an
+    /// [`Error::NoSpace`] error is returned.
+    pub fn to_bytes<T: Serialize>(self, value: &T, bytes: &mut [u8]) -> Result<()> {
+        let mut writer = Writer::for_slice(self.int, bytes);
+
+        value.serialize(&mut writer)
     }
 }

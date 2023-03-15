@@ -40,6 +40,9 @@ pub enum Error {
     /// available for reading.
     Eof,
 
+    /// No more space available when writing into a byte slice.
+    NoSpace,
+
     /// Invalid integer type was found.
     ///
     /// The reader tried to read type `expected`, but found type `found`
@@ -58,6 +61,9 @@ pub enum Error {
     /// Trailing (not consumed) data were detected.
     TrailingBytes,
 
+    /// The length is unknown when serializing a sequence or map.
+    RequiredLength,
+
     /// A custom error message from Serde.
     Serde(String),
 }
@@ -72,6 +78,7 @@ impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Eof => write!(fmt, "No more bytes are available for reading."),
+            Error::NoSpace => write!(fmt, "no more space available for writing"),
             Error::InvalidInteger { expected, found } => write!(
                 fmt,
                 "tries to read type {:?}, but found type {:?}",
@@ -80,6 +87,7 @@ impl fmt::Display for Error {
             Error::InvalidChar(n) => write!(fmt, "not a char: {}", n),
             Error::InvalidString(cause) => write!(fmt, "not a string: {}", cause),
             Error::TrailingBytes => write!(fmt, "there are trailing bytes available"),
+            Error::RequiredLength => write!(fmt, "the length of the sequence or map is required"),
             Error::Serde(msg) => fmt::Display::fmt(msg, fmt),
         }
     }

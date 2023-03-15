@@ -20,10 +20,5 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod error;
-mod options;
-mod reader;
+mod ser;
 mod writer;
-
-pub use error::{Error, IntType, Result};
-pub use options::Options;
