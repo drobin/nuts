@@ -53,7 +53,7 @@ fn de_inval() {
 
     let err = bytes_options().from_bytes::<PlainSecret>(&vec).unwrap_err();
     let msg = into_error!(err, Error::Serde);
-    assert_eq!(msg, "magics mismatch");
+    assert_eq!(msg, "secret-magic mismatch");
 }
 
 #[test]

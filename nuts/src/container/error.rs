@@ -45,7 +45,7 @@ pub enum ContainerError<B: Backend> {
     NoPassword(Option<String>),
 
     /// The password is wrong.
-    WrongPassword,
+    WrongPassword(bytes::Error),
 
     /// Try to read/write from/to a null-id which is forbidden.
     NullId,
@@ -64,7 +64,7 @@ impl<B: Backend> fmt::Display for ContainerError<B> {
             ContainerError::NoPassword(None) => {
                 write!(fmt, "A password is needed by the current cipher")
             }
-            ContainerError::WrongPassword => write!(fmt, "The password is wrong."),
+            ContainerError::WrongPassword(_) => write!(fmt, "The password is wrong."),
             ContainerError::NullId => write!(fmt, "Try to read or write a null id"),
         }
     }
@@ -78,7 +78,7 @@ impl<B: Backend> fmt::Debug for ContainerError<B> {
             ContainerError::Bytes(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::OpenSSL(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::NoPassword(option) => fmt::Debug::fmt(option, fmt),
-            ContainerError::WrongPassword => fmt.write_str("WrongPassword"),
+            ContainerError::WrongPassword(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::NullId => fmt.write_str("NullId"),
         }
     }
@@ -91,9 +91,9 @@ impl<B: Backend + 'static> error::Error for ContainerError<B> {
             ContainerError::NutsBytes(cause) => Some(cause),
             ContainerError::Bytes(cause) => Some(cause),
             ContainerError::OpenSSL(cause) => Some(cause),
-            ContainerError::NoPassword(_)
-            | ContainerError::WrongPassword
-            | ContainerError::NullId => None,
+            ContainerError::NoPassword(_) => None,
+            ContainerError::WrongPassword(cause) => Some(cause),
+            ContainerError::NullId => None,
         }
     }
 }
@@ -106,6 +106,15 @@ impl<B: Backend> From<nuts_bytes::Error> for ContainerError<B> {
 
 impl<B: Backend> From<bytes::Error> for ContainerError<B> {
     fn from(cause: bytes::Error) -> Self {
+        match &cause {
+            bytes::Error::Serde(msg) => {
+                if msg == "secret-magic mismatch" {
+                    return ContainerError::WrongPassword(cause);
+                }
+            }
+            _ => {}
+        }
+
         ContainerError::Bytes(cause)
     }
 }

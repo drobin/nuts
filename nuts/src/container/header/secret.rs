@@ -58,7 +58,7 @@ impl TryFrom<[u32; 2]> for Magics {
         if value[0] == value[1] {
             Ok(Magics(value))
         } else {
-            Err("magics mismatch".to_string())
+            Err("secret-magic mismatch".to_string())
         }
     }
 }
