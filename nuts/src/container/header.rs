@@ -76,7 +76,7 @@ impl Header {
         buf: &[u8],
         store: &mut PasswordStore,
     ) -> ContainerResult<(Header, B::Settings), B> {
-        let inner = bytes_options().from_bytes::<Inner>(buf)?;
+        let inner = bytes_options().ignore_trailing().from_bytes::<Inner>(buf)?;
         let Revision::Rev0(rev0) = inner.rev;
 
         let plain_secret = rev0

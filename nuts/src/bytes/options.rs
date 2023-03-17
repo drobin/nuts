@@ -36,14 +36,19 @@ pub(crate) enum Int {
 #[derive(Debug)]
 pub struct Options {
     int: Int,
+    trailing: bool,
 }
 
 impl Options {
     /// Creates a new `Options` instance filled with default values:
     ///
     /// * integer encoding is set to [_varint_](Options::with_varint) encoding.
+    /// * trailing bytes generates an [error](Options::fail_on_trailing).
     pub fn new() -> Options {
-        Options { int: Int::Var }
+        Options {
+            int: Int::Var,
+            trailing: true,
+        }
     }
 
     /// Sets the length encoding to be fixed.
@@ -69,17 +74,30 @@ impl Options {
         self
     }
 
+    /// If enabled an error is generated if trailing (unread) bytes are available.
+    pub fn fail_on_trailing(mut self) -> Self {
+        self.trailing = true;
+        self
+    }
+
+    /// If enabled ignore trailing (unread) bytes.
+    pub fn ignore_trailing(mut self) -> Self {
+        self.trailing = false;
+        self
+    }
+
     /// Deserializes the given `bytes` slice into a data structure.
     ///
     /// # Errors
     ///
     /// If there are still unserialized data left in `bytes` after
-    /// deserialization, an [`Error::TrailingBytes`] error is returned.
+    /// deserialization, an [`Error::TrailingBytes`] error is returned, if
+    /// [`Options::ignore_trailing`] is not set.
     pub fn from_bytes<'a, T: Deserialize<'a>>(self, bytes: &'a [u8]) -> Result<T> {
         let mut reader = Reader::new(self.int, bytes);
         let value = T::deserialize(&mut reader)?;
 
-        if reader.remaining_bytes().is_empty() {
+        if !self.trailing || reader.remaining_bytes().is_empty() {
             Ok(value)
         } else {
             Err(Error::TrailingBytes)
