@@ -24,69 +24,31 @@ mod inner;
 mod rev0;
 mod secret;
 mod settings;
+
 use std::fmt::{self, Write as FmtWrite};
-use std::io::{Cursor, Read, Write};
 
 use nuts_backend::Backend;
-use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
-use crate::container::cipher::{Cipher, CipherCtx};
-use crate::container::error::{ContainerError, ContainerResult};
+use crate::bytes::Options;
+use crate::container::cipher::Cipher;
+use crate::container::error::ContainerResult;
+use crate::container::header::inner::{Inner, Revision};
 use crate::container::kdf::Kdf;
 use crate::container::options::CreateOptions;
 use crate::container::password::PasswordStore;
 use crate::openssl::rand;
 use crate::svec::SecureVec;
 
-const MAGIC: [u8; 7] = *b"nuts-io";
+use self::secret::PlainSecret;
+use self::settings::Settings;
 
-struct Secret<'a, B: Backend> {
-    key: Cow<'a, [u8]>,
-    iv: Cow<'a, [u8]>,
-    settings: Cow<'a, B::Settings>,
-}
-
-impl<'a, B: Backend> Secret<'a, B> {
-    fn owned(key: Vec<u8>, iv: Vec<u8>, settings: B::Settings) -> Secret<'a, B> {
-        Secret {
-            key: Cow::Owned(key),
-            iv: Cow::Owned(iv),
-            settings: Cow::Owned(settings),
-        }
-    }
-
-    fn borrowed(key: &'a [u8], iv: &'a [u8], settings: &'a B::Settings) -> Secret<'a, B> {
-        Secret {
-            key: Cow::Borrowed(key),
-            iv: Cow::Borrowed(iv),
-            settings: Cow::Borrowed(settings),
-        }
-    }
-}
-
-impl<'a, B: Backend> FromBytes for Secret<'a, B> {
-    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
-        let key = source.from_bytes()?;
-        let iv = source.from_bytes()?;
-        let settings = source.from_bytes()?;
-
-        Ok(Secret::owned(key, iv, settings))
-    }
-}
-
-impl<'a, B: Backend> ToBytes for Secret<'a, B> {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
-        target.to_bytes(&&*self.key)?;
-        target.to_bytes(&&*self.iv)?;
-        target.to_bytes(self.settings.as_ref())?;
-
-        Ok(())
-    }
+fn bytes_options() -> Options {
+    Options::new().with_varint()
 }
 
 pub struct Header {
     pub(crate) cipher: Cipher,
-    pub(crate) kdf: Option<Kdf>,
+    pub(crate) kdf: Kdf,
     pub(crate) key: SecureVec,
     pub(crate) iv: SecureVec,
 }
@@ -100,7 +62,7 @@ impl Header {
         rand::rand_bytes(&mut key)?;
         rand::rand_bytes(&mut iv)?;
 
-        let kdf = Some(options.kdf.build()?);
+        let kdf = options.kdf.build()?;
 
         Ok(Header {
             cipher,
@@ -114,81 +76,22 @@ impl Header {
         buf: &[u8],
         store: &mut PasswordStore,
     ) -> ContainerResult<(Header, B::Settings), B> {
-        let mut cursor = Cursor::new(buf);
-        let mut magic = [0; 7];
+        let inner = bytes_options().from_bytes::<Inner>(buf)?;
+        let Revision::Rev0(rev0) = inner.rev;
 
-        cursor.read_bytes(&mut magic)?;
+        let plain_secret = rev0
+            .secret
+            .decrypt(store, rev0.cipher, &rev0.kdf, &rev0.iv)?;
 
-        if magic != MAGIC {
-            return Err(nuts_bytes::Error::invalid("magic mismatch"))?;
-        }
-
-        let revision = cursor.from_bytes::<u8>()?;
-
-        if revision != 1 {
-            return Err(nuts_bytes::Error::invalid(format!(
-                "invalid revision: {}",
-                revision
-            )))?;
-        }
-
-        let cipher = cursor.from_bytes()?;
-
-        if cipher == Cipher::None {
-            let settings = cursor.from_bytes()?;
-
-            Ok((
-                Header {
-                    cipher: Cipher::None,
-                    kdf: None,
-                    key: SecureVec::empty(),
-                    iv: SecureVec::empty(),
-                },
-                settings,
-            ))
-        } else {
-            let iv = cursor.from_bytes()?;
-            let password = store.value()?;
-            let kdf = cursor.from_bytes()?;
-            let secret = Self::read_secret(cipher, iv, password, &kdf, cursor)?;
-
-            Ok((
-                Header {
-                    cipher,
-                    kdf: Some(kdf),
-                    key: secret.key.into_owned().into(),
-                    iv: secret.iv.into_owned().into(),
-                },
-                secret.settings.into_owned(),
-            ))
-        }
-    }
-
-    fn read_secret<'a, B: Backend>(
-        cipher: Cipher,
-        iv: Vec<u8>,
-        password: &[u8],
-        kdf: &Kdf,
-        mut cursor: Cursor<&[u8]>,
-    ) -> ContainerResult<Secret<'a, B>, B> {
-        let cbuf = cursor.from_bytes::<Vec<u8>>()?;
-
-        let mut ctx = CipherCtx::new(cipher, cbuf.len() as u32)?;
-        let key = kdf.create_key(password)?;
-        let pbuf = ctx.decrypt(&key, &iv, &cbuf)?;
-
-        let mut sec_cursor = Cursor::new(pbuf);
-
-        let sec_magic1 = sec_cursor.from_bytes::<u32>()?;
-        let sec_magic2 = sec_cursor.from_bytes::<u32>()?;
-
-        if sec_magic1 != sec_magic2 {
-            return Err(ContainerError::WrongPassword);
-        }
-
-        let secret = sec_cursor.from_bytes()?;
-
-        Ok(secret)
+        Ok((
+            Header {
+                cipher: rev0.cipher,
+                kdf: rev0.kdf,
+                key: plain_secret.key.clone(),
+                iv: plain_secret.iv.clone(),
+            },
+            plain_secret.settings.into_backend()?,
+        ))
     }
 
     pub fn write<B: Backend>(
@@ -197,49 +100,25 @@ impl Header {
         buf: &mut [u8],
         store: &mut PasswordStore,
     ) -> ContainerResult<(), B> {
-        let mut cursor = Cursor::new(buf);
+        let settings = Settings::from_backend(settings)?;
+        let plain_secret = PlainSecret::generate(self.key.clone(), self.iv.clone(), settings)?;
 
-        cursor.write_bytes(&MAGIC)?;
-        cursor.to_bytes(&1u8)?; // revision
-        cursor.to_bytes(&self.cipher)?;
+        let mut iv = vec![0; self.cipher.iv_len()];
+        rand::rand_bytes(&mut iv)?;
 
-        if self.cipher == Cipher::None {
-            cursor.to_bytes(settings)?;
+        let secret = plain_secret.encrypt(store, self.cipher, &self.kdf, &iv)?;
 
-            Ok(())
-        } else {
-            let secret = Secret::<B>::borrowed(&self.key, &self.iv, settings);
-            let mut iv = vec![0; self.cipher.iv_len()];
-            let password = store.value()?;
+        let rev0 = rev0::Data {
+            cipher: self.cipher,
+            iv,
+            kdf: self.kdf.clone(),
+            secret,
+        };
+        let inner = Inner::new(Revision::Rev0(rev0));
 
-            rand::rand_bytes(&mut iv)?;
+        bytes_options().to_bytes(&inner, buf)?;
 
-            cursor.to_bytes(&iv.as_ref())?;
-            cursor.to_bytes(self.kdf.as_ref().unwrap())?;
-            self.write_secret(secret, iv, password, cursor)
-        }
-    }
-
-    fn write_secret<B: Backend>(
-        &self,
-        secret: Secret<B>,
-        iv: Vec<u8>,
-        password: &[u8],
-        mut cursor: Cursor<&mut [u8]>,
-    ) -> ContainerResult<(), B> {
-        let mut pbuf: SecureVec = SecureVec::empty();
-        let mut sec_cursor = Cursor::new(&mut *pbuf);
-        let sec_magic = rand::rand_u32()?;
-
-        sec_cursor.to_bytes(&sec_magic)?;
-        sec_cursor.to_bytes(&sec_magic)?;
-        sec_cursor.to_bytes(&secret)?;
-
-        let mut ctx = CipherCtx::new(self.cipher, pbuf.len() as u32)?;
-        let key = self.kdf.as_ref().unwrap().create_key(password)?;
-        let cbuf = ctx.encrypt(&key, &iv, &pbuf)?;
-
-        Ok(cursor.to_bytes(&cbuf)?)
+        Ok(())
     }
 }
 
