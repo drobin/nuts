@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,56 +20,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod tests;
+use crate::bytes::Options;
+use crate::container::header::settings::Settings;
+use crate::memory::{MemSettings, MemoryBackend};
 
-use std::ops::{Deref, DerefMut};
-
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct SecureVec(Vec<u8>);
-
-impl SecureVec {
-    pub fn from_vec(inner: Vec<u8>) -> SecureVec {
-        SecureVec(inner)
-    }
-
-    pub fn empty() -> SecureVec {
-        SecureVec(vec![])
-    }
-
-    pub fn zero(len: usize) -> SecureVec {
-        SecureVec(vec![0; len])
-    }
+#[test]
+fn from_backend() {
+    let settings = Settings::from_backend::<MemoryBackend>(&MemSettings()).unwrap();
+    assert_eq!(settings, []);
 }
 
-impl Deref for SecureVec {
-    type Target = Vec<u8>;
-
-    fn deref(&self) -> &Vec<u8> {
-        &self.0
-    }
+#[test]
+fn into_backend() {
+    let _settings = Settings(vec![]).into_backend::<MemoryBackend>().unwrap();
 }
 
-impl DerefMut for SecureVec {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
+#[test]
+fn ser_empty() {
+    let settings = Settings(vec![]);
+    let vec = Options::new().to_vec(&settings).unwrap();
+    assert_eq!(vec, [0]);
 }
 
-impl From<Vec<u8>> for SecureVec {
-    fn from(inner: Vec<u8>) -> Self {
-        SecureVec::from_vec(inner)
-    }
+#[test]
+fn ser() {
+    let settings = Settings(vec![1, 2, 3]);
+    let vec = Options::new().to_vec(&settings).unwrap();
+    assert_eq!(vec, [3, 1, 2, 3]);
 }
 
-impl Drop for SecureVec {
-    fn drop(&mut self) {
-        self.0.resize(self.0.capacity(), 0);
+#[test]
+fn de_empty() {
+    let settings = Options::new().from_bytes::<Settings>(&[0]).unwrap();
+    assert_eq!(settings, []);
+}
 
-        for elem in self.0.iter_mut() {
-            *elem = 0;
-        }
-    }
+#[test]
+fn de() {
+    let settings = Options::new()
+        .from_bytes::<Settings>(&[3, 1, 2, 3])
+        .unwrap();
+    assert_eq!(settings, [1, 2, 3]);
 }

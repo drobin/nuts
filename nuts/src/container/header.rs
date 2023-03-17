@@ -20,7 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::borrow::Cow;
+mod secret;
+mod settings;
 use std::fmt::{self, Write as FmtWrite};
 use std::io::{Cursor, Read, Write};
 

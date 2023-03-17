@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,53 +23,38 @@
 #[cfg(test)]
 mod tests;
 
-use std::ops::{Deref, DerefMut};
-
+use nuts_backend::Backend;
+use nuts_bytes::{FromBytesExt, ToBytesExt};
 use serde::{Deserialize, Serialize};
+use std::io::Cursor;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct SecureVec(Vec<u8>);
+use crate::container::error::ContainerResult;
 
-impl SecureVec {
-    pub fn from_vec(inner: Vec<u8>) -> SecureVec {
-        SecureVec(inner)
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+pub struct Settings(Vec<u8>);
+
+impl Settings {
+    #[cfg(test)]
+    pub fn new(vec: Vec<u8>) -> Settings {
+        Settings(vec)
     }
 
-    pub fn empty() -> SecureVec {
-        SecureVec(vec![])
+    pub fn from_backend<B: Backend>(settings: &B::Settings) -> ContainerResult<Settings, B> {
+        let mut cursor = Cursor::new(vec![]);
+
+        cursor.to_bytes(settings)?;
+
+        Ok(Settings(cursor.into_inner()))
     }
 
-    pub fn zero(len: usize) -> SecureVec {
-        SecureVec(vec![0; len])
-    }
-}
-
-impl Deref for SecureVec {
-    type Target = Vec<u8>;
-
-    fn deref(&self) -> &Vec<u8> {
-        &self.0
-    }
-}
-
-impl DerefMut for SecureVec {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+    pub fn into_backend<B: Backend>(self) -> ContainerResult<B::Settings, B> {
+        let mut cursor = Cursor::new(&self.0);
+        Ok(cursor.from_bytes()?)
     }
 }
 
-impl From<Vec<u8>> for SecureVec {
-    fn from(inner: Vec<u8>) -> Self {
-        SecureVec::from_vec(inner)
-    }
-}
-
-impl Drop for SecureVec {
-    fn drop(&mut self) {
-        self.0.resize(self.0.capacity(), 0);
-
-        for elem in self.0.iter_mut() {
-            *elem = 0;
-        }
+impl<T: AsRef<[u8]>> PartialEq<T> for Settings {
+    fn eq(&self, other: &T) -> bool {
+        self.0 == other.as_ref()
     }
 }

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,56 +20,34 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod tests;
+mod plain_secret;
+mod secret;
 
-use std::ops::{Deref, DerefMut};
+use crate::container::header::secret::{Magics, PlainSecret};
+use crate::container::header::settings::Settings;
+use crate::svec::SecureVec;
 
-use serde::{Deserialize, Serialize};
+// key: AE 18 FF 41 77 79 0F 07 AB 11 E2 F1 8C 87 AD 9A
+// iv: 01010101010101010101010101010101
+const SECRET: [u8; 41] = [
+    0x5c, 0x68, 0x30, 0x8f, 0x47, 0x19, 0xf4, 0x76, 0xf2, 0x72, 0xbc, 0x06, 0x1c, 0xf3, 0x58, 0xca,
+    0x54, 0x2c, 0xca, 0xf8, 0xe6, 0x7d, 0xe1, 0xfb, 0xb4, 0xe1, 0x1c, 0xbe, 0xb7, 0x83, 0x54, 0x3b,
+    0xec, 0x8c, 0xee, 0xac, 0x5d, 0x27, 0x5f, 0xbb, 0x78,
+];
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct SecureVec(Vec<u8>);
+const PLAIN_SECRET: [u8; 41] = [
+    0x00, 0x00, 0x12, 0x67, // magic1
+    0x00, 0x00, 0x12, 0x67, // magic2
+    0, 0, 0, 0, 0, 0, 0, 2, 1, 2, // key
+    0, 0, 0, 0, 0, 0, 0, 3, 3, 4, 5, // iv
+    0, 0, 0, 0, 0, 0, 0, 4, 6, 7, 8, 9, // settings
+];
 
-impl SecureVec {
-    pub fn from_vec(inner: Vec<u8>) -> SecureVec {
-        SecureVec(inner)
-    }
-
-    pub fn empty() -> SecureVec {
-        SecureVec(vec![])
-    }
-
-    pub fn zero(len: usize) -> SecureVec {
-        SecureVec(vec![0; len])
-    }
-}
-
-impl Deref for SecureVec {
-    type Target = Vec<u8>;
-
-    fn deref(&self) -> &Vec<u8> {
-        &self.0
-    }
-}
-
-impl DerefMut for SecureVec {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl From<Vec<u8>> for SecureVec {
-    fn from(inner: Vec<u8>) -> Self {
-        SecureVec::from_vec(inner)
-    }
-}
-
-impl Drop for SecureVec {
-    fn drop(&mut self) {
-        self.0.resize(self.0.capacity(), 0);
-
-        for elem in self.0.iter_mut() {
-            *elem = 0;
-        }
+fn plain_secret() -> PlainSecret {
+    PlainSecret {
+        magics: Magics([4711, 4711]),
+        key: SecureVec::from_vec(vec![1, 2]),
+        iv: SecureVec::from_vec(vec![3, 4, 5]),
+        settings: Settings::new(vec![6, 7, 8, 9]),
     }
 }
