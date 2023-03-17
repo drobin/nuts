@@ -20,6 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+mod inner;
+mod rev0;
 mod secret;
 mod settings;
 use std::fmt::{self, Write as FmtWrite};
