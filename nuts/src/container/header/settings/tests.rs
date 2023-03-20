@@ -32,19 +32,21 @@ fn from_backend() {
 
 #[test]
 fn into_backend() {
-    let _settings = Settings(vec![]).into_backend::<MemoryBackend>().unwrap();
+    let _settings = Settings(vec![].into())
+        .into_backend::<MemoryBackend>()
+        .unwrap();
 }
 
 #[test]
 fn ser_empty() {
-    let settings = Settings(vec![]);
+    let settings = Settings(vec![].into());
     let vec = Options::new().to_vec(&settings).unwrap();
     assert_eq!(vec, [0]);
 }
 
 #[test]
 fn ser() {
-    let settings = Settings(vec![1, 2, 3]);
+    let settings = Settings(vec![1, 2, 3].into());
     let vec = Options::new().to_vec(&settings).unwrap();
     assert_eq!(vec, [3, 1, 2, 3]);
 }

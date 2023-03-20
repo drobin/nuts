@@ -29,14 +29,15 @@ use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 
 use crate::container::error::ContainerResult;
+use crate::svec::SecureVec;
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
-pub struct Settings(Vec<u8>);
+pub struct Settings(SecureVec);
 
 impl Settings {
     #[cfg(test)]
     pub fn new(vec: Vec<u8>) -> Settings {
-        Settings(vec)
+        Settings(vec.into())
     }
 
     pub fn from_backend<B: Backend>(settings: &B::Settings) -> ContainerResult<Settings, B> {
@@ -44,17 +45,17 @@ impl Settings {
 
         cursor.to_bytes(settings)?;
 
-        Ok(Settings(cursor.into_inner()))
+        Ok(Settings(cursor.into_inner().into()))
     }
 
     pub fn into_backend<B: Backend>(self) -> ContainerResult<B::Settings, B> {
-        let mut cursor = Cursor::new(&self.0);
+        let mut cursor = Cursor::new(self.0.as_ref());
         Ok(cursor.from_bytes()?)
     }
 }
 
 impl<T: AsRef<[u8]>> PartialEq<T> for Settings {
     fn eq(&self, other: &T) -> bool {
-        self.0 == other.as_ref()
+        self.0.as_ref() == other.as_ref()
     }
 }

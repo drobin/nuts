@@ -27,6 +27,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SecureVec(Vec<u8>);
 
+impl AsRef<[u8]> for SecureVec {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 impl Deref for SecureVec {
     type Target = Vec<u8>;
 

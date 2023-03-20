@@ -136,7 +136,7 @@ impl PlainSecret {
         kdf: &Kdf,
         iv: &[u8],
     ) -> ContainerResult<Secret, B> {
-        let pbuf = bytes_options().to_vec(&self)?;
+        let pbuf: SecureVec = bytes_options().to_vec(&self)?.into();
 
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;
