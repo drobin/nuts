@@ -149,7 +149,7 @@ impl Kdf {
 
     pub(crate) fn create_key<B: Backend>(&self, password: &[u8]) -> ContainerResult<SecureVec, B> {
         match self {
-            Kdf::None => Ok(SecureVec::empty()),
+            Kdf::None => Ok(vec![].into()),
             Kdf::Pbkdf2 {
                 digest,
                 iterations,
@@ -164,11 +164,11 @@ impl Kdf {
                 }
 
                 let md = digest.to_evp();
-                let mut key = SecureVec::zero(digest.size());
+                let mut key = vec![0; digest.size()];
 
                 evp::pbkdf2_hmac(password, salt, *iterations, md, &mut key)?;
 
-                Ok(key)
+                Ok(key.into())
             }
         }
     }

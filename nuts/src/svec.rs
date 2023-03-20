@@ -20,29 +20,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod tests;
-
 use std::ops::{Deref, DerefMut};
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SecureVec(Vec<u8>);
-
-impl SecureVec {
-    pub fn from_vec(inner: Vec<u8>) -> SecureVec {
-        SecureVec(inner)
-    }
-
-    pub fn empty() -> SecureVec {
-        SecureVec(vec![])
-    }
-
-    pub fn zero(len: usize) -> SecureVec {
-        SecureVec(vec![0; len])
-    }
-}
 
 impl Deref for SecureVec {
     type Target = Vec<u8>;
@@ -60,7 +43,7 @@ impl DerefMut for SecureVec {
 
 impl From<Vec<u8>> for SecureVec {
     fn from(inner: Vec<u8>) -> Self {
-        SecureVec::from_vec(inner)
+        SecureVec(inner)
     }
 }
 

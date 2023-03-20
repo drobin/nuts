@@ -91,7 +91,7 @@ impl Secret {
             let password = store.value()?;
             kdf.create_key(password)?
         } else {
-            SecureVec::empty()
+            vec![].into()
         };
 
         let pbuf = ctx.decrypt(&key, &iv, &self.0)?;
@@ -142,7 +142,7 @@ impl PlainSecret {
             let password = store.value()?;
             kdf.create_key(password)?
         } else {
-            SecureVec::empty()
+            vec![].into()
         };
 
         let mut ctx = CipherCtx::new(cipher, pbuf.len() as u32)?;

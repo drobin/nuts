@@ -25,7 +25,6 @@ mod secret;
 
 use crate::container::header::secret::{Magics, PlainSecret};
 use crate::container::header::settings::Settings;
-use crate::svec::SecureVec;
 
 // key: AE 18 FF 41 77 79 0F 07 AB 11 E2 F1 8C 87 AD 9A
 // iv: 01010101010101010101010101010101
@@ -46,8 +45,8 @@ const PLAIN_SECRET: [u8; 41] = [
 fn plain_secret() -> PlainSecret {
     PlainSecret {
         magics: Magics([4711, 4711]),
-        key: SecureVec::from_vec(vec![1, 2]),
-        iv: SecureVec::from_vec(vec![3, 4, 5]),
+        key: vec![1, 2].into(),
+        iv: vec![3, 4, 5].into(),
         settings: Settings::new(vec![6, 7, 8, 9]),
     }
 }

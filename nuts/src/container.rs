@@ -273,7 +273,7 @@ impl<B: Backend> Container<B> {
 
         match ptext {
             Cow::Owned(buf) => {
-                SecureVec::from_vec(buf);
+                let _: SecureVec = buf.into();
             }
             _ => {}
         };

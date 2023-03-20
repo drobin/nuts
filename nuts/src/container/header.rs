@@ -56,8 +56,8 @@ pub struct Header {
 impl Header {
     pub fn create<B: Backend>(options: &CreateOptions<B>) -> ContainerResult<Header, B> {
         let cipher = options.cipher;
-        let mut key = SecureVec::zero(cipher.key_len());
-        let mut iv = SecureVec::zero(cipher.iv_len());
+        let mut key = vec![0; cipher.key_len()];
+        let mut iv = vec![0; cipher.iv_len()];
 
         rand::rand_bytes(&mut key)?;
         rand::rand_bytes(&mut iv)?;
@@ -67,8 +67,8 @@ impl Header {
         Ok(Header {
             cipher,
             kdf,
-            key,
-            iv,
+            key: key.into(),
+            iv: iv.into(),
         })
     }
 

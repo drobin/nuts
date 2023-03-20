@@ -113,7 +113,7 @@ impl CipherCtx {
             ctx: evp::CipherCtx::new()?,
             cipher,
             block_size: block_size as usize,
-            out: SecureVec::empty(),
+            out: vec![].into(),
         })
     }
 
