@@ -50,6 +50,13 @@ impl<'a> Target<'a> {
     }
 }
 
+/// A cursor like utility that writes structured data into a binary stream.
+///
+/// Data can be written into
+/// * A `Vec<u8>` structure. The vector grows automatically when appending
+///   data.
+/// * A mutable `[u8]` slice. Data are appended to the slice but an
+///   [`Error::NoSpace`] error is generated if the end of the slice is reached.
 #[derive(Debug)]
 pub struct Writer<'a> {
     int: Int,
@@ -94,6 +101,9 @@ impl<'a> Writer<'a> {
         }
     }
 
+    /// Consumes this writer, returning the underlying value.
+    ///
+    /// When writing into a slice, it is converted into a `Vec`.
     pub fn into_vec(self) -> Vec<u8> {
         match self.target {
             Target::Vec(vec) => vec,
@@ -101,6 +111,7 @@ impl<'a> Writer<'a> {
         }
     }
 
+    /// Gets a reference to the underlying value in this writer.
     pub fn as_slice(&self) -> &[u8] {
         match &self.target {
             Target::Vec(vec) => vec,
@@ -162,10 +173,12 @@ impl<'a> Writer<'a> {
         }
     }
 
+    /// Appends an `u8` value at the end of this writer.
     pub fn write_u8(&mut self, value: u8) -> Result<()> {
         self.write_bytes(&[value])
     }
 
+    /// Appends an `u16` value at the end of this writer.
     pub fn write_u16(&mut self, value: u16) -> Result<()> {
         match self.int {
             Int::Fix => self.write_fix_u16(value),
@@ -173,6 +186,7 @@ impl<'a> Writer<'a> {
         }
     }
 
+    /// Appends an `u32` value at the end of this writer.
     pub fn write_u32(&mut self, value: u32) -> Result<()> {
         match self.int {
             Int::Fix => self.write_fix_u32(value),
@@ -180,6 +194,7 @@ impl<'a> Writer<'a> {
         }
     }
 
+    /// Appends an `u64` value at the end of this writer.
     pub fn write_u64(&mut self, value: u64) -> Result<()> {
         match self.int {
             Int::Fix => self.write_fix_u64(value),
@@ -187,6 +202,7 @@ impl<'a> Writer<'a> {
         }
     }
 
+    /// Appends an `u128` value at the end of this writer.
     pub fn write_u128(&mut self, value: u128) -> Result<()> {
         match self.int {
             Int::Fix => self.write_fix_u128(value),
@@ -194,6 +210,7 @@ impl<'a> Writer<'a> {
         }
     }
 
+    /// Appends the given `bytes` at the end of this writer.
     pub fn write_bytes(&mut self, bytes: &[u8]) -> Result<()> {
         self.target.append(bytes)
     }

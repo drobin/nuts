@@ -28,3 +28,4 @@ mod writer;
 pub use error::{Error, IntType, Result};
 pub use options::Options;
 pub use reader::Reader;
+pub use writer::Writer;

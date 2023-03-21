@@ -93,6 +93,16 @@ impl Options {
         Reader::new(self.int, bytes)
     }
 
+    /// Creates a new [`Writer`] that writes into the given `vec`.
+    pub fn build_vec_writer<'a>(self, vec: Vec<u8>) -> Writer<'a> {
+        Writer::for_vec(self.int, vec)
+    }
+
+    /// Creates a new [`Writer`] that writes into the given `bytes` slice.
+    pub fn build_slice_writer<'a>(self, bytes: &'a mut [u8]) -> Writer<'a> {
+        Writer::for_slice(self.int, bytes)
+    }
+
     /// Deserializes the given `bytes` slice into a data structure.
     ///
     /// # Errors
