@@ -86,6 +86,13 @@ impl Options {
         self
     }
 
+    /// Creates a new [`Reader`] from this options.
+    ///
+    /// Use this reader to manually deserialize data.
+    pub fn build_reader<'de>(self, bytes: &'de [u8]) -> Reader<'de> {
+        Reader::new(self.int, bytes)
+    }
+
     /// Deserializes the given `bytes` slice into a data structure.
     ///
     /// # Errors

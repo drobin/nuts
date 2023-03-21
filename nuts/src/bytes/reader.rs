@@ -34,6 +34,7 @@ const VAR32: u8 = 252;
 const VAR64: u8 = 253;
 const VAR128: u8 = 254;
 
+/// A cursor like utility that reads structured data from a binary stream.
 pub struct Reader<'de> {
     int: Int,
     buf: &'de [u8],
@@ -55,15 +56,20 @@ impl<'de> Reader<'de> {
         Reader { int, buf, offs: 0 }
     }
 
-    pub fn remaining_bytes(&self) -> &[u8] {
+    /// Returns the slice of remaining (unread) data from the reader.
+    ///
+    /// If all data were consumed the returned slice is empty.
+    pub fn remaining_bytes(&self) -> &'de [u8] {
         let n = cmp::min(self.offs, self.buf.len());
         self.buf.get(n..).unwrap()
     }
 
+    /// Reads an `u8` value from the reader.
     pub fn read_u8(&mut self) -> Result<u8> {
         self.read_fix_u8()
     }
 
+    /// Reads an `u16` value from the reader.
     pub fn read_u16(&mut self) -> Result<u16> {
         match self.int {
             Int::Fix => self.read_fix_u16(),
@@ -71,6 +77,7 @@ impl<'de> Reader<'de> {
         }
     }
 
+    /// Reads an `u32` value from the reader.
     pub fn read_u32(&mut self) -> Result<u32> {
         match self.int {
             Int::Fix => self.read_fix_u32(),
@@ -78,6 +85,7 @@ impl<'de> Reader<'de> {
         }
     }
 
+    /// Reads an `u64` value from the reader.
     pub fn read_u64(&mut self) -> Result<u64> {
         match self.int {
             Int::Fix => self.read_fix_u64(),
@@ -85,6 +93,7 @@ impl<'de> Reader<'de> {
         }
     }
 
+    /// Reads an `u128` value from the reader.
     pub fn read_u128(&mut self) -> Result<u128> {
         match self.int {
             Int::Fix => self.read_fix_u128(),
@@ -146,6 +155,14 @@ impl<'de> Reader<'de> {
         }
     }
 
+    /// Reads `n` bytes from the reader.
+    ///
+    /// Returns a slice of the given size (`n`) which is still owned by the
+    /// reader.
+    ///
+    /// # Errors
+    ///
+    /// If not enough data are available an [`Error::Eof`] error is returned.
     pub fn read_bytes(&mut self, n: usize) -> Result<&'de [u8]> {
         match self.buf.get(self.offs..self.offs + n) {
             Some(buf) => {
@@ -156,6 +173,13 @@ impl<'de> Reader<'de> {
         }
     }
 
+    /// Reads some bytes from the reader and puts them into the given buffer
+    /// `buf`.
+    ///
+    /// # Errors
+    ///
+    /// If not enough data are available to fill `buf` an [`Error::Eof`] error
+    /// is returned.
     pub fn read_bytes_to(&mut self, buf: &mut [u8]) -> Result<()> {
         self.read_bytes(buf.len()).map(|bytes| {
             buf.copy_from_slice(bytes);
