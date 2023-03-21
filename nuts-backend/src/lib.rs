@@ -27,6 +27,8 @@ use std::str::FromStr;
 use std::{error, result};
 
 use nuts_bytes::{FromBytes, ToBytes};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 /// The minimum size of a block.
 pub const BLOCK_MIN_SIZE: u32 = 512;
@@ -86,7 +88,7 @@ where
     /// [`Backend::open`] method is called to open the backend. Next, the
     /// container reads its header, extracts the settings from it and pass it
     /// down to the backend by calling the [`Backend::open_ready`] method.
-    type Settings: Clone + FromBytes + ToBytes;
+    type Settings: Clone + DeserializeOwned + Serialize;
 
     /// The error type used by methods of this trait.
     type Err: error::Error + Send + Sync;

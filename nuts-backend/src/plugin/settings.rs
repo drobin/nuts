@@ -20,11 +20,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use serde::{Deserialize, Serialize};
 use std::io::{Cursor, Read, Write};
 
 use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Settings(Vec<u8>);
 
 impl Settings {

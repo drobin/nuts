@@ -9,3 +9,4 @@ edition = "2021"
 libloading = "0.7.4"
 log = "0.4.14"
 nuts-bytes = { path = "../nuts-bytes" }
+serde = { version = "1.0.152", features = ["derive"] }

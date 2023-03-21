@@ -24,10 +24,9 @@
 mod tests;
 
 use nuts_backend::Backend;
-use nuts_bytes::{FromBytesExt, ToBytesExt};
 use serde::{Deserialize, Serialize};
-use std::io::Cursor;
 
+use crate::bytes::Options;
 use crate::container::error::ContainerResult;
 use crate::svec::SecureVec;
 
@@ -41,16 +40,13 @@ impl Settings {
     }
 
     pub fn from_backend<B: Backend>(settings: &B::Settings) -> ContainerResult<Settings, B> {
-        let mut cursor = Cursor::new(vec![]);
-
-        cursor.to_bytes(settings)?;
-
-        Ok(Settings(cursor.into_inner().into()))
+        let vec = Options::new().to_vec(settings)?;
+        Ok(Settings(vec.into()))
     }
 
     pub fn into_backend<B: Backend>(self) -> ContainerResult<B::Settings, B> {
-        let mut cursor = Cursor::new(self.0.as_ref());
-        Ok(cursor.from_bytes()?)
+        let settings = Options::new().from_bytes(&self.0.as_ref())?;
+        Ok(settings)
     }
 }
 
