@@ -26,7 +26,6 @@ use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use std::{error, result};
 
-use nuts_bytes::{FromBytes, ToBytes};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -47,7 +46,9 @@ pub trait Options<B: Backend> {
 }
 
 /// Trait identifies a block in the storage.
-pub trait BlockId: Clone + Debug + Display + FromBytes + FromStr + PartialEq + ToBytes {
+pub trait BlockId:
+    Clone + Debug + DeserializeOwned + Display + FromStr + PartialEq + Serialize
+{
     /// Creates a null-id.
     ///
     /// A null-id does not point to a block. It points to nowhere.

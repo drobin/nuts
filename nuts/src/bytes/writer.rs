@@ -101,6 +101,14 @@ impl<'a> Writer<'a> {
         }
     }
 
+    /// Returns the current position of the writer.
+    pub fn position(&self) -> usize {
+        match &self.target {
+            Target::Vec(vec) => vec.len(),
+            Target::Slice { buf: _, offs } => *offs,
+        }
+    }
+
     /// Consumes this writer, returning the underlying value.
     ///
     /// When writing into a slice, it is converted into a `Vec`.

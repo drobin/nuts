@@ -20,14 +20,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
+use std::{fmt, str::FromStr};
+
 use nuts_bytes::{FromBytes, ToBytes};
 
 use crate::BlockId;
 
-use std::convert::Infallible;
-use std::{fmt, str::FromStr};
-
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Id(String);
 
 impl Id {

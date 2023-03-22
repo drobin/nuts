@@ -71,7 +71,7 @@ impl ToBytes for MemSettings {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct MemId(u32);
 
 impl fmt::Display for MemId {

@@ -56,6 +56,11 @@ impl<'de> Reader<'de> {
         Reader { int, buf, offs: 0 }
     }
 
+    /// Returns the current position of the reader.
+    pub fn position(&self) -> usize {
+        self.offs
+    }
+
     /// Returns the slice of remaining (unread) data from the reader.
     ///
     /// If all data were consumed the returned slice is empty.

@@ -24,10 +24,11 @@ use std::{error, fmt, result};
 
 use nuts_backend::Backend;
 
+use crate::bytes;
 use crate::container::ContainerError;
 
 pub enum StreamError<B: Backend> {
-    Bytes(nuts_bytes::Error),
+    Bytes(bytes::Error),
     Container(ContainerError<B>),
     InvalidMagic,
 }
@@ -64,8 +65,8 @@ impl<B: Backend + 'static> error::Error for StreamError<B> {
     }
 }
 
-impl<B: Backend> From<nuts_bytes::Error> for StreamError<B> {
-    fn from(cause: nuts_bytes::Error) -> Self {
+impl<B: Backend> From<bytes::Error> for StreamError<B> {
+    fn from(cause: bytes::Error) -> Self {
         StreamError::Bytes(cause)
     }
 }

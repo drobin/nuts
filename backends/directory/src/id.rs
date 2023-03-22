@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -62,7 +63,7 @@ const HEX: [char; SIZE] = [
 /// When storing a block to disks the path to the file is derive from the id:
 /// * The id is converted into a hex string.
 /// * Ths path then would be: `<first two chars>/<next two chars>/<remaining chars>`
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct DirectoryId([u8; SIZE]);
 
 impl DirectoryId {

@@ -33,6 +33,7 @@ fn remaining_bytes() {
         .enumerate()
     {
         reader.offs = offs;
+        assert_eq!(reader.position(), offs);
         assert_eq!(reader.remaining_bytes(), buf);
     }
 }
@@ -42,16 +43,20 @@ fn fix_u8() {
     let mut reader = Reader::new(Int::Fix, &[1, 2, 3]);
 
     assert_eq!(reader.read_u8().unwrap(), 1);
+    assert_eq!(reader.position(), 1);
     assert_eq!(reader.remaining_bytes(), [2, 3]);
 
     assert_eq!(reader.read_u8().unwrap(), 2);
+    assert_eq!(reader.position(), 2);
     assert_eq!(reader.remaining_bytes(), [3]);
 
     assert_eq!(reader.read_u8().unwrap(), 3);
+    assert_eq!(reader.position(), 3);
     assert_eq!(reader.remaining_bytes(), []);
 
     let err = reader.read_u8().unwrap_err();
     assert_eq!(err, Error::Eof);
+    assert_eq!(reader.position(), 3);
     assert_eq!(reader.remaining_bytes(), []);
 }
 
@@ -60,13 +65,16 @@ fn fix_u16() {
     let mut reader = Reader::new(Int::Fix, &[1, 2, 3, 4, 5]);
 
     assert_eq!(reader.read_u16().unwrap(), 0x0102);
+    assert_eq!(reader.position(), 2);
     assert_eq!(reader.remaining_bytes(), [3, 4, 5]);
 
     assert_eq!(reader.read_u16().unwrap(), 0x0304);
+    assert_eq!(reader.position(), 4);
     assert_eq!(reader.remaining_bytes(), [5]);
 
     let err = reader.read_u16().unwrap_err();
     assert_eq!(err, Error::Eof);
+    assert_eq!(reader.position(), 4);
     assert_eq!(reader.remaining_bytes(), [5]);
 }
 
@@ -75,13 +83,16 @@ fn fix_u32() {
     let mut reader = Reader::new(Int::Fix, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 
     assert_eq!(reader.read_u32().unwrap(), 0x01020304);
+    assert_eq!(reader.position(), 4);
     assert_eq!(reader.remaining_bytes(), [5, 6, 7, 8, 9, 10, 11]);
 
     assert_eq!(reader.read_u32().unwrap(), 0x05060708);
+    assert_eq!(reader.position(), 8);
     assert_eq!(reader.remaining_bytes(), [9, 10, 11]);
 
     let err = reader.read_u32().unwrap_err();
     assert_eq!(err, Error::Eof);
+    assert_eq!(reader.position(), 8);
     assert_eq!(reader.remaining_bytes(), [9, 10, 11]);
 }
 
@@ -95,16 +106,19 @@ fn fix_u64() {
     );
 
     assert_eq!(reader.read_u64().unwrap(), 0x0102030405060708);
+    assert_eq!(reader.position(), 8);
     assert_eq!(
         reader.remaining_bytes(),
         [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,]
     );
 
     assert_eq!(reader.read_u64().unwrap(), 0x090A0B0C0D0E0F10);
+    assert_eq!(reader.position(), 16);
     assert_eq!(reader.remaining_bytes(), [17, 18, 19, 20, 21, 22, 23]);
 
     let err = reader.read_u64().unwrap_err();
     assert_eq!(err, Error::Eof);
+    assert_eq!(reader.position(), 16);
     assert_eq!(reader.remaining_bytes(), [17, 18, 19, 20, 21, 22, 23]);
 }
 
@@ -123,6 +137,7 @@ fn fix_u128() {
         reader.read_u128().unwrap(),
         0x0102030405060708090A0B0C0D0E0F10
     );
+    assert_eq!(reader.position(), 16);
     assert_eq!(
         reader.remaining_bytes(),
         [
@@ -135,6 +150,7 @@ fn fix_u128() {
         reader.read_u128().unwrap(),
         0x1112131415161718191a1b1c1d1e1f20
     );
+    assert_eq!(reader.position(), 32);
     assert_eq!(
         reader.remaining_bytes(),
         [33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,]
@@ -142,6 +158,7 @@ fn fix_u128() {
 
     let err = reader.read_u128().unwrap_err();
     assert_eq!(err, Error::Eof);
+    assert_eq!(reader.position(), 32);
     assert_eq!(
         reader.remaining_bytes(),
         [33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,]
@@ -153,16 +170,20 @@ fn var_u8() {
     let mut reader = Reader::new(Int::Var, &[1, 2, 3]);
 
     assert_eq!(reader.read_u8().unwrap(), 1);
+    assert_eq!(reader.position(), 1);
     assert_eq!(reader.remaining_bytes(), [2, 3]);
 
     assert_eq!(reader.read_u8().unwrap(), 2);
+    assert_eq!(reader.position(), 2);
     assert_eq!(reader.remaining_bytes(), [3]);
 
     assert_eq!(reader.read_u8().unwrap(), 3);
+    assert_eq!(reader.position(), 3);
     assert_eq!(reader.remaining_bytes(), []);
 
     let err = reader.read_u8().unwrap_err();
     assert_eq!(err, Error::Eof);
+    assert_eq!(reader.position(), 3);
     assert_eq!(reader.remaining_bytes(), []);
 }
 
@@ -178,6 +199,7 @@ fn var_u16() {
     ] {
         let mut reader = Reader::new(Int::Var, &buf);
         assert_eq!(reader.read_u16().unwrap(), n);
+        assert_eq!(reader.position(), buf.len());
     }
 
     for (buf, t) in [
@@ -187,6 +209,7 @@ fn var_u16() {
     ] {
         let mut reader = Reader::new(Int::Var, &buf);
         let err = reader.read_u16().unwrap_err();
+        assert_eq!(reader.position(), 1);
         assert_eq!(
             err,
             Error::InvalidInteger {
@@ -214,11 +237,13 @@ fn var_u32() {
     ] {
         let mut reader = Reader::new(Int::Var, &buf);
         assert_eq!(reader.read_u32().unwrap(), n);
+        assert_eq!(reader.position(), buf.len());
     }
 
     for (buf, t) in [(vec![253], IntType::U64), (vec![254], IntType::U128)] {
         let mut reader = Reader::new(Int::Var, &buf);
         let err = reader.read_u32().unwrap_err();
+        assert_eq!(reader.position(), 1);
         assert_eq!(
             err,
             Error::InvalidInteger {
@@ -267,11 +292,13 @@ fn var_u64() {
     ] {
         let mut reader = Reader::new(Int::Var, &buf);
         assert_eq!(reader.read_u64().unwrap(), n);
+        assert_eq!(reader.position(), buf.len());
     }
 
     for (buf, t) in [(vec![254], IntType::U128)] {
         let mut reader = Reader::new(Int::Var, &buf);
         let err = reader.read_u64().unwrap_err();
+        assert_eq!(reader.position(), 1);
         assert_eq!(
             err,
             Error::InvalidInteger {
@@ -417,6 +444,7 @@ fn var_u128() {
     ] {
         let mut reader = Reader::new(Int::Var, &buf);
         assert_eq!(reader.read_u128().unwrap(), n);
+        assert_eq!(reader.position(), buf.len());
     }
 }
 
@@ -447,26 +475,31 @@ fn bytes_to() {
 
     let mut buf = [];
     reader.read_bytes_to(&mut buf).unwrap();
+    assert_eq!(reader.position(), 0);
     assert_eq!(reader.remaining_bytes(), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
     let mut buf = [0; 1];
     reader.read_bytes_to(&mut buf).unwrap();
     assert_eq!(buf, [1]);
+    assert_eq!(reader.position(), 1);
     assert_eq!(reader.remaining_bytes(), [2, 3, 4, 5, 6, 7, 8, 9]);
 
     let mut buf = [0; 2];
     reader.read_bytes_to(&mut buf).unwrap();
     assert_eq!(buf, [2, 3]);
+    assert_eq!(reader.position(), 3);
     assert_eq!(reader.remaining_bytes(), [4, 5, 6, 7, 8, 9]);
 
     let mut buf = [0; 3];
     reader.read_bytes_to(&mut buf).unwrap();
     assert_eq!(buf, [4, 5, 6]);
+    assert_eq!(reader.position(), 6);
     assert_eq!(reader.remaining_bytes(), [7, 8, 9]);
 
     let mut buf = [0; 4];
     let err = reader.read_bytes_to(&mut buf).unwrap_err();
     assert_eq!(err, Error::Eof);
     assert_eq!(buf, [0, 0, 0, 0]);
+    assert_eq!(reader.position(), 6);
     assert_eq!(reader.remaining_bytes(), [7, 8, 9]);
 }

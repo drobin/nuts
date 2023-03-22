@@ -28,14 +28,13 @@ mod read;
 mod walk;
 mod write;
 
-use std::io::{Cursor, Write};
-
 use nuts_backend::{Backend, BlockId};
-use nuts_bytes::ToBytesExt;
+use serde::Serialize;
 
 use crate::container::{Cipher, Container, CreateOptionsBuilder};
 use crate::memory::{MemId, MemOptions, MemoryBackend};
 use crate::openssl::rand::RND;
+use crate::stream::bytes_options;
 
 const MAX_PAYLOAD: usize = 493;
 
@@ -81,21 +80,20 @@ fn make_block<B: Backend>(
     next: &B::Id,
     payload: &[u8],
 ) {
-    let mut cursor = Cursor::new(vec![]);
+    let mut writer = bytes_options().build_vec_writer(vec![]);
 
     if first {
-        cursor.write_bytes(b"stream0").unwrap();
+        writer.write_bytes(b"stream0").unwrap();
     } else {
-        cursor.write_bytes(b"streamn").unwrap();
+        writer.write_bytes(b"streamn").unwrap();
     }
 
-    cursor.to_bytes(prev).unwrap(); // prev
-    cursor.to_bytes(next).unwrap(); // next
-    cursor.to_bytes(&(payload.len() as u32)).unwrap(); // length
-    cursor.write_bytes(payload).unwrap();
-    cursor.flush().unwrap();
+    prev.serialize(&mut writer).unwrap(); // prev
+    next.serialize(&mut writer).unwrap(); // next
+    writer.write_u32(payload.len() as u32).unwrap(); // length
+    writer.write_bytes(payload).unwrap();
 
-    container.write(&id, &cursor.into_inner()).unwrap();
+    container.write(&id, &writer.into_vec()).unwrap();
 }
 
 fn setup_one() -> (Container<MemoryBackend>, MemId) {

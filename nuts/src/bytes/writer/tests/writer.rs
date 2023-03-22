@@ -29,15 +29,19 @@ fn bytes_vec() {
     let mut writer = Writer::for_vec(Int::Fix, vec![]);
 
     writer.write_bytes(&[]).unwrap();
+    assert_eq!(writer.position(), 0);
     assert_eq!(writer.as_slice(), []);
 
     writer.write_bytes(&[1]).unwrap();
+    assert_eq!(writer.position(), 1);
     assert_eq!(writer.as_slice(), [1]);
 
     writer.write_bytes(&[2, 3]).unwrap();
+    assert_eq!(writer.position(), 3);
     assert_eq!(writer.as_slice(), [1, 2, 3]);
 
     writer.write_bytes(&[4, 5, 6]).unwrap();
+    assert_eq!(writer.position(), 6);
     assert_eq!(writer.as_slice(), [1, 2, 3, 4, 5, 6]);
 }
 
@@ -47,19 +51,24 @@ fn bytes_slice() {
     let mut writer = Writer::for_slice(Int::Fix, &mut buf);
 
     writer.write_bytes(&[]).unwrap();
+    assert_eq!(writer.position(), 0);
     assert_eq!(writer.as_slice(), [0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
     writer.write_bytes(&[1]).unwrap();
+    assert_eq!(writer.position(), 1);
     assert_eq!(writer.as_slice(), [1, 0, 0, 0, 0, 0, 0, 0, 0]);
 
     writer.write_bytes(&[2, 3]).unwrap();
+    assert_eq!(writer.position(), 3);
     assert_eq!(writer.as_slice(), [1, 2, 3, 0, 0, 0, 0, 0, 0]);
 
     writer.write_bytes(&[4, 5, 6]).unwrap();
+    assert_eq!(writer.position(), 6);
     assert_eq!(writer.as_slice(), [1, 2, 3, 4, 5, 6, 0, 0, 0]);
 
     let err = writer.write_bytes(&[7, 8, 9, 10]).unwrap_err();
     assert_eq!(err, Error::NoSpace);
+    assert_eq!(writer.position(), 6);
     assert_eq!(writer.as_slice(), [1, 2, 3, 4, 5, 6, 0, 0, 0]);
 }
 
@@ -68,8 +77,11 @@ fn fix_u8_vec() {
     let mut writer = Writer::for_vec(Int::Fix, vec![]);
 
     writer.write_u8(1).unwrap();
+    assert_eq!(writer.position(), 1);
     writer.write_u8(2).unwrap();
+    assert_eq!(writer.position(), 2);
     writer.write_u8(3).unwrap();
+    assert_eq!(writer.position(), 3);
 
     assert_eq!(writer.into_vec(), [1, 2, 3]);
 }
@@ -80,8 +92,11 @@ fn fix_u8_slice() {
     let mut writer = Writer::for_slice(Int::Fix, &mut buf);
 
     writer.write_u8(1).unwrap();
+    assert_eq!(writer.position(), 1);
     writer.write_u8(2).unwrap();
+    assert_eq!(writer.position(), 2);
     let err = writer.write_u8(3).unwrap_err();
+    assert_eq!(writer.position(), 2);
 
     assert_eq!(writer.into_vec(), [1, 2]);
     assert_eq!(err, Error::NoSpace);
@@ -92,7 +107,9 @@ fn fix_u16_vec() {
     let mut writer = Writer::for_vec(Int::Fix, vec![]);
 
     writer.write_u16(1).unwrap();
+    assert_eq!(writer.position(), 2);
     writer.write_u16(2).unwrap();
+    assert_eq!(writer.position(), 4);
 
     assert_eq!(writer.into_vec(), [0x00, 0x01, 0x00, 0x02]);
 }
@@ -103,8 +120,11 @@ fn fix_u16_slice() {
     let mut writer = Writer::for_slice(Int::Fix, &mut buf);
 
     writer.write_u16(1).unwrap();
+    assert_eq!(writer.position(), 2);
     writer.write_u16(2).unwrap();
+    assert_eq!(writer.position(), 4);
     let err = writer.write_u16(3).unwrap_err();
+    assert_eq!(writer.position(), 4);
 
     assert_eq!(writer.into_vec(), [0x00, 0x01, 0x00, 0x02, b'x']);
     assert_eq!(err, Error::NoSpace);
@@ -115,7 +135,9 @@ fn fix_u32_vec() {
     let mut writer = Writer::for_vec(Int::Fix, vec![]);
 
     writer.write_u32(1).unwrap();
+    assert_eq!(writer.position(), 4);
     writer.write_u32(2).unwrap();
+    assert_eq!(writer.position(), 8);
 
     assert_eq!(
         writer.into_vec(),
@@ -129,8 +151,11 @@ fn fix_u32_slice() {
     let mut writer = Writer::for_slice(Int::Fix, &mut buf);
 
     writer.write_u32(1).unwrap();
+    assert_eq!(writer.position(), 4);
     writer.write_u32(2).unwrap();
+    assert_eq!(writer.position(), 8);
     let err = writer.write_u32(3).unwrap_err();
+    assert_eq!(writer.position(), 8);
 
     assert_eq!(
         writer.into_vec(),
@@ -144,7 +169,9 @@ fn fix_u64_vec() {
     let mut writer = Writer::for_vec(Int::Fix, vec![]);
 
     writer.write_u64(1).unwrap();
+    assert_eq!(writer.position(), 8);
     writer.write_u64(2).unwrap();
+    assert_eq!(writer.position(), 16);
 
     assert_eq!(
         writer.into_vec(),
@@ -161,8 +188,11 @@ fn fix_u64_slice() {
     let mut writer = Writer::for_slice(Int::Fix, &mut buf);
 
     writer.write_u64(1).unwrap();
+    assert_eq!(writer.position(), 8);
     writer.write_u64(2).unwrap();
+    assert_eq!(writer.position(), 16);
     let err = writer.write_u64(3).unwrap_err();
+    assert_eq!(writer.position(), 16);
 
     assert_eq!(
         writer.into_vec(),
@@ -179,7 +209,9 @@ fn fix_u128_vec() {
     let mut writer = Writer::for_vec(Int::Fix, vec![]);
 
     writer.write_u128(1).unwrap();
+    assert_eq!(writer.position(), 16);
     writer.write_u128(2).unwrap();
+    assert_eq!(writer.position(), 32);
 
     assert_eq!(
         writer.into_vec(),
@@ -197,8 +229,11 @@ fn fix_u128_slice() {
     let mut writer = Writer::for_slice(Int::Fix, &mut buf);
 
     writer.write_u128(1).unwrap();
+    assert_eq!(writer.position(), 16);
     writer.write_u128(2).unwrap();
+    assert_eq!(writer.position(), 32);
     let err = writer.write_u128(3).unwrap_err();
+    assert_eq!(writer.position(), 32);
 
     assert_eq!(
         writer.into_vec(),
@@ -217,8 +252,11 @@ fn var_u8_vec() {
     let mut writer = Writer::for_vec(Int::Var, vec![]);
 
     writer.write_u8(1).unwrap();
+    assert_eq!(writer.position(), 1);
     writer.write_u8(2).unwrap();
+    assert_eq!(writer.position(), 2);
     writer.write_u8(3).unwrap();
+    assert_eq!(writer.position(), 3);
 
     assert_eq!(writer.into_vec(), [1, 2, 3]);
 }
@@ -229,8 +267,11 @@ fn var_u8_slice() {
     let mut writer = Writer::for_slice(Int::Var, &mut buf);
 
     writer.write_u8(1).unwrap();
+    assert_eq!(writer.position(), 1);
     writer.write_u8(2).unwrap();
+    assert_eq!(writer.position(), 2);
     let err = writer.write_u8(3).unwrap_err();
+    assert_eq!(writer.position(), 2);
 
     assert_eq!(writer.into_vec(), [1, 2]);
     assert_eq!(err, Error::NoSpace);
@@ -249,24 +290,26 @@ fn var_u16_vec() {
         let mut writer = Writer::for_vec(Int::Var, vec![]);
 
         writer.write_u16(n).unwrap();
+        assert_eq!(writer.position(), buf.len());
         assert_eq!(writer.into_vec(), buf);
     }
 }
 
 #[test]
 fn var_u16_slice() {
-    for (n, buf) in [
-        (0, [0, b'x', b'x']),
-        (64, [64, b'x', b'x']),
-        (250, [250, b'x', b'x']),
-        (251, [251, 0, 0xfb]),
-        (0xff, [251, 0, 0xff]),
-        (0xffff, [251, 0xff, 0xff]),
+    for (n, buf, pos) in [
+        (0, [0, b'x', b'x'], 1),
+        (64, [64, b'x', b'x'], 1),
+        (250, [250, b'x', b'x'], 1),
+        (251, [251, 0, 0xfb], 3),
+        (0xff, [251, 0, 0xff], 3),
+        (0xffff, [251, 0xff, 0xff], 3),
     ] {
         let mut out = [b'x'; 3];
         let mut writer = Writer::for_slice(Int::Var, &mut out);
 
         writer.write_u16(n).unwrap();
+        assert_eq!(writer.position(), pos);
         assert_eq!(out, buf);
     }
 
@@ -300,27 +343,29 @@ fn var_u32_vec() {
         let mut writer = Writer::for_vec(Int::Var, vec![]);
 
         writer.write_u32(n).unwrap();
+        assert_eq!(writer.position(), buf.len());
         assert_eq!(writer.into_vec(), buf);
     }
 }
 
 #[test]
 fn var_u32_slice() {
-    for (n, buf) in [
-        (0, [0, b'x', b'x', b'x', b'x']),
-        (64, [64, b'x', b'x', b'x', b'x']),
-        (250, [250, b'x', b'x', b'x', b'x']),
-        (251, [251, 0, 0xfb, b'x', b'x']),
-        (0xff, [251, 0, 0xff, b'x', b'x']),
-        (0xffff, [251, 0xff, 0xff, b'x', b'x']),
-        (0x010000, [252, 0x00, 0x01, 0x00, 0x00]),
-        (0xffffff, [252, 0x00, 0xff, 0xff, 0xff]),
-        (0xffffffff, [252, 0xff, 0xff, 0xff, 0xff]),
+    for (n, buf, pos) in [
+        (0, [0, b'x', b'x', b'x', b'x'], 1),
+        (64, [64, b'x', b'x', b'x', b'x'], 1),
+        (250, [250, b'x', b'x', b'x', b'x'], 1),
+        (251, [251, 0, 0xfb, b'x', b'x'], 3),
+        (0xff, [251, 0, 0xff, b'x', b'x'], 3),
+        (0xffff, [251, 0xff, 0xff, b'x', b'x'], 3),
+        (0x010000, [252, 0x00, 0x01, 0x00, 0x00], 5),
+        (0xffffff, [252, 0x00, 0xff, 0xff, 0xff], 5),
+        (0xffffffff, [252, 0xff, 0xff, 0xff, 0xff], 5),
     ] {
         let mut out = [b'x'; 5];
         let mut writer = Writer::for_slice(Int::Var, &mut out);
 
         writer.write_u32(n).unwrap();
+        assert_eq!(writer.position(), pos);
         assert_eq!(out, buf);
     }
 
@@ -381,59 +426,74 @@ fn var_u64_vec() {
         let mut writer = Writer::for_vec(Int::Var, vec![]);
 
         writer.write_u64(n).unwrap();
+        assert_eq!(writer.position(), buf.len());
         assert_eq!(writer.into_vec(), buf);
     }
 }
 
 #[test]
 fn var_u64_slice() {
-    for (n, buf) in [
-        (0, [0, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x']),
-        (64, [64, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x']),
-        (250, [250, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x']),
-        (251, [251, 0, 0xfb, b'x', b'x', b'x', b'x', b'x', b'x']),
-        (0xff, [251, 0, 0xff, b'x', b'x', b'x', b'x', b'x', b'x']),
+    for (n, buf, pos) in [
+        (0, [0, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x'], 1),
+        (64, [64, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x'], 1),
+        (
+            250,
+            [250, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x'],
+            1,
+        ),
+        (251, [251, 0, 0xfb, b'x', b'x', b'x', b'x', b'x', b'x'], 3),
+        (0xff, [251, 0, 0xff, b'x', b'x', b'x', b'x', b'x', b'x'], 3),
         (
             0xffff,
             [251, 0xff, 0xff, b'x', b'x', b'x', b'x', b'x', b'x'],
+            3,
         ),
         (
             0x010000,
             [252, 0x00, 0x01, 0x00, 0x00, b'x', b'x', b'x', b'x'],
+            5,
         ),
         (
             0xffffff,
             [252, 0x00, 0xff, 0xff, 0xff, b'x', b'x', b'x', b'x'],
+            5,
         ),
         (
             0xffffffff,
             [252, 0xff, 0xff, 0xff, 0xff, b'x', b'x', b'x', b'x'],
+            5,
         ),
         (
             0x100000000,
             [253, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00],
+            9,
         ),
         (
             0xffffffffff,
             [253, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff],
+            9,
         ),
         (
             0xffffffffffff,
             [253, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
+            9,
         ),
         (
             0xffffffffffffff,
             [253, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
+            9,
         ),
         (
             0xffffffffffffffff,
             [253, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
+            9,
         ),
     ] {
         let mut out = [b'x'; 9];
         let mut writer = Writer::for_slice(Int::Var, &mut out);
 
         writer.write_u64(n).unwrap();
+        assert_eq!(writer.position(), pos);
         assert_eq!(out, buf);
     }
 
@@ -564,19 +624,21 @@ fn var_u128_vec() {
         let mut writer = Writer::for_vec(Int::Var, vec![]);
 
         writer.write_u128(n).unwrap();
+        assert_eq!(writer.position(), buf.len());
         assert_eq!(writer.into_vec(), buf);
     }
 }
 
 #[test]
 fn var_u128_slice() {
-    for (n, buf) in [
+    for (n, buf, pos) in [
         (
             0,
             [
                 0, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            1,
         ),
         (
             64,
@@ -584,6 +646,7 @@ fn var_u128_slice() {
                 64, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            1,
         ),
         (
             250,
@@ -591,6 +654,7 @@ fn var_u128_slice() {
                 250, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            1,
         ),
         (
             251,
@@ -598,6 +662,7 @@ fn var_u128_slice() {
                 251, 0, 0xfb, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            3,
         ),
         (
             0xff,
@@ -605,6 +670,7 @@ fn var_u128_slice() {
                 251, 0, 0xff, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            3,
         ),
         (
             0xffff,
@@ -612,6 +678,7 @@ fn var_u128_slice() {
                 251, 0xff, 0xff, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            3,
         ),
         (
             0x010000,
@@ -619,6 +686,7 @@ fn var_u128_slice() {
                 252, 0x00, 0x01, 0x00, 0x00, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            5,
         ),
         (
             0xffffff,
@@ -626,6 +694,7 @@ fn var_u128_slice() {
                 252, 0x00, 0xff, 0xff, 0xff, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            5,
         ),
         (
             0xffffffff,
@@ -633,6 +702,7 @@ fn var_u128_slice() {
                 252, 0xff, 0xff, 0xff, 0xff, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            5,
         ),
         (
             0x100000000,
@@ -640,6 +710,7 @@ fn var_u128_slice() {
                 253, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            9,
         ),
         (
             0xffffffffff,
@@ -647,6 +718,7 @@ fn var_u128_slice() {
                 253, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            9,
         ),
         (
             0xffffffffffff,
@@ -654,6 +726,7 @@ fn var_u128_slice() {
                 253, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            9,
         ),
         (
             0xffffffffffffff,
@@ -661,6 +734,7 @@ fn var_u128_slice() {
                 253, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            9,
         ),
         (
             0xffffffffffffffff,
@@ -668,6 +742,7 @@ fn var_u128_slice() {
                 253, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, b'x', b'x', b'x', b'x', b'x',
                 b'x', b'x', b'x',
             ],
+            9,
         ),
         (
             0x10000000000000000,
@@ -675,6 +750,7 @@ fn var_u128_slice() {
                 254, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00,
             ],
+            17,
         ),
         (
             0xffffffffffffffffff,
@@ -682,6 +758,7 @@ fn var_u128_slice() {
                 254, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                 0xff, 0xff, 0xff,
             ],
+            17,
         ),
         (
             0xffffffffffffffffffff,
@@ -689,6 +766,7 @@ fn var_u128_slice() {
                 254, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                 0xff, 0xff, 0xff,
             ],
+            17,
         ),
         (
             0xffffffffffffffffffffff,
@@ -696,6 +774,7 @@ fn var_u128_slice() {
                 254, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                 0xff, 0xff, 0xff,
             ],
+            17,
         ),
         (
             0xffffffffffffffffffffffff,
@@ -703,6 +782,7 @@ fn var_u128_slice() {
                 254, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                 0xff, 0xff, 0xff,
             ],
+            17,
         ),
         (
             0xffffffffffffffffffffffffff,
@@ -710,6 +790,7 @@ fn var_u128_slice() {
                 254, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                 0xff, 0xff, 0xff,
             ],
+            17,
         ),
         (
             0xffffffffffffffffffffffffffff,
@@ -717,6 +798,7 @@ fn var_u128_slice() {
                 254, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                 0xff, 0xff, 0xff,
             ],
+            17,
         ),
         (
             0xffffffffffffffffffffffffffffff,
@@ -724,6 +806,7 @@ fn var_u128_slice() {
                 254, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                 0xff, 0xff, 0xff,
             ],
+            17,
         ),
         (
             0xffffffffffffffffffffffffffffffff,
@@ -731,12 +814,14 @@ fn var_u128_slice() {
                 254, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                 0xff, 0xff, 0xff,
             ],
+            17,
         ),
     ] {
         let mut out = [b'x'; 17];
         let mut writer = Writer::for_slice(Int::Var, &mut out);
 
         writer.write_u128(n).unwrap();
+        assert_eq!(writer.position(), pos);
         assert_eq!(out, buf);
     }
 

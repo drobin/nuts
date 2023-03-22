@@ -32,10 +32,15 @@ use std::{any, cmp, fmt, io};
 
 use nuts_backend::Backend;
 
+use crate::bytes::Options;
 use crate::container::Container;
 use crate::stream::block::Block;
 
 pub use error::{StreamError, StreamResult};
+
+fn bytes_options() -> Options {
+    Options::new().with_fixint()
+}
 
 macro_rules! init_last {
     ($self:expr) => {
