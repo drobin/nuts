@@ -95,6 +95,22 @@ pub struct DirectorySettings {
     pub(crate) bsize: u32,
 }
 
+impl DirectorySettings {
+    pub(crate) fn from_vec(vec: Vec<u8>) -> DirectorySettings {
+        let mut bytes = [0; 4];
+
+        bytes.copy_from_slice(&vec[..4]);
+
+        DirectorySettings {
+            bsize: u32::from_be_bytes(bytes),
+        }
+    }
+
+    pub(crate) fn into_vec(self) -> Vec<u8> {
+        self.bsize.to_be_bytes().to_vec()
+    }
+}
+
 impl FromBytes for DirectorySettings {
     fn from_bytes<R: Read>(source: &mut R) -> result::Result<Self, nuts_bytes::Error> {
         let bsize = source.from_bytes()?;

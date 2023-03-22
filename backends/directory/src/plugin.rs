@@ -24,7 +24,7 @@ use nuts_backend::plugin::{self, Info, Plugin};
 use nuts_backend::{declare_plugin, Backend, Options};
 use std::path::Path;
 
-use crate::{DirectoryBackend, DirectoryCreateOptions, DirectoryOpenOptions};
+use crate::{DirectoryBackend, DirectoryCreateOptions, DirectoryOpenOptions, DirectorySettings};
 
 pub struct DirectoryPlugin(Option<DirectoryBackend>);
 
@@ -78,7 +78,7 @@ impl Plugin for DirectoryPlugin {
 
         self.0 = Some(backend);
 
-        Ok(plugin::Settings::to_bytes(&settings)?)
+        Ok(settings.into_vec().into())
     }
 
     fn open(&mut self, options: plugin::OpenOptions) -> plugin::Result<()> {
@@ -100,7 +100,7 @@ impl Plugin for DirectoryPlugin {
     fn open_ready(&mut self, settings: plugin::Settings) -> plugin::Result<()> {
         match self.0.as_mut() {
             Some(backend) => {
-                let settings = settings.from_bytes()?;
+                let settings = DirectorySettings::from_vec(settings.into());
 
                 Ok(backend.open_ready(settings))
             }

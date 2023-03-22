@@ -21,39 +21,18 @@
 // IN THE SOFTWARE.
 
 use serde::{Deserialize, Serialize};
-use std::io::{Cursor, Read, Write};
-
-use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Settings(Vec<u8>);
 
-impl Settings {
-    pub fn to_bytes<B: ToBytes>(b: &B) -> nuts_bytes::Result<Settings> {
-        let mut cursor = Cursor::new(vec![]);
-
-        cursor.to_bytes(b)?;
-        cursor.flush()?;
-
-        Ok(Settings(cursor.into_inner()))
-    }
-
-    pub fn from_bytes<B: FromBytes>(self) -> nuts_bytes::Result<B> {
-        Cursor::new(&self.0).from_bytes()
+impl From<Vec<u8>> for Settings {
+    fn from(vec: Vec<u8>) -> Self {
+        Settings(vec)
     }
 }
 
-impl FromBytes for Settings {
-    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
-        let mut vec = vec![];
-        source.read_to_end(&mut vec).unwrap();
-
-        Ok(Settings(vec))
-    }
-}
-
-impl ToBytes for Settings {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
-        target.write_bytes(&self.0)
+impl From<Settings> for Vec<u8> {
+    fn from(settings: Settings) -> Self {
+        settings.0
     }
 }

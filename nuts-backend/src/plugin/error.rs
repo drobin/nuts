@@ -26,7 +26,6 @@ use std::{error, fmt, result};
 pub enum Error {
     Open,
     Closed,
-    Bytes(nuts_bytes::Error),
     NoSuchOption(String),
     InvalidOption(String),
     Backend(Box<dyn error::Error + Send + Sync>),
@@ -37,7 +36,6 @@ impl fmt::Display for Error {
         match self {
             Error::Open => write!(fmt, "The backend is already open"),
             Error::Closed => write!(fmt, "The backend is not open"),
-            Error::Bytes(cause) => fmt::Display::fmt(cause, fmt),
             Error::NoSuchOption(option) => write!(fmt, "No such option: {}", option),
             Error::InvalidOption(option) => write!(fmt, "Invalid option: {}", option),
             Error::Backend(cause) => fmt::Display::fmt(cause, fmt),
@@ -46,11 +44,5 @@ impl fmt::Display for Error {
 }
 
 impl error::Error for Error {}
-
-impl From<nuts_bytes::Error> for Error {
-    fn from(cause: nuts_bytes::Error) -> Self {
-        Error::Bytes(cause)
-    }
-}
 
 pub type Result<T> = result::Result<T, Error>;

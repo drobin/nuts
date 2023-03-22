@@ -24,8 +24,6 @@ use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::{fmt, str::FromStr};
 
-use nuts_bytes::{FromBytes, ToBytes};
-
 use crate::BlockId;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -58,22 +56,6 @@ impl FromStr for Id {
 impl fmt::Display for Id {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-impl FromBytes for Id {
-    fn from_bytes<R: std::io::Read>(_source: &mut R) -> nuts_bytes::Result<Self> {
-        // As long as nuts-tools does not perform any binary conversion,
-        // this method can be unimplemented.
-        unimplemented!()
-    }
-}
-
-impl ToBytes for Id {
-    fn to_bytes<W: std::io::Write>(&self, _target: &mut W) -> nuts_bytes::Result<()> {
-        // As long as nuts-tools does not perform any binary conversion,
-        // this method can be unimplemented.
-        unimplemented!()
     }
 }
 
