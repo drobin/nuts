@@ -22,6 +22,7 @@
 
 //! Transformation from/to binary streams.
 
+pub mod bytes;
 #[cfg(test)]
 mod tests;
 

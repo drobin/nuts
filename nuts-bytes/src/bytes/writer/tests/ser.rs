@@ -24,6 +24,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 
 use crate::bytes::error::Error;
+use crate::bytes::into_error;
 use crate::bytes::options::Options;
 
 #[test]

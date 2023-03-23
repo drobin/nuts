@@ -31,8 +31,8 @@ use log::{debug, warn};
 use std::{any, cmp, fmt, io};
 
 use nuts_backend::Backend;
+use nuts_bytes::bytes::Options;
 
-use crate::bytes::Options;
 use crate::container::Container;
 use crate::stream::block::Block;
 

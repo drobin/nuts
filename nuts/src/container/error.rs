@@ -24,7 +24,6 @@ use std::{error, fmt, result};
 
 use nuts_backend::Backend;
 
-use crate::bytes;
 use crate::openssl::OpenSSLError;
 
 /// Error type used by this module.
@@ -36,7 +35,7 @@ pub enum ContainerError<B: Backend> {
     NutsBytes(nuts_bytes::Error),
 
     /// Error while (de-) serializing binary data.
-    Bytes(bytes::Error),
+    Bytes(nuts_bytes::bytes::Error),
 
     /// An error in the OpenSSL library occured.
     OpenSSL(OpenSSLError),
@@ -45,7 +44,7 @@ pub enum ContainerError<B: Backend> {
     NoPassword(Option<String>),
 
     /// The password is wrong.
-    WrongPassword(bytes::Error),
+    WrongPassword(nuts_bytes::bytes::Error),
 
     /// Try to read/write from/to a null-id which is forbidden.
     NullId,
@@ -104,10 +103,10 @@ impl<B: Backend> From<nuts_bytes::Error> for ContainerError<B> {
     }
 }
 
-impl<B: Backend> From<bytes::Error> for ContainerError<B> {
-    fn from(cause: bytes::Error) -> Self {
+impl<B: Backend> From<nuts_bytes::bytes::Error> for ContainerError<B> {
+    fn from(cause: nuts_bytes::bytes::Error) -> Self {
         match &cause {
-            bytes::Error::Serde(msg) => {
+            nuts_bytes::bytes::Error::Serde(msg) => {
                 if msg == "secret-magic mismatch" {
                     return ContainerError::WrongPassword(cause);
                 }

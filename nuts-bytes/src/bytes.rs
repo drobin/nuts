@@ -29,3 +29,16 @@ pub use error::{Error, IntType, Result};
 pub use options::Options;
 pub use reader::Reader;
 pub use writer::Writer;
+
+#[cfg(test)]
+macro_rules! into_error {
+    ($err:expr, $type:ident :: $memb:ident) => {
+        match $err {
+            $type::$memb(cause) => cause,
+            _ => panic!("invalid error:"),
+        }
+    };
+}
+
+#[cfg(test)]
+pub(crate) use into_error;

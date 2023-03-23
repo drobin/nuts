@@ -22,7 +22,8 @@
 
 use std::rc::Rc;
 
-use crate::bytes::{Error as BytesError, Options};
+use nuts_bytes::bytes::{Error as BytesError, Options};
+
 use crate::container::cipher::Cipher;
 use crate::container::error::ContainerError;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};

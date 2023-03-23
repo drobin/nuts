@@ -24,8 +24,8 @@ use serde::{Deserialize, Serialize};
 use std::{cmp, mem};
 
 use nuts_backend::{Backend, BlockId};
+use nuts_bytes::bytes::{Reader, Writer};
 
-use crate::bytes::{Reader, Writer};
 use crate::container::Container;
 use crate::stream::bytes_options;
 use crate::stream::error::{StreamError, StreamResult};

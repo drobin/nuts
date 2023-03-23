@@ -28,8 +28,8 @@ mod settings;
 use std::fmt::{self, Write as FmtWrite};
 
 use nuts_backend::Backend;
+use nuts_bytes::bytes::Options;
 
-use crate::bytes::Options;
 use crate::container::cipher::Cipher;
 use crate::container::error::ContainerResult;
 use crate::container::header::inner::{Inner, Revision};

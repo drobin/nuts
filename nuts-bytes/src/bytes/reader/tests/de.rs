@@ -25,6 +25,7 @@ use std::collections::HashMap;
 use serde::Deserialize;
 
 use crate::bytes::error::Error;
+use crate::bytes::into_error;
 use crate::bytes::options::Options;
 
 fn opts() -> Options {
