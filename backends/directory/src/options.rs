@@ -21,12 +21,9 @@
 // IN THE SOFTWARE.
 
 use serde::{Deserialize, Serialize};
-use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::result;
 
 use nuts_backend::{Options, BLOCK_MIN_SIZE};
-use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
 use crate::error::{Error, Result};
 use crate::DirectoryBackend;
@@ -108,22 +105,6 @@ impl DirectorySettings {
 
     pub(crate) fn into_vec(self) -> Vec<u8> {
         self.bsize.to_be_bytes().to_vec()
-    }
-}
-
-impl FromBytes for DirectorySettings {
-    fn from_bytes<R: Read>(source: &mut R) -> result::Result<Self, nuts_bytes::Error> {
-        let bsize = source.from_bytes()?;
-
-        Ok(DirectorySettings { bsize })
-    }
-}
-
-impl ToBytes for DirectorySettings {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> result::Result<(), nuts_bytes::Error> {
-        target.to_bytes(&self.bsize)?;
-
-        Ok(())
     }
 }
 

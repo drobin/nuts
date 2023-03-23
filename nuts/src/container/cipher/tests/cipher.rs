@@ -20,63 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::io::Cursor;
-
-use nuts_bytes::{Error as BytesError, FromBytesExt, ToBytesExt};
-
 use crate::container::cipher::Cipher;
-
-#[test]
-fn from_bytes_none() {
-    let mut cursor = Cursor::new([0]);
-    let cipher = cursor.from_bytes::<Cipher>().unwrap();
-
-    assert_eq!(cipher, Cipher::None);
-}
-
-#[test]
-fn from_bytes_aes128_ctr() {
-    let mut cursor = Cursor::new([1]);
-    let cipher = cursor.from_bytes::<Cipher>().unwrap();
-
-    assert_eq!(cipher, Cipher::Aes128Ctr);
-}
-
-#[test]
-fn from_bytes_invalid() {
-    let mut cursor = Cursor::new([2]);
-
-    let err = cursor.from_bytes::<Cipher>().unwrap_err();
-    let msg = into_error!(err, BytesError::Invalid);
-    assert_eq!(msg, "invalid cipher: 2");
-}
-
-#[test]
-fn to_bytes_none() {
-    let mut cursor = Cursor::new(vec![]);
-
-    cursor.to_bytes(&Cipher::None).unwrap();
-
-    assert_eq!(cursor.into_inner(), [0]);
-}
-
-#[test]
-fn to_bytes_aes128_ctr() {
-    let mut cursor = Cursor::new(vec![]);
-
-    cursor.to_bytes(&Cipher::Aes128Ctr).unwrap();
-
-    assert_eq!(cursor.into_inner(), [1]);
-}
-
-#[test]
-fn to_bytes_nospace() {
-    let mut buf = [];
-    let mut cursor = Cursor::new(&mut buf[..]);
-
-    let err = cursor.to_bytes(&Cipher::None).unwrap_err();
-    assert_error!(err, BytesError::NoSpace);
-}
 
 #[test]
 fn block_size_none() {

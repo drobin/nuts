@@ -23,13 +23,11 @@
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::io::{Read, Write};
 use std::num::ParseIntError;
 use std::str::FromStr;
 use std::{cmp, error, fmt, mem, result};
 
 use nuts_backend::{Backend, BlockId, Options};
-use nuts_bytes::{FromBytes, ToBytes};
 
 #[derive(Debug)]
 pub struct MemError(String);
@@ -59,36 +57,12 @@ impl Options<MemoryBackend> for MemOptions {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct MemSettings();
 
-impl FromBytes for MemSettings {
-    fn from_bytes<R: Read>(_source: &mut R) -> nuts_bytes::Result<Self> {
-        Ok(MemSettings())
-    }
-}
-
-impl ToBytes for MemSettings {
-    fn to_bytes<W: Write>(&self, _target: &mut W) -> nuts_bytes::Result<()> {
-        Ok(())
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct MemId(u32);
 
 impl fmt::Display for MemId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-impl FromBytes for MemId {
-    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
-        FromBytes::from_bytes(source).map(|n| MemId(n))
-    }
-}
-
-impl ToBytes for MemId {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
-        ToBytes::to_bytes(&self.0, target)
     }
 }
 

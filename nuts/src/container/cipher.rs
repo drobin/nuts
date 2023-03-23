@@ -25,10 +25,8 @@ mod tests;
 
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
-use std::io::{Read, Write};
 
 use nuts_backend::Backend;
-use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
 use crate::container::error::ContainerResult;
 use crate::openssl::evp;
@@ -74,29 +72,6 @@ impl Cipher {
             Cipher::None => None,
             Cipher::Aes128Ctr => Some(evp::Cipher::aes128_ctr()),
         }
-    }
-}
-
-impl FromBytes for Cipher {
-    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
-        let n = source.from_bytes()?;
-
-        match n {
-            0u8 => Ok(Cipher::None),
-            1u8 => Ok(Cipher::Aes128Ctr),
-            _ => Err(nuts_bytes::Error::invalid(format!("invalid cipher: {}", n))),
-        }
-    }
-}
-
-impl ToBytes for Cipher {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
-        let n = match self {
-            Cipher::None => 0u8,
-            Cipher::Aes128Ctr => 1u8,
-        };
-
-        target.to_bytes(&n)
     }
 }
 

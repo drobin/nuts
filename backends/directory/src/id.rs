@@ -24,13 +24,11 @@
 mod tests;
 
 use serde::{Deserialize, Serialize};
-use std::io::{Read, Write};
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::{fmt, result};
 
 use nuts_backend::BlockId;
-use nuts_bytes::{FromBytes, ToBytes};
 
 use crate::error::{Error, Result};
 
@@ -141,22 +139,6 @@ impl FromStr for DirectoryId {
         }
 
         Ok(id)
-    }
-}
-
-impl FromBytes for DirectoryId {
-    fn from_bytes<R: Read>(source: &mut R) -> result::Result<Self, nuts_bytes::Error> {
-        let mut id = DirectoryId::min();
-
-        source.read_exact(&mut id.0)?;
-
-        Ok(id)
-    }
-}
-
-impl ToBytes for DirectoryId {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> result::Result<(), nuts_bytes::Error> {
-        Ok(target.write_all(&self.0)?)
     }
 }
 

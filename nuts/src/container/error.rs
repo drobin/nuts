@@ -32,9 +32,6 @@ pub enum ContainerError<B: Backend> {
     Backend(B::Err),
 
     /// Error while (de-) serializing binary data.
-    NutsBytes(nuts_bytes::Error),
-
-    /// Error while (de-) serializing binary data.
     Bytes(nuts_bytes::bytes::Error),
 
     /// An error in the OpenSSL library occured.
@@ -54,7 +51,6 @@ impl<B: Backend> fmt::Display for ContainerError<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ContainerError::Backend(cause) => fmt::Display::fmt(cause, fmt),
-            ContainerError::NutsBytes(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::Bytes(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::NoPassword(Some(msg)) => {
@@ -73,7 +69,6 @@ impl<B: Backend> fmt::Debug for ContainerError<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ContainerError::Backend(cause) => fmt::Debug::fmt(cause, fmt),
-            ContainerError::NutsBytes(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::Bytes(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::OpenSSL(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::NoPassword(option) => fmt::Debug::fmt(option, fmt),
@@ -87,19 +82,12 @@ impl<B: Backend + 'static> error::Error for ContainerError<B> {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             ContainerError::Backend(cause) => Some(cause),
-            ContainerError::NutsBytes(cause) => Some(cause),
             ContainerError::Bytes(cause) => Some(cause),
             ContainerError::OpenSSL(cause) => Some(cause),
             ContainerError::NoPassword(_) => None,
             ContainerError::WrongPassword(cause) => Some(cause),
             ContainerError::NullId => None,
         }
-    }
-}
-
-impl<B: Backend> From<nuts_bytes::Error> for ContainerError<B> {
-    fn from(cause: nuts_bytes::Error) -> Self {
-        ContainerError::NutsBytes(cause)
     }
 }
 

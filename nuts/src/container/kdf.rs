@@ -25,10 +25,8 @@ mod tests;
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::io::{Read, Write};
 
 use nuts_backend::Backend;
-use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
 use crate::container::digest::Digest;
 use crate::container::error::ContainerResult;
@@ -171,46 +169,6 @@ impl Kdf {
                 Ok(key.into())
             }
         }
-    }
-}
-
-impl FromBytes for Kdf {
-    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
-        let n = source.from_bytes()?;
-
-        match n {
-            0u8 => Ok(Kdf::None),
-            1u8 => {
-                let digest = source.from_bytes()?;
-                let iterations = source.from_bytes()?;
-                let salt = source.from_bytes::<Vec<u8>>()?;
-
-                Ok(Kdf::pbkdf2(digest, iterations, &salt))
-            }
-            _ => Err(nuts_bytes::Error::invalid(format!("invalid kdf: {}", n))),
-        }
-    }
-}
-
-impl ToBytes for Kdf {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
-        match self {
-            Kdf::None => {
-                target.to_bytes(&0u8)?;
-            }
-            Kdf::Pbkdf2 {
-                digest,
-                iterations,
-                salt,
-            } => {
-                target.to_bytes(&1u8)?;
-                target.to_bytes(digest)?;
-                target.to_bytes(iterations)?;
-                target.to_bytes(&salt.as_slice())?;
-            }
-        }
-
-        Ok(())
     }
 }
 

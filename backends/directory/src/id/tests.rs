@@ -20,9 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::io::Cursor;
-
-use nuts_bytes::{FromBytesExt, ToBytesExt};
+use nuts_bytes::bytes::Options;
 
 use crate::id::DirectoryId;
 
@@ -104,33 +102,13 @@ fn from_str_inval_char() {
 }
 
 #[test]
-fn from_bytes_eof() {
-    let mut cursor = Cursor::new(&ID[..15]);
-    let err = cursor.from_bytes::<DirectoryId>().unwrap_err();
-
-    assert_eq!(format!("{:?}", err), "Eof");
-}
-#[test]
-fn from_bytes() {
-    let mut cursor = Cursor::new(ID);
-    let id = cursor.from_bytes::<DirectoryId>().unwrap();
-
+fn de() {
+    let id = Options::new().from_bytes::<DirectoryId>(&ID).unwrap();
     assert_eq!(id.0, ID);
 }
 
 #[test]
-fn to_bytes_nospace() {
-    let mut buf = [0; 15];
-    let mut cursor = Cursor::new(&mut buf[..]);
-
-    let err = cursor.to_bytes(&DirectoryId::generate()).unwrap_err();
-    assert_eq!(format!("{:?}", err), "NoSpace");
-}
-
-#[test]
-fn to_bytes() {
-    let mut cursor = Cursor::new(vec![]);
-
-    cursor.to_bytes(&DirectoryId::generate()).unwrap();
-    assert_eq!(cursor.into_inner(), ID);
+fn ser() {
+    let vec = Options::new().to_vec(&DirectoryId::generate()).unwrap();
+    assert_eq!(vec, ID);
 }

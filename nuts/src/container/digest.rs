@@ -24,9 +24,6 @@
 mod tests;
 
 use serde::{Deserialize, Serialize};
-use std::io::{Read, Write};
-
-use nuts_bytes::{FromBytes, FromBytesExt, ToBytes, ToBytesExt};
 
 use crate::openssl::evp;
 
@@ -51,26 +48,5 @@ impl Digest {
         match self {
             Digest::Sha1 => evp::Digest::sha1(),
         }
-    }
-}
-
-impl FromBytes for Digest {
-    fn from_bytes<R: Read>(source: &mut R) -> nuts_bytes::Result<Self> {
-        let n = source.from_bytes()?;
-
-        match n {
-            1u8 => Ok(Digest::Sha1),
-            _ => Err(nuts_bytes::Error::invalid(format!("invalid digest: {}", n))),
-        }
-    }
-}
-
-impl ToBytes for Digest {
-    fn to_bytes<W: Write>(&self, target: &mut W) -> nuts_bytes::Result<()> {
-        let n = match self {
-            Digest::Sha1 => 1u8,
-        };
-
-        target.to_bytes(&n)
     }
 }
