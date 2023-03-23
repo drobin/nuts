@@ -24,9 +24,9 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use crate::bytes::error::Error;
-use crate::bytes::into_error;
-use crate::bytes::options::Options;
+use crate::error::Error;
+use crate::into_error;
+use crate::options::Options;
 
 fn opts() -> Options {
     Options::new()

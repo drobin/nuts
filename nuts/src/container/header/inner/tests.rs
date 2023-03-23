@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::bytes::Error;
+use nuts_bytes::Error;
 
 use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};

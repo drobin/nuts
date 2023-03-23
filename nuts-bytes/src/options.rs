@@ -22,9 +22,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::bytes::error::{Error, Result};
-use crate::bytes::reader::Reader;
-use crate::bytes::writer::Writer;
+use crate::error::{Error, Result};
+use crate::reader::Reader;
+use crate::writer::Writer;
 
 #[derive(Debug)]
 pub(crate) enum Int {

@@ -26,7 +26,7 @@ mod tests;
 use serde::{Deserialize, Serialize};
 
 use nuts_backend::Backend;
-use nuts_bytes::bytes::Options;
+use nuts_bytes::Options;
 
 use crate::container::error::ContainerResult;
 use crate::svec::SecureVec;

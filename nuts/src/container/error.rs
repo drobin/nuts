@@ -32,7 +32,7 @@ pub enum ContainerError<B: Backend> {
     Backend(B::Err),
 
     /// Error while (de-) serializing binary data.
-    Bytes(nuts_bytes::bytes::Error),
+    Bytes(nuts_bytes::Error),
 
     /// An error in the OpenSSL library occured.
     OpenSSL(OpenSSLError),
@@ -41,7 +41,7 @@ pub enum ContainerError<B: Backend> {
     NoPassword(Option<String>),
 
     /// The password is wrong.
-    WrongPassword(nuts_bytes::bytes::Error),
+    WrongPassword(nuts_bytes::Error),
 
     /// Try to read/write from/to a null-id which is forbidden.
     NullId,
@@ -91,10 +91,10 @@ impl<B: Backend + 'static> error::Error for ContainerError<B> {
     }
 }
 
-impl<B: Backend> From<nuts_bytes::bytes::Error> for ContainerError<B> {
-    fn from(cause: nuts_bytes::bytes::Error) -> Self {
+impl<B: Backend> From<nuts_bytes::Error> for ContainerError<B> {
+    fn from(cause: nuts_bytes::Error) -> Self {
         match &cause {
-            nuts_bytes::bytes::Error::Serde(msg) => {
+            nuts_bytes::Error::Serde(msg) => {
                 if msg == "secret-magic mismatch" {
                     return ContainerError::WrongPassword(cause);
                 }

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,4 +22,25 @@
 
 //! Transformation from/to binary streams.
 
-pub mod bytes;
+mod error;
+mod options;
+mod reader;
+mod writer;
+
+pub use error::{Error, IntType, Result};
+pub use options::Options;
+pub use reader::Reader;
+pub use writer::Writer;
+
+#[cfg(test)]
+macro_rules! into_error {
+    ($err:expr, $type:ident :: $memb:ident) => {
+        match $err {
+            $type::$memb(cause) => cause,
+            _ => panic!("invalid error:"),
+        }
+    };
+}
+
+#[cfg(test)]
+pub(crate) use into_error;

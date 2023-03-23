@@ -20,9 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::bytes::error::Error;
-use crate::bytes::options::Int;
-use crate::bytes::writer::Writer;
+use crate::error::Error;
+use crate::options::Int;
+use crate::writer::Writer;
 
 #[test]
 fn bytes_vec() {

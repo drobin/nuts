@@ -22,7 +22,7 @@
 
 use std::rc::Rc;
 
-use nuts_bytes::bytes::{Error as BytesError, Options};
+use nuts_bytes::{Error as BytesError, Options};
 
 use crate::container::cipher::Cipher;
 use crate::container::error::ContainerError;

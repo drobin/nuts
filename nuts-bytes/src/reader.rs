@@ -26,8 +26,8 @@ mod tests;
 use serde::de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
 use std::{cmp, str};
 
-use crate::bytes::error::{Error, IntType, Result};
-use crate::bytes::options::Int;
+use crate::error::{Error, IntType, Result};
+use crate::options::Int;
 
 const VAR16: u8 = 251;
 const VAR32: u8 = 252;

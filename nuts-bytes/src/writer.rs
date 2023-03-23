@@ -25,8 +25,8 @@ mod tests;
 
 use serde::{ser, Serialize};
 
-use crate::bytes::error::{Error, Result};
-use crate::bytes::options::Int;
+use crate::error::{Error, Result};
+use crate::options::Int;
 
 #[derive(Debug)]
 enum Target<'a> {

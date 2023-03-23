@@ -23,9 +23,9 @@
 use serde::Serialize;
 use std::collections::HashMap;
 
-use crate::bytes::error::Error;
-use crate::bytes::into_error;
-use crate::bytes::options::Options;
+use crate::error::Error;
+use crate::into_error;
+use crate::options::Options;
 
 #[test]
 fn bool() {

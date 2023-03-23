@@ -20,9 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::bytes::error::{Error, IntType};
-use crate::bytes::options::Int;
-use crate::bytes::reader::Reader;
+use crate::error::{Error, IntType};
+use crate::options::Int;
+use crate::reader::Reader;
 
 #[test]
 fn remaining_bytes() {

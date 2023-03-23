@@ -22,7 +22,7 @@
 
 use std::rc::Rc;
 
-use nuts_bytes::bytes::Error;
+use nuts_bytes::Error;
 
 use crate::container::cipher::Cipher;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
