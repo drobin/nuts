@@ -64,8 +64,8 @@ impl From<io::Error> for LoaderError {
 
 pub struct PluginLoader {
     path: PathBuf,
-    _library: Library,
     plugin: Box<dyn Plugin>,
+    _library: Library,
 }
 
 impl PluginLoader {
