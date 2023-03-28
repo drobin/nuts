@@ -25,12 +25,30 @@ mod tests;
 
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
+use std::str::FromStr;
+use std::{error, fmt};
 
-use nuts_backend::Backend;
-
-use crate::container::error::ContainerResult;
-use crate::openssl::evp;
+use crate::openssl::{evp, OpenSSLError};
 use crate::svec::SecureVec;
+
+/// An error which can be returned when parsing a [`Cipher`].
+///
+/// This error is used as the error type for the [`FromStr`] implementation for
+/// [`Cipher`].
+#[derive(Debug)]
+pub enum CipherError {
+    Invalid(String),
+}
+
+impl fmt::Display for CipherError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Invalid(str) => write!(fmt, "invalid cipher: {}", str),
+        }
+    }
+}
+
+impl error::Error for CipherError {}
 
 /// Supported cipher algorithms.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -75,6 +93,29 @@ impl Cipher {
     }
 }
 
+impl fmt::Display for Cipher {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Cipher::None => "none",
+            Cipher::Aes128Ctr => "aes128-ctr",
+        };
+
+        fmt.write_str(s)
+    }
+}
+
+impl FromStr for Cipher {
+    type Err = CipherError;
+
+    fn from_str(str: &str) -> Result<Self, CipherError> {
+        match str {
+            "none" => Ok(Cipher::None),
+            "aes128-ctr" => Ok(Cipher::Aes128Ctr),
+            _ => Err(CipherError::Invalid(str.to_string())),
+        }
+    }
+}
+
 pub struct CipherCtx {
     ctx: evp::CipherCtx,
     cipher: Cipher,
@@ -83,7 +124,7 @@ pub struct CipherCtx {
 }
 
 impl CipherCtx {
-    pub fn new<B: Backend>(cipher: Cipher, block_size: u32) -> ContainerResult<CipherCtx, B> {
+    pub fn new(cipher: Cipher, block_size: u32) -> Result<CipherCtx, OpenSSLError> {
         Ok(CipherCtx {
             ctx: evp::CipherCtx::new()?,
             cipher,
@@ -92,12 +133,7 @@ impl CipherCtx {
         })
     }
 
-    pub fn encrypt<B: Backend>(
-        &mut self,
-        key: &[u8],
-        iv: &[u8],
-        input: &[u8],
-    ) -> ContainerResult<&[u8], B> {
+    pub fn encrypt(&mut self, key: &[u8], iv: &[u8], input: &[u8]) -> Result<&[u8], OpenSSLError> {
         let ptext = self.prepare_ptext(input);
 
         match self.cipher.to_evp() {
@@ -106,12 +142,7 @@ impl CipherCtx {
         }
     }
 
-    pub fn decrypt<B: Backend>(
-        &mut self,
-        key: &[u8],
-        iv: &[u8],
-        input: &[u8],
-    ) -> ContainerResult<&[u8], B> {
+    pub fn decrypt(&mut self, key: &[u8], iv: &[u8], input: &[u8]) -> Result<&[u8], OpenSSLError> {
         match self.cipher.to_evp() {
             Some(cipher) => self.decrypt_some(cipher, key, iv, input),
             None => self.update_none(input),
@@ -129,13 +160,13 @@ impl CipherCtx {
         ptext
     }
 
-    fn encrypt_some<B: Backend>(
+    fn encrypt_some(
         &mut self,
         cipher: evp::Cipher,
         key: &[u8],
         iv: &[u8],
         input: &[u8],
-    ) -> ContainerResult<&[u8], B> {
+    ) -> Result<&[u8], OpenSSLError> {
         self.out.resize(input.len(), 0);
 
         self.ctx.reset()?;
@@ -147,13 +178,13 @@ impl CipherCtx {
         Ok(&self.out)
     }
 
-    fn decrypt_some<B: Backend>(
+    fn decrypt_some(
         &mut self,
         cipher: evp::Cipher,
         key: &[u8],
         iv: &[u8],
         input: &[u8],
-    ) -> ContainerResult<&[u8], B> {
+    ) -> Result<&[u8], OpenSSLError> {
         self.out.resize(input.len(), 0);
 
         self.ctx.reset()?;
@@ -165,7 +196,7 @@ impl CipherCtx {
         Ok(&self.out)
     }
 
-    fn update_none<B: Backend>(&mut self, input: &[u8]) -> ContainerResult<&[u8], B> {
+    fn update_none(&mut self, input: &[u8]) -> Result<&[u8], OpenSSLError> {
         self.out.clear();
         self.out.extend_from_slice(input);
 

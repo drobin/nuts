@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::container::cipher::Cipher;
+use crate::container::cipher::{Cipher, CipherError};
 
 #[test]
 fn block_size_none() {
@@ -50,4 +50,32 @@ fn iv_len_none() {
 #[test]
 fn iv_len_aes128_ctr() {
     assert_eq!(Cipher::Aes128Ctr.iv_len(), 16);
+}
+
+#[test]
+fn from_str_none() {
+    assert_eq!("none".parse::<Cipher>().unwrap(), Cipher::None);
+}
+
+#[test]
+fn from_str_aes128_ctr() {
+    assert_eq!("aes128-ctr".parse::<Cipher>().unwrap(), Cipher::Aes128Ctr);
+}
+
+#[test]
+fn from_str_invalid() {
+    let err = "xxx".parse::<Cipher>().unwrap_err();
+    #[allow(unreachable_patterns)]
+    let str = into_error!(err, CipherError::Invalid);
+    assert_eq!(str, "xxx");
+}
+
+#[test]
+fn to_string_none() {
+    assert_eq!(Cipher::None.to_string(), "none");
+}
+
+#[test]
+fn to_string_aes128_ctr() {
+    assert_eq!(Cipher::Aes128Ctr.to_string(), "aes128-ctr");
 }

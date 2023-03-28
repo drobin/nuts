@@ -40,7 +40,7 @@ use crate::container::header::Header;
 use crate::container::password::PasswordStore;
 use crate::svec::SecureVec;
 
-pub use cipher::Cipher;
+pub use cipher::{Cipher, CipherError};
 pub use digest::Digest;
 pub use error::{ContainerError, ContainerResult};
 pub use info::Info;

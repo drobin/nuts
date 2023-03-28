@@ -26,7 +26,7 @@ use log::debug;
 use nuts::container::{Cipher, Container, CreateOptionsBuilder, Digest, Kdf};
 use nutsbackend_directory::{DirectoryBackend, DirectoryCreateOptions};
 
-use crate::tool::actions::{container_dir_for, is_valid, name_arg};
+use crate::tool::actions::{container_dir_for, is_valid, is_valid_x, name_arg};
 use crate::tool::convert::Convert;
 use crate::tool::kdf::KdfSpec;
 use crate::tool::password::ask_for_password;
@@ -66,7 +66,7 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
                 .long("cipher")
                 .value_name("CIPHER")
                 .default_value("none")
-                .validator(is_valid::<Cipher>)
+                .validator(is_valid_x::<Cipher>)
                 .help(cipher_help),
         )
         .arg(
@@ -87,7 +87,7 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
 pub fn run(args: &ArgMatches) -> Result<()> {
     let name = args.value_of("NAME").unwrap();
     let bsize = Size::<u32>::from_str(args.value_of("block-size").unwrap()).unwrap();
-    let cipher = Cipher::from_str(args.value_of("cipher").unwrap()).unwrap();
+    let cipher = args.value_of("cipher").unwrap().parse()?;
     let overwrite = args.is_present("overwrite");
 
     let path = container_dir_for(name)?;

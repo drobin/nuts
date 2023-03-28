@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts::container::{Cipher, Digest};
+use nuts::container::Digest;
 
 pub trait Convert
 where
@@ -28,24 +28,6 @@ where
 {
     fn from_str(s: &str) -> Result<Self, String>;
     fn to_str(&self) -> String;
-}
-
-impl Convert for Cipher {
-    fn from_str(s: &str) -> Result<Self, String> {
-        match s.as_ref() {
-            "none" => Ok(Cipher::None),
-            "aes128-ctr" => Ok(Cipher::Aes128Ctr),
-            _ => Err(format!("invalid cipher: {}", s)),
-        }
-    }
-
-    fn to_str(&self) -> String {
-        match self {
-            Cipher::None => "none",
-            Cipher::Aes128Ctr => "aes128-ctr",
-        }
-        .to_string()
-    }
 }
 
 impl Convert for Digest {

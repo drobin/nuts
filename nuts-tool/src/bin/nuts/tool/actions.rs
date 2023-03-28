@@ -27,6 +27,7 @@ use clap::{Arg, ArgMatches};
 use nuts::container::{Container, OpenOptionsBuilder};
 use nutsbackend_directory::{DirectoryBackend, DirectoryOpenOptions};
 use std::result;
+use std::str::FromStr;
 
 use crate::tool::container_dir_for;
 use crate::tool::convert::Convert;
@@ -34,6 +35,14 @@ use crate::tool::password::ask_for_password;
 
 fn is_valid<T: Convert>(s: String) -> result::Result<(), String> {
     T::from_str(&s).map(|_| ())
+}
+
+fn is_valid_x<T: FromStr>(s: String) -> result::Result<(), String>
+where
+    <T as FromStr>::Err: ToString,
+{
+    s.parse::<T>()
+        .map_or_else(|err| Err(err.to_string()), |_| Ok(()))
 }
 
 pub fn name_arg<'a, 'b>(idx: u64) -> Arg<'a, 'b> {

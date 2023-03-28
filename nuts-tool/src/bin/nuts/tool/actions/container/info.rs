@@ -38,7 +38,7 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     let kdf: KdfSpec = info.kdf.into();
 
     println!("bsize:  {}", info.backend.bsize);
-    println!("cipher: {}", info.cipher.to_str());
+    println!("cipher: {}", info.cipher);
     println!("kdf:    {}", kdf.to_str());
 
     Ok(())
