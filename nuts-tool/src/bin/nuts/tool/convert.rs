@@ -20,27 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts::container::Digest;
-
 pub trait Convert
 where
     Self: Sized,
 {
     fn from_str(s: &str) -> Result<Self, String>;
     fn to_str(&self) -> String;
-}
-
-impl Convert for Digest {
-    fn from_str(s: &str) -> Result<Self, String> {
-        match s {
-            "sha1" => Ok(Digest::Sha1),
-            _ => Err(format!("invalid digest: {}", s)),
-        }
-    }
-
-    fn to_str(&self) -> String {
-        match self {
-            Digest::Sha1 => String::from("sha1"),
-        }
-    }
 }

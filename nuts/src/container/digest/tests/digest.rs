@@ -20,9 +20,27 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::container::Digest;
+use crate::container::digest::{Digest, DigestError};
 
 #[test]
 fn size_sha1() {
     assert_eq!(Digest::Sha1.size(), 20);
+}
+
+#[test]
+fn from_str_sha1() {
+    assert_eq!("sha1".parse::<Digest>().unwrap(), Digest::Sha1);
+}
+
+#[test]
+fn from_str_invalid() {
+    assert_eq!(
+        "xxx".parse::<Digest>().unwrap_err(),
+        DigestError::Invalid("xxx".to_string())
+    );
+}
+
+#[test]
+fn to_string_sha1() {
+    assert_eq!(Digest::Sha1.to_string(), "sha1");
 }

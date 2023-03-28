@@ -64,7 +64,7 @@ impl KdfSpec {
             })
         } else if v.len() == 4 {
             let digest = if !v[1].is_empty() {
-                Some(Digest::from_str(v[1])?)
+                Some(v[1].parse::<Digest>().map_err(|err| err.to_string())?)
             } else {
                 None
             };
@@ -127,7 +127,7 @@ impl Convert for KdfSpec {
                 salt_len,
             } => {
                 let digest = match digest {
-                    Some(d) => d.to_str(),
+                    Some(d) => d.to_string(),
                     None => "".to_string(),
                 };
                 let iterations = match iterations {

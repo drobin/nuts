@@ -24,14 +24,56 @@
 mod tests;
 
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
+use std::{error, fmt};
 
 use crate::openssl::evp;
+
+/// An error which can be returned when parsing a [`Digest`].
+///
+/// This error is used as the error type for the [`FromStr`] implementation for
+/// [`Digest`].
+#[derive(Debug, PartialEq)]
+pub enum DigestError {
+    Invalid(String),
+}
+
+impl fmt::Display for DigestError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Invalid(str) => write!(fmt, "invalid digest: {}", str),
+        }
+    }
+}
+
+impl error::Error for DigestError {}
 
 /// Supported message digests.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum Digest {
     /// SHA1
     Sha1,
+}
+
+impl fmt::Display for Digest {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Digest::Sha1 => "sha1",
+        };
+
+        fmt.write_str(s)
+    }
+}
+
+impl FromStr for Digest {
+    type Err = DigestError;
+
+    fn from_str(str: &str) -> Result<Self, DigestError> {
+        match str {
+            "sha1" => Ok(Digest::Sha1),
+            _ => Err(DigestError::Invalid(str.to_string())),
+        }
+    }
 }
 
 impl Digest {
