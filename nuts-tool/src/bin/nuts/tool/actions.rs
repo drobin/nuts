@@ -20,20 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod backends;
-pub mod config;
 pub mod container;
 
 use anyhow::Result;
 use clap::{Arg, ArgMatches};
-use log::debug;
 use nuts::container::{Container, OpenOptionsBuilder};
-use nuts_backend::plugin::locate_backend;
+use nutsbackend_directory::{DirectoryBackend, DirectoryOpenOptions};
 use std::result;
 
-use crate::tool::backend::ProxyBackend;
-use crate::tool::backend::ProxyOpenOptions;
-use crate::tool::config::{Config, ContainerConfig};
 use crate::tool::container_dir_for;
 use crate::tool::convert::Convert;
 use crate::tool::password::ask_for_password;
@@ -49,18 +43,11 @@ pub fn name_arg<'a, 'b>(idx: u64) -> Arg<'a, 'b> {
         .help("The name of the container.")
 }
 
-fn open_container(args: &ArgMatches) -> Result<Container<ProxyBackend>> {
+fn open_container(args: &ArgMatches) -> Result<Container<DirectoryBackend>> {
     let name = args.value_of("NAME").unwrap();
-
-    let config = Config::parse()?;
-    let backend = ContainerConfig::get_backend(name)?;
-
-    debug!("backend for container {}: {}", name, backend);
-
-    let loader = locate_backend(backend, &config.search_path)?;
     let path = container_dir_for(name)?;
 
-    let builder = OpenOptionsBuilder::new(ProxyOpenOptions::new(loader, path))
+    let builder = OpenOptionsBuilder::new(DirectoryOpenOptions::for_path(path))
         .with_password_callback(ask_for_password);
     let options = builder.build()?;
 

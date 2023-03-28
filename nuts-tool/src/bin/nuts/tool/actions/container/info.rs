@@ -35,19 +35,10 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
 pub fn run(args: &ArgMatches) -> Result<()> {
     let container = open_container(args)?;
     let info = container.info()?;
-
-    println!("* from backend");
-
-    for (key, value) in info.backend.iter() {
-        println!("{}: {}", key, value);
-    }
-
-    println!();
-    println!("* from container");
-
-    println!("cipher: {}", info.cipher.to_str());
-
     let kdf: KdfSpec = info.kdf.into();
+
+    println!("bsize:  {}", info.backend.bsize);
+    println!("cipher: {}", info.cipher.to_str());
     println!("kdf:    {}", kdf.to_str());
 
     Ok(())

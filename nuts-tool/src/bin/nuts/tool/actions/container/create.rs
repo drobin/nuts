@@ -20,15 +20,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{App, Arg, ArgMatches};
 use log::debug;
 use nuts::container::{Cipher, Container, CreateOptionsBuilder, Digest, Kdf};
-use nuts_backend::plugin::locate_backend;
+use nutsbackend_directory::{DirectoryBackend, DirectoryCreateOptions};
 
 use crate::tool::actions::{container_dir_for, is_valid, name_arg};
-use crate::tool::backend::{ProxyBackend, ProxyCreateOptions};
-use crate::tool::config::{Config, ContainerConfig};
 use crate::tool::convert::Convert;
 use crate::tool::kdf::KdfSpec;
 use crate::tool::password::ask_for_password;
@@ -53,12 +51,6 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
 
     app.about("Creates a nuts-container.")
         .arg(name_arg(1))
-        .arg(
-            Arg::with_name("backend")
-                .long("backend")
-                .value_name("BACKEND")
-                .help("Selects BACKEND as backend."),
-        )
         .arg(
             Arg::with_name("block-size")
                 .short("b")
@@ -93,9 +85,6 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
 }
 
 pub fn run(args: &ArgMatches) -> Result<()> {
-    let backend = args
-        .value_of("backend")
-        .ok_or_else(|| anyhow!("Missing value for --backend"))?;
     let name = args.value_of("NAME").unwrap();
     let bsize = Size::<u32>::from_str(args.value_of("block-size").unwrap()).unwrap();
     let cipher = Cipher::from_str(args.value_of("cipher").unwrap()).unwrap();
@@ -103,18 +92,16 @@ pub fn run(args: &ArgMatches) -> Result<()> {
 
     let path = container_dir_for(name)?;
 
-    debug!("backend: {}", backend);
     debug!("name: {}", name);
     debug!("path: {}", path.display());
     debug!("bsize: {}", *bsize);
     debug!("cipher: {:?}", cipher);
     debug!("overwrite: {}", overwrite);
 
-    let config = Config::parse()?;
-    let loader = locate_backend(backend, &config.search_path)?;
-
-    let backend_options = ProxyCreateOptions::new(loader, path);
-    let mut builder = CreateOptionsBuilder::<ProxyBackend>::new(backend_options, cipher)
+    let backend_options = DirectoryCreateOptions::for_path(path)
+        .with_bsize(*bsize)
+        .with_overwrite(overwrite);
+    let mut builder = CreateOptionsBuilder::<DirectoryBackend>::new(backend_options, cipher)
         .with_password_callback(ask_for_password);
 
     if cipher != Cipher::None {
@@ -127,7 +114,6 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     let options = builder.build()?;
 
     Container::create(options)?;
-    ContainerConfig::put_backend(name, backend)?;
 
     Ok(())
 }
@@ -145,7 +131,7 @@ fn create_pbkdf2(
     let iterations = iterations.unwrap_or(DEFAULT_ITERATIONS);
     let salt_len = salt_len.unwrap_or(DEFAULT_SALT_LEN);
 
-    Ok(Kdf::generate_pbkdf2::<ProxyBackend>(
+    Ok(Kdf::generate_pbkdf2::<DirectoryBackend>(
         digest, iterations, salt_len,
     )?)
 }

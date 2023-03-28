@@ -25,12 +25,11 @@ use clap::{App, Arg, ArgMatches};
 use log::debug;
 use nuts::container::Container;
 use nuts::stream::Stream;
-use nuts_backend::plugin;
 use nuts_backend::Backend;
+use nutsbackend_directory::{DirectoryBackend, DirectoryId};
 use std::cmp;
 
 use crate::tool::actions::{is_valid, name_arg, open_container};
-use crate::tool::backend::ProxyBackend;
 use crate::tool::convert::Convert;
 use crate::tool::format::{Format, Output};
 use crate::tool::size::Size;
@@ -73,8 +72,8 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
 }
 
 fn read_block(
-    mut container: Container<ProxyBackend>,
-    id: plugin::Id,
+    mut container: Container<DirectoryBackend>,
+    id: DirectoryId,
     format: Format,
     max_bytes: u64,
 ) -> Result<()> {
@@ -93,8 +92,8 @@ fn read_block(
 }
 
 fn read_stream(
-    mut container: Container<ProxyBackend>,
-    id: plugin::Id,
+    mut container: Container<DirectoryBackend>,
+    id: DirectoryId,
     format: Format,
     max_bytes: u64,
 ) -> Result<()> {
@@ -135,7 +134,7 @@ fn read_stream(
 
 pub fn run(args: &ArgMatches) -> Result<()> {
     let container = open_container(args)?;
-    let id = args.value_of("ID").unwrap().to_string().into();
+    let id = args.value_of("ID").unwrap().parse()?;
 
     let streaming = args.is_present("stream");
     let format = Format::from_str(args.value_of("format").unwrap()).unwrap();

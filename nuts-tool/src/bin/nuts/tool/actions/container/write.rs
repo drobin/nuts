@@ -25,12 +25,12 @@ use clap::{App, Arg, ArgMatches};
 use log::{debug, trace};
 use nuts::container::Container;
 use nuts::stream::Stream;
-use nuts_backend::{plugin, Backend};
+use nuts_backend::Backend;
+use nutsbackend_directory::{DirectoryBackend, DirectoryId};
 use std::cmp;
 use std::io::{self, Read};
 
 use crate::tool::actions::{is_valid, name_arg, open_container};
-use crate::tool::backend::ProxyBackend;
 use crate::tool::convert::Convert;
 use crate::tool::size::Size;
 
@@ -77,8 +77,8 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
 }
 
 fn write_block(
-    mut container: Container<ProxyBackend>,
-    id: Option<plugin::Id>,
+    mut container: Container<DirectoryBackend>,
+    id: Option<DirectoryId>,
     max_bytes: u64,
 ) -> Result<()> {
     let block_size = container.backend().block_size();
@@ -109,8 +109,8 @@ fn write_block(
 }
 
 fn write_stream(
-    mut container: Container<ProxyBackend>,
-    id: Option<plugin::Id>,
+    mut container: Container<DirectoryBackend>,
+    id: Option<DirectoryId>,
     max_bytes: u64,
 ) -> Result<()> {
     let mut stream = Stream::create(&mut container);
@@ -177,7 +177,7 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     let container = open_container(args)?;
 
     let id = match args.value_of("ID") {
-        Some(s) => Some(s.to_string().into()),
+        Some(s) => Some(s.parse()?),
         None => None,
     };
 

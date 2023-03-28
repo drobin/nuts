@@ -47,14 +47,10 @@ fn run_tool() -> Result<()> {
     let matches = App::new("nuts")
         .setting(AppSettings::ArgRequiredElseHelp)
         .setting(AppSettings::VersionlessSubcommands)
-        .subcommand(subcommand!(backends))
-        .subcommand(subcommand!(config))
         .subcommand(subcommand!(container))
         .get_matches();
 
     match matches.subcommand() {
-        ("backends", Some(matches)) => tool::actions::backends::run(matches),
-        ("config", Some(matches)) => tool::actions::config::run(matches),
         ("container", Some(matches)) => tool::actions::container::run(matches),
         _ => Err(anyhow!("Missing implementation for subcommand")),
     }

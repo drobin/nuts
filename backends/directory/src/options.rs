@@ -92,22 +92,6 @@ pub struct DirectorySettings {
     pub(crate) bsize: u32,
 }
 
-impl DirectorySettings {
-    pub(crate) fn from_vec(vec: Vec<u8>) -> DirectorySettings {
-        let mut bytes = [0; 4];
-
-        bytes.copy_from_slice(&vec[..4]);
-
-        DirectorySettings {
-            bsize: u32::from_be_bytes(bytes),
-        }
-    }
-
-    pub(crate) fn into_vec(self) -> Vec<u8> {
-        self.bsize.to_be_bytes().to_vec()
-    }
-}
-
 impl From<DirectoryCreateOptions> for DirectorySettings {
     fn from(options: DirectoryCreateOptions) -> Self {
         DirectorySettings {

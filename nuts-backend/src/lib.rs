@@ -20,8 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod plugin;
-
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use std::{error, result};

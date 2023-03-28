@@ -25,7 +25,6 @@ use clap::{App, ArgMatches};
 use std::fs;
 
 use crate::tool::actions::{container_dir_for, name_arg};
-use crate::tool::config::ContainerConfig;
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.about("Removes a container again.").arg(name_arg(1))
@@ -36,7 +35,6 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     let dir = container_dir_for(name)?;
 
     fs::remove_dir_all(dir)?;
-    ContainerConfig::remove_backend(name)?;
 
     Ok(())
 }
