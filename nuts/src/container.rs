@@ -42,7 +42,7 @@ use crate::svec::SecureVec;
 
 pub use cipher::{Cipher, CipherError};
 pub use digest::{Digest, DigestError};
-pub use error::{ContainerError, ContainerResult};
+pub use error::{ContainerResult, Error};
 pub use header::HeaderError;
 pub use info::Info;
 pub use kdf::Kdf;
@@ -51,7 +51,7 @@ pub use password::NoPasswordError;
 
 macro_rules! map_err {
     ($result:expr) => {
-        $result.map_err(|cause| ContainerError::Backend(cause))
+        $result.map_err(|cause| Error::Backend(cause))
     };
 }
 
@@ -220,7 +220,7 @@ impl<B: Backend> Container<B> {
     /// Errors are listed in the [`ContainerError`] type.
     pub fn read(&mut self, id: &B::Id, buf: &mut [u8]) -> ContainerResult<usize, B> {
         if id.is_null() {
-            return Err(ContainerError::NullId);
+            return Err(Error::NullId);
         }
 
         let mut ctext = vec![0; self.backend.block_size() as usize];
@@ -257,7 +257,7 @@ impl<B: Backend> Container<B> {
     /// Errors are listed in the [`ContainerError`] type.
     pub fn write(&mut self, id: &B::Id, buf: &[u8]) -> ContainerResult<usize, B> {
         if id.is_null() {
-            return Err(ContainerError::NullId);
+            return Err(Error::NullId);
         }
 
         let block_size = self.backend.block_size() as usize;
@@ -293,7 +293,7 @@ impl<B: Backend> Container<B> {
 
         match backend.read(&id, &mut buf) {
             Ok(_) => Ok(Header::read::<B>(&buf, store)?),
-            Err(cause) => Err(ContainerError::Backend(cause)),
+            Err(cause) => Err(Error::Backend(cause)),
         }
     }
 

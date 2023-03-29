@@ -28,7 +28,7 @@ use crate::container::header::HeaderError;
 use crate::openssl::OpenSSLError;
 
 /// Error type used by this module.
-pub enum ContainerError<B: Backend> {
+pub enum Error<B: Backend> {
     /// An error occured in the attached backend.
     Backend(B::Err),
 
@@ -42,49 +42,49 @@ pub enum ContainerError<B: Backend> {
     NullId,
 }
 
-impl<B: Backend> fmt::Display for ContainerError<B> {
+impl<B: Backend> fmt::Display for Error<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ContainerError::Backend(cause) => fmt::Display::fmt(cause, fmt),
-            ContainerError::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
-            ContainerError::Header(cause) => fmt::Display::fmt(cause, fmt),
-            ContainerError::NullId => write!(fmt, "Try to read or write a null id"),
+            Error::Backend(cause) => fmt::Display::fmt(cause, fmt),
+            Error::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
+            Error::Header(cause) => fmt::Display::fmt(cause, fmt),
+            Error::NullId => write!(fmt, "Try to read or write a null id"),
         }
     }
 }
 
-impl<B: Backend> fmt::Debug for ContainerError<B> {
+impl<B: Backend> fmt::Debug for Error<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ContainerError::Backend(cause) => fmt::Debug::fmt(cause, fmt),
-            ContainerError::OpenSSL(cause) => fmt::Debug::fmt(cause, fmt),
-            ContainerError::Header(cause) => fmt::Debug::fmt(cause, fmt),
-            ContainerError::NullId => fmt.write_str("NullId"),
+            Error::Backend(cause) => fmt::Debug::fmt(cause, fmt),
+            Error::OpenSSL(cause) => fmt::Debug::fmt(cause, fmt),
+            Error::Header(cause) => fmt::Debug::fmt(cause, fmt),
+            Error::NullId => fmt.write_str("NullId"),
         }
     }
 }
 
-impl<B: Backend + 'static> error::Error for ContainerError<B> {
+impl<B: Backend + 'static> error::Error for Error<B> {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            ContainerError::Backend(cause) => Some(cause),
-            ContainerError::OpenSSL(cause) => Some(cause),
-            ContainerError::Header(cause) => Some(cause),
-            ContainerError::NullId => None,
+            Error::Backend(cause) => Some(cause),
+            Error::OpenSSL(cause) => Some(cause),
+            Error::Header(cause) => Some(cause),
+            Error::NullId => None,
         }
     }
 }
 
-impl<B: Backend> From<OpenSSLError> for ContainerError<B> {
+impl<B: Backend> From<OpenSSLError> for Error<B> {
     fn from(cause: OpenSSLError) -> Self {
-        ContainerError::OpenSSL(cause)
+        Error::OpenSSL(cause)
     }
 }
 
-impl<B: Backend> From<HeaderError> for ContainerError<B> {
+impl<B: Backend> From<HeaderError> for Error<B> {
     fn from(cause: HeaderError) -> Self {
-        ContainerError::Header(cause)
+        Error::Header(cause)
     }
 }
 
-pub type ContainerResult<T, B> = Result<T, ContainerError<B>>;
+pub type ContainerResult<T, B> = Result<T, Error<B>>;
