@@ -21,17 +21,16 @@
 // IN THE SOFTWARE.
 
 use crate::container::kdf::Kdf;
-use crate::memory::MemoryBackend as Backend;
 
 #[test]
 fn create_key_empty_password() {
-    let key = Kdf::None.create_key::<Backend>(b"").unwrap();
+    let key = Kdf::None.create_key(b"").unwrap();
     assert_eq!(*key, []);
 }
 
 #[test]
 fn create_key() {
-    let key = Kdf::None.create_key::<Backend>(b"123").unwrap();
+    let key = Kdf::None.create_key(b"123").unwrap();
 
     assert_eq!(*key, []);
 }

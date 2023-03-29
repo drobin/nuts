@@ -24,8 +24,6 @@ use anyhow::Result;
 use clap::{App, ArgMatches};
 
 use crate::tool::actions::{name_arg, open_container};
-use crate::tool::convert::Convert;
-use crate::tool::kdf::KdfSpec;
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.about("Prints general information about the container.")
@@ -35,11 +33,10 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
 pub fn run(args: &ArgMatches) -> Result<()> {
     let container = open_container(args)?;
     let info = container.info()?;
-    let kdf: KdfSpec = info.kdf.into();
 
     println!("bsize:  {}", info.backend.bsize);
     println!("cipher: {}", info.cipher);
-    println!("kdf:    {}", kdf.to_str());
+    println!("kdf:    {}", info.kdf.to_string());
 
     Ok(())
 }

@@ -23,12 +23,11 @@
 use anyhow::Result;
 use clap::{App, Arg, ArgMatches};
 use log::debug;
-use nuts::container::{Cipher, Container, CreateOptionsBuilder, Digest, Kdf};
+use nuts::container::{Cipher, Container, CreateOptionsBuilder, Kdf};
 use nutsbackend_directory::{DirectoryBackend, DirectoryCreateOptions};
 
 use crate::tool::actions::{container_dir_for, is_valid, is_valid_x, name_arg};
 use crate::tool::convert::Convert;
-use crate::tool::kdf::KdfSpec;
 use crate::tool::password::ask_for_password;
 use crate::tool::size::Size;
 
@@ -74,7 +73,7 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
                 .short("k")
                 .long("kdf")
                 .value_name("SPEC")
-                .validator(is_valid::<KdfSpec>)
+                .validator(is_valid_x::<Kdf>)
                 .help(&kdf_help),
         )
         .arg(
@@ -105,10 +104,10 @@ pub fn run(args: &ArgMatches) -> Result<()> {
         .with_password_callback(ask_for_password);
 
     if cipher != Cipher::None {
-        let kdf = create_kdf(args)?;
-        debug!("kdf: {:?}", kdf);
-
-        builder = builder.with_kdf(kdf);
+        if let Some(kdf) = create_kdf(args)? {
+            debug!("kdf: {:?}", kdf);
+            builder = builder.with_kdf(kdf);
+        }
     }
 
     let options = builder.build()?;
@@ -118,40 +117,9 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn create_pbkdf2(
-    digest: Option<Digest>,
-    iterations: Option<u32>,
-    salt_len: Option<u32>,
-) -> Result<Kdf> {
-    const DEFAULT_DIGEST: Digest = Digest::Sha1;
-    const DEFAULT_ITERATIONS: u32 = 65536;
-    const DEFAULT_SALT_LEN: u32 = 16;
-
-    let digest = digest.unwrap_or(DEFAULT_DIGEST);
-    let iterations = iterations.unwrap_or(DEFAULT_ITERATIONS);
-    let salt_len = salt_len.unwrap_or(DEFAULT_SALT_LEN);
-
-    Ok(Kdf::generate_pbkdf2::<DirectoryBackend>(
-        digest, iterations, salt_len,
-    )?)
-}
-
-fn create_kdf(args: &ArgMatches) -> Result<Kdf> {
-    let kdf = match args.value_of("kdf") {
-        Some(s) => {
-            let spec = KdfSpec::from_str(s).unwrap();
-
-            match spec {
-                KdfSpec::None => todo!(),
-                KdfSpec::Pbkdf2 {
-                    digest,
-                    iterations,
-                    salt_len,
-                } => create_pbkdf2(digest, iterations, salt_len)?,
-            }
-        }
-        None => create_pbkdf2(None, None, None)?,
-    };
-
-    Ok(kdf)
+fn create_kdf(args: &ArgMatches) -> Result<Option<Kdf>> {
+    match args.value_of("kdf") {
+        Some(s) => Ok(Some(s.parse::<Kdf>()?)),
+        None => Ok(None),
+    }
 }

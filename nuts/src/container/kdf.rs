@@ -24,14 +24,110 @@
 mod tests;
 
 use serde::{Deserialize, Serialize};
-use std::fmt;
-
-use nuts_backend::Backend;
+use std::num::ParseIntError;
+use std::str::FromStr;
+use std::{error, fmt};
 
 use crate::container::digest::Digest;
-use crate::container::error::ContainerResult;
-use crate::openssl::{evp, rand};
+use crate::openssl::{evp, rand, OpenSSLError};
 use crate::svec::SecureVec;
+
+use super::DigestError;
+
+#[derive(Debug)]
+pub enum KdfNoneError {
+    InvalidNumberOfArguments(usize),
+}
+
+impl fmt::Display for KdfNoneError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::InvalidNumberOfArguments(num) => write!(
+                fmt,
+                "invalid number of arguments for the none-kdf, expected none but got {}",
+                num
+            ),
+        }
+    }
+}
+
+impl error::Error for KdfNoneError {}
+
+#[derive(Debug)]
+pub enum KdfPbkdf2Error {
+    InvalidNumberOfArguments(usize),
+    InvalidDigest(DigestError),
+    InvalidIterations(ParseIntError),
+    InvalidSaltLen(ParseIntError),
+    OpenSSL(OpenSSLError),
+}
+
+impl fmt::Display for KdfPbkdf2Error {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::InvalidNumberOfArguments(num) => write!(
+                fmt,
+                "invalid number of arguments for PBKDF2, got {} but none or three are expected",
+                num
+            ),
+            Self::InvalidDigest(cause) => fmt::Display::fmt(cause, fmt),
+            Self::InvalidIterations(cause) => fmt::Display::fmt(cause, fmt),
+            Self::InvalidSaltLen(cause) => fmt::Display::fmt(cause, fmt),
+            Self::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
+        }
+    }
+}
+
+impl error::Error for KdfPbkdf2Error {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            Self::InvalidNumberOfArguments(_) => None,
+            Self::InvalidDigest(cause) => Some(cause),
+            Self::InvalidIterations(cause) => Some(cause),
+            Self::InvalidSaltLen(cause) => Some(cause),
+            Self::OpenSSL(cause) => Some(cause),
+        }
+    }
+}
+
+impl From<DigestError> for KdfPbkdf2Error {
+    fn from(cause: DigestError) -> Self {
+        KdfPbkdf2Error::InvalidDigest(cause)
+    }
+}
+
+impl From<OpenSSLError> for KdfPbkdf2Error {
+    fn from(cause: OpenSSLError) -> Self {
+        KdfPbkdf2Error::OpenSSL(cause)
+    }
+}
+
+#[derive(Debug)]
+pub enum KdfError {
+    None(KdfNoneError),
+    Pbkdf2(KdfPbkdf2Error),
+    Unknown(String),
+}
+
+impl fmt::Display for KdfError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::None(cause) => fmt::Display::fmt(cause, fmt),
+            Self::Pbkdf2(cause) => fmt::Display::fmt(cause, fmt),
+            Self::Unknown(str) => write!(fmt, "unknown kdf: {}", str),
+        }
+    }
+}
+
+impl error::Error for KdfError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            Self::None(cause) => Some(cause),
+            Self::Pbkdf2(cause) => Some(cause),
+            Self::Unknown(_) => None,
+        }
+    }
+}
 
 /// Supported key derivation functions.
 ///
@@ -110,9 +206,8 @@ impl Kdf {
     ///
     /// ```rust
     /// use nuts::container::*;
-    /// use nutsbackend_directory::DirectoryBackend;
     ///
-    /// let kdf = Kdf::generate_pbkdf2::<DirectoryBackend>(Digest::Sha1, 5, 3).unwrap();
+    /// let kdf = Kdf::generate_pbkdf2(Digest::Sha1, 5, 3).unwrap();
     ///
     /// match kdf {
     ///     Kdf::Pbkdf2 {
@@ -130,11 +225,11 @@ impl Kdf {
     ///
     /// [`salt`]: #variant.Pbkdf2.field.salt
     /// [`Error::OpenSSL`]: ../error/enum.Error.html#variant.OpenSSL
-    pub fn generate_pbkdf2<B: Backend>(
+    pub fn generate_pbkdf2(
         digest: Digest,
         iterations: u32,
         salt_len: u32,
-    ) -> ContainerResult<Kdf, B> {
+    ) -> Result<Kdf, OpenSSLError> {
         let mut salt = vec![0; salt_len as usize];
         rand::rand_bytes(&mut salt)?;
 
@@ -145,7 +240,7 @@ impl Kdf {
         })
     }
 
-    pub(crate) fn create_key<B: Backend>(&self, password: &[u8]) -> ContainerResult<SecureVec, B> {
+    pub(crate) fn create_key(&self, password: &[u8]) -> Result<SecureVec, OpenSSLError> {
         match self {
             Kdf::None => Ok(vec![].into()),
             Kdf::Pbkdf2 {
@@ -172,6 +267,21 @@ impl Kdf {
     }
 }
 
+impl fmt::Display for Kdf {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Kdf::None => fmt.write_str("none"),
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt,
+            } => {
+                write!(fmt, "pbkdf2:{}:{}:{}", digest, iterations, salt.len())
+            }
+        }
+    }
+}
+
 impl fmt::Debug for Kdf {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -188,6 +298,67 @@ impl fmt::Debug for Kdf {
                     .field("salt", &salt)
                     .finish()
             }
+        }
+    }
+}
+
+fn parse_none(v: &[&str]) -> Result<Kdf, KdfNoneError> {
+    if v.is_empty() {
+        Ok(Kdf::None)
+    } else {
+        Err(KdfNoneError::InvalidNumberOfArguments(v.len()))
+    }
+}
+
+fn parse_pbkdf2(v: &[&str]) -> Result<Kdf, KdfPbkdf2Error> {
+    const DEFAULT_DIGEST: Digest = Digest::Sha1;
+    const DEFAULT_ITERATIONS: u32 = 65536;
+    const DEFAULT_SALT_LEN: u32 = 16;
+
+    if v.len() != 0 && v.len() != 3 {
+        return Err(KdfPbkdf2Error::InvalidNumberOfArguments(v.len()));
+    }
+
+    let digest = if v.is_empty() || v[0].is_empty() {
+        DEFAULT_DIGEST
+    } else {
+        v[0].parse::<Digest>()?
+    };
+
+    let iterations = if v.is_empty() || v[1].is_empty() {
+        DEFAULT_ITERATIONS
+    } else {
+        v[1].parse::<u32>()
+            .map_err(|err| KdfPbkdf2Error::InvalidIterations(err))?
+    };
+
+    let salt_len = if v.is_empty() || v[2].is_empty() {
+        DEFAULT_SALT_LEN
+    } else {
+        v[2].parse::<u32>()
+            .map_err(|err| KdfPbkdf2Error::InvalidSaltLen(err))?
+    };
+
+    Ok(Kdf::generate_pbkdf2(digest, iterations, salt_len)?)
+}
+
+impl FromStr for Kdf {
+    type Err = KdfError;
+
+    fn from_str(s: &str) -> Result<Self, KdfError> {
+        let v: Vec<&str> = s
+            .split(':')
+            .map(|s| s.trim_matches(char::is_whitespace))
+            .collect();
+
+        if v.is_empty() {
+            todo!()
+        }
+
+        match v[0] {
+            "none" => parse_none(&v[1..]).map_err(|err| KdfError::None(err)),
+            "pbkdf2" => parse_pbkdf2(&v[1..]).map_err(|err| KdfError::Pbkdf2(err)),
+            _ => Err(KdfError::Unknown(v[0].to_string())),
         }
     }
 }

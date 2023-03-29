@@ -23,3 +23,4 @@
 mod none;
 mod pbkdf2;
 mod serde;
+mod string;

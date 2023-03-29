@@ -22,7 +22,6 @@
 
 use crate::container::digest::Digest;
 use crate::container::kdf::Kdf;
-use crate::memory::MemoryBackend as Backend;
 use crate::openssl::rand::RND;
 
 #[test]
@@ -43,7 +42,7 @@ fn ok() {
 
 #[test]
 fn generate_empty_salt() {
-    let kdf = Kdf::generate_pbkdf2::<Backend>(Digest::Sha1, 5, 0).unwrap();
+    let kdf = Kdf::generate_pbkdf2(Digest::Sha1, 5, 0).unwrap();
 
     match kdf {
         Kdf::Pbkdf2 {
@@ -61,7 +60,7 @@ fn generate_empty_salt() {
 
 #[test]
 fn generate_with_salt() {
-    let kdf = Kdf::generate_pbkdf2::<Backend>(Digest::Sha1, 5, 3).unwrap();
+    let kdf = Kdf::generate_pbkdf2(Digest::Sha1, 5, 3).unwrap();
 
     match kdf {
         Kdf::Pbkdf2 {
@@ -86,7 +85,7 @@ fn create_key_empty_password() {
         iterations: 1,
         salt: vec![1, 2, 3],
     }
-    .create_key::<Backend>(b"")
+    .create_key(b"")
     .unwrap();
 }
 
@@ -98,7 +97,7 @@ fn create_key_empty_salt() {
         iterations: 1,
         salt: vec![],
     }
-    .create_key::<Backend>(b"123")
+    .create_key(b"123")
     .unwrap();
 }
 
@@ -109,7 +108,7 @@ fn create_key() {
         iterations: 1,
         salt: vec![1, 2, 3],
     }
-    .create_key::<Backend>(b"123")
+    .create_key(b"123")
     .unwrap();
 
     assert_eq!(
