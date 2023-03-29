@@ -27,8 +27,8 @@ use nuts_backend::{Backend, Options};
 
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
-use crate::container::error::{ContainerError, ContainerResult};
 use crate::container::kdf::Kdf;
+use crate::openssl::OpenSSLError;
 
 #[derive(Debug)]
 pub(crate) enum KdfBuilder {
@@ -37,11 +37,10 @@ pub(crate) enum KdfBuilder {
 }
 
 impl KdfBuilder {
-    pub(crate) fn build<B: Backend>(&self) -> ContainerResult<Kdf, B> {
+    pub(crate) fn build(&self) -> Result<Kdf, OpenSSLError> {
         match self {
             KdfBuilder::Pbkdf2(digest, iterations, salt_len) => {
-                let kdf = Kdf::generate_pbkdf2(*digest, *iterations, *salt_len)?;
-                Ok(kdf)
+                Kdf::generate_pbkdf2(*digest, *iterations, *salt_len)
             }
             KdfBuilder::Kdf(ref kdf) => Ok(kdf.clone()),
         }
@@ -97,7 +96,7 @@ impl<B: Backend> CreateOptionsBuilder<B> {
     /// returned.
     ///
     /// [`Error::NoPassword`]: enum.Error.html#variant.NoPassword
-    pub fn with_password_callback<Cb: Fn() -> result::Result<Vec<u8>, String> + 'static>(
+    pub fn with_password_callback<Cb: Fn() -> Result<Vec<u8>, String> + 'static>(
         mut self,
         callback: Cb,
     ) -> Self {
@@ -125,11 +124,8 @@ impl<B: Backend> CreateOptionsBuilder<B> {
     /// # Errors
     ///
     /// If validation has failed a [`ContainerError`] is returned.
-    pub fn build(self) -> ContainerResult<CreateOptions<B>, B> {
-        self.0
-            .backend
-            .validate()
-            .map_or_else(|cause| Err(ContainerError::Backend(cause)), |()| Ok(self.0))
+    pub fn build(self) -> Result<CreateOptions<B>, B::Err> {
+        self.0.backend.validate().map(|()| self.0)
     }
 }
 
@@ -138,7 +134,7 @@ impl<B: Backend> CreateOptionsBuilder<B> {
 /// Use the [`OpenOptionsBuilder`] utility to create a `OpenOptions` instance.
 pub struct OpenOptions<B: Backend> {
     pub(crate) backend: B::OpenOptions,
-    pub(crate) callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>,
+    pub(crate) callback: Option<Rc<dyn Fn() -> Result<Vec<u8>, String>>>,
 }
 
 /// Utility used to create a [`OpenOptions`] instance.
@@ -168,7 +164,7 @@ impl<B: Backend> OpenOptionsBuilder<B> {
     /// returned.
     ///
     /// [`Error::NoPassword`]: enum.Error.html#variant.NoPassword
-    pub fn with_password_callback<Cb: Fn() -> result::Result<Vec<u8>, String> + 'static>(
+    pub fn with_password_callback<Cb: Fn() -> Result<Vec<u8>, String> + 'static>(
         mut self,
         callback: Cb,
     ) -> Self {
@@ -184,10 +180,7 @@ impl<B: Backend> OpenOptionsBuilder<B> {
     /// # Errors
     ///
     /// If validation has failed a [`ContainerError`] is returned.
-    pub fn build(self) -> ContainerResult<OpenOptions<B>, B> {
-        self.0
-            .backend
-            .validate()
-            .map_or_else(|cause| Err(ContainerError::Backend(cause)), |()| Ok(self.0))
+    pub fn build(self) -> Result<OpenOptions<B>, B::Err> {
+        self.0.backend.validate().map(|()| self.0)
     }
 }
