@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,10 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::fmt;
 use std::io::{self, Write};
-use std::result::Result;
+use std::str::FromStr;
 
-use crate::tool::convert::Convert;
 use crate::tool::hex::HexWriter;
 
 #[derive(Clone, Copy, Debug)]
@@ -32,19 +32,25 @@ pub enum Format {
     Hex,
 }
 
-impl Convert for Format {
+impl fmt::Display for Format {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Format::Raw => "raw",
+            Format::Hex => "hex",
+        };
+
+        fmt.write_str(s)
+    }
+}
+
+impl FromStr for Format {
+    type Err = String;
+
     fn from_str(s: &str) -> Result<Self, String> {
         match s {
             "raw" => Ok(Format::Raw),
             "hex" => Ok(Format::Hex),
             _ => Err(format!("invalid format: {}", s)),
-        }
-    }
-
-    fn to_str(&self) -> String {
-        match self {
-            Format::Raw => String::from("raw"),
-            Format::Hex => String::from("hex"),
         }
     }
 }

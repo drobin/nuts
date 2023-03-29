@@ -30,14 +30,9 @@ use std::result;
 use std::str::FromStr;
 
 use crate::tool::container_dir_for;
-use crate::tool::convert::Convert;
 use crate::tool::password::ask_for_password;
 
-fn is_valid<T: Convert>(s: String) -> result::Result<(), String> {
-    T::from_str(&s).map(|_| ())
-}
-
-fn is_valid_x<T: FromStr>(s: String) -> result::Result<(), String>
+fn is_valid<T: FromStr>(s: String) -> result::Result<(), String>
 where
     <T as FromStr>::Err: ToString,
 {

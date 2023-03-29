@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -21,9 +21,9 @@
 // IN THE SOFTWARE.
 
 use std::convert::TryFrom;
+use std::fmt;
 use std::ops::Deref;
-
-use crate::tool::convert::Convert;
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub struct Size<T>(T);
@@ -36,10 +36,15 @@ impl<T> Deref for Size<T> {
     }
 }
 
-impl<T> Convert for Size<T>
-where
-    T: TryFrom<u64> + ToString,
-{
+impl<T: fmt::Display> fmt::Display for Size<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}", self.0)
+    }
+}
+
+impl<T: TryFrom<u64>> FromStr for Size<T> {
+    type Err = String;
+
     fn from_str(s: &str) -> Result<Self, String> {
         let s = s.trim_matches(char::is_whitespace).to_lowercase();
 
@@ -60,9 +65,5 @@ where
             },
             Err(cause) => Err(format!("{}", cause)),
         }
-    }
-
-    fn to_str(&self) -> String {
-        self.0.to_string()
     }
 }

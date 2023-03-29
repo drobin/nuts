@@ -31,7 +31,6 @@ use std::cmp;
 use std::io::{self, Read};
 
 use crate::tool::actions::{is_valid, name_arg, open_container};
-use crate::tool::convert::Convert;
 use crate::tool::size::Size;
 
 fn fill_buf(buf: &mut [u8]) -> Result<usize> {
@@ -184,7 +183,7 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     let streaming = args.is_present("stream");
     let max_bytes = args
         .value_of("max-bytes")
-        .map_or(u64::MAX, |s| *Size::<u64>::from_str(s).unwrap());
+        .map_or(u64::MAX, |s| *s.parse::<Size<u64>>().unwrap());
 
     debug!("id: {:?}", id);
     debug!("streaming: {}", streaming);

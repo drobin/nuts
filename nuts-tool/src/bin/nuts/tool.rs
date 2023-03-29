@@ -26,7 +26,6 @@ use std::fs;
 use std::path::PathBuf;
 
 pub mod actions;
-pub mod convert;
 pub mod format;
 pub mod hex;
 pub mod password;

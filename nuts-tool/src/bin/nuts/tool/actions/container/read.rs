@@ -30,7 +30,6 @@ use nutsbackend_directory::{DirectoryBackend, DirectoryId};
 use std::cmp;
 
 use crate::tool::actions::{is_valid, name_arg, open_container};
-use crate::tool::convert::Convert;
 use crate::tool::format::{Format, Output};
 use crate::tool::size::Size;
 
@@ -137,10 +136,10 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     let id = args.value_of("ID").unwrap().parse()?;
 
     let streaming = args.is_present("stream");
-    let format = Format::from_str(args.value_of("format").unwrap()).unwrap();
+    let format = args.value_of("format").unwrap().parse::<Format>().unwrap();
     let max_bytes = args
         .value_of("max-bytes")
-        .map_or(u64::MAX, |s| *Size::<u64>::from_str(s).unwrap());
+        .map_or(u64::MAX, |s| *s.parse::<Size<u64>>().unwrap());
 
     debug!("id: {}", id);
     debug!("streaming: {}", streaming);
