@@ -20,36 +20,58 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
 use std::rc::Rc;
-use std::{fmt, result};
+use std::{error, fmt};
 
-use nuts_backend::Backend;
-
-use crate::container::error::{ContainerError, ContainerResult};
 use crate::svec::SecureVec;
 
+#[derive(Debug)]
+pub struct NoPasswordError(Option<String>);
+
+impl fmt::Display for NoPasswordError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self.0.as_ref() {
+            Some(msg) => write!(fmt, "A password is needed by the current cipher: {}", msg),
+            None => write!(fmt, "A password is needed by the current cipher"),
+        }
+    }
+}
+
+impl error::Error for NoPasswordError {}
+
 pub struct PasswordStore {
-    callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>,
+    callback: Option<Rc<dyn Fn() -> Result<Vec<u8>, String>>>,
     value: Option<SecureVec>,
 }
 
 impl PasswordStore {
-    pub fn new(callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>) -> PasswordStore {
+    pub fn new(callback: Option<Rc<dyn Fn() -> Result<Vec<u8>, String>>>) -> PasswordStore {
         PasswordStore {
             callback,
             value: None,
         }
     }
 
-    pub fn value<B: Backend>(&mut self) -> ContainerResult<&[u8], B> {
+    #[cfg(test)]
+    pub fn with_value(value: &[u8]) -> PasswordStore {
+        PasswordStore {
+            callback: None,
+            value: Some(value.to_vec().into()),
+        }
+    }
+
+    pub fn value(&mut self) -> Result<&[u8], NoPasswordError> {
         match self.value {
             Some(ref v) => Ok(v),
             None => {
                 let callback = self
                     .callback
                     .as_ref()
-                    .ok_or_else(|| ContainerError::NoPassword(None))?;
-                let value = callback().map_err(|cause| ContainerError::NoPassword(Some(cause)))?;
+                    .ok_or_else(|| NoPasswordError(None))?;
+                let value = callback().map_err(|cause| NoPasswordError(Some(cause)))?;
 
                 self.value = Some(value.into());
 

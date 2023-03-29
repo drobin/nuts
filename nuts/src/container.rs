@@ -46,6 +46,7 @@ pub use error::{ContainerError, ContainerResult};
 pub use info::Info;
 pub use kdf::Kdf;
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
+pub use password::NoPasswordError;
 
 macro_rules! map_err {
     ($result:expr) => {

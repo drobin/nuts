@@ -24,6 +24,7 @@ use std::{error, fmt, result};
 
 use nuts_backend::Backend;
 
+use crate::container::password::NoPasswordError;
 use crate::openssl::OpenSSLError;
 
 /// Error type used by this module.
@@ -38,7 +39,7 @@ pub enum ContainerError<B: Backend> {
     OpenSSL(OpenSSLError),
 
     /// A password is needed by the current cipher.
-    NoPassword(Option<String>),
+    NoPassword(NoPasswordError),
 
     /// The password is wrong.
     WrongPassword(nuts_bytes::Error),
@@ -53,12 +54,7 @@ impl<B: Backend> fmt::Display for ContainerError<B> {
             ContainerError::Backend(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::Bytes(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
-            ContainerError::NoPassword(Some(msg)) => {
-                write!(fmt, "A password is needed by the current cipher: {}", msg)
-            }
-            ContainerError::NoPassword(None) => {
-                write!(fmt, "A password is needed by the current cipher")
-            }
+            ContainerError::NoPassword(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::WrongPassword(_) => write!(fmt, "The password is wrong."),
             ContainerError::NullId => write!(fmt, "Try to read or write a null id"),
         }
@@ -84,7 +80,7 @@ impl<B: Backend + 'static> error::Error for ContainerError<B> {
             ContainerError::Backend(cause) => Some(cause),
             ContainerError::Bytes(cause) => Some(cause),
             ContainerError::OpenSSL(cause) => Some(cause),
-            ContainerError::NoPassword(_) => None,
+            ContainerError::NoPassword(cause) => Some(cause),
             ContainerError::WrongPassword(cause) => Some(cause),
             ContainerError::NullId => None,
         }
@@ -109,6 +105,12 @@ impl<B: Backend> From<nuts_bytes::Error> for ContainerError<B> {
 impl<B: Backend> From<OpenSSLError> for ContainerError<B> {
     fn from(cause: OpenSSLError) -> Self {
         ContainerError::OpenSSL(cause)
+    }
+}
+
+impl<B: Backend> From<NoPasswordError> for ContainerError<B> {
+    fn from(cause: NoPasswordError) -> Self {
+        ContainerError::NoPassword(cause)
     }
 }
 
