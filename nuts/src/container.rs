@@ -43,6 +43,7 @@ use crate::svec::SecureVec;
 pub use cipher::{Cipher, CipherError};
 pub use digest::{Digest, DigestError};
 pub use error::{ContainerError, ContainerResult};
+pub use header::HeaderError;
 pub use info::Info;
 pub use kdf::Kdf;
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
@@ -291,7 +292,7 @@ impl<B: Backend> Container<B> {
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
         match backend.read(&id, &mut buf) {
-            Ok(_) => Ok(Header::read(&buf, store)?),
+            Ok(_) => Ok(Header::read::<B>(&buf, store)?),
             Err(cause) => Err(ContainerError::Backend(cause)),
         }
     }

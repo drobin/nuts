@@ -28,7 +28,6 @@ use serde::{Deserialize, Serialize};
 use nuts_backend::Backend;
 use nuts_bytes::Options;
 
-use crate::container::error::ContainerResult;
 use crate::svec::SecureVec;
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -40,14 +39,14 @@ impl Settings {
         Settings(vec.into())
     }
 
-    pub fn from_backend<B: Backend>(settings: &B::Settings) -> ContainerResult<Settings, B> {
-        let vec = Options::new().to_vec(settings)?;
-        Ok(Settings(vec.into()))
+    pub fn from_backend<B: Backend>(settings: &B::Settings) -> Result<Settings, nuts_bytes::Error> {
+        Options::new()
+            .to_vec(settings)
+            .map(|vec| Settings(vec.into()))
     }
 
-    pub fn into_backend<B: Backend>(self) -> ContainerResult<B::Settings, B> {
-        let settings = Options::new().from_bytes(&self.0.as_ref())?;
-        Ok(settings)
+    pub fn into_backend<B: Backend>(self) -> Result<B::Settings, nuts_bytes::Error> {
+        Options::new().from_bytes(&self.0.as_ref())
     }
 }
 

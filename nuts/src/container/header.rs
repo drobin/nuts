@@ -25,18 +25,18 @@ mod rev0;
 mod secret;
 mod settings;
 
+use std::error;
 use std::fmt::{self, Write as FmtWrite};
 
 use nuts_backend::Backend;
 use nuts_bytes::Options;
 
 use crate::container::cipher::Cipher;
-use crate::container::error::ContainerResult;
 use crate::container::header::inner::{Inner, Revision};
 use crate::container::kdf::Kdf;
 use crate::container::options::CreateOptions;
-use crate::container::password::PasswordStore;
-use crate::openssl::rand;
+use crate::container::password::{NoPasswordError, PasswordStore};
+use crate::openssl::{rand, OpenSSLError};
 use crate::svec::SecureVec;
 
 use self::secret::PlainSecret;
@@ -44,6 +44,70 @@ use self::settings::Settings;
 
 fn bytes_options() -> Options {
     Options::new().with_varint()
+}
+
+#[derive(Debug)]
+pub enum HeaderError {
+    /// Error while (de-) serializing binary data.
+    Bytes(nuts_bytes::Error),
+
+    /// An error in the OpenSSL library occured.
+    OpenSSL(OpenSSLError),
+
+    /// A password is needed by the current cipher.
+    NoPassword(NoPasswordError),
+
+    /// The password is wrong.
+    WrongPassword(nuts_bytes::Error),
+}
+
+impl fmt::Display for HeaderError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Bytes(cause) => fmt::Display::fmt(cause, fmt),
+            Self::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
+            Self::NoPassword(cause) => fmt::Display::fmt(cause, fmt),
+            Self::WrongPassword(_) => write!(fmt, "The password is wrong."),
+        }
+    }
+}
+
+impl error::Error for HeaderError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            Self::Bytes(cause) => Some(cause),
+            Self::OpenSSL(cause) => Some(cause),
+            Self::NoPassword(cause) => Some(cause),
+            Self::WrongPassword(cause) => Some(cause),
+        }
+    }
+}
+
+impl From<nuts_bytes::Error> for HeaderError {
+    fn from(cause: nuts_bytes::Error) -> Self {
+        match &cause {
+            nuts_bytes::Error::Serde(msg) => {
+                if msg == "secret-magic mismatch" {
+                    return HeaderError::WrongPassword(cause);
+                }
+            }
+            _ => {}
+        }
+
+        HeaderError::Bytes(cause)
+    }
+}
+
+impl From<OpenSSLError> for HeaderError {
+    fn from(cause: OpenSSLError) -> Self {
+        HeaderError::OpenSSL(cause)
+    }
+}
+
+impl From<NoPasswordError> for HeaderError {
+    fn from(cause: NoPasswordError) -> Self {
+        HeaderError::NoPassword(cause)
+    }
 }
 
 pub struct Header {
@@ -54,7 +118,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn create<B: Backend>(options: &CreateOptions<B>) -> ContainerResult<Header, B> {
+    pub fn create<B: Backend>(options: &CreateOptions<B>) -> Result<Header, HeaderError> {
         let cipher = options.cipher;
         let mut key = vec![0; cipher.key_len()];
         let mut iv = vec![0; cipher.iv_len()];
@@ -75,7 +139,7 @@ impl Header {
     pub fn read<B: Backend>(
         buf: &[u8],
         store: &mut PasswordStore,
-    ) -> ContainerResult<(Header, B::Settings), B> {
+    ) -> Result<(Header, B::Settings), HeaderError> {
         let inner = bytes_options().ignore_trailing().from_bytes::<Inner>(buf)?;
         let Revision::Rev0(rev0) = inner.rev;
 
@@ -90,7 +154,7 @@ impl Header {
                 key: plain_secret.key.clone(),
                 iv: plain_secret.iv.clone(),
             },
-            plain_secret.settings.into_backend()?,
+            plain_secret.settings.into_backend::<B>()?,
         ))
     }
 
@@ -99,8 +163,8 @@ impl Header {
         settings: &B::Settings,
         buf: &mut [u8],
         store: &mut PasswordStore,
-    ) -> ContainerResult<(), B> {
-        let settings = Settings::from_backend(settings)?;
+    ) -> Result<(), HeaderError> {
+        let settings = Settings::from_backend::<B>(settings)?;
         let plain_secret = PlainSecret::generate(self.key.clone(), self.iv.clone(), settings)?;
 
         let mut iv = vec![0; self.cipher.iv_len()];

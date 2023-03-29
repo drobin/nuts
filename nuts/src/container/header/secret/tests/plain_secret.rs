@@ -30,7 +30,6 @@ use crate::container::header::secret::{bytes_options, PlainSecret};
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
 use crate::container::Digest;
-use crate::memory::MemoryBackend;
 
 #[test]
 fn ser() {
@@ -63,7 +62,7 @@ fn encrypt_none() {
     let mut store = PasswordStore::new(Some(Rc::new(cb)));
 
     let secret = plain_secret()
-        .encrypt::<MemoryBackend>(&mut store, Cipher::None, &Kdf::None, &[])
+        .encrypt(&mut store, Cipher::None, &Kdf::None, &[])
         .unwrap();
     assert_eq!(secret, PLAIN_SECRET);
 }
@@ -75,7 +74,7 @@ fn encrypt_some() {
 
     let kdf = Kdf::pbkdf2(Digest::Sha1, 1, &[0]);
     let secret = plain_secret()
-        .encrypt::<MemoryBackend>(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
+        .encrypt(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
         .unwrap();
     assert_eq!(secret, SECRET);
 }

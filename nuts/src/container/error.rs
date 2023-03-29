@@ -20,11 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::{error, fmt, result};
+use std::{error, fmt};
 
 use nuts_backend::Backend;
 
-use crate::container::password::NoPasswordError;
+use crate::container::header::HeaderError;
 use crate::openssl::OpenSSLError;
 
 /// Error type used by this module.
@@ -32,17 +32,11 @@ pub enum ContainerError<B: Backend> {
     /// An error occured in the attached backend.
     Backend(B::Err),
 
-    /// Error while (de-) serializing binary data.
-    Bytes(nuts_bytes::Error),
-
     /// An error in the OpenSSL library occured.
     OpenSSL(OpenSSLError),
 
-    /// A password is needed by the current cipher.
-    NoPassword(NoPasswordError),
-
-    /// The password is wrong.
-    WrongPassword(nuts_bytes::Error),
+    /// An error occured while evaluating the header of the container.
+    Header(HeaderError),
 
     /// Try to read/write from/to a null-id which is forbidden.
     NullId,
@@ -52,10 +46,8 @@ impl<B: Backend> fmt::Display for ContainerError<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ContainerError::Backend(cause) => fmt::Display::fmt(cause, fmt),
-            ContainerError::Bytes(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
-            ContainerError::NoPassword(cause) => fmt::Display::fmt(cause, fmt),
-            ContainerError::WrongPassword(_) => write!(fmt, "The password is wrong."),
+            ContainerError::Header(cause) => fmt::Display::fmt(cause, fmt),
             ContainerError::NullId => write!(fmt, "Try to read or write a null id"),
         }
     }
@@ -65,10 +57,8 @@ impl<B: Backend> fmt::Debug for ContainerError<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ContainerError::Backend(cause) => fmt::Debug::fmt(cause, fmt),
-            ContainerError::Bytes(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::OpenSSL(cause) => fmt::Debug::fmt(cause, fmt),
-            ContainerError::NoPassword(option) => fmt::Debug::fmt(option, fmt),
-            ContainerError::WrongPassword(cause) => fmt::Debug::fmt(cause, fmt),
+            ContainerError::Header(cause) => fmt::Debug::fmt(cause, fmt),
             ContainerError::NullId => fmt.write_str("NullId"),
         }
     }
@@ -78,27 +68,10 @@ impl<B: Backend + 'static> error::Error for ContainerError<B> {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             ContainerError::Backend(cause) => Some(cause),
-            ContainerError::Bytes(cause) => Some(cause),
             ContainerError::OpenSSL(cause) => Some(cause),
-            ContainerError::NoPassword(cause) => Some(cause),
-            ContainerError::WrongPassword(cause) => Some(cause),
+            ContainerError::Header(cause) => Some(cause),
             ContainerError::NullId => None,
         }
-    }
-}
-
-impl<B: Backend> From<nuts_bytes::Error> for ContainerError<B> {
-    fn from(cause: nuts_bytes::Error) -> Self {
-        match &cause {
-            nuts_bytes::Error::Serde(msg) => {
-                if msg == "secret-magic mismatch" {
-                    return ContainerError::WrongPassword(cause);
-                }
-            }
-            _ => {}
-        }
-
-        ContainerError::Bytes(cause)
     }
 }
 
@@ -108,10 +81,10 @@ impl<B: Backend> From<OpenSSLError> for ContainerError<B> {
     }
 }
 
-impl<B: Backend> From<NoPasswordError> for ContainerError<B> {
-    fn from(cause: NoPasswordError) -> Self {
-        ContainerError::NoPassword(cause)
+impl<B: Backend> From<HeaderError> for ContainerError<B> {
+    fn from(cause: HeaderError) -> Self {
+        ContainerError::Header(cause)
     }
 }
 
-pub type ContainerResult<T, B> = result::Result<T, ContainerError<B>>;
+pub type ContainerResult<T, B> = Result<T, ContainerError<B>>;

@@ -25,17 +25,15 @@ mod tests;
 
 use serde::{Deserialize, Serialize};
 
-use nuts_backend::Backend;
 use nuts_bytes::Options;
 
 use crate::container::cipher::{Cipher, CipherCtx};
-use crate::container::error::ContainerResult;
+use crate::container::header::HeaderError;
+use crate::container::header::Settings;
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
-use crate::openssl::rand;
+use crate::openssl::{rand, OpenSSLError};
 use crate::svec::SecureVec;
-
-use crate::container::header::settings::Settings;
 
 fn bytes_options() -> Options {
     Options::new().with_fixint()
@@ -46,9 +44,8 @@ fn bytes_options() -> Options {
 struct Magics([u32; 2]);
 
 impl Magics {
-    fn generate<B: Backend>() -> ContainerResult<Magics, B> {
-        let magic = rand::rand_u32()?;
-        Ok(Magics([magic, magic]))
+    fn generate() -> Result<Magics, OpenSSLError> {
+        rand::rand_u32().map(|magic| Magics([magic, magic]))
     }
 }
 
@@ -79,13 +76,13 @@ impl Secret {
         Secret(vec)
     }
 
-    pub fn decrypt<B: Backend>(
+    pub fn decrypt(
         self,
         store: &mut PasswordStore,
         cipher: Cipher,
         kdf: &Kdf,
         iv: &[u8],
-    ) -> ContainerResult<PlainSecret, B> {
+    ) -> Result<PlainSecret, HeaderError> {
         let mut ctx = CipherCtx::new(cipher, self.0.len() as u32)?;
 
         let key = if cipher.key_len() > 0 {
@@ -117,11 +114,11 @@ pub struct PlainSecret {
 }
 
 impl PlainSecret {
-    pub fn generate<B: Backend>(
+    pub fn generate(
         key: SecureVec,
         iv: SecureVec,
         settings: Settings,
-    ) -> ContainerResult<PlainSecret, B> {
+    ) -> Result<PlainSecret, OpenSSLError> {
         Ok(PlainSecret {
             magics: Magics::generate()?,
             key,
@@ -130,13 +127,13 @@ impl PlainSecret {
         })
     }
 
-    pub fn encrypt<B: Backend>(
+    pub fn encrypt(
         self,
         store: &mut PasswordStore,
         cipher: Cipher,
         kdf: &Kdf,
         iv: &[u8],
-    ) -> ContainerResult<Secret, B> {
+    ) -> Result<Secret, HeaderError> {
         let pbuf: SecureVec = bytes_options().to_vec(&self)?.into();
 
         let key = if cipher.key_len() > 0 {
