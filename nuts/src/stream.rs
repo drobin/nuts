@@ -36,7 +36,7 @@ use nuts_bytes::Options;
 use crate::container::Container;
 use crate::stream::block::Block;
 
-pub use error::{StreamError, StreamResult};
+pub use error::{Error, StreamResult};
 
 fn bytes_options() -> Options {
     Options::new().with_fixint()
@@ -50,8 +50,8 @@ macro_rules! init_last {
     };
 }
 
-impl<'a, B: 'static + Backend> From<StreamError<B>> for io::Error {
-    fn from(cause: StreamError<B>) -> Self {
+impl<'a, B: 'static + Backend> From<Error<B>> for io::Error {
+    fn from(cause: Error<B>) -> Self {
         io::Error::new(io::ErrorKind::Other, cause)
     }
 }

@@ -26,15 +26,15 @@ use nuts_backend::Backend;
 
 use crate::container;
 
-pub enum StreamError<B: Backend> {
+pub enum Error<B: Backend> {
     Bytes(nuts_bytes::Error),
     Container(container::Error<B>),
     InvalidMagic,
 }
 
-pub type StreamResult<T, B> = result::Result<T, StreamError<B>>;
+pub type StreamResult<T, B> = result::Result<T, Error<B>>;
 
-impl<B: Backend> fmt::Debug for StreamError<B> {
+impl<B: Backend> fmt::Debug for Error<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Bytes(cause) => fmt::Debug::fmt(cause, fmt),
@@ -44,7 +44,7 @@ impl<B: Backend> fmt::Debug for StreamError<B> {
     }
 }
 
-impl<B: Backend> fmt::Display for StreamError<B> {
+impl<B: Backend> fmt::Display for Error<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Bytes(cause) => fmt::Display::fmt(cause, fmt),
@@ -54,24 +54,24 @@ impl<B: Backend> fmt::Display for StreamError<B> {
     }
 }
 
-impl<B: Backend + 'static> error::Error for StreamError<B> {
+impl<B: Backend + 'static> error::Error for Error<B> {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            StreamError::Bytes(cause) => Some(cause),
-            StreamError::Container(cause) => Some(cause),
-            StreamError::InvalidMagic => None,
+            Self::Bytes(cause) => Some(cause),
+            Self::Container(cause) => Some(cause),
+            Self::InvalidMagic => None,
         }
     }
 }
 
-impl<B: Backend> From<nuts_bytes::Error> for StreamError<B> {
+impl<B: Backend> From<nuts_bytes::Error> for Error<B> {
     fn from(cause: nuts_bytes::Error) -> Self {
-        StreamError::Bytes(cause)
+        Self::Bytes(cause)
     }
 }
 
-impl<B: Backend> From<container::Error<B>> for StreamError<B> {
+impl<B: Backend> From<container::Error<B>> for Error<B> {
     fn from(cause: container::Error<B>) -> Self {
-        StreamError::Container(cause)
+        Self::Container(cause)
     }
 }

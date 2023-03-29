@@ -28,7 +28,7 @@ use nuts_bytes::{Reader, Writer};
 
 use crate::container::Container;
 use crate::stream::bytes_options;
-use crate::stream::error::{StreamError, StreamResult};
+use crate::stream::error::{Error, StreamResult};
 
 const MAGIC_0: [u8; 7] = *b"stream0";
 const MAGIC_N: [u8; 7] = *b"streamn";
@@ -41,7 +41,7 @@ fn read_magic<B: Backend>(reader: &mut Reader) -> StreamResult<bool, B> {
     } else if magic == MAGIC_N {
         Ok(false)
     } else {
-        Err(StreamError::InvalidMagic)
+        Err(Error::InvalidMagic)
     }
 }
 
