@@ -123,7 +123,7 @@ impl Backend for MemoryBackend {
         Ok(MemoryBackend::new())
     }
 
-    fn open_ready(&mut self, _settings: MemSettings) {}
+    fn configure(&mut self, _settings: MemSettings) {}
 
     fn info(&self) -> result::Result<(), MemError> {
         Ok(())

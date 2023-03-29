@@ -104,7 +104,7 @@ impl Backend for DirectoryBackend {
         })
     }
 
-    fn open_ready(&mut self, envelope: Self::Settings) {
+    fn configure(&mut self, envelope: Self::Settings) {
         self.bsize = envelope.bsize;
     }
 

@@ -20,9 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::error;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
-use std::{error, result};
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -40,7 +40,7 @@ pub trait Options<B: Backend> {
     /// # Errors
     ///
     /// In case of an invalid value a self-defined [`Backend::Err`] is returned.
-    fn validate(&self) -> result::Result<(), B::Err>;
+    fn validate(&self) -> Result<(), B::Err>;
 }
 
 /// Trait identifies a block in the storage.
@@ -116,7 +116,7 @@ where
     /// # Errors
     ///
     /// On any error a self-defined [`Backend::Err`] is returned.
-    fn create(options: Self::CreateOptions) -> result::Result<(Self, Self::Settings), Self::Err>;
+    fn create(options: Self::CreateOptions) -> Result<(Self, Self::Settings), Self::Err>;
 
     /// Opens an instance of the backend.
     ///
@@ -134,15 +134,14 @@ where
     /// # Errors
     ///
     /// On any error a self-defined [`Backend::Err`] is returned.
-    fn open(options: Self::OpenOptions) -> result::Result<Self, Self::Err>;
+    fn open(options: Self::OpenOptions) -> Result<Self, Self::Err>;
 
-    /// Method is called by the container when the settings of the backend are
-    /// available.
+    /// Method is called by the container to configure the backend.
     ///
     /// Once the backend is [open](Backend::open), the upper container reads
     /// the header and extracts the settings from it. Finally it calls
-    /// [`Backend::open_ready`] to assign the settings to its backend.
-    fn open_ready(&mut self, settings: Self::Settings);
+    /// [`Backend::configure`] to assign the settings to its backend.
+    fn configure(&mut self, settings: Self::Settings);
 
     /// Returns information from the backend.
     ///
@@ -153,7 +152,7 @@ where
     /// # Errors
     ///
     /// On any error a self-defined [`Backend::Err`] is returned.
-    fn info(&self) -> result::Result<Self::Info, Self::Err>;
+    fn info(&self) -> Result<Self::Info, Self::Err>;
 
     /// Returns the current block size.
     ///
@@ -181,7 +180,7 @@ where
     /// # Errors
     ///
     /// On any error a self-defined [`Backend::Err`] is returned.
-    fn aquire(&mut self) -> result::Result<Self::Id, Self::Err>;
+    fn aquire(&mut self) -> Result<Self::Id, Self::Err>;
 
     /// Releases a block again.
     ///
@@ -192,7 +191,7 @@ where
     /// # Errors
     ///
     /// On any error a self-defined [`Backend::Err`] is returned.
-    fn release(&mut self, id: Self::Id) -> result::Result<(), Self::Err>;
+    fn release(&mut self, id: Self::Id) -> Result<(), Self::Err>;
 
     /// Reads a block from the backend.
     ///
@@ -210,7 +209,7 @@ where
     /// # Errors
     ///
     /// On any error a self-defined [`Backend::Err`] is returned.
-    fn read(&mut self, id: &Self::Id, buf: &mut [u8]) -> result::Result<usize, Self::Err>;
+    fn read(&mut self, id: &Self::Id, buf: &mut [u8]) -> Result<usize, Self::Err>;
 
     /// Writes a block into the backend.
     ///
@@ -228,5 +227,5 @@ where
     /// # Errors
     ///
     /// On any error a self-defined [`Backend::Err`] is returned.
-    fn write(&mut self, id: &Self::Id, buf: &[u8]) -> result::Result<usize, Self::Err>;
+    fn write(&mut self, id: &Self::Id, buf: &[u8]) -> Result<usize, Self::Err>;
 }

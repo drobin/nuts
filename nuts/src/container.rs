@@ -135,7 +135,7 @@ impl<B: Backend> Container<B> {
         let mut backend = map_err!(B::open(options.backend))?;
         let (header, settings) = Self::read_header(&mut backend, &mut store)?;
 
-        backend.open_ready(settings);
+        backend.configure(settings);
 
         let ctx = CipherCtx::new(header.cipher, backend.block_size())?;
 
