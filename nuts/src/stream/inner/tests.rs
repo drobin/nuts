@@ -20,11 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod error;
-mod inner;
-#[cfg(test)]
-mod testutils;
-
-pub use error::Error;
-pub use inner::stream::{OpenOptions, Position, Stream};
-pub use inner::Inner;
+mod insert;
+mod payload;
+mod walk;

@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{App, Arg, ArgMatches};
 use log::{debug, trace};
 use nuts::container::Container;
@@ -48,6 +48,18 @@ fn fill_buf(buf: &mut [u8]) -> Result<usize> {
     }
 
     Ok(nread)
+}
+
+fn write_all(stream: &mut Stream<DirectoryBackend>, buf: &[u8]) -> Result<()> {
+    let mut nbytes = 0;
+
+    while nbytes < buf.len() {
+        let n = stream.write(&buf[nbytes..])?;
+        assert!(n > 0);
+        nbytes += n;
+    }
+
+    Ok(())
 }
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
@@ -102,7 +114,7 @@ fn write_block(
 
     container.write(&id, &buf[..n])?;
 
-    println!("{} bytes written into {}.", n, id);
+    println!("{} bytes written into {}", n, id);
 
     Ok(())
 }
@@ -112,62 +124,31 @@ fn write_stream(
     id: Option<DirectoryId>,
     max_bytes: u64,
 ) -> Result<()> {
-    let mut stream = Stream::create(&mut container);
-    let payload_len = stream.max_payload();
-
-    let mut payload = vec![0; payload_len];
-    let mut front_id = None;
-    let mut num_blocks = 0;
+    let id = id.map_or_else(|| container.aquire(), |id| Ok(id))?;
+    let mut stream = Stream::create(container, id)?;
+    let mut buf = [0; 1024];
     let mut num_bytes: usize = 0;
 
     while num_bytes < max_bytes as usize {
-        let num_read = fill_buf(&mut payload)?;
+        let num_read = fill_buf(&mut buf)?;
 
         if num_read > 0 {
             debug!("{} bytes read from stdin", num_read);
             num_bytes += num_read;
 
-            let cur_id = if front_id.is_none() {
-                let id_x = stream.insert(id.clone())?;
-
-                front_id = Some(id_x.clone());
-
-                id_x
-            } else {
-                stream.insert(None)?
-            }
-            .clone();
-
-            let num_written = stream.set_current_payload(&payload[..num_read])?;
-
-            if num_written == num_read {
-                debug!("{} bytes written into {}", num_written, cur_id);
-            } else {
-                return Err(anyhow!(
-                    "{} bytes read but {} bytes written into {}",
-                    num_read,
-                    num_written,
-                    cur_id
-                ));
-            }
+            write_all(&mut stream, &buf[..num_read])?;
         } else {
             debug!("eof reached");
+            stream.flush()?;
             break;
         }
-
-        num_blocks += 1;
     }
 
-    match front_id {
-        Some(id) => {
-            let s = if num_blocks == 1 { "block" } else { "blocks" };
-            println!(
-                "{} bytes written into a stream ({} {}) starting at {}",
-                num_bytes, num_blocks, s, id
-            )
-        }
-        None => println!("No stream is created."),
-    };
+    println!(
+        "{} bytes written into stream starting at {}",
+        num_bytes,
+        stream.first()
+    );
 
     Ok(())
 }

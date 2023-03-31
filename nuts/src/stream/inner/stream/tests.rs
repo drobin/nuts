@@ -20,46 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use log::trace;
-use std::io::{self, Read};
-
-use nuts_backend::Backend;
-
-use crate::stream::Stream;
-
-macro_rules! eval_stream_op {
-    ($expr:expr) => {
-        match $expr {
-            Some(Ok(_)) => {}
-            Some(Err(err)) => return Err(err.into()),
-            None => return Ok(0),
-        }
-    };
-}
-
-impl<'a, B: 'static + Backend> Read for Stream<'a, B> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        trace!("next read attempt");
-
-        if buf.len() == 0 {
-            return Ok(0);
-        }
-
-        if self.cur.is_none() {
-            trace!("switch to first block");
-            eval_stream_op!(self.first_block());
-        };
-
-        loop {
-            let len = self.copy_remaining_payload(buf);
-
-            if len == 0 {
-                trace!("no remaining bytes, switch to next block");
-                eval_stream_op!(self.next_block());
-            } else {
-                trace!("copied {} bytes to buf", len);
-                return Ok(len);
-            }
-        }
-    }
-}
+mod append;
+mod create;
+mod read;
+mod seek;
+mod write;

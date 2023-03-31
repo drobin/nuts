@@ -20,51 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod current;
-mod insert;
-mod insert_front;
-mod payload;
-mod read;
-mod walk;
-mod write;
-
 use nuts_backend::{Backend, BlockId};
+use nuts_bytes::Options;
 use serde::Serialize;
 
 use crate::container::{Cipher, Container, CreateOptionsBuilder};
 use crate::memory::{MemId, MemOptions, MemoryBackend};
-use crate::openssl::rand::RND;
-use crate::stream::bytes_options;
 
-const MAX_PAYLOAD: usize = 493;
-
-macro_rules! next {
-    ($stream:expr) => {
-        $stream.next_block().unwrap().unwrap()
-    };
-}
-
-macro_rules! prev {
-    ($stream:expr) => {
-        $stream.prev_block().unwrap().unwrap()
-    };
-}
-
-macro_rules! assert_next_is_none {
-    ($stream:expr) => {
-        assert!($stream.next_block().is_none())
-    };
-}
-
-macro_rules! assert_prev_is_none {
-    ($stream:expr) => {
-        assert!($stream.prev_block().is_none())
-    };
-}
-
-use {assert_next_is_none, assert_prev_is_none, next, prev};
-
-fn setup_container() -> Container<MemoryBackend> {
+pub(super) fn setup_container() -> Container<MemoryBackend> {
     let options = CreateOptionsBuilder::<MemoryBackend>::new(MemOptions::new(), Cipher::None)
         .build()
         .unwrap();
@@ -75,18 +38,11 @@ fn setup_container() -> Container<MemoryBackend> {
 fn make_block<B: Backend>(
     container: &mut Container<B>,
     id: &B::Id,
-    first: bool,
     prev: &B::Id,
     next: &B::Id,
     payload: &[u8],
 ) {
-    let mut writer = bytes_options().build_vec_writer(vec![]);
-
-    if first {
-        writer.write_bytes(b"stream0").unwrap();
-    } else {
-        writer.write_bytes(b"streamn").unwrap();
-    }
+    let mut writer = Options::new().with_fixint().build_vec_writer(vec![]);
 
     prev.serialize(&mut writer).unwrap(); // prev
     next.serialize(&mut writer).unwrap(); // next
@@ -96,67 +52,57 @@ fn make_block<B: Backend>(
     container.write(&id, &writer.into_vec()).unwrap();
 }
 
-fn setup_one() -> (Container<MemoryBackend>, MemId) {
+pub(super) fn setup_one_with(payload: &[u8]) -> (Container<MemoryBackend>, MemId) {
     let mut container = setup_container();
     let id = container.aquire().unwrap();
-    let next = MemId::null();
+    let null = MemId::null();
 
-    make_block(&mut container, &id, true, &id, &next, &[1, 2, 3]);
+    make_block(&mut container, &id, &id, &null, payload);
 
     (container, id)
 }
 
-fn setup_one_full() -> (Container<MemoryBackend>, MemId) {
-    let mut container = setup_container();
-    let id = container.aquire().unwrap();
-    let next = MemId::null();
-
-    make_block(&mut container, &id, true, &id, &next, &RND[..MAX_PAYLOAD]);
-
-    (container, id)
+pub(super) fn setup_one() -> (Container<MemoryBackend>, MemId) {
+    setup_one_with(&[1, 2, 3])
 }
 
-fn setup_two() -> (Container<MemoryBackend>, (MemId, MemId)) {
+pub(super) fn setup_two_with(
+    payload1: &[u8],
+    payload2: &[u8],
+) -> (Container<MemoryBackend>, (MemId, MemId)) {
     let mut container = setup_container();
     let id1 = container.aquire().unwrap();
     let id2 = container.aquire().unwrap();
     let null = MemId::null();
 
-    make_block(&mut container, &id1, true, &id2, &id2, &[1, 2, 3]);
-    make_block(&mut container, &id2, false, &id1, &null, &[4, 5, 6]);
+    make_block(&mut container, &id1, &id2, &id2, payload1);
+    make_block(&mut container, &id2, &id1, &null, payload2);
 
     (container, (id1, id2))
 }
 
-fn setup_two_full() -> (Container<MemoryBackend>, (MemId, MemId)) {
-    let mut container = setup_container();
-    let id1 = container.aquire().unwrap();
-    let id2 = container.aquire().unwrap();
-    let null = MemId::null();
-
-    make_block(&mut container, &id1, true, &id2, &id2, &[1, 2, 3]);
-    make_block(
-        &mut container,
-        &id2,
-        false,
-        &id1,
-        &null,
-        &RND[..MAX_PAYLOAD],
-    );
-
-    (container, (id1, id2))
+pub(super) fn setup_two() -> (Container<MemoryBackend>, (MemId, MemId)) {
+    setup_two_with(&[1, 2, 3], &[4, 5, 6])
 }
 
-fn setup_three() -> (Container<MemoryBackend>, (MemId, MemId, MemId)) {
+pub(super) fn setup_three_with(
+    payload1: &[u8],
+    payload2: &[u8],
+    payload3: &[u8],
+) -> (Container<MemoryBackend>, (MemId, MemId, MemId)) {
     let mut container = setup_container();
     let id1 = container.aquire().unwrap();
     let id2 = container.aquire().unwrap();
     let id3 = container.aquire().unwrap();
     let null = MemId::null();
 
-    make_block(&mut container, &id1, true, &id3, &id2, &[1, 2, 3]);
-    make_block(&mut container, &id2, false, &id1, &id3, &[4, 5, 6]);
-    make_block(&mut container, &id3, false, &id2, &null, &[7, 8, 9]);
+    make_block(&mut container, &id1, &id3, &id2, payload1);
+    make_block(&mut container, &id2, &id1, &id3, payload2);
+    make_block(&mut container, &id3, &id2, &null, payload3);
 
     (container, (id1, id2, id3))
+}
+
+pub(super) fn setup_three() -> (Container<MemoryBackend>, (MemId, MemId, MemId)) {
+    setup_three_with(&[1, 2, 3], &[4, 5, 6], &[7, 8, 9])
 }

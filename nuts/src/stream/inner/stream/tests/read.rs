@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,24 +20,65 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::io::Read;
-use testx::testx;
-
 use crate::container::Container;
 use crate::memory::{MemId, MemoryBackend};
-use crate::stream::Stream;
+use crate::stream::{Error, OpenOptions};
 
-#[testx(setup = super::setup_container)]
-fn empty(mut container: Container<MemoryBackend>) {
-    let mut stream = Stream::create(&mut container);
-    let mut buf = [0; 64];
+use crate::stream::testutils::{
+    setup_one, setup_one_with, setup_three, setup_three_with, setup_two, setup_two_with,
+};
 
-    assert_eq!(stream.read(&mut buf).unwrap(), 0);
+fn one(with: Option<&[u8]>) -> (Container<MemoryBackend>, MemId) {
+    match with {
+        Some(payload) => setup_one_with(payload),
+        None => setup_one(),
+    }
 }
 
-#[testx(setup = super::setup_one)]
-fn one_full(mut container: Container<MemoryBackend>, id: MemId) {
-    let mut stream = Stream::new(&mut container, &id);
+fn two(with: Option<(&[u8], &[u8])>) -> (Container<MemoryBackend>, MemId) {
+    let (container, (id1, _)) = match with {
+        Some((payload1, payload2)) => setup_two_with(payload1, payload2),
+        None => setup_two(),
+    };
+
+    (container, id1)
+}
+
+fn three(with: Option<(&[u8], &[u8], &[u8])>) -> (Container<MemoryBackend>, MemId) {
+    let (container, (id1, ..)) = match with {
+        Some((payload1, payload2, payload3)) => setup_three_with(payload1, payload2, payload3),
+        None => setup_three(),
+    };
+    (container, id1)
+}
+
+macro_rules! open {
+    ($setup:ident) => {{
+        let (container, id) = $setup(None);
+        OpenOptions::new().read(true).open(container, id).unwrap()
+    }};
+
+    ($setup:ident, $($with:expr),+) => {{
+        let (container, id) = $setup(Some(($($with),*)));
+        OpenOptions::new().read(true).open(container, id).unwrap()
+    }};
+}
+
+#[test]
+fn no_read() {
+    for option in [OpenOptions::new(), *OpenOptions::new().read(false)] {
+        let (container, id) = setup_one();
+        let mut stream = option.open(container, id).unwrap();
+        let mut buf = [0; 3];
+
+        let err = stream.read(&mut buf).unwrap_err();
+        assert_error!(err, Error::NotReadable);
+    }
+}
+
+#[test]
+fn one_full() {
+    let mut stream = open!(one);
     let mut buf = [0; 3];
 
     assert_eq!(stream.read(&mut buf).unwrap(), 3);
@@ -46,9 +87,9 @@ fn one_full(mut container: Container<MemoryBackend>, id: MemId) {
     assert_eq!(stream.read(&mut buf).unwrap(), 0);
 }
 
-#[testx(setup = super::setup_one)]
-fn one_more(mut container: Container<MemoryBackend>, id: MemId) {
-    let mut stream = Stream::new(&mut container, &id);
+#[test]
+fn one_more() {
+    let mut stream = open!(one);
     let mut buf = [0; 4];
 
     assert_eq!(stream.read(&mut buf).unwrap(), 3);
@@ -57,9 +98,9 @@ fn one_more(mut container: Container<MemoryBackend>, id: MemId) {
     assert_eq!(stream.read(&mut buf).unwrap(), 0);
 }
 
-#[testx(setup = super::setup_one)]
-fn one_part(mut container: Container<MemoryBackend>, id: MemId) {
-    let mut stream = Stream::new(&mut container, &id);
+#[test]
+fn one_part() {
+    let mut stream = open!(one);
     let mut buf = [0; 2];
 
     assert_eq!(stream.read(&mut buf).unwrap(), 2);
@@ -71,9 +112,9 @@ fn one_part(mut container: Container<MemoryBackend>, id: MemId) {
     assert_eq!(stream.read(&mut buf).unwrap(), 0);
 }
 
-#[testx(setup = super::setup_two)]
-fn two_full(mut container: Container<MemoryBackend>, (id1, _): (MemId, MemId)) {
-    let mut stream = Stream::new(&mut container, &id1);
+#[test]
+fn two_full() {
+    let mut stream = open!(two);
     let mut buf = [0; 3];
 
     assert_eq!(stream.read(&mut buf).unwrap(), 3);
@@ -85,9 +126,9 @@ fn two_full(mut container: Container<MemoryBackend>, (id1, _): (MemId, MemId)) {
     assert_eq!(stream.read(&mut buf).unwrap(), 0);
 }
 
-#[testx(setup = super::setup_two)]
-fn two_more(mut container: Container<MemoryBackend>, (id1, _): (MemId, MemId)) {
-    let mut stream = Stream::new(&mut container, &id1);
+#[test]
+fn two_more() {
+    let mut stream = open!(two);
     let mut buf = [0; 4];
 
     assert_eq!(stream.read(&mut buf).unwrap(), 3);
@@ -99,9 +140,9 @@ fn two_more(mut container: Container<MemoryBackend>, (id1, _): (MemId, MemId)) {
     assert_eq!(stream.read(&mut buf).unwrap(), 0);
 }
 
-#[testx(setup = super::setup_two)]
-fn two_part(mut container: Container<MemoryBackend>, (id1, _): (MemId, MemId)) {
-    let mut stream = Stream::new(&mut container, &id1);
+#[test]
+fn two_part() {
+    let mut stream = open!(two);
     let mut buf = [0; 2];
 
     assert_eq!(stream.read(&mut buf).unwrap(), 2);
@@ -119,9 +160,9 @@ fn two_part(mut container: Container<MemoryBackend>, (id1, _): (MemId, MemId)) {
     assert_eq!(stream.read(&mut buf).unwrap(), 0);
 }
 
-#[testx(setup = super::setup_three)]
-fn three_full(mut container: Container<MemoryBackend>, (id1, _, _): (MemId, MemId, MemId)) {
-    let mut stream = Stream::new(&mut container, &id1);
+#[test]
+fn three_full() {
+    let mut stream = open!(three);
     let mut buf = [0; 3];
 
     assert_eq!(stream.read(&mut buf).unwrap(), 3);
@@ -136,9 +177,9 @@ fn three_full(mut container: Container<MemoryBackend>, (id1, _, _): (MemId, MemI
     assert_eq!(stream.read(&mut buf).unwrap(), 0);
 }
 
-#[testx(setup = super::setup_three)]
-fn three_more(mut container: Container<MemoryBackend>, (id1, _, _): (MemId, MemId, MemId)) {
-    let mut stream = Stream::new(&mut container, &id1);
+#[test]
+fn three_more() {
+    let mut stream = open!(three);
     let mut buf = [0; 4];
 
     assert_eq!(stream.read(&mut buf).unwrap(), 3);
@@ -153,9 +194,9 @@ fn three_more(mut container: Container<MemoryBackend>, (id1, _, _): (MemId, MemI
     assert_eq!(stream.read(&mut buf).unwrap(), 0);
 }
 
-#[testx(setup = super::setup_three)]
-fn three_part(mut container: Container<MemoryBackend>, (id1, _, _): (MemId, MemId, MemId)) {
-    let mut stream = Stream::new(&mut container, &id1);
+#[test]
+fn three_part() {
+    let mut stream = open!(three);
     let mut buf = [0; 2];
 
     assert_eq!(stream.read(&mut buf).unwrap(), 2);
@@ -175,6 +216,78 @@ fn three_part(mut container: Container<MemoryBackend>, (id1, _, _): (MemId, MemI
 
     assert_eq!(stream.read(&mut buf).unwrap(), 1);
     assert_eq!(buf, [9, 8]);
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 0);
+}
+
+#[test]
+fn one_with_empty() {
+    let mut stream = open!(one, &[]);
+    let mut buf = [0; 3];
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 0);
+}
+
+#[test]
+fn two_with_empty_front() {
+    let mut stream = open!(two, &[], &[4, 5, 6]);
+    let mut buf = [0; 3];
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 3);
+    assert_eq!(buf, [4, 5, 6]);
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 0);
+}
+
+#[test]
+fn two_with_empty_back() {
+    let mut stream = open!(two, &[1, 2, 3], &[]);
+    let mut buf = [0; 3];
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 3);
+    assert_eq!(buf, [1, 2, 3]);
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 0);
+}
+
+#[test]
+fn three_with_empty_front() {
+    let mut stream = open!(three, &[], &[4, 5, 6], &[7, 8, 9]);
+    let mut buf = [0; 3];
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 3);
+    assert_eq!(buf, [4, 5, 6]);
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 3);
+    assert_eq!(buf, [7, 8, 9]);
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 0);
+}
+
+#[test]
+fn three_with_empty_mid() {
+    let mut stream = open!(three, &[1, 2, 3], &[], &[7, 8, 9]);
+    let mut buf = [0; 3];
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 3);
+    assert_eq!(buf, [1, 2, 3]);
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 3);
+    assert_eq!(buf, [7, 8, 9]);
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 0);
+}
+
+#[test]
+fn three_with_empty_back() {
+    let mut stream = open!(three, &[1, 2, 3], &[4, 5, 6], &[]);
+    let mut buf = [0; 3];
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 3);
+    assert_eq!(buf, [1, 2, 3]);
+
+    assert_eq!(stream.read(&mut buf).unwrap(), 3);
+    assert_eq!(buf, [4, 5, 6]);
 
     assert_eq!(stream.read(&mut buf).unwrap(), 0);
 }

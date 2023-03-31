@@ -91,38 +91,30 @@ fn read_block(
 }
 
 fn read_stream(
-    mut container: Container<DirectoryBackend>,
+    container: Container<DirectoryBackend>,
     id: DirectoryId,
     format: Format,
     max_bytes: u64,
 ) -> Result<()> {
-    let mut stream = Stream::new(&mut container, &id);
+    let mut stream = Stream::open(container, id)?;
+    let mut buf = [0; 1024];
     let mut out = Output::new(format);
-    let mut cur_bytes: usize = 0;
+    let mut remaining_bytes = max_bytes as usize;
 
     loop {
-        match stream.next_block() {
-            Some(result) => {
-                let id = result?.clone();
-                let payload = stream.current_payload().unwrap();
+        let len = cmp::min(buf.len(), remaining_bytes);
+        let nread = stream.read(&mut buf[..len])?;
 
-                debug!("switch to next id {}, payload: {}", id, payload.len());
+        if nread > 0 {
+            out.print(&buf[..nread]);
+            remaining_bytes -= nread;
 
-                if cur_bytes + payload.len() > max_bytes as usize {
-                    let remaining = max_bytes as usize - cur_bytes;
-                    out.print(&payload[..remaining]);
+            debug!("{} bytes read, remaining: {}", nread, remaining_bytes);
+        } else {
+            out.flush();
 
-                    debug!("max-bytes ({}) reached", max_bytes);
-                    break;
-                } else {
-                    cur_bytes += payload.len();
-                    out.print(payload);
-                }
-            }
-            None => {
-                debug!("end of stream reached");
-                break;
-            }
+            debug!("end of stream reached");
+            break;
         }
     }
 

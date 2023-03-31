@@ -20,28 +20,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::{error, fmt, result};
+use std::{error, fmt};
 
 use nuts_backend::Backend;
 
 use crate::container;
 
+/// Error type used by the module.
 pub enum Error<B: Backend> {
+    /// Failed to encoding/decode the content of a block.
     Bytes(nuts_bytes::Error),
+
+    /// Failed to read/write data from/to the container.
     Container(container::Error<B>),
-    InvalidMagic,
-}
 
-pub type StreamResult<T, B> = result::Result<T, Error<B>>;
+    /// The read operation is not allowed on this stream.
+    NotReadable,
 
-impl<B: Backend> fmt::Debug for Error<B> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Bytes(cause) => fmt::Debug::fmt(cause, fmt),
-            Self::Container(cause) => fmt::Debug::fmt(cause, fmt),
-            Self::InvalidMagic => write!(fmt, "StreamError::InvalidMagic"),
-        }
-    }
+    /// The write operation is not allowed on this stream.
+    NotWritable,
 }
 
 impl<B: Backend> fmt::Display for Error<B> {
@@ -49,29 +46,33 @@ impl<B: Backend> fmt::Display for Error<B> {
         match self {
             Self::Bytes(cause) => fmt::Display::fmt(cause, fmt),
             Self::Container(cause) => fmt::Display::fmt(cause, fmt),
-            Self::InvalidMagic => write!(fmt, "invalid magic"),
+            Self::NotReadable => write!(fmt, "You are not allowed to read the stream."),
+            Self::NotWritable => write!(fmt, "You are not allowed to write the stream."),
         }
     }
 }
 
-impl<B: Backend + 'static> error::Error for Error<B> {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+impl<B: Backend> fmt::Debug for Error<B> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Bytes(cause) => Some(cause),
-            Self::Container(cause) => Some(cause),
-            Self::InvalidMagic => None,
+            Self::Bytes(cause) => f.debug_tuple("Bytes").field(cause).finish(),
+            Self::Container(cause) => f.debug_tuple("Container").field(cause).finish(),
+            Self::NotReadable => f.debug_tuple("NotReadable").finish(),
+            Self::NotWritable => f.debug_tuple("NotWritable").finish(),
         }
+    }
+}
+
+impl<B: Backend> error::Error for Error<B> {}
+
+impl<B: Backend> From<container::Error<B>> for Error<B> {
+    fn from(cause: container::Error<B>) -> Self {
+        Error::Container(cause)
     }
 }
 
 impl<B: Backend> From<nuts_bytes::Error> for Error<B> {
     fn from(cause: nuts_bytes::Error) -> Self {
-        Self::Bytes(cause)
-    }
-}
-
-impl<B: Backend> From<container::Error<B>> for Error<B> {
-    fn from(cause: container::Error<B>) -> Self {
-        Self::Container(cause)
+        Error::Bytes(cause)
     }
 }
