@@ -37,6 +37,12 @@ pub fn run(args: &ArgMatches) -> Result<()> {
     println!("bsize:  {}", info.backend.bsize);
     println!("cipher: {}", info.cipher);
     println!("kdf:    {}", info.kdf.to_string());
+    println!(
+        "top-id: {}",
+        container
+            .top_id()
+            .map_or(String::from("none"), |id| id.to_string())
+    );
 
     Ok(())
 }

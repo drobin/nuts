@@ -25,11 +25,11 @@ mod tests;
 
 use serde::{Deserialize, Serialize};
 
+use nuts_backend::Backend;
 use nuts_bytes::Options;
 
 use crate::container::cipher::{Cipher, CipherCtx};
 use crate::container::header::HeaderError;
-use crate::container::header::Settings;
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
 use crate::openssl::{rand, OpenSSLError};
@@ -76,13 +76,13 @@ impl Secret {
         Secret(vec)
     }
 
-    pub fn decrypt(
+    pub fn decrypt<B: Backend>(
         self,
         store: &mut PasswordStore,
         cipher: Cipher,
         kdf: &Kdf,
         iv: &[u8],
-    ) -> Result<PlainSecret, HeaderError> {
+    ) -> Result<PlainSecret<B>, HeaderError> {
         let mut ctx = CipherCtx::new(cipher, self.0.len() as u32)?;
 
         let key = if cipher.key_len() > 0 {
@@ -93,7 +93,7 @@ impl Secret {
         };
 
         let pbuf = ctx.decrypt(&key, &iv, &self.0)?;
-        let plain_secret = bytes_options().from_bytes::<PlainSecret>(pbuf)?;
+        let plain_secret = bytes_options().from_bytes::<PlainSecret<B>>(pbuf)?;
 
         Ok(plain_secret)
     }
@@ -106,23 +106,26 @@ impl<T: AsRef<[u8]>> PartialEq<T> for Secret {
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
-pub struct PlainSecret {
+pub struct PlainSecret<B: Backend> {
     magics: Magics,
     pub key: SecureVec,
     pub iv: SecureVec,
-    pub settings: Settings,
+    pub top_id: Option<B::Id>,
+    pub settings: B::Settings,
 }
 
-impl PlainSecret {
+impl<B: Backend> PlainSecret<B> {
     pub fn generate(
         key: SecureVec,
         iv: SecureVec,
-        settings: Settings,
-    ) -> Result<PlainSecret, OpenSSLError> {
+        top_id: Option<B::Id>,
+        settings: B::Settings,
+    ) -> Result<PlainSecret<B>, OpenSSLError> {
         Ok(PlainSecret {
             magics: Magics::generate()?,
             key,
             iv,
+            top_id,
             settings,
         })
     }

@@ -64,9 +64,9 @@ macro_rules! map_err {
 /// open an existing container with the [`Container::open`] method. With the
 /// [`Container::read`] and [`Container::write`] methods you can read data from
 /// the container resp. write data into the container.
-pub struct Container<B> {
+pub struct Container<B: Backend> {
     backend: B,
-    header: Header,
+    header: Header<B>,
     ctx: CipherCtx,
 }
 
@@ -86,21 +86,26 @@ impl<B: Backend> Container<B> {
     ///
     /// # Errors
     ///
-    /// Errors are listed in the [`ContainerError`] type.
+    /// Errors are listed in the [`Error`] type.
     // If encryption is enabled but no password callback is assigned or the
     // assigned callback returns an error, an [`Error::NoPassword`] error is
     // returned.
     //
     // Further errors are listed in the [`Error`] type.
     pub fn create(options: CreateOptions<B>) -> ContainerResult<Container<B>, B> {
-        let header = Header::create(&options)?;
+        let mut header = Header::create(&options)?;
         let (mut backend, settings) = map_err!(B::create(options.backend))?;
         let ctx = CipherCtx::new(header.cipher, backend.block_size())?;
 
         let callback = options.callback.map(|cb| cb.clone());
         let mut store = PasswordStore::new(callback);
 
-        Self::write_header(&mut backend, &header, &settings, &mut store)?;
+        if options.top_id {
+            header.top_id = Some(map_err!(backend.aquire())?);
+            debug!("Generated top-id for container");
+        }
+
+        Self::write_header(&mut backend, &header, settings, &mut store)?;
 
         debug!(
             "Container created, backend: {}, header: {:?}",
@@ -122,7 +127,7 @@ impl<B: Backend> Container<B> {
     ///
     /// # Errors
     ///
-    /// Errors are listed in the [`ContainerError`] type.
+    /// Errors are listed in the [`Error`] type.
     // If encryption is enabled but no password callback is assigned or the
     // assigned callback returns an error, an [`Error::NoPassword`] error is
     // returned.
@@ -157,11 +162,23 @@ impl<B: Backend> Container<B> {
         &self.backend
     }
 
+    /// Returns the top-id of the container.
+    ///
+    /// The top-id can be useful for services runnning on top of the container
+    /// to have a defined, first, top block. The id is stored in the header of
+    /// the container and is generated during creation of the container.
+    ///
+    /// A [`None`] value is returned, if the generation of the top-id is
+    /// disabled. See [`CreateOptionsBuilder::with_top_id()`] for details.
+    pub fn top_id(&self) -> Option<&B::Id> {
+        self.header.top_id.as_ref()
+    }
+
     /// Returns information from the container.
     ///
     /// # Errors
     ///
-    /// Errors are listed in the [`ContainerError`] type.
+    /// Errors are listed in the [`Error`] type.
     pub fn info(&self) -> ContainerResult<Info<B>, B> {
         let backend = map_err!(self.backend.info())?;
 
@@ -184,7 +201,7 @@ impl<B: Backend> Container<B> {
     ///
     /// # Errors
     ///
-    /// Errors are listed in the [`ContainerError`] type.
+    /// Errors are listed in the [`Error`] type.
     pub fn aquire(&mut self) -> ContainerResult<B::Id, B> {
         map_err!(self.backend.aquire())
     }
@@ -197,7 +214,7 @@ impl<B: Backend> Container<B> {
     ///
     /// # Errors
     ///
-    /// Errors are listed in the [`ContainerError`] type.
+    /// Errors are listed in the [`Error`] type.
     pub fn release(&mut self, id: B::Id) -> ContainerResult<(), B> {
         map_err!(self.backend.release(id))
     }
@@ -217,7 +234,7 @@ impl<B: Backend> Container<B> {
     ///
     /// # Errors
     ///
-    /// Errors are listed in the [`ContainerError`] type.
+    /// Errors are listed in the [`Error`] type.
     pub fn read(&mut self, id: &B::Id, buf: &mut [u8]) -> ContainerResult<usize, B> {
         if id.is_null() {
             return Err(Error::NullId);
@@ -254,7 +271,7 @@ impl<B: Backend> Container<B> {
     ///
     /// # Errors
     ///
-    /// Errors are listed in the [`ContainerError`] type.
+    /// Errors are listed in the [`Error`] type.
     pub fn write(&mut self, id: &B::Id, buf: &[u8]) -> ContainerResult<usize, B> {
         if id.is_null() {
             return Err(Error::NullId);
@@ -287,26 +304,26 @@ impl<B: Backend> Container<B> {
     fn read_header(
         backend: &mut B,
         store: &mut PasswordStore,
-    ) -> ContainerResult<(Header, B::Settings), B> {
+    ) -> ContainerResult<(Header<B>, B::Settings), B> {
         let id = backend.header_id();
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
         match backend.read(&id, &mut buf) {
-            Ok(_) => Ok(Header::read::<B>(&buf, store)?),
+            Ok(_) => Ok(Header::read(&buf, store)?),
             Err(cause) => Err(Error::Backend(cause)),
         }
     }
 
     fn write_header(
         backend: &mut B,
-        header: &Header,
-        envelope: &B::Settings,
+        header: &Header<B>,
+        settings: B::Settings,
         store: &mut PasswordStore,
     ) -> ContainerResult<usize, B> {
         let id = backend.header_id();
         let mut buf = [0; BLOCK_MIN_SIZE as usize];
 
-        header.write::<B>(&envelope, &mut buf, store)?;
+        header.write(settings, &mut buf, store)?;
 
         map_err!(backend.write(&id, &buf))
     }

@@ -30,6 +30,7 @@ use crate::container::header::secret::{bytes_options, Secret};
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
 use crate::container::{Digest, HeaderError};
+use crate::memory::MemoryBackend;
 
 #[test]
 fn ser_empty() {
@@ -84,7 +85,7 @@ fn decrypt_none_invalid() {
     let secret = Secret(vec);
 
     let err = secret
-        .decrypt(&mut store, Cipher::None, &Kdf::None, &[])
+        .decrypt::<MemoryBackend>(&mut store, Cipher::None, &Kdf::None, &[])
         .unwrap_err();
 
     let err = into_error!(err, HeaderError::WrongPassword);
@@ -115,7 +116,7 @@ fn decrypt_some_invalid() {
     let kdf = Kdf::pbkdf2(Digest::Sha1, 1, &[0]);
 
     let err = secret
-        .decrypt(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
+        .decrypt::<MemoryBackend>(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
         .unwrap_err();
 
     let err = into_error!(err, HeaderError::WrongPassword);

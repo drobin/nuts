@@ -54,7 +54,7 @@ impl Options<MemoryBackend> for MemOptions {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct MemSettings();
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -88,6 +88,7 @@ impl BlockId for MemId {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct MemoryBackend(HashMap<u32, [u8; 512]>);
 
 impl MemoryBackend {

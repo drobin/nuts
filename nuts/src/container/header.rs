@@ -23,7 +23,6 @@
 mod inner;
 mod rev0;
 mod secret;
-mod settings;
 
 use std::error;
 use std::fmt::{self, Write as FmtWrite};
@@ -40,7 +39,6 @@ use crate::openssl::{rand, OpenSSLError};
 use crate::svec::SecureVec;
 
 use self::secret::PlainSecret;
-use self::settings::Settings;
 
 fn bytes_options() -> Options {
     Options::new().with_varint()
@@ -110,15 +108,16 @@ impl From<NoPasswordError> for HeaderError {
     }
 }
 
-pub struct Header {
+pub struct Header<B: Backend> {
     pub(crate) cipher: Cipher,
     pub(crate) kdf: Kdf,
     pub(crate) key: SecureVec,
     pub(crate) iv: SecureVec,
+    pub(crate) top_id: Option<B::Id>,
 }
 
-impl Header {
-    pub fn create<B: Backend>(options: &CreateOptions<B>) -> Result<Header, HeaderError> {
+impl<B: Backend> Header<B> {
+    pub fn create(options: &CreateOptions<B>) -> Result<Header<B>, HeaderError> {
         let cipher = options.cipher;
         let mut key = vec![0; cipher.key_len()];
         let mut iv = vec![0; cipher.iv_len()];
@@ -133,39 +132,45 @@ impl Header {
             kdf,
             key: key.into(),
             iv: iv.into(),
+            top_id: None,
         })
     }
 
-    pub fn read<B: Backend>(
+    pub fn read(
         buf: &[u8],
         store: &mut PasswordStore,
-    ) -> Result<(Header, B::Settings), HeaderError> {
+    ) -> Result<(Header<B>, B::Settings), HeaderError> {
         let inner = bytes_options().ignore_trailing().from_bytes::<Inner>(buf)?;
         let Revision::Rev0(rev0) = inner.rev;
 
         let plain_secret = rev0
             .secret
-            .decrypt(store, rev0.cipher, &rev0.kdf, &rev0.iv)?;
+            .decrypt::<B>(store, rev0.cipher, &rev0.kdf, &rev0.iv)?;
 
         Ok((
             Header {
                 cipher: rev0.cipher,
                 kdf: rev0.kdf,
-                key: plain_secret.key.clone(),
-                iv: plain_secret.iv.clone(),
+                key: plain_secret.key,
+                iv: plain_secret.iv,
+                top_id: plain_secret.top_id,
             },
-            plain_secret.settings.into_backend::<B>()?,
+            plain_secret.settings,
         ))
     }
 
-    pub fn write<B: Backend>(
+    pub fn write(
         &self,
-        settings: &B::Settings,
+        settings: B::Settings,
         buf: &mut [u8],
         store: &mut PasswordStore,
     ) -> Result<(), HeaderError> {
-        let settings = Settings::from_backend::<B>(settings)?;
-        let plain_secret = PlainSecret::generate(self.key.clone(), self.iv.clone(), settings)?;
+        let plain_secret = PlainSecret::<B>::generate(
+            self.key.clone(),
+            self.iv.clone(),
+            self.top_id.clone(),
+            settings,
+        )?;
 
         let mut iv = vec![0; self.cipher.iv_len()];
         rand::rand_bytes(&mut iv)?;
@@ -186,7 +191,7 @@ impl Header {
     }
 }
 
-impl fmt::Debug for Header {
+impl<B: Backend> fmt::Debug for Header<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (key, iv) = if cfg!(feature = "debug-plain-keys") && cfg!(debug_assertions) {
             let mut key = String::with_capacity(2 * self.key.len());

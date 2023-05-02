@@ -76,6 +76,11 @@ pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
                 .help(&kdf_help),
         )
         .arg(
+            Arg::with_name("top-id")
+                .long("top-id")
+                .help("If set, generates a top-id for the container."),
+        )
+        .arg(
             Arg::with_name("overwrite")
                 .long("overwrite")
                 .help("If set, overwrites an existing container."),
@@ -91,6 +96,7 @@ pub fn run(args: &ArgMatches) -> Result<()> {
         .unwrap();
     let cipher = args.value_of("cipher").unwrap().parse()?;
     let overwrite = args.is_present("overwrite");
+    let top_id = args.is_present("top-id");
 
     let path = container_dir_for(name)?;
 
@@ -104,7 +110,8 @@ pub fn run(args: &ArgMatches) -> Result<()> {
         .with_bsize(*bsize)
         .with_overwrite(overwrite);
     let mut builder = CreateOptionsBuilder::<DirectoryBackend>::new(backend_options, cipher)
-        .with_password_callback(ask_for_password);
+        .with_password_callback(ask_for_password)
+        .with_top_id(top_id);
 
     if cipher != Cipher::None {
         if let Some(kdf) = create_kdf(args)? {

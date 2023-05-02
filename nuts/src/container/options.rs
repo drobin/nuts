@@ -27,7 +27,11 @@ use nuts_backend::{Backend, Options};
 
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
+#[cfg(doc)]
+use crate::container::error::Error;
 use crate::container::kdf::Kdf;
+#[cfg(doc)]
+use crate::container::Container;
 use crate::openssl::OpenSSLError;
 
 #[derive(Debug)]
@@ -56,6 +60,7 @@ pub struct CreateOptions<B: Backend> {
     pub(crate) callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>,
     pub(crate) cipher: Cipher,
     pub(crate) kdf: KdfBuilder,
+    pub(crate) top_id: bool,
 }
 
 /// Utility used to create a [`CreateOptions`] instance.
@@ -78,6 +83,7 @@ impl<B: Backend> CreateOptionsBuilder<B> {
             callback: None,
             cipher,
             kdf,
+            top_id: false,
         })
     }
 
@@ -116,6 +122,16 @@ impl<B: Backend> CreateOptionsBuilder<B> {
         self
     }
 
+    /// If enabled generate a [`Backend::Id`] and store it in the header of the
+    /// container.
+    ///
+    /// This option can be useful if the service running on top of
+    /// [`Container`] needs an entrypoint on the container.
+    pub fn with_top_id(mut self, enable: bool) -> Self {
+        self.0.top_id = enable;
+        self
+    }
+
     /// Creates the [`CreateOptions`] instance.
     ///
     /// Before the [`CreateOptions`] instance is created all options passed to
@@ -123,7 +139,7 @@ impl<B: Backend> CreateOptionsBuilder<B> {
     ///
     /// # Errors
     ///
-    /// If validation has failed a [`ContainerError`] is returned.
+    /// If validation has failed an [`Error`] is returned.
     pub fn build(self) -> Result<CreateOptions<B>, B::Err> {
         self.0.backend.validate().map(|()| self.0)
     }
@@ -179,7 +195,7 @@ impl<B: Backend> OpenOptionsBuilder<B> {
     ///
     /// # Errors
     ///
-    /// If validation has failed a [`ContainerError`] is returned.
+    /// If validation has failed an [`Error`] is returned.
     pub fn build(self) -> Result<OpenOptions<B>, B::Err> {
         self.0.backend.validate().map(|()| self.0)
     }

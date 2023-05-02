@@ -30,6 +30,7 @@ use crate::container::header::secret::{bytes_options, PlainSecret};
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
 use crate::container::Digest;
+use crate::memory::MemoryBackend;
 
 #[test]
 fn ser() {
@@ -41,7 +42,7 @@ fn ser() {
 #[test]
 fn de() {
     let out = bytes_options()
-        .from_bytes::<PlainSecret>(&PLAIN_SECRET)
+        .from_bytes::<PlainSecret<MemoryBackend>>(&PLAIN_SECRET)
         .unwrap();
     assert_eq!(out, plain_secret());
 }
@@ -51,7 +52,9 @@ fn de_inval() {
     let mut vec = PLAIN_SECRET.to_vec();
     vec[0] += 1;
 
-    let err = bytes_options().from_bytes::<PlainSecret>(&vec).unwrap_err();
+    let err = bytes_options()
+        .from_bytes::<PlainSecret<MemoryBackend>>(&vec)
+        .unwrap_err();
     let msg = into_error!(err, Error::Serde);
     assert_eq!(msg, "secret-magic mismatch");
 }
