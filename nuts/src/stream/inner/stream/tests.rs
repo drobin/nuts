@@ -24,4 +24,5 @@ mod append;
 mod create;
 mod read;
 mod seek;
+mod truncate;
 mod write;

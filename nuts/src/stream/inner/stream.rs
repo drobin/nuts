@@ -72,6 +72,7 @@ pub struct OpenOptions {
     read: bool,
     write: bool,
     append: bool,
+    truncate: bool,
     create: bool,
 }
 
@@ -84,6 +85,7 @@ impl OpenOptions {
             read: false,
             write: false,
             append: false,
+            truncate: false,
             create: false,
         }
     }
@@ -123,6 +125,17 @@ impl OpenOptions {
         self
     }
 
+    /// Sets the option for truncating the stream.
+    ///
+    /// If a file is successfully opened with this option set it will truncate
+    /// the stream to 0 length.
+    ///
+    /// The stream must be opened with write access for truncate to work.
+    pub fn truncate(&mut self, truncate: bool) -> &mut Self {
+        self.truncate = truncate;
+        self
+    }
+
     /// Sets the option to create a new stream.
     ///
     /// **Note:** An already exising stream will be overwritten!
@@ -144,10 +157,15 @@ impl OpenOptions {
             Inner::open(container, id)?
         };
 
+        let readable = self.read;
+        let writable = self.write || self.append;
+        let truncate = writable && self.truncate;
+
         let mut stream = Stream {
             inner,
-            readable: self.read,
-            writable: self.write || self.append,
+            readable,
+            writable,
+            truncate,
         };
 
         if self.append {
@@ -162,6 +180,7 @@ pub struct Stream<B: Backend> {
     inner: Inner<B>,
     readable: bool,
     writable: bool,
+    truncate: bool,
 }
 
 impl<B: Backend> Stream<B> {
@@ -222,12 +241,16 @@ impl<B: Backend> Stream<B> {
             return Err(Error::NotWritable);
         }
 
-        if buf.is_empty() {
-            return Ok(0);
-        }
-
         if self.inner.current().is_none() {
             self.inner.goto_first()?;
+
+            if self.truncate {
+                self.truncate()?;
+            }
+        }
+
+        if buf.is_empty() {
+            return Ok(0);
         }
 
         let mut nbytes = self.write_overwrite(buf)?;
@@ -298,6 +321,30 @@ impl<B: Backend> Stream<B> {
             }
             None => Ok(()),
         }
+    }
+
+    fn truncate(&mut self) -> Result<(), Error<B>> {
+        loop {
+            match self.inner.goto_next() {
+                Some(Ok(id)) => {
+                    let cloned = id.clone();
+                    self.inner.buf.container.release(cloned)?;
+                }
+                Some(Err(err)) => return Err(err),
+                None => break,
+            }
+        }
+
+        self.inner.goto_first()?;
+
+        if let Some(cur) = self.inner.cur.as_mut() {
+            cur.prev = cur.id.clone();
+            cur.len = 0;
+
+            self.inner.last = cur.id.clone();
+        }
+
+        Ok(())
     }
 
     pub fn seek(&mut self, pos: Position) -> Result<(), Error<B>> {
