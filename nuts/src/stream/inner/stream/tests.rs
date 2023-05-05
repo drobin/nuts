@@ -23,6 +23,8 @@
 mod append;
 mod create;
 mod read;
+mod read_all;
 mod seek;
 mod truncate;
 mod write;
+mod write_all;

@@ -236,6 +236,34 @@ impl<B: Backend> Stream<B> {
         Ok(nbytes)
     }
 
+    /// Read the exact number of bytes required to fill `buf`.
+    ///
+    /// This function reads as many bytes as necessary to completely fill the
+    /// specified buffer `buf`.
+    ///
+    /// # Errors
+    ///
+    /// If this function encounters an "end of file" before completely filling
+    /// the buffer, it returns an [`Error::ReadAll`] error. The contents of
+    /// `buf` are unspecified in this case.
+    pub fn read_all(&mut self, buf: &mut [u8]) -> Result<(), Error<B>> {
+        let mut nread = 0;
+
+        while nread < buf.len() {
+            match self.read(&mut buf[nread..]) {
+                Ok(0) => break,
+                Ok(n) => nread += n,
+                Err(err) => return Err(err),
+            };
+        }
+
+        if nread == buf.len() {
+            Ok(())
+        } else {
+            Err(Error::ReadAll)
+        }
+    }
+
     pub fn write(&mut self, buf: &[u8]) -> Result<usize, Error<B>> {
         if !self.writable {
             return Err(Error::NotWritable);
@@ -273,6 +301,37 @@ impl<B: Backend> Stream<B> {
             self.write(buf)
         } else {
             Ok(nbytes)
+        }
+    }
+
+    /// Attempts to write an entire buffer into this stream.
+    ///
+    /// This method will continuously call [`write()`](Self::write) until there
+    /// is no more data to be written or an error is returned. This method will
+    /// not return until the entire buffer has been successfully written or an
+    /// error occurs. The first error from this method will be returned.
+    ///
+    /// # Errors
+    ///
+    /// If this function cannot write the whole buffer, it returns an
+    /// [`Error::WriteAll`] error.
+    pub fn write_all(&mut self, buf: &[u8]) -> Result<(), Error<B>> {
+        let mut nwritten = 0;
+
+        while nwritten < buf.len() {
+            match self.write(&buf[nwritten..]) {
+                Ok(0) => break,
+                Ok(n) => nwritten += n,
+                Err(err) => {
+                    return Err(err);
+                }
+            };
+        }
+
+        if nwritten == buf.len() {
+            self.flush()
+        } else {
+            Err(Error::WriteAll)
         }
     }
 

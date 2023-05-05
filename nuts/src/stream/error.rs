@@ -25,6 +25,8 @@ use std::{error, fmt};
 use nuts_backend::Backend;
 
 use crate::container;
+#[cfg(doc)]
+use crate::stream::Stream;
 
 /// Error type used by the module.
 pub enum Error<B: Backend> {
@@ -33,6 +35,14 @@ pub enum Error<B: Backend> {
 
     /// Failed to read/write data from/to the container.
     Container(container::Error<B>),
+
+    /// The [`Stream::read_all()`] function was not able to completely fill the
+    /// buffer.
+    ReadAll,
+
+    /// The [`Stream::write_all()`] function was not able to write the whole
+    /// buffer.
+    WriteAll,
 
     /// The read operation is not allowed on this stream.
     NotReadable,
@@ -46,6 +56,8 @@ impl<B: Backend> fmt::Display for Error<B> {
         match self {
             Self::Bytes(cause) => fmt::Display::fmt(cause, fmt),
             Self::Container(cause) => fmt::Display::fmt(cause, fmt),
+            Self::ReadAll => write!(fmt, "failed to fill whole buffer"),
+            Self::WriteAll => write!(fmt, "failed to write whole buffer"),
             Self::NotReadable => write!(fmt, "You are not allowed to read the stream."),
             Self::NotWritable => write!(fmt, "You are not allowed to write the stream."),
         }
@@ -53,12 +65,14 @@ impl<B: Backend> fmt::Display for Error<B> {
 }
 
 impl<B: Backend> fmt::Debug for Error<B> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Bytes(cause) => f.debug_tuple("Bytes").field(cause).finish(),
-            Self::Container(cause) => f.debug_tuple("Container").field(cause).finish(),
-            Self::NotReadable => f.debug_tuple("NotReadable").finish(),
-            Self::NotWritable => f.debug_tuple("NotWritable").finish(),
+            Self::Bytes(cause) => fmt.debug_tuple("Bytes").field(cause).finish(),
+            Self::Container(cause) => fmt.debug_tuple("Container").field(cause).finish(),
+            Self::ReadAll => write!(fmt, "ReadAll"),
+            Self::WriteAll => write!(fmt, "WriteAll"),
+            Self::NotReadable => write!(fmt, "NotReadable"),
+            Self::NotWritable => write!(fmt, "NotWritable"),
         }
     }
 }
