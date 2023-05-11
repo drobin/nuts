@@ -34,7 +34,7 @@ pub enum IntType {
 }
 
 /// Errors thrown by the `bytes` modules.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Error {
     /// Failed to read the requested number of bytes. No more bytes are
     /// available for reading.

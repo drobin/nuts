@@ -23,8 +23,8 @@
 use serde::Serialize;
 use std::collections::HashMap;
 
+use crate::assert_error_eq;
 use crate::error::Error;
-use crate::into_error;
 use crate::options::Options;
 
 #[test]
@@ -71,8 +71,7 @@ fn u64() {
 #[test]
 fn u128() {
     let err = Options::new().to_vec::<u128>(&0).unwrap_err();
-    let msg = into_error!(err, Error::Serde);
-    assert_eq!(msg, "u128 is not supported");
+    assert_error_eq!(err, Error::Serde(|msg| "u128 is not supported"));
 }
 
 #[test]

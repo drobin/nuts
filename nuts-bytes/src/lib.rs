@@ -33,14 +33,61 @@ pub use reader::Reader;
 pub use writer::Writer;
 
 #[cfg(test)]
-macro_rules! into_error {
+macro_rules! assert_error {
     ($err:expr, $type:ident :: $memb:ident) => {
         match $err {
-            $type::$memb(cause) => cause,
-            _ => panic!("invalid error:"),
+            $type::$memb => {}
+            _ => panic!("invalid error"),
+        }
+    };
+
+    ($err:expr, $type:ident :: $memb:ident ( $(| $arg:ident | $assert:expr),+ ) ) => {
+        match $err {
+            $type::$memb($($arg),*) => {
+                $(
+                    assert!($assert);
+                )*
+            }
+            _ => panic!("invalid error"),
+        }
+    };
+
+    ($err:expr, $type:ident :: $memb:ident { $(| $arg:ident | $assert:expr),+ } ) => {
+        match $err {
+            $type::$memb{$($arg),*} => {
+                $(
+                    assert!($assert);
+                )*
+            }
+            _ => panic!("invalid error"),
         }
     };
 }
 
 #[cfg(test)]
-pub(crate) use into_error;
+macro_rules! assert_error_eq {
+    ($err:expr, $type:ident :: $memb:ident ( $(| $arg:ident | $val:expr),+ ) ) => {
+        match $err {
+            $type::$memb($($arg),*) => {
+                $(
+                    assert_eq!($arg, $val);
+                )*
+            }
+            _ => panic!("invalid error"),
+        }
+    };
+
+    ($err:expr, $type:ident :: $memb:ident { $(| $arg:ident | $val:expr),+ } ) => {
+        match $err {
+            $type::$memb{$($arg),*} => {
+                $(
+                    assert_eq!($arg, $val);
+                )*
+            }
+            _ => panic!("invalid error"),
+        }
+    };
+}
+
+#[cfg(test)]
+pub(crate) use {assert_error, assert_error_eq};

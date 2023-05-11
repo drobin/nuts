@@ -23,6 +23,7 @@
 use crate::error::{Error, IntType};
 use crate::options::Int;
 use crate::reader::Reader;
+use crate::{assert_error, assert_error_eq};
 
 #[test]
 fn remaining_bytes() {
@@ -55,7 +56,7 @@ fn fix_u8() {
     assert_eq!(reader.remaining_bytes(), []);
 
     let err = reader.read_u8().unwrap_err();
-    assert_eq!(err, Error::Eof);
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(reader.position(), 3);
     assert_eq!(reader.remaining_bytes(), []);
 }
@@ -73,7 +74,7 @@ fn fix_u16() {
     assert_eq!(reader.remaining_bytes(), [5]);
 
     let err = reader.read_u16().unwrap_err();
-    assert_eq!(err, Error::Eof);
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(reader.position(), 4);
     assert_eq!(reader.remaining_bytes(), [5]);
 }
@@ -91,7 +92,7 @@ fn fix_u32() {
     assert_eq!(reader.remaining_bytes(), [9, 10, 11]);
 
     let err = reader.read_u32().unwrap_err();
-    assert_eq!(err, Error::Eof);
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(reader.position(), 8);
     assert_eq!(reader.remaining_bytes(), [9, 10, 11]);
 }
@@ -117,7 +118,7 @@ fn fix_u64() {
     assert_eq!(reader.remaining_bytes(), [17, 18, 19, 20, 21, 22, 23]);
 
     let err = reader.read_u64().unwrap_err();
-    assert_eq!(err, Error::Eof);
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(reader.position(), 16);
     assert_eq!(reader.remaining_bytes(), [17, 18, 19, 20, 21, 22, 23]);
 }
@@ -157,7 +158,7 @@ fn fix_u128() {
     );
 
     let err = reader.read_u128().unwrap_err();
-    assert_eq!(err, Error::Eof);
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(reader.position(), 32);
     assert_eq!(
         reader.remaining_bytes(),
@@ -182,7 +183,7 @@ fn var_u8() {
     assert_eq!(reader.remaining_bytes(), []);
 
     let err = reader.read_u8().unwrap_err();
-    assert_eq!(err, Error::Eof);
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(reader.position(), 3);
     assert_eq!(reader.remaining_bytes(), []);
 }
@@ -210,13 +211,7 @@ fn var_u16() {
         let mut reader = Reader::new(Int::Var, &buf);
         let err = reader.read_u16().unwrap_err();
         assert_eq!(reader.position(), 1);
-        assert_eq!(
-            err,
-            Error::InvalidInteger {
-                expected: IntType::U16,
-                found: t
-            }
-        )
+        assert_error_eq!(err, Error::InvalidInteger { |expected| IntType::U16, |found| t });
     }
 }
 
@@ -244,13 +239,7 @@ fn var_u32() {
         let mut reader = Reader::new(Int::Var, &buf);
         let err = reader.read_u32().unwrap_err();
         assert_eq!(reader.position(), 1);
-        assert_eq!(
-            err,
-            Error::InvalidInteger {
-                expected: IntType::U32,
-                found: t
-            }
-        )
+        assert_error_eq!(err, Error::InvalidInteger { |expected| IntType::U32, |found| t });
     }
 }
 
@@ -299,13 +288,7 @@ fn var_u64() {
         let mut reader = Reader::new(Int::Var, &buf);
         let err = reader.read_u64().unwrap_err();
         assert_eq!(reader.position(), 1);
-        assert_eq!(
-            err,
-            Error::InvalidInteger {
-                expected: IntType::U32,
-                found: t
-            }
-        )
+        assert_error_eq!(err, Error::InvalidInteger { |expected| IntType::U32, |found| t });
     }
 }
 
@@ -465,7 +448,7 @@ fn bytes() {
     assert_eq!(reader.remaining_bytes(), [7, 8, 9]);
 
     let err = reader.read_bytes(4).unwrap_err();
-    assert_eq!(err, Error::Eof);
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(reader.remaining_bytes(), [7, 8, 9]);
 }
 
@@ -498,7 +481,7 @@ fn bytes_to() {
 
     let mut buf = [0; 4];
     let err = reader.read_bytes_to(&mut buf).unwrap_err();
-    assert_eq!(err, Error::Eof);
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(buf, [0, 0, 0, 0]);
     assert_eq!(reader.position(), 6);
     assert_eq!(reader.remaining_bytes(), [7, 8, 9]);

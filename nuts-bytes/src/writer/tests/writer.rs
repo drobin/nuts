@@ -20,6 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use crate::assert_error;
 use crate::error::Error;
 use crate::options::Int;
 use crate::writer::Writer;
@@ -67,7 +68,7 @@ fn bytes_slice() {
     assert_eq!(writer.as_slice(), [1, 2, 3, 4, 5, 6, 0, 0, 0]);
 
     let err = writer.write_bytes(&[7, 8, 9, 10]).unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(writer.position(), 6);
     assert_eq!(writer.as_slice(), [1, 2, 3, 4, 5, 6, 0, 0, 0]);
 }
@@ -99,7 +100,7 @@ fn fix_u8_slice() {
     assert_eq!(writer.position(), 2);
 
     assert_eq!(writer.into_vec(), [1, 2]);
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
 }
 
 #[test]
@@ -127,7 +128,7 @@ fn fix_u16_slice() {
     assert_eq!(writer.position(), 4);
 
     assert_eq!(writer.into_vec(), [0x00, 0x01, 0x00, 0x02, b'x']);
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
 }
 
 #[test]
@@ -161,7 +162,7 @@ fn fix_u32_slice() {
         writer.into_vec(),
         [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, b'x', b'x', b'x']
     );
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
 }
 
 #[test]
@@ -201,7 +202,7 @@ fn fix_u64_slice() {
             0x00, 0x02, b'x', b'x', b'x', b'x', b'x', b'x', b'x'
         ]
     );
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
 }
 
 #[test]
@@ -244,7 +245,7 @@ fn fix_u128_slice() {
             b'x', b'x', b'x', b'x', b'x'
         ]
     );
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
 }
 
 #[test]
@@ -274,7 +275,7 @@ fn var_u8_slice() {
     assert_eq!(writer.position(), 2);
 
     assert_eq!(writer.into_vec(), [1, 2]);
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
 }
 
 #[test]
@@ -317,13 +318,13 @@ fn var_u16_slice() {
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u16(0)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
 
     let mut buf = [b'x'; 2];
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u16(251)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(buf, [b'x', b'x']);
 }
 
@@ -373,20 +374,20 @@ fn var_u32_slice() {
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u32(0)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
 
     let mut buf = [b'x'; 2];
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u32(251)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(buf, [b'x', b'x']);
 
     let mut buf = [b'x'; 4];
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u32(0x010000)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(buf, [b'x', b'x', b'x', b'x']);
 }
 
@@ -501,27 +502,27 @@ fn var_u64_slice() {
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u64(0)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
 
     let mut buf = [b'x'; 2];
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u64(251)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(buf, [b'x', b'x']);
 
     let mut buf = [b'x'; 4];
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u64(0x010000)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(buf, [b'x', b'x', b'x', b'x']);
 
     let mut buf = [b'x'; 8];
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u64(0x100000000)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(buf, [b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x']);
 }
 
@@ -829,34 +830,34 @@ fn var_u128_slice() {
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u128(0)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
 
     let mut buf = [b'x'; 2];
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u128(251)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(buf, [b'x', b'x']);
 
     let mut buf = [b'x'; 4];
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u128(0x010000)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(buf, [b'x', b'x', b'x', b'x']);
 
     let mut buf = [b'x'; 8];
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u128(0x100000000)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(buf, [b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x']);
 
     let mut buf = [b'x'; 16];
     let err = Writer::for_slice(Int::Var, &mut buf)
         .write_u128(0x10000000000000000)
         .unwrap_err();
-    assert_eq!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace);
     assert_eq!(
         buf,
         [

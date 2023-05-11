@@ -25,8 +25,8 @@ use std::collections::HashMap;
 use serde::Deserialize;
 
 use crate::error::Error;
-use crate::into_error;
 use crate::options::Options;
+use crate::{assert_error, assert_error_eq};
 
 fn opts() -> Options {
     Options::new()
@@ -46,7 +46,7 @@ fn bool() {
         assert_eq!(b, true);
 
         let err = opts().from_bytes::<bool>(&[n, 0]).unwrap_err();
-        assert_eq!(err, Error::TrailingBytes);
+        assert_error!(err, Error::TrailingBytes);
     }
 
     let b: bool = opts().from_bytes(&[0]).unwrap();
@@ -63,7 +63,7 @@ fn u8() {
         assert_eq!(o, n);
 
         let err = opts().from_bytes::<u8>(&[n, 0]).unwrap_err();
-        assert_eq!(err, Error::TrailingBytes);
+        assert_error!(err, Error::TrailingBytes);
     }
 }
 
@@ -77,7 +77,7 @@ fn u16() {
         assert_eq!(r, n);
 
         let err = opts().from_bytes::<u16>(&[buf, [0]].concat()).unwrap_err();
-        assert_eq!(err, Error::TrailingBytes);
+        assert_error!(err, Error::TrailingBytes);
     }
 }
 
@@ -91,7 +91,7 @@ fn u32() {
         assert_eq!(r, n);
 
         let err = opts().from_bytes::<u32>(&[buf, [0]].concat()).unwrap_err();
-        assert_eq!(err, Error::TrailingBytes);
+        assert_error!(err, Error::TrailingBytes);
     }
 }
 
@@ -105,15 +105,14 @@ fn u64() {
         assert_eq!(r, n);
 
         let err = opts().from_bytes::<u64>(&[buf, [0]].concat()).unwrap_err();
-        assert_eq!(err, Error::TrailingBytes);
+        assert_error!(err, Error::TrailingBytes);
     }
 }
 
 #[test]
 fn u128() {
     let err = Options::new().from_bytes::<u128>(&[0]).unwrap_err();
-    let msg = into_error!(err, Error::Serde);
-    assert_eq!(msg, "u128 is not supported");
+    assert_error_eq!(err, Error::Serde(|msg| "u128 is not supported"));
 }
 
 #[test]
@@ -134,14 +133,13 @@ fn char() {
         .with_fixint()
         .from_bytes::<char>(&[0x00, 0x01, 0xF4, 0xAF, 0x00])
         .unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 
     let err = opts()
         .with_fixint()
         .from_bytes::<char>(&[0x00, 0x11, 0x00, 0x00])
         .unwrap_err();
-    let n = into_error!(err, Error::InvalidChar);
-    assert_eq!(n, 0x110000);
+    assert_error_eq!(err, Error::InvalidChar(|n| 0x110000));
 }
 
 #[test]
@@ -161,16 +159,17 @@ fn str() {
         assert_eq!(r, str);
 
         let err = opts().from_bytes::<&str>(&bytes2).unwrap_err();
-        assert_eq!(err, Error::TrailingBytes);
+        assert_error!(err, Error::TrailingBytes);
     }
 
     let err = opts()
         .from_bytes::<&str>(&[0x04, 0, 159, 146, 150])
         .unwrap_err();
-    let err = into_error!(err, Error::InvalidString);
-    assert_eq!(
-        err.to_string(),
-        "invalid utf-8 sequence of 1 bytes from index 1"
+    assert_error!(
+        err,
+        Error::InvalidString(
+            |cause| cause.to_string() == "invalid utf-8 sequence of 1 bytes from index 1"
+        )
     );
 }
 
@@ -191,16 +190,17 @@ fn string() {
         assert_eq!(r, str);
 
         let err = opts().from_bytes::<String>(&bytes2).unwrap_err();
-        assert_eq!(err, Error::TrailingBytes);
+        assert_error!(err, Error::TrailingBytes);
     }
 
     let err = opts()
         .from_bytes::<String>(&[0x04, 0, 159, 146, 150])
         .unwrap_err();
-    let err = into_error!(err, Error::InvalidString);
-    assert_eq!(
-        err.to_string(),
-        "invalid utf-8 sequence of 1 bytes from index 1"
+    assert_error!(
+        err,
+        Error::InvalidString(
+            |cause| cause.to_string() == "invalid utf-8 sequence of 1 bytes from index 1"
+        )
     );
 }
 
@@ -222,7 +222,7 @@ fn array() {
     assert_eq!(r, [1, 2, 3]);
 
     let err = opts().from_bytes::<[u16; 3]>(&[1, 2, 3, 0]).unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 }
 
 #[test]
@@ -242,7 +242,7 @@ fn bytes() {
         assert_eq!(r, bytes);
 
         let err = opts().from_bytes::<&[u8]>(&buf2).unwrap_err();
-        assert_eq!(err, Error::TrailingBytes);
+        assert_error!(err, Error::TrailingBytes);
     }
 }
 
@@ -263,7 +263,7 @@ fn vec() {
         assert_eq!(r, bytes);
 
         let err = opts().from_bytes::<Vec<u16>>(&buf2).unwrap_err();
-        assert_eq!(err, Error::TrailingBytes);
+        assert_error!(err, Error::TrailingBytes);
     }
 }
 
@@ -281,7 +281,7 @@ fn option() {
         let err = opts()
             .from_bytes::<Option<u16>>(&[buf.as_slice(), &[0]].concat())
             .unwrap_err();
-        assert_eq!(err, Error::TrailingBytes);
+        assert_error!(err, Error::TrailingBytes);
     }
 
     let r: Option<u16> = opts().from_bytes(&[0]).unwrap();
@@ -309,7 +309,7 @@ fn map() {
     let err = opts()
         .from_bytes::<HashMap<u8, u16>>(&[0x00, 0x00])
         .unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 
     let m = opts()
         .from_bytes::<HashMap<u8, u16>>(&[0x01, 0x01, 251, 0x12, 0x67])
@@ -326,7 +326,7 @@ fn map() {
     let err = opts()
         .from_bytes::<HashMap<u8, u16>>(&[0x01, 0x01, 251, 0x12, 0x67, 0x00])
         .unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 
     let m = opts()
         .from_bytes::<HashMap<u8, u16>>(&[0x02, 0x01, 251, 0x12, 0x67, 0x02, 251, 0x02, 0x9A])
@@ -345,7 +345,7 @@ fn map() {
     let err = opts()
         .from_bytes::<HashMap<u8, u16>>(&[0x02, 0x01, 251, 0x12, 0x67, 0x02, 251, 0x02, 0x9A, 0x00])
         .unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 }
 
 #[test]
@@ -357,7 +357,7 @@ fn unit() {
     assert_eq!(u, ());
 
     let err = opts().from_bytes::<()>(&[0]).unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 }
 
 #[test]
@@ -385,7 +385,7 @@ fn r#struct() {
     assert_eq!(s, UnitStruct);
 
     let err = opts().from_bytes::<UnitStruct>(&[0]).unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 
     // newtype-struct
     let s = opts()
@@ -404,7 +404,7 @@ fn r#struct() {
         .with_fixint()
         .from_bytes::<NewTypeStruct>(&[0x12, 0x67, 0x00])
         .unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 
     // tuple-struct
     let s = opts()
@@ -423,7 +423,7 @@ fn r#struct() {
         .with_fixint()
         .from_bytes::<TupleStruct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00])
         .unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 
     // struct
     let s = opts()
@@ -442,7 +442,7 @@ fn r#struct() {
         .with_fixint()
         .from_bytes::<Struct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00])
         .unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 }
 
 #[test]
@@ -463,7 +463,7 @@ fn r#enum() {
     assert_eq!(e, Enum::V1);
 
     let err = opts().from_bytes::<Enum>(&[0x00, 0x00]).unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 
     // newtype-variant
     let e = opts().from_bytes::<Enum>(&[0x01, 251, 0x12, 0x67]).unwrap();
@@ -477,7 +477,7 @@ fn r#enum() {
     let err = opts()
         .from_bytes::<Enum>(&[0x01, 251, 0x12, 0x67, 0x00])
         .unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 
     // tuple-variant
     let e = opts()
@@ -493,7 +493,7 @@ fn r#enum() {
     let err = opts()
         .from_bytes::<Enum>(&[0x02, 251, 0x12, 0x67, 251, 0x02, 0x9A, 0x00])
         .unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 
     // struct-variant
     let e = opts()
@@ -509,13 +509,12 @@ fn r#enum() {
     let err = opts()
         .from_bytes::<Enum>(&[0x03, 251, 0x12, 0x67, 251, 0x02, 0x9A, 0x00])
         .unwrap_err();
-    assert_eq!(err, Error::TrailingBytes);
+    assert_error!(err, Error::TrailingBytes);
 
     // invalid index
     let err = Options::new().from_bytes::<Enum>(&[0x04]).unwrap_err();
-    let msg = into_error!(err, Error::Serde);
-    assert_eq!(
-        msg,
-        "invalid value: integer `4`, expected variant index 0 <= i < 4"
+    assert_error_eq!(
+        err,
+        Error::Serde(|msg| "invalid value: integer `4`, expected variant index 0 <= i < 4")
     );
 }
