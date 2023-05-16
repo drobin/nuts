@@ -29,7 +29,7 @@ use std::cmp;
 use std::ops::{Deref, DerefMut};
 
 use nuts_backend::{Backend, BlockId};
-use nuts_bytes::{BufferSource, Options};
+use nuts_bytes::{BufferSource, BufferTarget, Options};
 
 use crate::container::Container;
 use crate::stream::error::Error;
@@ -104,14 +104,13 @@ impl<B: Backend> Buffer<B> {
         option: EncodeOption,
     ) -> Result<usize, nuts_bytes::Error> {
         let buf_len = self.buf.len();
-        let mut writer = Options::new()
-            .with_fixint()
-            .build_slice_writer(&mut self.buf);
+        let target = BufferTarget::new(&mut self.buf);
+        let mut writer = Options::new().with_fixint().build_writer(target);
 
         id1.serialize(&mut writer)?;
         id2.serialize(&mut writer)?;
 
-        let max = buf_len - writer.position() - 4;
+        let max = buf_len - writer.as_ref().position() - 4;
 
         match option {
             EncodeOption::Include(buf) => {
@@ -128,7 +127,7 @@ impl<B: Backend> Buffer<B> {
             }
         };
 
-        Ok(writer.position())
+        Ok(writer.as_ref().position())
     }
 }
 

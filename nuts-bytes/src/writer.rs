@@ -27,46 +27,27 @@ use serde::{ser, Serialize};
 
 use crate::error::{Error, Result};
 use crate::options::Int;
+#[cfg(doc)]
+use crate::options::Options;
+use crate::target::PutBytes;
 
-#[derive(Debug)]
-enum Target<'a> {
-    Vec(Vec<u8>),
-    Slice { buf: &'a mut [u8], offs: usize },
-}
-
-impl<'a> Target<'a> {
-    fn append(&mut self, bytes: &[u8]) -> Result<()> {
-        match self {
-            Target::Vec(vec) => Ok(vec.extend_from_slice(bytes)),
-            Target::Slice { buf, offs } => match buf.get_mut(*offs..*offs + bytes.len()) {
-                Some(buf) => {
-                    buf.copy_from_slice(bytes);
-                    *offs += bytes.len();
-                    Ok(())
-                }
-                None => Err(Error::NoSpace),
-            },
-        }
-    }
-}
-
-/// A cursor like utility that writes structured data into a binary stream.
+/// A cursor like utility that writes structured data into an arbitrary target.
 ///
-/// Data can be written into
-/// * A `Vec<u8>` structure. The vector grows automatically when appending
-///   data.
-/// * A mutable `[u8]` slice. Data are appended to the slice but an
-///   [`Error::NoSpace`] error is generated if the end of the slice is reached.
+/// The target must implement the [`PutBytes`] trait which supports writing
+/// binary data into it.
+///
+/// The [`Options`] type is used to construct an instance of this `Writer`. See
+/// [`Options::build_writer()`] for more information.
 #[derive(Debug)]
-pub struct Writer<'a> {
+pub struct Writer<T> {
     int: Int,
-    target: Target<'a>,
+    target: T,
 }
 
 macro_rules! write_fixint_primitive {
     ($name:ident -> $ty:ty) => {
         fn $name(&mut self, value: $ty) -> Result<()> {
-            self.write_bytes(&value.to_be_bytes())
+            self.target.put_bytes(&value.to_be_bytes())
         }
     };
 }
@@ -81,50 +62,19 @@ macro_rules! write_var_primitive {
                 .unwrap()
                 .copy_from_slice(&value.to_be_bytes());
 
-            self.write_bytes(&bytes)
+            self.target.put_bytes(&bytes)
         }
     };
 }
 
-impl<'a> Writer<'a> {
-    pub(crate) fn for_vec(int: Int, vec: Vec<u8>) -> Writer<'a> {
-        Writer {
-            int,
-            target: Target::Vec(vec),
-        }
+impl<T: PutBytes> Writer<T> {
+    pub(crate) fn new(int: Int, target: T) -> Writer<T> {
+        Writer { int, target }
     }
 
-    pub(crate) fn for_slice(int: Int, buf: &'a mut [u8]) -> Writer<'a> {
-        Writer {
-            int,
-            target: Target::Slice { buf, offs: 0 },
-        }
-    }
-
-    /// Returns the current position of the writer.
-    pub fn position(&self) -> usize {
-        match &self.target {
-            Target::Vec(vec) => vec.len(),
-            Target::Slice { buf: _, offs } => *offs,
-        }
-    }
-
-    /// Consumes this writer, returning the underlying value.
-    ///
-    /// When writing into a slice, it is converted into a `Vec`.
-    pub fn into_vec(self) -> Vec<u8> {
-        match self.target {
-            Target::Vec(vec) => vec,
-            Target::Slice { buf, offs: _ } => buf.to_vec(),
-        }
-    }
-
-    /// Gets a reference to the underlying value in this writer.
-    pub fn as_slice(&self) -> &[u8] {
-        match &self.target {
-            Target::Vec(vec) => vec,
-            Target::Slice { buf, offs: _ } => buf,
-        }
+    /// Consumes this `Writer`, returning the underlying target.
+    pub fn into_target(self) -> T {
+        self.target
     }
 
     write_var_primitive!(write_var_251 (251) -> u16);
@@ -220,11 +170,17 @@ impl<'a> Writer<'a> {
 
     /// Appends the given `bytes` at the end of this writer.
     pub fn write_bytes(&mut self, bytes: &[u8]) -> Result<()> {
-        self.target.append(bytes)
+        self.target.put_bytes(bytes)
     }
 }
 
-impl<'a, 'b> ser::Serializer for &'b mut Writer<'a> {
+impl<T> AsRef<T> for Writer<T> {
+    fn as_ref(&self) -> &T {
+        &self.target
+    }
+}
+
+impl<'a, P: PutBytes> ser::Serializer for &'a mut Writer<P> {
     type Ok = ();
     type Error = Error;
     type SerializeSeq = Self;
@@ -381,7 +337,7 @@ impl<'a, 'b> ser::Serializer for &'b mut Writer<'a> {
     }
 }
 
-impl<'a, 'b> ser::SerializeSeq for &'b mut Writer<'a> {
+impl<'a, P: PutBytes> ser::SerializeSeq for &'a mut Writer<P> {
     type Ok = ();
     type Error = Error;
 
@@ -394,7 +350,7 @@ impl<'a, 'b> ser::SerializeSeq for &'b mut Writer<'a> {
     }
 }
 
-impl<'a, 'b> ser::SerializeTuple for &'b mut Writer<'a> {
+impl<'a, P: PutBytes> ser::SerializeTuple for &'a mut Writer<P> {
     type Ok = ();
     type Error = Error;
 
@@ -407,7 +363,7 @@ impl<'a, 'b> ser::SerializeTuple for &'b mut Writer<'a> {
     }
 }
 
-impl<'a, 'b> ser::SerializeTupleStruct for &'b mut Writer<'a> {
+impl<'a, P: PutBytes> ser::SerializeTupleStruct for &'a mut Writer<P> {
     type Ok = ();
     type Error = Error;
 
@@ -420,7 +376,7 @@ impl<'a, 'b> ser::SerializeTupleStruct for &'b mut Writer<'a> {
     }
 }
 
-impl<'a, 'b> ser::SerializeTupleVariant for &'b mut Writer<'a> {
+impl<'a, P: PutBytes> ser::SerializeTupleVariant for &'a mut Writer<P> {
     type Ok = ();
     type Error = Error;
 
@@ -433,7 +389,7 @@ impl<'a, 'b> ser::SerializeTupleVariant for &'b mut Writer<'a> {
     }
 }
 
-impl<'a, 'b> ser::SerializeMap for &'b mut Writer<'a> {
+impl<'a, P: PutBytes> ser::SerializeMap for &'a mut Writer<P> {
     type Ok = ();
     type Error = Error;
 
@@ -459,7 +415,7 @@ impl<'a, 'b> ser::SerializeMap for &'b mut Writer<'a> {
     }
 }
 
-impl<'a, 'b> ser::SerializeStruct for &'b mut Writer<'a> {
+impl<'a, P: PutBytes> ser::SerializeStruct for &'a mut Writer<P> {
     type Ok = ();
     type Error = Error;
 
@@ -476,7 +432,7 @@ impl<'a, 'b> ser::SerializeStruct for &'b mut Writer<'a> {
     }
 }
 
-impl<'a, 'b> ser::SerializeStructVariant for &'b mut Writer<'a> {
+impl<'a, P: PutBytes> ser::SerializeStructVariant for &'a mut Writer<P> {
     type Ok = ();
     type Error = Error;
 

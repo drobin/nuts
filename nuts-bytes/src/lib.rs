@@ -26,12 +26,14 @@ mod error;
 mod options;
 mod reader;
 mod source;
+mod target;
 mod writer;
 
 pub use error::{Error, IntType, Result};
 pub use options::Options;
 pub use reader::Reader;
 pub use source::{BufferSource, StreamSource, TakeBytes};
+pub use target::{BufferTarget, PutBytes, StreamTarget, VecTarget};
 pub use writer::Writer;
 
 #[cfg(test)]

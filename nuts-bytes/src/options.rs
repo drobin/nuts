@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::{Error, Result};
 use crate::reader::Reader;
 use crate::source::{BufferSource, TakeBytes};
+use crate::target::{BufferTarget, PutBytes, VecTarget};
 use crate::writer::Writer;
 
 #[derive(Debug)]
@@ -97,14 +98,12 @@ impl Options {
         Reader::new(self.int, source)
     }
 
-    /// Creates a new [`Writer`] that writes into the given `vec`.
-    pub fn build_vec_writer<'a>(self, vec: Vec<u8>) -> Writer<'a> {
-        Writer::for_vec(self.int, vec)
-    }
-
-    /// Creates a new [`Writer`] that writes into the given `bytes` slice.
-    pub fn build_slice_writer<'a>(self, bytes: &'a mut [u8]) -> Writer<'a> {
-        Writer::for_slice(self.int, bytes)
+    /// Creates a new [`Writer`] from this options.
+    ///
+    /// Binary data are writtem into the given `target` which must implement the
+    /// [`PutBytes`] trait.
+    pub fn build_writer<T: PutBytes>(self, target: T) -> Writer<T> {
+        Writer::new(self.int, target)
     }
 
     /// Deserializes the given `bytes` slice into a data structure.
@@ -127,11 +126,11 @@ impl Options {
 
     /// Serializes the given `value` into a byte stream.
     pub fn to_vec<T: Serialize>(self, value: &T) -> Result<Vec<u8>> {
-        let mut writer = Writer::for_vec(self.int, vec![]);
+        let mut writer = self.build_writer(VecTarget::new(vec![]));
 
         value.serialize(&mut writer)?;
 
-        Ok(writer.into_vec())
+        Ok(writer.into_target().into_vec())
     }
 
     /// Serializes the given `value` into the `bytes` slice.
@@ -141,7 +140,7 @@ impl Options {
     /// When there is not enough space available in `bytes` an
     /// [`Error::NoSpace`] error is returned.
     pub fn to_bytes<T: Serialize>(self, value: &T, bytes: &mut [u8]) -> Result<()> {
-        let mut writer = Writer::for_slice(self.int, bytes);
+        let mut writer = self.build_writer(BufferTarget::new(bytes));
 
         value.serialize(&mut writer)
     }

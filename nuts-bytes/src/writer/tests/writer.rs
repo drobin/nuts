@@ -23,125 +23,138 @@
 use crate::assert_error;
 use crate::error::Error;
 use crate::options::Int;
+use crate::target::{BufferTarget, VecTarget};
 use crate::writer::Writer;
+
+fn setup_vec_fix() -> Writer<VecTarget> {
+    Writer::new(Int::Fix, VecTarget::new(vec![]))
+}
+
+fn setup_slice_fix(target: &mut [u8]) -> Writer<BufferTarget> {
+    Writer::new(Int::Fix, BufferTarget::new(target))
+}
+
+fn setup_vec_var() -> Writer<VecTarget> {
+    Writer::new(Int::Var, VecTarget::new(vec![]))
+}
+
+fn setup_slice_var(target: &mut [u8]) -> Writer<BufferTarget> {
+    Writer::new(Int::Var, BufferTarget::new(target))
+}
 
 #[test]
 fn bytes_vec() {
-    let mut writer = Writer::for_vec(Int::Fix, vec![]);
+    let mut writer = setup_vec_fix();
 
     writer.write_bytes(&[]).unwrap();
-    assert_eq!(writer.position(), 0);
-    assert_eq!(writer.as_slice(), []);
+    assert_eq!(writer.as_ref().as_ref(), []);
 
     writer.write_bytes(&[1]).unwrap();
-    assert_eq!(writer.position(), 1);
-    assert_eq!(writer.as_slice(), [1]);
+    assert_eq!(writer.as_ref().as_ref(), [1]);
 
     writer.write_bytes(&[2, 3]).unwrap();
-    assert_eq!(writer.position(), 3);
-    assert_eq!(writer.as_slice(), [1, 2, 3]);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2, 3]);
 
     writer.write_bytes(&[4, 5, 6]).unwrap();
-    assert_eq!(writer.position(), 6);
-    assert_eq!(writer.as_slice(), [1, 2, 3, 4, 5, 6]);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2, 3, 4, 5, 6]);
 }
 
 #[test]
 fn bytes_slice() {
     let mut buf = [0; 9];
-    let mut writer = Writer::for_slice(Int::Fix, &mut buf);
+    let mut writer = setup_slice_fix(&mut buf);
 
     writer.write_bytes(&[]).unwrap();
-    assert_eq!(writer.position(), 0);
-    assert_eq!(writer.as_slice(), [0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(writer.as_ref().position(), 0);
+    assert_eq!(writer.as_ref().as_ref(), [0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
     writer.write_bytes(&[1]).unwrap();
-    assert_eq!(writer.position(), 1);
-    assert_eq!(writer.as_slice(), [1, 0, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(writer.as_ref().position(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [1, 0, 0, 0, 0, 0, 0, 0, 0]);
 
     writer.write_bytes(&[2, 3]).unwrap();
-    assert_eq!(writer.position(), 3);
-    assert_eq!(writer.as_slice(), [1, 2, 3, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(writer.as_ref().position(), 3);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2, 3, 0, 0, 0, 0, 0, 0]);
 
     writer.write_bytes(&[4, 5, 6]).unwrap();
-    assert_eq!(writer.position(), 6);
-    assert_eq!(writer.as_slice(), [1, 2, 3, 4, 5, 6, 0, 0, 0]);
+    assert_eq!(writer.as_ref().position(), 6);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2, 3, 4, 5, 6, 0, 0, 0]);
 
     let err = writer.write_bytes(&[7, 8, 9, 10]).unwrap_err();
-    assert_error!(err, Error::NoSpace);
-    assert_eq!(writer.position(), 6);
-    assert_eq!(writer.as_slice(), [1, 2, 3, 4, 5, 6, 0, 0, 0]);
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 6);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2, 3, 4, 5, 6, 0, 0, 0]);
 }
 
 #[test]
 fn fix_u8_vec() {
-    let mut writer = Writer::for_vec(Int::Fix, vec![]);
+    let mut writer = setup_vec_fix();
 
     writer.write_u8(1).unwrap();
-    assert_eq!(writer.position(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [1,]);
     writer.write_u8(2).unwrap();
-    assert_eq!(writer.position(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2,]);
     writer.write_u8(3).unwrap();
-    assert_eq!(writer.position(), 3);
-
-    assert_eq!(writer.into_vec(), [1, 2, 3]);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2, 3]);
 }
 
 #[test]
 fn fix_u8_slice() {
     let mut buf = [0; 2];
-    let mut writer = Writer::for_slice(Int::Fix, &mut buf);
+    let mut writer = setup_slice_fix(&mut buf);
 
     writer.write_u8(1).unwrap();
-    assert_eq!(writer.position(), 1);
-    writer.write_u8(2).unwrap();
-    assert_eq!(writer.position(), 2);
-    let err = writer.write_u8(3).unwrap_err();
-    assert_eq!(writer.position(), 2);
+    assert_eq!(writer.as_ref().position(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [1, 0]);
 
-    assert_eq!(writer.into_vec(), [1, 2]);
-    assert_error!(err, Error::NoSpace);
+    writer.write_u8(2).unwrap();
+    assert_eq!(writer.as_ref().position(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2]);
+
+    let err = writer.write_u8(3).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2]);
 }
 
 #[test]
 fn fix_u16_vec() {
-    let mut writer = Writer::for_vec(Int::Fix, vec![]);
+    let mut writer = setup_vec_fix();
 
     writer.write_u16(1).unwrap();
-    assert_eq!(writer.position(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [0x00, 0x01]);
     writer.write_u16(2).unwrap();
-    assert_eq!(writer.position(), 4);
-
-    assert_eq!(writer.into_vec(), [0x00, 0x01, 0x00, 0x02]);
+    assert_eq!(writer.as_ref().as_ref(), [0x00, 0x01, 0x00, 0x02]);
 }
 
 #[test]
 fn fix_u16_slice() {
     let mut buf = [b'x'; 5];
-    let mut writer = Writer::for_slice(Int::Fix, &mut buf);
+    let mut writer = setup_slice_fix(&mut buf);
 
     writer.write_u16(1).unwrap();
-    assert_eq!(writer.position(), 2);
-    writer.write_u16(2).unwrap();
-    assert_eq!(writer.position(), 4);
-    let err = writer.write_u16(3).unwrap_err();
-    assert_eq!(writer.position(), 4);
+    assert_eq!(writer.as_ref().position(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [0x00, 0x01, b'x', b'x', b'x']);
 
-    assert_eq!(writer.into_vec(), [0x00, 0x01, 0x00, 0x02, b'x']);
-    assert_error!(err, Error::NoSpace);
+    writer.write_u16(2).unwrap();
+    assert_eq!(writer.as_ref().position(), 4);
+    assert_eq!(writer.as_ref().as_ref(), [0x00, 0x01, 0x00, 0x02, b'x']);
+
+    let err = writer.write_u16(3).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 4);
+    assert_eq!(writer.as_ref().as_ref(), [0x00, 0x01, 0x00, 0x02, b'x']);
 }
 
 #[test]
 fn fix_u32_vec() {
-    let mut writer = Writer::for_vec(Int::Fix, vec![]);
+    let mut writer = setup_vec_fix();
 
     writer.write_u32(1).unwrap();
-    assert_eq!(writer.position(), 4);
+    assert_eq!(writer.as_ref().as_ref(), [0x00, 0x00, 0x00, 0x01,]);
     writer.write_u32(2).unwrap();
-    assert_eq!(writer.position(), 8);
-
     assert_eq!(
-        writer.into_vec(),
+        writer.as_ref().as_ref(),
         [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02]
     );
 }
@@ -149,33 +162,43 @@ fn fix_u32_vec() {
 #[test]
 fn fix_u32_slice() {
     let mut buf = [b'x'; 11];
-    let mut writer = Writer::for_slice(Int::Fix, &mut buf);
+    let mut writer = setup_slice_fix(&mut buf);
 
     writer.write_u32(1).unwrap();
-    assert_eq!(writer.position(), 4);
-    writer.write_u32(2).unwrap();
-    assert_eq!(writer.position(), 8);
-    let err = writer.write_u32(3).unwrap_err();
-    assert_eq!(writer.position(), 8);
-
+    assert_eq!(writer.as_ref().position(), 4);
     assert_eq!(
-        writer.into_vec(),
+        writer.as_ref().as_ref(),
+        [0x00, 0x00, 0x00, 0x01, b'x', b'x', b'x', b'x', b'x', b'x', b'x']
+    );
+
+    writer.write_u32(2).unwrap();
+    assert_eq!(writer.as_ref().position(), 8);
+    assert_eq!(
+        writer.as_ref().as_ref(),
         [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, b'x', b'x', b'x']
     );
-    assert_error!(err, Error::NoSpace);
+
+    let err = writer.write_u32(3).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 8);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, b'x', b'x', b'x']
+    );
 }
 
 #[test]
 fn fix_u64_vec() {
-    let mut writer = Writer::for_vec(Int::Fix, vec![]);
+    let mut writer = setup_vec_fix();
 
     writer.write_u64(1).unwrap();
-    assert_eq!(writer.position(), 8);
-    writer.write_u64(2).unwrap();
-    assert_eq!(writer.position(), 16);
-
     assert_eq!(
-        writer.into_vec(),
+        writer.as_ref().as_ref(),
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,]
+    );
+    writer.write_u64(2).unwrap();
+    assert_eq!(
+        writer.as_ref().as_ref(),
         [
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x02
@@ -186,36 +209,55 @@ fn fix_u64_vec() {
 #[test]
 fn fix_u64_slice() {
     let mut buf = [b'x'; 23];
-    let mut writer = Writer::for_slice(Int::Fix, &mut buf);
+    let mut writer = setup_slice_fix(&mut buf);
 
     writer.write_u64(1).unwrap();
-    assert_eq!(writer.position(), 8);
-    writer.write_u64(2).unwrap();
-    assert_eq!(writer.position(), 16);
-    let err = writer.write_u64(3).unwrap_err();
-    assert_eq!(writer.position(), 16);
-
+    assert_eq!(writer.as_ref().position(), 8);
     assert_eq!(
-        writer.into_vec(),
+        writer.as_ref().as_ref(),
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x'
+        ]
+    );
+
+    writer.write_u64(2).unwrap();
+    assert_eq!(writer.as_ref().position(), 16);
+    assert_eq!(
+        writer.as_ref().as_ref(),
         [
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x02, b'x', b'x', b'x', b'x', b'x', b'x', b'x'
         ]
     );
-    assert_error!(err, Error::NoSpace);
+
+    let err = writer.write_u64(3).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 16);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x02, b'x', b'x', b'x', b'x', b'x', b'x', b'x'
+        ]
+    );
 }
 
 #[test]
 fn fix_u128_vec() {
-    let mut writer = Writer::for_vec(Int::Fix, vec![]);
+    let mut writer = setup_vec_fix();
 
     writer.write_u128(1).unwrap();
-    assert_eq!(writer.position(), 16);
-    writer.write_u128(2).unwrap();
-    assert_eq!(writer.position(), 32);
-
     assert_eq!(
-        writer.into_vec(),
+        writer.as_ref().as_ref(),
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01,
+        ]
+    );
+    writer.write_u128(2).unwrap();
+    assert_eq!(
+        writer.as_ref().as_ref(),
         [
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -227,17 +269,28 @@ fn fix_u128_vec() {
 #[test]
 fn fix_u128_slice() {
     let mut buf = [b'x'; 47];
-    let mut writer = Writer::for_slice(Int::Fix, &mut buf);
+    let mut writer = setup_slice_fix(&mut buf);
 
     writer.write_u128(1).unwrap();
-    assert_eq!(writer.position(), 16);
-    writer.write_u128(2).unwrap();
-    assert_eq!(writer.position(), 32);
-    let err = writer.write_u128(3).unwrap_err();
-    assert_eq!(writer.position(), 32);
-
+    assert_eq!(writer.as_ref().position(), 16);
     assert_eq!(
-        writer.into_vec(),
+        writer.as_ref().as_ref(),
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x'
+        ]
+    );
+
+    writer.write_u128(2).unwrap();
+    assert_eq!(writer.as_ref().position(), 32);
+
+    let err = writer.write_u128(3).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 32);
+    assert_eq!(
+        writer.as_ref().as_ref(),
         [
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -245,37 +298,37 @@ fn fix_u128_slice() {
             b'x', b'x', b'x', b'x', b'x'
         ]
     );
-    assert_error!(err, Error::NoSpace);
 }
 
 #[test]
 fn var_u8_vec() {
-    let mut writer = Writer::for_vec(Int::Var, vec![]);
+    let mut writer = setup_vec_var();
 
     writer.write_u8(1).unwrap();
-    assert_eq!(writer.position(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [1]);
     writer.write_u8(2).unwrap();
-    assert_eq!(writer.position(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2]);
     writer.write_u8(3).unwrap();
-    assert_eq!(writer.position(), 3);
-
-    assert_eq!(writer.into_vec(), [1, 2, 3]);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2, 3]);
 }
 
 #[test]
 fn var_u8_slice() {
     let mut buf = [0; 2];
-    let mut writer = Writer::for_slice(Int::Var, &mut buf);
+    let mut writer = setup_slice_var(&mut buf);
 
     writer.write_u8(1).unwrap();
-    assert_eq!(writer.position(), 1);
-    writer.write_u8(2).unwrap();
-    assert_eq!(writer.position(), 2);
-    let err = writer.write_u8(3).unwrap_err();
-    assert_eq!(writer.position(), 2);
+    assert_eq!(writer.as_ref().position(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [1, 0]);
 
-    assert_eq!(writer.into_vec(), [1, 2]);
-    assert_error!(err, Error::NoSpace);
+    writer.write_u8(2).unwrap();
+    assert_eq!(writer.as_ref().position(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2]);
+
+    let err = writer.write_u8(3).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2]);
 }
 
 #[test]
@@ -288,11 +341,10 @@ fn var_u16_vec() {
         (0xff, vec![251, 0, 0xff]),
         (0xffff, vec![251, 0xff, 0xff]),
     ] {
-        let mut writer = Writer::for_vec(Int::Var, vec![]);
+        let mut writer = setup_vec_var();
 
         writer.write_u16(n).unwrap();
-        assert_eq!(writer.position(), buf.len());
-        assert_eq!(writer.into_vec(), buf);
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
@@ -307,24 +359,20 @@ fn var_u16_slice() {
         (0xffff, [251, 0xff, 0xff], 3),
     ] {
         let mut out = [b'x'; 3];
-        let mut writer = Writer::for_slice(Int::Var, &mut out);
+        let mut writer = setup_slice_var(&mut out);
 
         writer.write_u16(n).unwrap();
-        assert_eq!(writer.position(), pos);
-        assert_eq!(out, buf);
+        assert_eq!(writer.as_ref().position(), pos);
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 
     let mut buf = [b'x'; 0];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u16(0)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u16(0).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
 
     let mut buf = [b'x'; 2];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u16(251)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u16(251).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(buf, [b'x', b'x']);
 }
 
@@ -341,11 +389,10 @@ fn var_u32_vec() {
         (0xffffff, vec![252, 0x00, 0xff, 0xff, 0xff]),
         (0xffffffff, vec![252, 0xff, 0xff, 0xff, 0xff]),
     ] {
-        let mut writer = Writer::for_vec(Int::Var, vec![]);
+        let mut writer = setup_vec_var();
 
         writer.write_u32(n).unwrap();
-        assert_eq!(writer.position(), buf.len());
-        assert_eq!(writer.into_vec(), buf);
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
@@ -363,31 +410,25 @@ fn var_u32_slice() {
         (0xffffffff, [252, 0xff, 0xff, 0xff, 0xff], 5),
     ] {
         let mut out = [b'x'; 5];
-        let mut writer = Writer::for_slice(Int::Var, &mut out);
+        let mut writer = setup_slice_var(&mut out);
 
         writer.write_u32(n).unwrap();
-        assert_eq!(writer.position(), pos);
-        assert_eq!(out, buf);
+        assert_eq!(writer.as_ref().position(), pos);
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 
     let mut buf = [b'x'; 0];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u32(0)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u32(0).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
 
     let mut buf = [b'x'; 2];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u32(251)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u32(251).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(buf, [b'x', b'x']);
 
     let mut buf = [b'x'; 4];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u32(0x010000)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u32(0x010000).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(buf, [b'x', b'x', b'x', b'x']);
 }
 
@@ -424,11 +465,10 @@ fn var_u64_vec() {
             vec![253, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
         ),
     ] {
-        let mut writer = Writer::for_vec(Int::Var, vec![]);
+        let mut writer = setup_vec_var();
 
         writer.write_u64(n).unwrap();
-        assert_eq!(writer.position(), buf.len());
-        assert_eq!(writer.into_vec(), buf);
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
@@ -491,38 +531,32 @@ fn var_u64_slice() {
         ),
     ] {
         let mut out = [b'x'; 9];
-        let mut writer = Writer::for_slice(Int::Var, &mut out);
+        let mut writer = setup_slice_var(&mut out);
 
         writer.write_u64(n).unwrap();
-        assert_eq!(writer.position(), pos);
-        assert_eq!(out, buf);
+        assert_eq!(writer.as_ref().position(), pos);
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 
     let mut buf = [b'x'; 0];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u64(0)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u64(0).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
 
     let mut buf = [b'x'; 2];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u64(251)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u64(251).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(buf, [b'x', b'x']);
 
     let mut buf = [b'x'; 4];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u64(0x010000)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u64(0x010000).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(buf, [b'x', b'x', b'x', b'x']);
 
     let mut buf = [b'x'; 8];
-    let err = Writer::for_slice(Int::Var, &mut buf)
+    let err = setup_slice_var(&mut buf)
         .write_u64(0x100000000)
         .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(buf, [b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x']);
 }
 
@@ -622,11 +656,10 @@ fn var_u128_vec() {
             ],
         ),
     ] {
-        let mut writer = Writer::for_vec(Int::Var, vec![]);
+        let mut writer = setup_vec_var();
 
         writer.write_u128(n).unwrap();
-        assert_eq!(writer.position(), buf.len());
-        assert_eq!(writer.into_vec(), buf);
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
@@ -819,45 +852,39 @@ fn var_u128_slice() {
         ),
     ] {
         let mut out = [b'x'; 17];
-        let mut writer = Writer::for_slice(Int::Var, &mut out);
+        let mut writer = setup_slice_var(&mut out);
 
         writer.write_u128(n).unwrap();
-        assert_eq!(writer.position(), pos);
-        assert_eq!(out, buf);
+        assert_eq!(writer.as_ref().position(), pos);
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 
     let mut buf = [b'x'; 0];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u128(0)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u128(0).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
 
     let mut buf = [b'x'; 2];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u128(251)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u128(251).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(buf, [b'x', b'x']);
 
     let mut buf = [b'x'; 4];
-    let err = Writer::for_slice(Int::Var, &mut buf)
-        .write_u128(0x010000)
-        .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    let err = setup_slice_var(&mut buf).write_u128(0x010000).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(buf, [b'x', b'x', b'x', b'x']);
 
     let mut buf = [b'x'; 8];
-    let err = Writer::for_slice(Int::Var, &mut buf)
+    let err = setup_slice_var(&mut buf)
         .write_u128(0x100000000)
         .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(buf, [b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x']);
 
     let mut buf = [b'x'; 16];
-    let err = Writer::for_slice(Int::Var, &mut buf)
+    let err = setup_slice_var(&mut buf)
         .write_u128(0x10000000000000000)
         .unwrap_err();
-    assert_error!(err, Error::NoSpace);
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(
         buf,
         [

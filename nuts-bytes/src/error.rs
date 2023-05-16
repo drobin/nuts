@@ -42,7 +42,7 @@ pub enum Error {
     Eof(Option<io::Error>),
 
     /// No more space available when writing into a byte slice.
-    NoSpace,
+    NoSpace(Option<io::Error>),
 
     /// Invalid integer type was found.
     ///
@@ -82,7 +82,7 @@ impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Eof(_) => write!(fmt, "No more bytes are available for reading."),
-            Error::NoSpace => write!(fmt, "no more space available for writing"),
+            Error::NoSpace(_) => write!(fmt, "no more space available for writing"),
             Error::InvalidInteger { expected, found } => write!(
                 fmt,
                 "tries to read type {:?}, but found type {:?}",
@@ -102,6 +102,7 @@ impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             Error::Eof(Some(cause)) => Some(cause),
+            Error::NoSpace(Some(cause)) => Some(cause),
             Error::InvalidString(cause) => Some(cause),
             Error::Io(cause) => Some(cause),
             _ => None,
@@ -123,10 +124,10 @@ impl de::Error for Error {
 
 impl From<io::Error> for Error {
     fn from(cause: io::Error) -> Self {
-        if cause.kind() == io::ErrorKind::UnexpectedEof {
-            Error::Eof(Some(cause))
-        } else {
-            Error::Io(cause)
+        match cause.kind() {
+            io::ErrorKind::UnexpectedEof => Error::Eof(Some(cause)),
+            io::ErrorKind::WriteZero => Error::NoSpace(Some(cause)),
+            _ => Error::Io(cause),
         }
     }
 }
