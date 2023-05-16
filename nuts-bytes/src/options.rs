@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::reader::Reader;
+use crate::source::{BufferSource, TakeBytes};
 use crate::writer::Writer;
 
 #[derive(Debug)]
@@ -88,9 +89,12 @@ impl Options {
 
     /// Creates a new [`Reader`] from this options.
     ///
+    /// Binary data are taken from the given `source` which must implement the
+    /// [`TakeBytes`] trait.
+    ///
     /// Use this reader to manually deserialize data.
-    pub fn build_reader<'de>(self, bytes: &'de [u8]) -> Reader<'de> {
-        Reader::new(self.int, bytes)
+    pub fn build_reader<'de, 'tb, T: TakeBytes<'tb>>(self, source: T) -> Reader<T> {
+        Reader::new(self.int, source)
     }
 
     /// Creates a new [`Writer`] that writes into the given `vec`.
@@ -111,10 +115,10 @@ impl Options {
     /// deserialization, an [`Error::TrailingBytes`] error is returned, if
     /// [`Options::ignore_trailing`] is not set.
     pub fn from_bytes<'a, T: Deserialize<'a>>(self, bytes: &'a [u8]) -> Result<T> {
-        let mut reader = Reader::new(self.int, bytes);
+        let mut reader = Reader::new(self.int, BufferSource::new(bytes));
         let value = T::deserialize(&mut reader)?;
 
-        if !self.trailing || reader.remaining_bytes().is_empty() {
+        if !self.trailing || !reader.as_ref().have_remaining_bytes() {
             Ok(value)
         } else {
             Err(Error::TrailingBytes)

@@ -21,7 +21,8 @@
 // IN THE SOFTWARE.
 
 use serde::{de, ser};
-use std::{error, fmt, result, str::Utf8Error};
+use std::str::Utf8Error;
+use std::{error, fmt, io, result};
 
 /// Integer types from [`Error::InvalidInteger`].
 #[derive(Debug, PartialEq)]
@@ -38,7 +39,7 @@ pub enum IntType {
 pub enum Error {
     /// Failed to read the requested number of bytes. No more bytes are
     /// available for reading.
-    Eof,
+    Eof(Option<io::Error>),
 
     /// No more space available when writing into a byte slice.
     NoSpace,
@@ -64,6 +65,9 @@ pub enum Error {
     /// The length is unknown when serializing a sequence or map.
     RequiredLength,
 
+    /// An I/O error occured.
+    Io(io::Error),
+
     /// A custom error message from Serde.
     Serde(String),
 }
@@ -77,7 +81,7 @@ impl Error {
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::Eof => write!(fmt, "No more bytes are available for reading."),
+            Error::Eof(_) => write!(fmt, "No more bytes are available for reading."),
             Error::NoSpace => write!(fmt, "no more space available for writing"),
             Error::InvalidInteger { expected, found } => write!(
                 fmt,
@@ -88,6 +92,7 @@ impl fmt::Display for Error {
             Error::InvalidString(cause) => write!(fmt, "not a string: {}", cause),
             Error::TrailingBytes => write!(fmt, "there are trailing bytes available"),
             Error::RequiredLength => write!(fmt, "the length of the sequence or map is required"),
+            Error::Io(cause) => fmt::Display::fmt(cause, fmt),
             Error::Serde(msg) => fmt::Display::fmt(msg, fmt),
         }
     }
@@ -96,7 +101,9 @@ impl fmt::Display for Error {
 impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
+            Error::Eof(Some(cause)) => Some(cause),
             Error::InvalidString(cause) => Some(cause),
+            Error::Io(cause) => Some(cause),
             _ => None,
         }
     }
@@ -111,6 +118,16 @@ impl ser::Error for Error {
 impl de::Error for Error {
     fn custom<T: fmt::Display>(msg: T) -> Self {
         Error::Serde(msg.to_string())
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(cause: io::Error) -> Self {
+        if cause.kind() == io::ErrorKind::UnexpectedEof {
+            Error::Eof(Some(cause))
+        } else {
+            Error::Io(cause)
+        }
     }
 }
 

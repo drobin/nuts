@@ -20,127 +20,123 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use std::borrow::Cow;
+
 use crate::error::{Error, IntType};
 use crate::options::Int;
 use crate::reader::Reader;
+use crate::source::BufferSource;
 use crate::{assert_error, assert_error_eq};
 
-#[test]
-fn remaining_bytes() {
-    let mut reader = Reader::new(Int::Fix, &[1, 2, 3]);
+fn setup_fix(buf: &[u8]) -> Reader<BufferSource> {
+    Reader::new(Int::Fix, BufferSource::new(buf))
+}
 
-    for (offs, buf) in [vec![1, 2, 3], vec![2, 3], vec![3], vec![], vec![]]
-        .iter()
-        .enumerate()
-    {
-        reader.offs = offs;
-        assert_eq!(reader.position(), offs);
-        assert_eq!(reader.remaining_bytes(), buf);
-    }
+fn setup_var(buf: &[u8]) -> Reader<BufferSource> {
+    Reader::new(Int::Var, BufferSource::new(buf))
 }
 
 #[test]
 fn fix_u8() {
-    let mut reader = Reader::new(Int::Fix, &[1, 2, 3]);
+    let mut reader = setup_fix(&[1, 2, 3]);
 
     assert_eq!(reader.read_u8().unwrap(), 1);
-    assert_eq!(reader.position(), 1);
-    assert_eq!(reader.remaining_bytes(), [2, 3]);
+    assert_eq!(reader.as_ref().position(), 1);
+    assert_eq!(reader.as_ref().remaining_bytes(), [2, 3]);
 
     assert_eq!(reader.read_u8().unwrap(), 2);
-    assert_eq!(reader.position(), 2);
-    assert_eq!(reader.remaining_bytes(), [3]);
+    assert_eq!(reader.as_ref().position(), 2);
+    assert_eq!(reader.as_ref().remaining_bytes(), [3]);
 
     assert_eq!(reader.read_u8().unwrap(), 3);
-    assert_eq!(reader.position(), 3);
-    assert_eq!(reader.remaining_bytes(), []);
+    assert_eq!(reader.as_ref().position(), 3);
+    assert_eq!(reader.as_ref().remaining_bytes(), []);
 
     let err = reader.read_u8().unwrap_err();
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
-    assert_eq!(reader.position(), 3);
-    assert_eq!(reader.remaining_bytes(), []);
+    assert_eq!(reader.as_ref().position(), 3);
+    assert_eq!(reader.as_ref().remaining_bytes(), []);
 }
 
 #[test]
 fn fix_u16() {
-    let mut reader = Reader::new(Int::Fix, &[1, 2, 3, 4, 5]);
+    let mut reader = setup_fix(&[1, 2, 3, 4, 5]);
 
     assert_eq!(reader.read_u16().unwrap(), 0x0102);
-    assert_eq!(reader.position(), 2);
-    assert_eq!(reader.remaining_bytes(), [3, 4, 5]);
+    assert_eq!(reader.as_ref().position(), 2);
+    assert_eq!(reader.as_ref().remaining_bytes(), [3, 4, 5]);
 
     assert_eq!(reader.read_u16().unwrap(), 0x0304);
-    assert_eq!(reader.position(), 4);
-    assert_eq!(reader.remaining_bytes(), [5]);
+    assert_eq!(reader.as_ref().position(), 4);
+    assert_eq!(reader.as_ref().remaining_bytes(), [5]);
 
     let err = reader.read_u16().unwrap_err();
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
-    assert_eq!(reader.position(), 4);
-    assert_eq!(reader.remaining_bytes(), [5]);
+    assert_eq!(reader.as_ref().position(), 4);
+    assert_eq!(reader.as_ref().remaining_bytes(), [5]);
 }
 
 #[test]
 fn fix_u32() {
-    let mut reader = Reader::new(Int::Fix, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    let mut reader = setup_fix(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 
     assert_eq!(reader.read_u32().unwrap(), 0x01020304);
-    assert_eq!(reader.position(), 4);
-    assert_eq!(reader.remaining_bytes(), [5, 6, 7, 8, 9, 10, 11]);
+    assert_eq!(reader.as_ref().position(), 4);
+    assert_eq!(reader.as_ref().remaining_bytes(), [5, 6, 7, 8, 9, 10, 11]);
 
     assert_eq!(reader.read_u32().unwrap(), 0x05060708);
-    assert_eq!(reader.position(), 8);
-    assert_eq!(reader.remaining_bytes(), [9, 10, 11]);
+    assert_eq!(reader.as_ref().position(), 8);
+    assert_eq!(reader.as_ref().remaining_bytes(), [9, 10, 11]);
 
     let err = reader.read_u32().unwrap_err();
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
-    assert_eq!(reader.position(), 8);
-    assert_eq!(reader.remaining_bytes(), [9, 10, 11]);
+    assert_eq!(reader.as_ref().position(), 8);
+    assert_eq!(reader.as_ref().remaining_bytes(), [9, 10, 11]);
 }
 
 #[test]
 fn fix_u64() {
-    let mut reader = Reader::new(
-        Int::Fix,
-        &[
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-        ],
-    );
+    let mut reader = setup_fix(&[
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+    ]);
 
     assert_eq!(reader.read_u64().unwrap(), 0x0102030405060708);
-    assert_eq!(reader.position(), 8);
+    assert_eq!(reader.as_ref().position(), 8);
     assert_eq!(
-        reader.remaining_bytes(),
+        reader.as_ref().remaining_bytes(),
         [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,]
     );
 
     assert_eq!(reader.read_u64().unwrap(), 0x090A0B0C0D0E0F10);
-    assert_eq!(reader.position(), 16);
-    assert_eq!(reader.remaining_bytes(), [17, 18, 19, 20, 21, 22, 23]);
+    assert_eq!(reader.as_ref().position(), 16);
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [17, 18, 19, 20, 21, 22, 23]
+    );
 
     let err = reader.read_u64().unwrap_err();
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
-    assert_eq!(reader.position(), 16);
-    assert_eq!(reader.remaining_bytes(), [17, 18, 19, 20, 21, 22, 23]);
+    assert_eq!(reader.as_ref().position(), 16);
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [17, 18, 19, 20, 21, 22, 23]
+    );
 }
 
 #[test]
 fn fix_u128() {
-    let mut reader = Reader::new(
-        Int::Fix,
-        &[
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-            25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
-            47,
-        ],
-    );
+    let mut reader = setup_fix(&[
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+        26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+    ]);
 
     assert_eq!(
         reader.read_u128().unwrap(),
         0x0102030405060708090A0B0C0D0E0F10
     );
-    assert_eq!(reader.position(), 16);
+    assert_eq!(reader.as_ref().position(), 16);
     assert_eq!(
-        reader.remaining_bytes(),
+        reader.as_ref().remaining_bytes(),
         [
             17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
             39, 40, 41, 42, 43, 44, 45, 46, 47,
@@ -151,41 +147,41 @@ fn fix_u128() {
         reader.read_u128().unwrap(),
         0x1112131415161718191a1b1c1d1e1f20
     );
-    assert_eq!(reader.position(), 32);
+    assert_eq!(reader.as_ref().position(), 32);
     assert_eq!(
-        reader.remaining_bytes(),
+        reader.as_ref().remaining_bytes(),
         [33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,]
     );
 
     let err = reader.read_u128().unwrap_err();
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
-    assert_eq!(reader.position(), 32);
+    assert_eq!(reader.as_ref().position(), 32);
     assert_eq!(
-        reader.remaining_bytes(),
+        reader.as_ref().remaining_bytes(),
         [33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,]
     );
 }
 
 #[test]
 fn var_u8() {
-    let mut reader = Reader::new(Int::Var, &[1, 2, 3]);
+    let mut reader = setup_var(&[1, 2, 3]);
 
     assert_eq!(reader.read_u8().unwrap(), 1);
-    assert_eq!(reader.position(), 1);
-    assert_eq!(reader.remaining_bytes(), [2, 3]);
+    assert_eq!(reader.as_ref().position(), 1);
+    assert_eq!(reader.as_ref().remaining_bytes(), [2, 3]);
 
     assert_eq!(reader.read_u8().unwrap(), 2);
-    assert_eq!(reader.position(), 2);
-    assert_eq!(reader.remaining_bytes(), [3]);
+    assert_eq!(reader.as_ref().position(), 2);
+    assert_eq!(reader.as_ref().remaining_bytes(), [3]);
 
     assert_eq!(reader.read_u8().unwrap(), 3);
-    assert_eq!(reader.position(), 3);
-    assert_eq!(reader.remaining_bytes(), []);
+    assert_eq!(reader.as_ref().position(), 3);
+    assert_eq!(reader.as_ref().remaining_bytes(), []);
 
     let err = reader.read_u8().unwrap_err();
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
-    assert_eq!(reader.position(), 3);
-    assert_eq!(reader.remaining_bytes(), []);
+    assert_eq!(reader.as_ref().position(), 3);
+    assert_eq!(reader.as_ref().remaining_bytes(), []);
 }
 
 #[test]
@@ -198,9 +194,9 @@ fn var_u16() {
         (vec![251, 0, 0xff], 0xff),
         (vec![251, 0xff, 0xff], 0xffff),
     ] {
-        let mut reader = Reader::new(Int::Var, &buf);
+        let mut reader = setup_var(&buf);
         assert_eq!(reader.read_u16().unwrap(), n);
-        assert_eq!(reader.position(), buf.len());
+        assert_eq!(reader.as_ref().position(), buf.len());
     }
 
     for (buf, t) in [
@@ -208,9 +204,9 @@ fn var_u16() {
         (vec![253], IntType::U64),
         (vec![254], IntType::U128),
     ] {
-        let mut reader = Reader::new(Int::Var, &buf);
+        let mut reader = setup_var(&buf);
         let err = reader.read_u16().unwrap_err();
-        assert_eq!(reader.position(), 1);
+        assert_eq!(reader.as_ref().position(), 1);
         assert_error_eq!(err, Error::InvalidInteger { |expected| IntType::U16, |found| t });
     }
 }
@@ -230,15 +226,15 @@ fn var_u32() {
         (vec![252, 0, 0xff, 0xff, 0xff], 0xffffff),
         (vec![252, 0xff, 0xff, 0xff, 0xff], 0xffffffff),
     ] {
-        let mut reader = Reader::new(Int::Var, &buf);
+        let mut reader = setup_var(&buf);
         assert_eq!(reader.read_u32().unwrap(), n);
-        assert_eq!(reader.position(), buf.len());
+        assert_eq!(reader.as_ref().position(), buf.len());
     }
 
     for (buf, t) in [(vec![253], IntType::U64), (vec![254], IntType::U128)] {
-        let mut reader = Reader::new(Int::Var, &buf);
+        let mut reader = setup_var(&buf);
         let err = reader.read_u32().unwrap_err();
-        assert_eq!(reader.position(), 1);
+        assert_eq!(reader.as_ref().position(), 1);
         assert_error_eq!(err, Error::InvalidInteger { |expected| IntType::U32, |found| t });
     }
 }
@@ -279,15 +275,15 @@ fn var_u64() {
             0xffffffffffffffff,
         ),
     ] {
-        let mut reader = Reader::new(Int::Var, &buf);
+        let mut reader = setup_var(&buf);
         assert_eq!(reader.read_u64().unwrap(), n);
-        assert_eq!(reader.position(), buf.len());
+        assert_eq!(reader.as_ref().position(), buf.len());
     }
 
     for (buf, t) in [(vec![254], IntType::U128)] {
-        let mut reader = Reader::new(Int::Var, &buf);
+        let mut reader = setup_var(&buf);
         let err = reader.read_u64().unwrap_err();
-        assert_eq!(reader.position(), 1);
+        assert_eq!(reader.as_ref().position(), 1);
         assert_error_eq!(err, Error::InvalidInteger { |expected| IntType::U32, |found| t });
     }
 }
@@ -425,64 +421,70 @@ fn var_u128() {
             18446744073709551615,
         ),
     ] {
-        let mut reader = Reader::new(Int::Var, &buf);
+        let mut reader = setup_var(&buf);
         assert_eq!(reader.read_u128().unwrap(), n);
-        assert_eq!(reader.position(), buf.len());
+        assert_eq!(reader.as_ref().position(), buf.len());
     }
 }
 
 #[test]
-fn bytes() {
-    let mut reader = Reader::new(Int::Fix, &[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+fn read_bytes() {
+    let mut reader = setup_fix(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
-    assert_eq!(reader.read_bytes(0).unwrap(), []);
-    assert_eq!(reader.remaining_bytes(), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    assert_eq!(reader.read_bytes(0).unwrap(), Cow::Borrowed(&[]));
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    );
 
-    assert_eq!(reader.read_bytes(1).unwrap(), [1]);
-    assert_eq!(reader.remaining_bytes(), [2, 3, 4, 5, 6, 7, 8, 9]);
+    assert_eq!(reader.read_bytes(1).unwrap(), Cow::Borrowed(&[1]));
+    assert_eq!(reader.as_ref().remaining_bytes(), [2, 3, 4, 5, 6, 7, 8, 9]);
 
-    assert_eq!(reader.read_bytes(2).unwrap(), [2, 3]);
-    assert_eq!(reader.remaining_bytes(), [4, 5, 6, 7, 8, 9]);
+    assert_eq!(reader.read_bytes(2).unwrap(), Cow::Borrowed(&[2, 3]));
+    assert_eq!(reader.as_ref().remaining_bytes(), [4, 5, 6, 7, 8, 9]);
 
-    assert_eq!(reader.read_bytes(3).unwrap(), [4, 5, 6]);
-    assert_eq!(reader.remaining_bytes(), [7, 8, 9]);
+    assert_eq!(reader.read_bytes(3).unwrap(), Cow::Borrowed(&[4, 5, 6]));
+    assert_eq!(reader.as_ref().remaining_bytes(), [7, 8, 9]);
 
     let err = reader.read_bytes(4).unwrap_err();
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
-    assert_eq!(reader.remaining_bytes(), [7, 8, 9]);
+    assert_eq!(reader.as_ref().remaining_bytes(), [7, 8, 9]);
 }
 
 #[test]
-fn bytes_to() {
-    let mut reader = Reader::new(Int::Fix, &[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+fn read_bytes_to() {
+    let mut reader = setup_fix(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
     let mut buf = [];
     reader.read_bytes_to(&mut buf).unwrap();
-    assert_eq!(reader.position(), 0);
-    assert_eq!(reader.remaining_bytes(), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    assert_eq!(reader.as_ref().position(), 0);
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    );
 
     let mut buf = [0; 1];
     reader.read_bytes_to(&mut buf).unwrap();
     assert_eq!(buf, [1]);
-    assert_eq!(reader.position(), 1);
-    assert_eq!(reader.remaining_bytes(), [2, 3, 4, 5, 6, 7, 8, 9]);
+    assert_eq!(reader.as_ref().position(), 1);
+    assert_eq!(reader.as_ref().remaining_bytes(), [2, 3, 4, 5, 6, 7, 8, 9]);
 
     let mut buf = [0; 2];
     reader.read_bytes_to(&mut buf).unwrap();
     assert_eq!(buf, [2, 3]);
-    assert_eq!(reader.position(), 3);
-    assert_eq!(reader.remaining_bytes(), [4, 5, 6, 7, 8, 9]);
+    assert_eq!(reader.as_ref().position(), 3);
+    assert_eq!(reader.as_ref().remaining_bytes(), [4, 5, 6, 7, 8, 9]);
 
     let mut buf = [0; 3];
     reader.read_bytes_to(&mut buf).unwrap();
     assert_eq!(buf, [4, 5, 6]);
-    assert_eq!(reader.position(), 6);
-    assert_eq!(reader.remaining_bytes(), [7, 8, 9]);
+    assert_eq!(reader.as_ref().position(), 6);
+    assert_eq!(reader.as_ref().remaining_bytes(), [7, 8, 9]);
 
     let mut buf = [0; 4];
     let err = reader.read_bytes_to(&mut buf).unwrap_err();
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(buf, [0, 0, 0, 0]);
-    assert_eq!(reader.position(), 6);
-    assert_eq!(reader.remaining_bytes(), [7, 8, 9]);
+    assert_eq!(reader.as_ref().position(), 6);
+    assert_eq!(reader.as_ref().remaining_bytes(), [7, 8, 9]);
 }

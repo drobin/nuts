@@ -24,49 +24,46 @@
 mod tests;
 
 use serde::de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
-use std::{cmp, str};
+use std::borrow::Cow;
+use std::str;
 
 use crate::error::{Error, IntType, Result};
 use crate::options::Int;
+#[cfg(doc)]
+use crate::options::Options;
+use crate::source::TakeBytes;
 
 const VAR16: u8 = 251;
 const VAR32: u8 = 252;
 const VAR64: u8 = 253;
 const VAR128: u8 = 254;
 
-/// A cursor like utility that reads structured data from a binary stream.
-pub struct Reader<'de> {
-    int: Int,
-    buf: &'de [u8],
-    offs: usize,
-}
-
 macro_rules! read_fixint_primitive {
     ($name:ident -> $ty:ty) => {
         fn $name(&mut self) -> Result<$ty> {
             let mut bytes = [0; std::mem::size_of::<$ty>()];
-            self.read_bytes_to(&mut bytes)
+            self.source
+                .take_bytes_to(&mut bytes)
                 .map(|()| <$ty>::from_be_bytes(bytes))
         }
     };
 }
 
-impl<'de> Reader<'de> {
-    pub(crate) fn new(int: Int, buf: &'de [u8]) -> Reader<'de> {
-        Reader { int, buf, offs: 0 }
-    }
+/// A cursor like utility that reads structured data from an arbitrary source.
+///
+/// The source must implement the [`TakeBytes`] trait which supports reading
+/// binary data from it.
+///
+/// The [`Options`] type is used to construct an instance of this `Reader`. See
+/// [`Options::build_reader()`] for more information.
+pub struct Reader<T> {
+    int: Int,
+    source: T,
+}
 
-    /// Returns the current position of the reader.
-    pub fn position(&self) -> usize {
-        self.offs
-    }
-
-    /// Returns the slice of remaining (unread) data from the reader.
-    ///
-    /// If all data were consumed the returned slice is empty.
-    pub fn remaining_bytes(&self) -> &'de [u8] {
-        let n = cmp::min(self.offs, self.buf.len());
-        self.buf.get(n..).unwrap()
+impl<'tb, T: TakeBytes<'tb>> Reader<T> {
+    pub(crate) fn new(int: Int, source: T) -> Reader<T> {
+        Reader { int, source }
     }
 
     /// Reads an `u8` value from the reader.
@@ -162,20 +159,17 @@ impl<'de> Reader<'de> {
 
     /// Reads `n` bytes from the reader.
     ///
-    /// Returns a slice of the given size (`n`) which is still owned by the
-    /// reader.
+    /// If possible a slice of borrowed data of the given size (`n`) wrapped
+    /// into [`Cow::Borrowed`] is returned.
+    ///
+    /// If the data cannot be borrowed a [`Vec<u8>`] wrapped into a
+    /// [`Cow::Owned`] is returned.
     ///
     /// # Errors
     ///
     /// If not enough data are available an [`Error::Eof`] error is returned.
-    pub fn read_bytes(&mut self, n: usize) -> Result<&'de [u8]> {
-        match self.buf.get(self.offs..self.offs + n) {
-            Some(buf) => {
-                self.offs += n;
-                Ok(buf)
-            }
-            None => Err(Error::Eof),
-        }
+    pub fn read_bytes(&mut self, n: usize) -> Result<Cow<'tb, [u8]>> {
+        self.source.take_bytes(n)
     }
 
     /// Reads some bytes from the reader and puts them into the given buffer
@@ -186,14 +180,17 @@ impl<'de> Reader<'de> {
     /// If not enough data are available to fill `buf` an [`Error::Eof`] error
     /// is returned.
     pub fn read_bytes_to(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.read_bytes(buf.len()).map(|bytes| {
-            buf.copy_from_slice(bytes);
-            ()
-        })
+        self.source.take_bytes_to(buf)
     }
 }
 
-impl<'de, 'a> de::Deserializer<'de> for &'a mut Reader<'de> {
+impl<'tb, T: TakeBytes<'tb>> AsRef<T> for Reader<T> {
+    fn as_ref(&self) -> &T {
+        &self.source
+    }
+}
+
+impl<'a, 'de, 'tb: 'de, T: TakeBytes<'tb>> de::Deserializer<'de> for &'a mut Reader<T> {
     type Error = Error;
 
     fn deserialize_any<V: Visitor<'de>>(self, _visitor: V) -> Result<V::Value> {
@@ -260,11 +257,16 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Reader<'de> {
 
     fn deserialize_str<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         let len = self.read_u64()? as usize;
-        let bytes = self.read_bytes(len)?;
 
-        match str::from_utf8(bytes) {
-            Ok(s) => visitor.visit_borrowed_str(s),
-            Err(err) => Err(Error::InvalidString(err)),
+        match self.read_bytes(len)? {
+            Cow::Borrowed(bytes) => match str::from_utf8(bytes) {
+                Ok(s) => visitor.visit_borrowed_str(s),
+                Err(err) => Err(Error::InvalidString(err)),
+            },
+            Cow::Owned(bytes) => match String::from_utf8(bytes) {
+                Ok(s) => visitor.visit_string(s),
+                Err(err) => Err(Error::InvalidString(err.utf8_error())),
+            },
         }
     }
 
@@ -274,9 +276,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Reader<'de> {
 
     fn deserialize_bytes<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         let len = self.read_u64()? as usize;
-        let bytes = self.read_bytes(len)?;
 
-        visitor.visit_borrowed_bytes(bytes)
+        match self.read_bytes(len)? {
+            Cow::Borrowed(bytes) => visitor.visit_borrowed_bytes(bytes),
+            Cow::Owned(bytes) => visitor.visit_byte_buf(bytes),
+        }
     }
 
     fn deserialize_byte_buf<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
@@ -363,14 +367,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Reader<'de> {
     }
 }
 
-struct SequenceReader<'a, 'de: 'a> {
-    reader: &'a mut Reader<'de>,
+struct SequenceReader<'a, T> {
+    reader: &'a mut Reader<T>,
     cur: usize,
     len: usize,
 }
 
-impl<'a, 'de> SequenceReader<'a, 'de> {
-    fn new(reader: &'a mut Reader<'de>, len: usize) -> Self {
+impl<'a, T> SequenceReader<'a, T> {
+    fn new(reader: &'a mut Reader<T>, len: usize) -> Self {
         SequenceReader {
             reader,
             cur: 0,
@@ -379,7 +383,7 @@ impl<'a, 'de> SequenceReader<'a, 'de> {
     }
 }
 
-impl<'de, 'a> SeqAccess<'de> for SequenceReader<'a, 'de> {
+impl<'a, 'de, 'tb: 'de, B: TakeBytes<'tb>> SeqAccess<'de> for SequenceReader<'a, B> {
     type Error = Error;
 
     fn next_element_seed<T: DeserializeSeed<'de>>(&mut self, seed: T) -> Result<Option<T::Value>> {
@@ -394,7 +398,7 @@ impl<'de, 'a> SeqAccess<'de> for SequenceReader<'a, 'de> {
     }
 }
 
-impl<'de, 'a> MapAccess<'de> for SequenceReader<'a, 'de> {
+impl<'a, 'de, 'tb: 'de, B: TakeBytes<'tb>> MapAccess<'de> for SequenceReader<'a, B> {
     type Error = Error;
 
     fn next_key_seed<K: DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>> {
@@ -413,17 +417,17 @@ impl<'de, 'a> MapAccess<'de> for SequenceReader<'a, 'de> {
     }
 }
 
-struct EnumReader<'a, 'de: 'a> {
-    reader: &'a mut Reader<'de>,
+struct EnumReader<'a, T> {
+    reader: &'a mut Reader<T>,
 }
 
-impl<'a, 'de> EnumReader<'a, 'de> {
-    fn new(reader: &'a mut Reader<'de>) -> Self {
+impl<'a, T> EnumReader<'a, T> {
+    fn new(reader: &'a mut Reader<T>) -> Self {
         EnumReader { reader }
     }
 }
 
-impl<'de, 'a> EnumAccess<'de> for EnumReader<'a, 'de> {
+impl<'a, 'de, 'tb: 'de, B: TakeBytes<'tb>> EnumAccess<'de> for EnumReader<'a, B> {
     type Error = Error;
     type Variant = Self;
 
@@ -433,7 +437,7 @@ impl<'de, 'a> EnumAccess<'de> for EnumReader<'a, 'de> {
     }
 }
 
-impl<'de, 'a> VariantAccess<'de> for EnumReader<'a, 'de> {
+impl<'a, 'de, 'tb: 'de, B: TakeBytes<'tb>> VariantAccess<'de> for EnumReader<'a, B> {
     type Error = Error;
 
     fn unit_variant(self) -> Result<()> {
