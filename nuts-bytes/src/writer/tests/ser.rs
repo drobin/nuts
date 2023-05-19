@@ -23,61 +23,77 @@
 use serde::Serialize;
 use std::collections::HashMap;
 
-use crate::assert_error_eq;
 use crate::error::Error;
 use crate::options::Options;
+use crate::{assert_error_eq, VecTarget, Writer};
+
+fn setup_var_writer() -> Writer<VecTarget> {
+    Options::new().build_writer(VecTarget::new(vec![]))
+}
+
+fn setup_fix_writer() -> Writer<VecTarget> {
+    Options::new()
+        .with_fixint()
+        .build_writer(VecTarget::new(vec![]))
+}
 
 #[test]
 fn bool() {
-    let vec = Options::new().to_vec(&true).unwrap();
-    assert_eq!(vec, [1]);
-
-    let vec = Options::new().to_vec(&false).unwrap();
-    assert_eq!(vec, [0]);
+    for (t, buf) in [(true, [1]), (false, [0])] {
+        let mut writer = setup_var_writer();
+        assert_eq!(t.serialize(&mut writer).unwrap(), 1);
+        assert_eq!(writer.as_ref().as_ref(), buf);
+    }
 }
 
 #[test]
 fn u8() {
-    for n in 0..2 {
-        let vec = Options::new().to_vec::<u8>(&n).unwrap();
-        assert_eq!(vec, [n]);
+    for n in 0u8..2 {
+        let mut writer = setup_var_writer();
+        assert_eq!(n.serialize(&mut writer).unwrap(), 1);
+        assert_eq!(writer.as_ref().as_ref(), [n]);
     }
 }
 
 #[test]
 fn u16() {
-    for (n, buf) in [(0x00, [0]), (0x01, [1]), (0x02, [2])] {
-        let vec = Options::new().to_vec::<u16>(&n).unwrap();
-        assert_eq!(vec, buf);
+    for (n, buf) in [(0x00u16, [0]), (0x01, [1]), (0x02, [2])] {
+        let mut writer = setup_var_writer();
+        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
 #[test]
 fn u32() {
-    for (n, buf) in [(0x00, [0]), (0x01, [1]), (0x02, [2])] {
-        let vec = Options::new().to_vec::<u32>(&n).unwrap();
-        assert_eq!(vec, buf);
+    for (n, buf) in [(0x00u32, [0]), (0x01, [1]), (0x02, [2])] {
+        let mut writer = setup_var_writer();
+        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
 #[test]
 fn u64() {
-    for (n, buf) in [(0x00, [0]), (0x01, [1]), (0x02, [2])] {
-        let vec = Options::new().to_vec::<u64>(&n).unwrap();
-        assert_eq!(vec, buf);
+    for (n, buf) in [(0x00u64, [0]), (0x01, [1]), (0x02, [2])] {
+        let mut writer = setup_var_writer();
+        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
 #[test]
 fn u128() {
-    let err = Options::new().to_vec::<u128>(&0).unwrap_err();
+    let mut writer = setup_var_writer();
+    let err = 0u128.serialize(&mut writer).unwrap_err();
     assert_error_eq!(err, Error::Serde(|msg| "u128 is not supported"));
 }
 
 #[test]
 fn char() {
-    let vec = Options::new().with_fixint().to_vec(&'💯').unwrap();
-    assert_eq!(vec, [0x00, 0x01, 0xF4, 0xAF]);
+    let mut writer = setup_fix_writer();
+    assert_eq!('💯'.serialize(&mut writer).unwrap(), 4);
+    assert_eq!(writer.as_ref().as_ref(), [0x00, 0x01, 0xF4, 0xAF]);
 }
 
 #[test]
@@ -88,8 +104,9 @@ fn str() {
         ("ab", vec![0x02, b'a', b'b']),
         ("abc", vec![0x03, b'a', b'b', b'c']),
     ] {
-        let vec = Options::new().to_vec(&str).unwrap();
-        assert_eq!(vec, buf);
+        let mut writer = setup_var_writer();
+        assert_eq!(str.serialize(&mut writer).unwrap(), buf.len());
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
@@ -101,36 +118,46 @@ fn string() {
         ("ab", vec![0x02, b'a', b'b']),
         ("abc", vec![0x03, b'a', b'b', b'c']),
     ] {
-        let vec = Options::new().to_vec(&str.to_string()).unwrap();
-        assert_eq!(vec, buf);
+        let mut writer = setup_var_writer();
+        assert_eq!(str.to_string().serialize(&mut writer).unwrap(), buf.len());
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
 #[test]
 fn array() {
-    let vec = Options::new().to_vec::<[u16; 0]>(&[]).unwrap();
-    assert_eq!(vec, []);
+    let arr: [u16; 0] = [];
+    let mut writer = setup_var_writer();
+    assert_eq!(arr.serialize(&mut writer).unwrap(), 0);
+    assert_eq!(writer.as_ref().as_ref(), []);
 
-    let vec = Options::new().to_vec::<[u16; 1]>(&[1]).unwrap();
-    assert_eq!(vec, [1]);
+    let arr: [u16; 1] = [1];
+    let mut writer = setup_var_writer();
+    assert_eq!(arr.serialize(&mut writer).unwrap(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [1]);
 
-    let vec = Options::new().to_vec::<[u16; 2]>(&[1, 2]).unwrap();
-    assert_eq!(vec, [1, 2]);
+    let arr: [u16; 2] = [1, 2];
+    let mut writer = setup_var_writer();
+    assert_eq!(arr.serialize(&mut writer).unwrap(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2]);
 
-    let vec = Options::new().to_vec::<[u16; 3]>(&[1, 2, 3]).unwrap();
-    assert_eq!(vec, [1, 2, 3]);
+    let arr: [u16; 3] = [1, 2, 3];
+    let mut writer = setup_var_writer();
+    assert_eq!(arr.serialize(&mut writer).unwrap(), 3);
+    assert_eq!(writer.as_ref().as_ref(), [1, 2, 3]);
 }
 
 #[test]
 fn bytes() {
     for (bytes, buf) in [
         (vec![], vec![0x00]),
-        (vec![1], vec![0x01, 1]),
+        (vec![1u8], vec![0x01, 1]),
         (vec![1, 2], vec![0x02, 1, 2]),
         (vec![1, 2, 3], vec![0x03, 1, 2, 3]),
     ] {
-        let vec = Options::new().to_vec::<&[u8]>(&bytes.as_slice()).unwrap();
-        assert_eq!(vec, buf);
+        let mut writer = setup_var_writer();
+        assert_eq!(bytes.as_slice().serialize(&mut writer).unwrap(), buf.len());
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
@@ -138,49 +165,62 @@ fn bytes() {
 fn vec() {
     for (bytes, buf) in [
         (vec![], vec![0x00]),
-        (vec![1], vec![0x01, 1]),
+        (vec![1u16], vec![0x01, 1]),
         (vec![1, 2], vec![0x02, 1, 2]),
         (vec![1, 2, 3], vec![0x03, 1, 2, 3]),
     ] {
-        let vec = Options::new().to_vec::<Vec<u16>>(&bytes).unwrap();
-        assert_eq!(vec, buf);
+        let mut writer = setup_var_writer();
+        assert_eq!(bytes.serialize(&mut writer).unwrap(), buf.len());
+        assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
 #[test]
 fn option() {
-    let vec = Options::new().to_vec::<Option<u16>>(&Some(1)).unwrap();
-    assert_eq!(vec, [1, 1]);
+    let mut writer = setup_var_writer();
+    assert_eq!(Some(1u16).serialize(&mut writer).unwrap(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [1, 1]);
 
-    let vec = Options::new().to_vec::<Option<u16>>(&None).unwrap();
-    assert_eq!(vec, [0]);
+    let mut writer = setup_var_writer();
+    assert_eq!(Option::<u16>::None.serialize(&mut writer).unwrap(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [0]);
 }
 
 #[test]
 fn map() {
     let map = HashMap::<u8, u16>::new();
-    let vec = Options::new().to_vec(&map).unwrap();
-    assert_eq!(vec, [0x00]);
+    let mut writer = setup_var_writer();
+    assert_eq!(map.serialize(&mut writer).unwrap(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [0x00]);
 
     let map = HashMap::<u8, u16>::from([(1, 4711)]);
-    let vec = Options::new().to_vec(&map).unwrap();
-    assert_eq!(vec, [0x01, 0x01, 251, 0x12, 0x67]);
+    let mut writer = setup_var_writer();
+    assert_eq!(map.serialize(&mut writer).unwrap(), 5);
+    assert_eq!(writer.as_ref().as_ref(), [0x01, 0x01, 251, 0x12, 0x67]);
 
     let map = HashMap::<u8, u16>::from([(1, 4711), (2, 666)]);
-    let vec = Options::new().to_vec(&map).unwrap();
-    assert_eq!(vec[0], 0x02);
+    let mut writer = setup_var_writer();
+    assert_eq!(map.serialize(&mut writer).unwrap(), 9);
+    assert_eq!(writer.as_ref().as_ref()[0], 0x02);
 
-    if vec[1] == 0x01 {
-        assert_eq!(vec[1..], [0x01, 251, 0x12, 0x67, 0x02, 251, 0x02, 0x9A]);
+    if writer.as_ref().as_ref()[1] == 0x01 {
+        assert_eq!(
+            writer.as_ref().as_ref()[1..],
+            [0x01, 251, 0x12, 0x67, 0x02, 251, 0x02, 0x9A]
+        );
     } else {
-        assert_eq!(vec[1..], [0x02, 251, 0x02, 0x9A, 0x01, 251, 0x12, 0x67]);
+        assert_eq!(
+            writer.as_ref().as_ref()[1..],
+            [0x02, 251, 0x02, 0x9A, 0x01, 251, 0x12, 0x67]
+        );
     }
 }
 
 #[test]
 fn unit() {
-    let vec = Options::new().to_vec(&()).unwrap();
-    assert_eq!(vec, []);
+    let mut writer = setup_var_writer();
+    assert_eq!(().serialize(&mut writer).unwrap(), 0);
+    assert_eq!(writer.as_ref().as_ref(), []);
 }
 
 #[test]
@@ -201,29 +241,33 @@ fn r#struct() {
     }
 
     // unit-struct
-    let vec = Options::new().to_vec(&UnitStruct).unwrap();
-    assert_eq!(vec, []);
+    let mut writer = setup_var_writer();
+    assert_eq!(UnitStruct.serialize(&mut writer).unwrap(), 0);
+    assert_eq!(writer.as_ref().as_ref(), []);
 
     // newtype-struct
-    let vec = Options::new()
-        .with_fixint()
-        .to_vec(&NewTypeStruct(4711))
-        .unwrap();
-    assert_eq!(vec, [0x12, 0x67]);
+    let mut writer = setup_fix_writer();
+    assert_eq!(NewTypeStruct(4711).serialize(&mut writer).unwrap(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [0x12, 0x67]);
 
     // tuple-struct
-    let vec = Options::new()
-        .with_fixint()
-        .to_vec(&TupleStruct(4711, 666))
-        .unwrap();
-    assert_eq!(vec, [0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]);
+    let mut writer = setup_fix_writer();
+    assert_eq!(TupleStruct(4711, 666).serialize(&mut writer).unwrap(), 6);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]
+    );
 
     // struct
-    let vec = Options::new()
-        .with_fixint()
-        .to_vec(&Struct { f1: 4711, f2: 666 })
-        .unwrap();
-    assert_eq!(vec, [0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]);
+    let mut writer = setup_fix_writer();
+    assert_eq!(
+        Struct { f1: 4711, f2: 666 }.serialize(&mut writer).unwrap(),
+        6
+    );
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]
+    );
 }
 
 #[test]
@@ -237,20 +281,33 @@ fn r#enum() {
     }
 
     // unit-variant
-    let vec = Options::new().to_vec(&Enum::V1).unwrap();
-    assert_eq!(vec, [0x00]);
+    let mut writer = setup_var_writer();
+    assert_eq!(Enum::V1.serialize(&mut writer).unwrap(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [0x00]);
 
     // newtype-variant
-    let vec = Options::new().to_vec(&Enum::V2(4711)).unwrap();
-    assert_eq!(vec, [0x01, 251, 0x12, 0x67]);
+    let mut writer = setup_var_writer();
+    assert_eq!(Enum::V2(4711).serialize(&mut writer).unwrap(), 4);
+    assert_eq!(writer.as_ref().as_ref(), [0x01, 251, 0x12, 0x67]);
 
     // tuple-variant
-    let vec = Options::new().to_vec(&Enum::V3(4711, 666)).unwrap();
-    assert_eq!(vec, [0x02, 251, 0x12, 0x67, 251, 0x02, 0x9A]);
+    let mut writer = setup_var_writer();
+    assert_eq!(Enum::V3(4711, 666).serialize(&mut writer).unwrap(), 7);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0x02, 251, 0x12, 0x67, 251, 0x02, 0x9A]
+    );
 
     // struct-variant
-    let vec = Options::new()
-        .to_vec(&Enum::V4 { f1: 4711, f2: 666 })
-        .unwrap();
-    assert_eq!(vec, [0x03, 251, 0x12, 0x67, 251, 0x02, 0x9A]);
+    let mut writer = setup_var_writer();
+    assert_eq!(
+        Enum::V4 { f1: 4711, f2: 666 }
+            .serialize(&mut writer)
+            .unwrap(),
+        7
+    );
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0x03, 251, 0x12, 0x67, 251, 0x02, 0x9A]
+    );
 }

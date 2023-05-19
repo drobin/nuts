@@ -135,11 +135,13 @@ impl Options {
 
     /// Serializes the given `value` into the `bytes` slice.
     ///
+    /// Returns the number of bytes written into `bytes`.
+    ///
     /// # Errors
     ///
     /// When there is not enough space available in `bytes` an
     /// [`Error::NoSpace`] error is returned.
-    pub fn to_bytes<T: Serialize>(self, value: &T, bytes: &mut [u8]) -> Result<()> {
+    pub fn to_bytes<T: Serialize>(self, value: &T, bytes: &mut [u8]) -> Result<usize> {
         let mut writer = self.build_writer(BufferTarget::new(bytes));
 
         value.serialize(&mut writer)
