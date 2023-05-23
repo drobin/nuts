@@ -69,42 +69,62 @@ fn u8() {
 
 #[test]
 fn u16() {
-    for (buf, n) in [([0], 0x00), ([1], 0x01), ([2], 0x02)] {
+    for (buf, n) in [([0x00, 0x00], 0), ([0x00, 0x01], 1), ([0x00, 0x02], 2)] {
         let r: u16 = opts().from_bytes(&buf).unwrap();
         assert_eq!(r, n);
 
-        let r: u16 = opts_ign().from_bytes(&[buf, [0]].concat()).unwrap();
+        let r: u16 = opts_ign()
+            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap();
         assert_eq!(r, n);
 
-        let err = opts().from_bytes::<u16>(&[buf, [0]].concat()).unwrap_err();
+        let err = opts()
+            .from_bytes::<u16>(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap_err();
         assert_error!(err, Error::TrailingBytes);
     }
 }
 
 #[test]
 fn u32() {
-    for (buf, n) in [([0], 0x00), ([1], 0x01), ([2], 0x02)] {
+    for (buf, n) in [
+        ([0x00, 0x00, 0x00, 0x00], 0),
+        ([0x00, 0x00, 0x00, 0x01], 1),
+        ([0x00, 0x00, 0x00, 0x02], 2),
+    ] {
         let r: u32 = opts().from_bytes(&buf).unwrap();
         assert_eq!(r, n);
 
-        let r: u32 = opts_ign().from_bytes(&[buf, [0]].concat()).unwrap();
+        let r: u32 = opts_ign()
+            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap();
         assert_eq!(r, n);
 
-        let err = opts().from_bytes::<u32>(&[buf, [0]].concat()).unwrap_err();
+        let err = opts()
+            .from_bytes::<u32>(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap_err();
         assert_error!(err, Error::TrailingBytes);
     }
 }
 
 #[test]
 fn u64() {
-    for (buf, n) in [([0], 0x00), ([1], 0x01), ([2], 0x02)] {
+    for (buf, n) in [
+        ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], 0),
+        ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01], 1),
+        ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02], 2),
+    ] {
         let r: u64 = opts().from_bytes(&buf).unwrap();
         assert_eq!(r, n);
 
-        let r: u64 = opts_ign().from_bytes(&[buf, [0]].concat()).unwrap();
+        let r: u64 = opts_ign()
+            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap();
         assert_eq!(r, n);
 
-        let err = opts().from_bytes::<u64>(&[buf, [0]].concat()).unwrap_err();
+        let err = opts()
+            .from_bytes::<u64>(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap_err();
         assert_error!(err, Error::TrailingBytes);
     }
 }
@@ -118,25 +138,21 @@ fn u128() {
 #[test]
 fn char() {
     let c = opts()
-        .with_fixint()
         .from_bytes::<char>(&[0x00, 0x01, 0xF4, 0xAF])
         .unwrap();
     assert_eq!(c, '💯');
 
     let c = opts_ign()
-        .with_fixint()
         .from_bytes::<char>(&[0x00, 0x01, 0xF4, 0xAF, 0x00])
         .unwrap();
     assert_eq!(c, '💯');
 
     let err = opts()
-        .with_fixint()
         .from_bytes::<char>(&[0x00, 0x01, 0xF4, 0xAF, 0x00])
         .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 
     let err = opts()
-        .with_fixint()
         .from_bytes::<char>(&[0x00, 0x11, 0x00, 0x00])
         .unwrap_err();
     assert_error_eq!(err, Error::InvalidChar(|n| 0x110000));
@@ -145,10 +161,21 @@ fn char() {
 #[test]
 fn str() {
     for (bytes, str) in [
-        (vec![0x00], ""),
-        (vec![0x01, b'a'], "a"),
-        (vec![0x02, b'a', b'b'], "ab"),
-        (vec![0x03, b'a', b'b', b'c'], "abc"),
+        (vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], ""),
+        (
+            vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'a'],
+            "a",
+        ),
+        (
+            vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, b'a', b'b'],
+            "ab",
+        ),
+        (
+            vec![
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, b'a', b'b', b'c',
+            ],
+            "abc",
+        ),
     ] {
         let bytes2 = [bytes.clone(), vec![0]].concat();
 
@@ -163,7 +190,9 @@ fn str() {
     }
 
     let err = opts()
-        .from_bytes::<&str>(&[0x04, 0, 159, 146, 150])
+        .from_bytes::<&str>(&[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 159, 146, 150,
+        ])
         .unwrap_err();
     assert_error!(
         err,
@@ -176,10 +205,21 @@ fn str() {
 #[test]
 fn string() {
     for (bytes, str) in [
-        (vec![0x00], ""),
-        (vec![0x01, b'a'], "a"),
-        (vec![0x02, b'a', b'b'], "ab"),
-        (vec![0x03, b'a', b'b', b'c'], "abc"),
+        (vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], ""),
+        (
+            vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'a'],
+            "a",
+        ),
+        (
+            vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, b'a', b'b'],
+            "ab",
+        ),
+        (
+            vec![
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, b'a', b'b', b'c',
+            ],
+            "abc",
+        ),
     ] {
         let bytes2 = [bytes.clone(), vec![0]].concat();
 
@@ -194,7 +234,9 @@ fn string() {
     }
 
     let err = opts()
-        .from_bytes::<String>(&[0x04, 0, 159, 146, 150])
+        .from_bytes::<String>(&[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 159, 146, 150,
+        ])
         .unwrap_err();
     assert_error!(
         err,
@@ -209,29 +251,44 @@ fn array() {
     let r: [u16; 0] = opts().from_bytes(&[]).unwrap();
     assert_eq!(r, []);
 
-    let r: [u16; 1] = opts().from_bytes(&[1]).unwrap();
+    let r: [u16; 1] = opts().from_bytes(&[0x00, 0x01]).unwrap();
     assert_eq!(r, [1]);
 
-    let r: [u16; 2] = opts().from_bytes(&[1, 2]).unwrap();
+    let r: [u16; 2] = opts().from_bytes(&[0x00, 0x01, 0x00, 0x02]).unwrap();
     assert_eq!(r, [1, 2]);
 
-    let r: [u16; 3] = opts().from_bytes(&[1, 2, 3]).unwrap();
+    let r: [u16; 3] = opts()
+        .from_bytes(&[0x00, 0x01, 0x00, 0x02, 0x00, 0x03])
+        .unwrap();
     assert_eq!(r, [1, 2, 3]);
 
-    let r: [u16; 3] = opts_ign().from_bytes(&[1, 2, 3, 0]).unwrap();
+    let r: [u16; 3] = opts_ign()
+        .from_bytes(&[0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00])
+        .unwrap();
     assert_eq!(r, [1, 2, 3]);
 
-    let err = opts().from_bytes::<[u16; 3]>(&[1, 2, 3, 0]).unwrap_err();
+    let err = opts()
+        .from_bytes::<[u16; 3]>(&[0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0])
+        .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 }
 
 #[test]
 fn bytes() {
     for (buf, bytes) in [
-        (vec![0x00], vec![]),
-        (vec![0x01, 1], vec![1]),
-        (vec![0x02, 1, 2], vec![1, 2]),
-        (vec![0x03, 1, 2, 3], vec![1, 2, 3]),
+        (vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], vec![]),
+        (
+            vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 1],
+            vec![1],
+        ),
+        (
+            vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 1, 2],
+            vec![1, 2],
+        ),
+        (
+            vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3],
+            vec![1, 2, 3],
+        ),
     ] {
         let buf2 = [buf.clone(), vec![0]].concat();
 
@@ -249,10 +306,23 @@ fn bytes() {
 #[test]
 fn vec() {
     for (buf, bytes) in [
-        (vec![0x00], vec![]),
-        (vec![0x01, 1], vec![1]),
-        (vec![0x02, 1, 2], vec![1, 2]),
-        (vec![0x03, 1, 2, 3], vec![1, 2, 3]),
+        (vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], vec![]),
+        (
+            vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01],
+            vec![1],
+        ),
+        (
+            vec![
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x02,
+            ],
+            vec![1, 2],
+        ),
+        (
+            vec![
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03,
+            ],
+            vec![1, 2, 3],
+        ),
     ] {
         let buf2 = [buf.clone(), vec![0]].concat();
 
@@ -269,17 +339,17 @@ fn vec() {
 
 #[test]
 fn option() {
-    for buf in [[1, 1], [2, 1]] {
+    for buf in [[0x01, 0x00, 0x01], [0x02, 0x00, 0x01]] {
         let r: Option<u16> = opts().from_bytes(&buf).unwrap();
         assert_eq!(r, Some(1));
 
         let r: Option<u16> = opts_ign()
-            .from_bytes(&[buf.as_slice(), &[0]].concat())
+            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
             .unwrap();
         assert_eq!(r, Some(1));
 
         let err = opts()
-            .from_bytes::<Option<u16>>(&[buf.as_slice(), &[0]].concat())
+            .from_bytes::<Option<u16>>(&[buf.as_slice(), [0].as_slice()].concat())
             .unwrap_err();
         assert_error!(err, Error::TrailingBytes);
     }
@@ -298,52 +368,68 @@ fn sorted_keys<K: Ord, V>(m: &HashMap<K, V>) -> Vec<&K> {
 
 #[test]
 fn map() {
-    let m = opts().from_bytes::<HashMap<u8, u16>>(&[0x00]).unwrap();
+    let m = opts()
+        .from_bytes::<HashMap<u8, u16>>(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        .unwrap();
     assert!(m.is_empty());
 
     let m = opts_ign()
-        .from_bytes::<HashMap<u8, u16>>(&[0x00, 0x00])
+        .from_bytes::<HashMap<u8, u16>>(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         .unwrap();
     assert!(m.is_empty());
 
     let err = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[0x00, 0x00])
+        .from_bytes::<HashMap<u8, u16>>(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 
     let m = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[0x01, 0x01, 251, 0x12, 0x67])
+        .from_bytes::<HashMap<u8, u16>>(&[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x67,
+        ])
         .unwrap();
     assert_eq!(sorted_keys(&m), [&1]);
     assert_eq!(m.get(&1).unwrap(), &4711);
 
     let m = opts_ign()
-        .from_bytes::<HashMap<u8, u16>>(&[0x01, 0x01, 251, 0x12, 0x67, 0x00])
+        .from_bytes::<HashMap<u8, u16>>(&[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x67, 0x00,
+        ])
         .unwrap();
     assert_eq!(sorted_keys(&m), [&1]);
     assert_eq!(m.get(&1).unwrap(), &4711);
 
     let err = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[0x01, 0x01, 251, 0x12, 0x67, 0x00])
+        .from_bytes::<HashMap<u8, u16>>(&[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x67, 0x00,
+        ])
         .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 
     let m = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[0x02, 0x01, 251, 0x12, 0x67, 0x02, 251, 0x02, 0x9A])
+        .from_bytes::<HashMap<u8, u16>>(&[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x12, 0x67, 0x02, 0x02, 0x9A,
+        ])
         .unwrap();
     assert_eq!(sorted_keys(&m), [&1, &2]);
     assert_eq!(m.get(&1).unwrap(), &4711);
     assert_eq!(m.get(&2).unwrap(), &666);
 
     let m = opts_ign()
-        .from_bytes::<HashMap<u8, u16>>(&[0x02, 0x01, 251, 0x12, 0x67, 0x02, 251, 0x02, 0x9A, 0x00])
+        .from_bytes::<HashMap<u8, u16>>(&[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x12, 0x67, 0x02, 0x02, 0x9A,
+            0x00,
+        ])
         .unwrap();
     assert_eq!(sorted_keys(&m), [&1, &2]);
     assert_eq!(m.get(&1).unwrap(), &4711);
     assert_eq!(m.get(&2).unwrap(), &666);
 
     let err = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[0x02, 0x01, 251, 0x12, 0x67, 0x02, 251, 0x02, 0x9A, 0x00])
+        .from_bytes::<HashMap<u8, u16>>(&[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x12, 0x67, 0x02, 0x02, 0x9A,
+            0x00,
+        ])
         .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 }
@@ -388,58 +474,47 @@ fn r#struct() {
     assert_error!(err, Error::TrailingBytes);
 
     // newtype-struct
-    let s = opts()
-        .with_fixint()
-        .from_bytes::<NewTypeStruct>(&[0x12, 0x67])
-        .unwrap();
+    let s = opts().from_bytes::<NewTypeStruct>(&[0x12, 0x67]).unwrap();
     assert_eq!(s, NewTypeStruct(4711));
 
     let s = opts_ign()
-        .with_fixint()
         .from_bytes::<NewTypeStruct>(&[0x12, 0x67, 0x00])
         .unwrap();
     assert_eq!(s, NewTypeStruct(4711));
 
     let err = opts()
-        .with_fixint()
         .from_bytes::<NewTypeStruct>(&[0x12, 0x67, 0x00])
         .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 
     // tuple-struct
     let s = opts()
-        .with_fixint()
         .from_bytes::<TupleStruct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A])
         .unwrap();
     assert_eq!(s, TupleStruct(4711, 666));
 
     let s = opts_ign()
-        .with_fixint()
         .from_bytes::<TupleStruct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00])
         .unwrap();
     assert_eq!(s, TupleStruct(4711, 666));
 
     let err = opts()
-        .with_fixint()
         .from_bytes::<TupleStruct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00])
         .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 
     // struct
     let s = opts()
-        .with_fixint()
         .from_bytes::<Struct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A])
         .unwrap();
     assert_eq!(s, Struct { f1: 4711, f2: 666 });
 
     let s = opts_ign()
-        .with_fixint()
         .from_bytes::<Struct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00])
         .unwrap();
     assert_eq!(s, Struct { f1: 4711, f2: 666 });
 
     let err = opts()
-        .with_fixint()
         .from_bytes::<Struct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00])
         .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
@@ -456,63 +531,81 @@ fn r#enum() {
     }
 
     // unit-variant
-    let e = opts().from_bytes::<Enum>(&[0x00]).unwrap();
+    let e = opts()
+        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x00])
+        .unwrap();
     assert_eq!(e, Enum::V1);
 
-    let e = opts_ign().from_bytes::<Enum>(&[0x00, 0x00]).unwrap();
+    let e = opts_ign()
+        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x00, 0x00])
+        .unwrap();
     assert_eq!(e, Enum::V1);
 
-    let err = opts().from_bytes::<Enum>(&[0x00, 0x00]).unwrap_err();
+    let err = opts()
+        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x00, 0x00])
+        .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 
     // newtype-variant
-    let e = opts().from_bytes::<Enum>(&[0x01, 251, 0x12, 0x67]).unwrap();
+    let e = opts()
+        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x01, 0x12, 0x67])
+        .unwrap();
     assert_eq!(e, Enum::V2(4711));
 
     let e = opts_ign()
-        .from_bytes::<Enum>(&[0x01, 251, 0x12, 0x67, 0x00])
+        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x01, 0x12, 0x67, 0x00])
         .unwrap();
     assert_eq!(e, Enum::V2(4711));
 
     let err = opts()
-        .from_bytes::<Enum>(&[0x01, 251, 0x12, 0x67, 0x00])
+        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x01, 0x12, 0x67, 0x00])
         .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 
     // tuple-variant
     let e = opts()
-        .from_bytes::<Enum>(&[0x02, 251, 0x12, 0x67, 251, 0x02, 0x9A])
+        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x02, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A])
         .unwrap();
     assert_eq!(e, Enum::V3(4711, 666));
 
     let e = opts_ign()
-        .from_bytes::<Enum>(&[0x02, 251, 0x12, 0x67, 251, 0x02, 0x9A, 0x00])
+        .from_bytes::<Enum>(&[
+            0x00, 0x00, 0x00, 0x02, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00,
+        ])
         .unwrap();
     assert_eq!(e, Enum::V3(4711, 666));
 
     let err = opts()
-        .from_bytes::<Enum>(&[0x02, 251, 0x12, 0x67, 251, 0x02, 0x9A, 0x00])
+        .from_bytes::<Enum>(&[
+            0x00, 0x00, 0x00, 0x02, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00,
+        ])
         .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 
     // struct-variant
     let e = opts()
-        .from_bytes::<Enum>(&[0x03, 251, 0x12, 0x67, 251, 0x02, 0x9A])
+        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x03, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A])
         .unwrap();
     assert_eq!(e, Enum::V4 { f1: 4711, f2: 666 });
 
     let e = opts_ign()
-        .from_bytes::<Enum>(&[0x03, 251, 0x12, 0x67, 251, 0x02, 0x9A, 0x00])
+        .from_bytes::<Enum>(&[
+            0x00, 0x00, 0x00, 0x03, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00,
+        ])
         .unwrap();
     assert_eq!(e, Enum::V4 { f1: 4711, f2: 666 });
 
     let err = opts()
-        .from_bytes::<Enum>(&[0x03, 251, 0x12, 0x67, 251, 0x02, 0x9A, 0x00])
+        .from_bytes::<Enum>(&[
+            0x00, 0x00, 0x00, 0x03, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00,
+        ])
         .unwrap_err();
     assert_error!(err, Error::TrailingBytes);
 
     // invalid index
-    let err = Options::new().from_bytes::<Enum>(&[0x04]).unwrap_err();
+    let err = Options::new()
+        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x04])
+        .unwrap_err();
     assert_error_eq!(
         err,
         Error::Serde(|msg| "invalid value: integer `4`, expected variant index 0 <= i < 4")

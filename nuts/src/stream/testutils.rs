@@ -42,9 +42,7 @@ fn make_block<B: Backend>(
     next: &B::Id,
     payload: &[u8],
 ) {
-    let mut writer = Options::new()
-        .with_fixint()
-        .build_writer(VecTarget::new(vec![]));
+    let mut writer = Options::new().build_writer(VecTarget::new(vec![]));
 
     prev.serialize(&mut writer).unwrap(); // prev
     next.serialize(&mut writer).unwrap(); // next

@@ -29,7 +29,7 @@ use crate::container::kdf::Kdf;
 fn de_none() {
     let kdf = Options::new()
         .from_bytes::<Kdf>(&[
-            0, // none variant
+            0x00, 0x00, 0x00, 0x00, // none variant
         ])
         .unwrap();
 
@@ -40,10 +40,10 @@ fn de_none() {
 fn de_pbkdf2() {
     let kdf = Options::new()
         .from_bytes::<Kdf>(&[
-            1, // pbkdf2 variant
-            0, // sha1
-            252, 0x00, 0x01, 0x00, 0x00, // iterations
-            3, 1, 2, 3, // salt
+            0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
+            0x00, 0x00, 0x00, 0x00, // sha1
+            0x00, 0x01, 0x00, 0x00, // iterations
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // salt
         ])
         .unwrap();
 
@@ -64,7 +64,7 @@ fn ser_none() {
     assert_eq!(
         vec,
         [
-            0, // none variant
+            0x00,0x00,0x00,0x00, // none variant
         ]
     );
 }
@@ -82,10 +82,10 @@ fn ser_pbkdf2() {
     assert_eq!(
         vec,
         [
-            1, // pbkdf2 variant
-            0, // sha1
-            252, 0x000, 0x01, 0x00, 0x00, // iterations
-            3, 1, 2, 3 // salt
+            0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
+            0x00, 0x00, 0x00, 0x00, // sha1
+            0x000, 0x01, 0x00, 0x00, // iterations
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3 // salt
         ]
     );
 }

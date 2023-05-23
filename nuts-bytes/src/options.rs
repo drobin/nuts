@@ -28,52 +28,18 @@ use crate::source::{BufferSource, TakeBytes};
 use crate::target::{BufferTarget, PutBytes, VecTarget};
 use crate::writer::Writer;
 
-#[derive(Debug)]
-pub(crate) enum Int {
-    Fix,
-    Var,
-}
-
 /// Options to configure (de-) serialization.
 #[derive(Debug)]
 pub struct Options {
-    int: Int,
     trailing: bool,
 }
 
 impl Options {
     /// Creates a new `Options` instance filled with default values:
     ///
-    /// * integer encoding is set to [_varint_](Options::with_varint) encoding.
     /// * trailing bytes generates an [error](Options::fail_on_trailing).
     pub fn new() -> Options {
-        Options {
-            int: Int::Var,
-            trailing: true,
-        }
-    }
-
-    /// Sets the length encoding to be fixed.
-    pub fn with_fixint(mut self) -> Self {
-        self.int = Int::Fix;
-        self
-    }
-
-    /// Use a variable length integer encoding.
-    ///
-    /// Algorithm is taken from the [_bincode_ project](https://docs.rs/bincode/latest/bincode/config/struct.VarintEncoding.html).
-    /// Thank you guys for the input!
-    ///
-    /// > Encoding an unsigned integer v (of any type excepting u8) works as follows:
-    /// >
-    /// > 1. If `u < 251`, encode it as a single byte with that value.
-    /// > 2. If `251 <= u < 2**16`, encode it as a literal byte 251, followed by a u16 with value `u `.
-    /// > 3. If `2**16 <= u < 2**32`, encode it as a literal byte 252, followed by a u32 with value `u`.
-    /// > 4. If `2**32 <= u < 2**64`, encode it as a literal byte 253, followed by a u64 with value `u`.
-    /// > 5. If `2**64 <= u < 2**128`, encode it as a literal byte 254, followed by a u128 with value `u`.
-    pub fn with_varint(mut self) -> Self {
-        self.int = Int::Var;
-        self
+        Options { trailing: true }
     }
 
     /// If enabled an error is generated if trailing (unread) bytes are available.
@@ -95,7 +61,7 @@ impl Options {
     ///
     /// Use this reader to manually deserialize data.
     pub fn build_reader<'de, 'tb, T: TakeBytes<'tb>>(self, source: T) -> Reader<T> {
-        Reader::new(self.int, source)
+        Reader::new(source)
     }
 
     /// Creates a new [`Writer`] from this options.
@@ -103,7 +69,7 @@ impl Options {
     /// Binary data are writtem into the given `target` which must implement the
     /// [`PutBytes`] trait.
     pub fn build_writer<T: PutBytes>(self, target: T) -> Writer<T> {
-        Writer::new(self.int, target)
+        Writer::new(target)
     }
 
     /// Deserializes the given `bytes` slice into a data structure.
@@ -114,7 +80,7 @@ impl Options {
     /// deserialization, an [`Error::TrailingBytes`] error is returned, if
     /// [`Options::ignore_trailing`] is not set.
     pub fn from_bytes<'a, T: Deserialize<'a>>(self, bytes: &'a [u8]) -> Result<T> {
-        let mut reader = Reader::new(self.int, BufferSource::new(bytes));
+        let mut reader = Reader::new(BufferSource::new(bytes));
         let value = T::deserialize(&mut reader)?;
 
         if !self.trailing || !reader.as_ref().have_remaining_bytes() {

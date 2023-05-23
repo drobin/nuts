@@ -20,12 +20,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::Error;
+use nuts_bytes::{Error, Options};
 
 use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};
+use crate::container::header::rev0;
 use crate::container::header::secret::Secret;
-use crate::container::header::{bytes_options, rev0};
 use crate::container::kdf::Kdf;
 
 #[test]
@@ -43,21 +43,21 @@ fn new() {
 
 #[test]
 fn de_inval_magic() {
-    let err = bytes_options().from_bytes::<Inner>(b"xuts-io").unwrap_err();
+    let err = Options::new().from_bytes::<Inner>(b"xuts-io").unwrap_err();
     let msg = into_error!(err, Error::Serde);
     assert_eq!(msg, "invalid magic");
 }
 
 #[test]
 fn de_rev0() {
-    let inner = bytes_options()
+    let inner = Options::new()
         .from_bytes::<Inner>(&[
             b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
-            0,    // rev0 variant,
-            0,    // cipher
-            0,    // iv,
-            0,    // kdf
-            3, 1, 2, 3, // secret
+            0x00, 0x00, 0x00, 0x00, // rev0 variant,
+            0x00, 0x00, 0x00, 0x00, // cipher
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
+            0x00, 0x00, 0x00, 0x00, // kdf
+            0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
         ])
         .unwrap();
 
@@ -78,16 +78,16 @@ fn ser_rev0() {
         secret: Secret::new(vec![1, 2, 3]),
     }));
 
-    let vec = bytes_options().to_vec(&inner).unwrap();
+    let vec = Options::new().to_vec(&inner).unwrap();
     assert_eq!(
         vec,
         [
             b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
-            0,    // rev0 variant,
-            0,    // cipher
-            0,    // iv,
-            0,    // kdf
-            3, 1, 2, 3, // secret
+            0x00, 0x00, 0x00, 0x00, // rev0 variant,
+            0x00, 0x00, 0x00, 0x00, // cipher
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
+            0x00, 0x00, 0x00, 0x00, // kdf
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
         ]
     );
 }

@@ -85,7 +85,7 @@ impl<B: Backend> Buffer<B> {
 
     fn decode_block(&self) -> Result<(B::Id, B::Id, usize, usize), nuts_bytes::Error> {
         let source = BufferSource::new(&self.buf);
-        let mut reader = Options::new().with_fixint().build_reader(source);
+        let mut reader = Options::new().build_reader(source);
 
         let id1 = B::Id::deserialize(&mut reader)?;
         let id2 = B::Id::deserialize(&mut reader)?;
@@ -105,7 +105,7 @@ impl<B: Backend> Buffer<B> {
     ) -> Result<usize, nuts_bytes::Error> {
         let buf_len = self.buf.len();
         let target = BufferTarget::new(&mut self.buf);
-        let mut writer = Options::new().with_fixint().build_writer(target);
+        let mut writer = Options::new().build_writer(target);
 
         id1.serialize(&mut writer)?;
         id2.serialize(&mut writer)?;

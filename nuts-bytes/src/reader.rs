@@ -27,20 +27,15 @@ use serde::de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, Variant
 use std::borrow::Cow;
 use std::str;
 
-use crate::error::{Error, IntType, Result};
-use crate::options::Int;
+use crate::error::{Error, Result};
 #[cfg(doc)]
 use crate::options::Options;
 use crate::source::TakeBytes;
 
-const VAR16: u8 = 251;
-const VAR32: u8 = 252;
-const VAR64: u8 = 253;
-const VAR128: u8 = 254;
-
-macro_rules! read_fixint_primitive {
-    ($name:ident -> $ty:ty) => {
-        fn $name(&mut self) -> Result<$ty> {
+macro_rules! read_primitive {
+    ($(#[$outer:meta])* $name:ident -> $ty:ty) => {
+        $(#[$outer])*
+        pub fn $name(&mut self) -> Result<$ty> {
             let mut bytes = [0; std::mem::size_of::<$ty>()];
             self.source
                 .take_bytes_to(&mut bytes)
@@ -57,105 +52,38 @@ macro_rules! read_fixint_primitive {
 /// The [`Options`] type is used to construct an instance of this `Reader`. See
 /// [`Options::build_reader()`] for more information.
 pub struct Reader<T> {
-    int: Int,
     source: T,
 }
 
 impl<'tb, T: TakeBytes<'tb>> Reader<T> {
-    pub(crate) fn new(int: Int, source: T) -> Reader<T> {
-        Reader { int, source }
+    pub(crate) fn new(source: T) -> Reader<T> {
+        Reader { source }
     }
 
-    /// Reads an `u8` value from the reader.
-    pub fn read_u8(&mut self) -> Result<u8> {
-        self.read_fix_u8()
-    }
+    read_primitive!(
+        /// Reads an `u8` value from the reader.
+        read_u8 -> u8
+    );
 
-    /// Reads an `u16` value from the reader.
-    pub fn read_u16(&mut self) -> Result<u16> {
-        match self.int {
-            Int::Fix => self.read_fix_u16(),
-            Int::Var => self.read_var_u16(),
-        }
-    }
+    read_primitive!(
+        /// Reads an `u16` value from the reader.
+        read_u16 -> u16
+    );
 
-    /// Reads an `u32` value from the reader.
-    pub fn read_u32(&mut self) -> Result<u32> {
-        match self.int {
-            Int::Fix => self.read_fix_u32(),
-            Int::Var => self.read_var_u32(),
-        }
-    }
+    read_primitive!(
+        /// Reads an `u32` value from the reader.
+        read_u32 -> u32
+    );
 
-    /// Reads an `u64` value from the reader.
-    pub fn read_u64(&mut self) -> Result<u64> {
-        match self.int {
-            Int::Fix => self.read_fix_u64(),
-            Int::Var => self.read_var_u64(),
-        }
-    }
+    read_primitive!(
+        /// Reads an `u64` value from the reader.
+        read_u64 -> u64
+    );
 
-    /// Reads an `u128` value from the reader.
-    pub fn read_u128(&mut self) -> Result<u128> {
-        match self.int {
-            Int::Fix => self.read_fix_u128(),
-            Int::Var => self.read_var_u128(),
-        }
-    }
-
-    read_fixint_primitive!(read_fix_u8 -> u8);
-    read_fixint_primitive!(read_fix_u16 -> u16);
-    read_fixint_primitive!(read_fix_u32 -> u32);
-    read_fixint_primitive!(read_fix_u64 -> u64);
-    read_fixint_primitive!(read_fix_u128 -> u128);
-
-    fn read_var_u16(&mut self) -> Result<u16> {
-        let n = self.read_u8()?;
-
-        match n {
-            VAR16 => self.read_fix_u16(),
-            VAR32 => Err(Error::invalid_integer(IntType::U16, IntType::U32)),
-            VAR64 => Err(Error::invalid_integer(IntType::U16, IntType::U64)),
-            VAR128 => Err(Error::invalid_integer(IntType::U16, IntType::U128)),
-            _ => Ok(n as u16),
-        }
-    }
-
-    fn read_var_u32(&mut self) -> Result<u32> {
-        let n = self.read_u8()?;
-
-        match n {
-            VAR16 => self.read_fix_u16().map(|n| n as u32),
-            VAR32 => self.read_fix_u32(),
-            VAR64 => Err(Error::invalid_integer(IntType::U32, IntType::U64)),
-            VAR128 => Err(Error::invalid_integer(IntType::U32, IntType::U128)),
-            _ => Ok(n as u32),
-        }
-    }
-
-    fn read_var_u64(&mut self) -> Result<u64> {
-        let n = self.read_u8()?;
-
-        match n {
-            VAR16 => self.read_fix_u16().map(|n| n as u64),
-            VAR32 => self.read_fix_u32().map(|n| n as u64),
-            VAR64 => self.read_fix_u64(),
-            VAR128 => Err(Error::invalid_integer(IntType::U32, IntType::U128)),
-            _ => Ok(n as u64),
-        }
-    }
-
-    fn read_var_u128(&mut self) -> Result<u128> {
-        let n = self.read_u8()?;
-
-        match n {
-            VAR16 => self.read_fix_u16().map(|n| n as u128),
-            VAR32 => self.read_fix_u32().map(|n| n as u128),
-            VAR64 => self.read_fix_u64().map(|n| n as u128),
-            VAR128 => self.read_fix_u128(),
-            _ => Ok(n as u128),
-        }
-    }
+    read_primitive!(
+        /// Reads an `u128` value from the reader.
+        read_u128 -> u128
+    );
 
     /// Reads `n` bytes from the reader.
     ///

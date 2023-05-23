@@ -26,7 +26,7 @@ use nuts_bytes::{Error as BytesError, Options};
 
 use crate::container::cipher::Cipher;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
-use crate::container::header::secret::{bytes_options, Secret};
+use crate::container::header::secret::Secret;
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
 use crate::container::{Digest, HeaderError};
@@ -36,19 +36,19 @@ use crate::memory::MemoryBackend;
 fn ser_empty() {
     let secret = Secret(vec![]);
     let vec = Options::new().to_vec(&secret).unwrap();
-    assert_eq!(vec, [0]);
+    assert_eq!(vec, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 }
 
 #[test]
 fn ser() {
     let secret = Secret(vec![1, 2, 3]);
-    let vec = bytes_options().to_vec(&secret).unwrap();
+    let vec = Options::new().to_vec(&secret).unwrap();
     assert_eq!(vec, [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]);
 }
 
 #[test]
 fn de_empty() {
-    let secret = bytes_options()
+    let secret = Options::new()
         .from_bytes::<Secret>(&[0, 0, 0, 0, 0, 0, 0, 0])
         .unwrap();
     assert_eq!(secret, []);
@@ -56,7 +56,7 @@ fn de_empty() {
 
 #[test]
 fn de() {
-    let secret = bytes_options()
+    let secret = Options::new()
         .from_bytes::<Secret>(&[0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3])
         .unwrap();
     assert_eq!(secret, [1, 2, 3]);

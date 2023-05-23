@@ -35,10 +35,6 @@ use crate::container::password::PasswordStore;
 use crate::openssl::{rand, OpenSSLError};
 use crate::svec::SecureVec;
 
-fn bytes_options() -> Options {
-    Options::new().with_fixint()
-}
-
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(try_from = "[u32; 2]")]
 struct Magics([u32; 2]);
@@ -93,7 +89,7 @@ impl Secret {
         };
 
         let pbuf = ctx.decrypt(&key, &iv, &self.0)?;
-        let plain_secret = bytes_options().from_bytes::<PlainSecret<B>>(pbuf)?;
+        let plain_secret = Options::new().from_bytes::<PlainSecret<B>>(pbuf)?;
 
         Ok(plain_secret)
     }
@@ -137,7 +133,7 @@ impl<B: Backend> PlainSecret<B> {
         kdf: &Kdf,
         iv: &[u8],
     ) -> Result<Secret, HeaderError> {
-        let pbuf: SecureVec = bytes_options().to_vec(&self)?.into();
+        let pbuf: SecureVec = Options::new().to_vec(&self)?.into();
 
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;

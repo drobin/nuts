@@ -26,7 +26,6 @@ mod tests;
 use serde::{ser, Serialize};
 
 use crate::error::{Error, Result};
-use crate::options::Int;
 #[cfg(doc)]
 use crate::options::Options;
 use crate::target::PutBytes;
@@ -40,38 +39,22 @@ use crate::target::PutBytes;
 /// [`Options::build_writer()`] for more information.
 #[derive(Debug)]
 pub struct Writer<T> {
-    int: Int,
     target: T,
 }
 
-macro_rules! write_fixint_primitive {
-    ($name:ident -> $ty:ty) => {
-        fn $name(&mut self, value: $ty) -> Result<usize> {
+macro_rules! write_primitive {
+    ($(#[$outer:meta])* $name:ident -> $ty:ty) => {
+        $(#[$outer])*
+        pub fn $name(&mut self, value: $ty) -> Result<usize> {
             const N: usize = std::mem::size_of::<$ty>();
             self.target.put_bytes(&value.to_be_bytes()).map(|()| N)
         }
     };
 }
 
-macro_rules! write_var_primitive {
-    ($name:ident ($num:literal) -> $ty:ty) => {
-        fn $name(&mut self, value: $ty) -> Result<usize> {
-            const N: usize = std::mem::size_of::<$ty>() + 1;
-            let mut bytes = [$num; N];
-
-            bytes
-                .get_mut(1..)
-                .unwrap()
-                .copy_from_slice(&value.to_be_bytes());
-
-            self.target.put_bytes(&bytes).map(|()| N)
-        }
-    };
-}
-
 impl<T: PutBytes> Writer<T> {
-    pub(crate) fn new(int: Int, target: T) -> Writer<T> {
-        Writer { int, target }
+    pub(crate) fn new(target: T) -> Writer<T> {
+        Writer { target }
     }
 
     /// Consumes this `Writer`, returning the underlying target.
@@ -79,96 +62,30 @@ impl<T: PutBytes> Writer<T> {
         self.target
     }
 
-    write_var_primitive!(write_var_251 (251) -> u16);
-    write_var_primitive!(write_var_252 (252) -> u32);
-    write_var_primitive!(write_var_253 (253) -> u64);
-    write_var_primitive!(write_var_254 (254) -> u128);
+    write_primitive!(
+        /// Appends an `u8` value at the end of this writer.
+        write_u8 -> u8
+    );
 
-    write_fixint_primitive!(write_fix_u16 -> u16);
-    write_fixint_primitive!(write_fix_u32 -> u32);
-    write_fixint_primitive!(write_fix_u64 -> u64);
-    write_fixint_primitive!(write_fix_u128 -> u128);
+    write_primitive!(
+        /// Appends an `u16` value at the end of this writer.
+        write_u16 -> u16
+    );
 
-    fn write_var_u16(&mut self, value: u16) -> Result<usize> {
-        if value < 251 {
-            self.write_u8(value as u8)
-        } else {
-            self.write_var_251(value)
-        }
-    }
+    write_primitive!(
+        /// Appends an `u32` value at the end of this writer.
+        write_u32 -> u32
+    );
 
-    fn write_var_u32(&mut self, value: u32) -> Result<usize> {
-        if value < 251 {
-            self.write_u8(value as u8)
-        } else if value < 2u32.pow(16) {
-            self.write_var_251(value as u16)
-        } else {
-            self.write_var_252(value)
-        }
-    }
+    write_primitive!(
+        /// Appends an `u64` value at the end of this writer.
+        write_u64 -> u64
+    );
 
-    fn write_var_u64(&mut self, value: u64) -> Result<usize> {
-        if value < 251 {
-            self.write_u8(value as u8)
-        } else if value < 2u64.pow(16) {
-            self.write_var_251(value as u16)
-        } else if value < 2u64.pow(32) {
-            self.write_var_252(value as u32)
-        } else {
-            self.write_var_253(value)
-        }
-    }
-
-    fn write_var_u128(&mut self, value: u128) -> Result<usize> {
-        if value < 251 {
-            self.write_u8(value as u8)
-        } else if value < 2u128.pow(16) {
-            self.write_var_251(value as u16)
-        } else if value < 2u128.pow(32) {
-            self.write_var_252(value as u32)
-        } else if value < 2u128.pow(64) {
-            self.write_var_253(value as u64)
-        } else {
-            self.write_var_254(value)
-        }
-    }
-
-    /// Appends an `u8` value at the end of this writer.
-    pub fn write_u8(&mut self, value: u8) -> Result<usize> {
-        self.write_bytes(&[value])
-    }
-
-    /// Appends an `u16` value at the end of this writer.
-    pub fn write_u16(&mut self, value: u16) -> Result<usize> {
-        match self.int {
-            Int::Fix => self.write_fix_u16(value),
-            Int::Var => self.write_var_u16(value),
-        }
-    }
-
-    /// Appends an `u32` value at the end of this writer.
-    pub fn write_u32(&mut self, value: u32) -> Result<usize> {
-        match self.int {
-            Int::Fix => self.write_fix_u32(value),
-            Int::Var => self.write_var_u32(value),
-        }
-    }
-
-    /// Appends an `u64` value at the end of this writer.
-    pub fn write_u64(&mut self, value: u64) -> Result<usize> {
-        match self.int {
-            Int::Fix => self.write_fix_u64(value),
-            Int::Var => self.write_var_u64(value),
-        }
-    }
-
-    /// Appends an `u128` value at the end of this writer.
-    pub fn write_u128(&mut self, value: u128) -> Result<usize> {
-        match self.int {
-            Int::Fix => self.write_fix_u128(value),
-            Int::Var => self.write_var_u128(value),
-        }
-    }
+    write_primitive!(
+        /// Appends an `u128` value at the end of this writer.
+        write_u128 -> u128
+    );
 
     /// Appends the given `bytes` at the end of this writer.
     pub fn write_bytes(&mut self, bytes: &[u8]) -> Result<usize> {

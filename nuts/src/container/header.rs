@@ -40,10 +40,6 @@ use crate::svec::SecureVec;
 
 use self::secret::PlainSecret;
 
-fn bytes_options() -> Options {
-    Options::new().with_varint()
-}
-
 #[derive(Debug)]
 pub enum HeaderError {
     /// Error while (de-) serializing binary data.
@@ -140,7 +136,7 @@ impl<B: Backend> Header<B> {
         buf: &[u8],
         store: &mut PasswordStore,
     ) -> Result<(Header<B>, B::Settings), HeaderError> {
-        let inner = bytes_options().ignore_trailing().from_bytes::<Inner>(buf)?;
+        let inner = Options::new().ignore_trailing().from_bytes::<Inner>(buf)?;
         let Revision::Rev0(rev0) = inner.rev;
 
         let plain_secret = rev0
@@ -185,7 +181,7 @@ impl<B: Backend> Header<B> {
         };
         let inner = Inner::new(Revision::Rev0(rev0));
 
-        bytes_options().to_bytes(&inner, buf)?;
+        Options::new().to_bytes(&inner, buf)?;
 
         Ok(())
     }

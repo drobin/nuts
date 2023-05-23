@@ -22,11 +22,11 @@
 
 use std::rc::Rc;
 
-use nuts_bytes::Error;
+use nuts_bytes::{Error, Options};
 
 use crate::container::cipher::Cipher;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
-use crate::container::header::secret::{bytes_options, PlainSecret};
+use crate::container::header::secret::PlainSecret;
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
 use crate::container::Digest;
@@ -35,13 +35,13 @@ use crate::memory::MemoryBackend;
 #[test]
 fn ser() {
     let plain_secret = plain_secret();
-    let vec = bytes_options().to_vec(&plain_secret).unwrap();
+    let vec = Options::new().to_vec(&plain_secret).unwrap();
     assert_eq!(vec, PLAIN_SECRET);
 }
 
 #[test]
 fn de() {
-    let out = bytes_options()
+    let out = Options::new()
         .from_bytes::<PlainSecret<MemoryBackend>>(&PLAIN_SECRET)
         .unwrap();
     assert_eq!(out, plain_secret());
@@ -52,7 +52,7 @@ fn de_inval() {
     let mut vec = PLAIN_SECRET.to_vec();
     vec[0] += 1;
 
-    let err = bytes_options()
+    let err = Options::new()
         .from_bytes::<PlainSecret<MemoryBackend>>(&vec)
         .unwrap_err();
     let msg = into_error!(err, Error::Serde);

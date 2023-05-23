@@ -26,19 +26,25 @@ use crate::container::cipher::Cipher;
 
 #[test]
 fn de_none() {
-    let cipher = Options::new().from_bytes::<Cipher>(&[0]).unwrap();
+    let cipher = Options::new()
+        .from_bytes::<Cipher>(&[0x00, 0x00, 0x00, 0x00])
+        .unwrap();
     assert_eq!(cipher, Cipher::None);
 }
 
 #[test]
 fn de_aes128_ctr() {
-    let cipher = Options::new().from_bytes::<Cipher>(&[1]).unwrap();
+    let cipher = Options::new()
+        .from_bytes::<Cipher>(&[0x00, 0x00, 0x00, 0x01])
+        .unwrap();
     assert_eq!(cipher, Cipher::Aes128Ctr);
 }
 
 #[test]
 fn de_invalid() {
-    let err = Options::new().from_bytes::<Cipher>(&[2]).unwrap_err();
+    let err = Options::new()
+        .from_bytes::<Cipher>(&[0x00, 0x00, 0x00, 0x02])
+        .unwrap_err();
     let msg = into_error!(err, Error::Serde);
     assert_eq!(
         msg,
@@ -49,11 +55,11 @@ fn de_invalid() {
 #[test]
 fn ser_none() {
     let vec = Options::new().to_vec(&Cipher::None).unwrap();
-    assert_eq!(vec, [0]);
+    assert_eq!(vec, [0x00, 0x00, 0x00, 0x00]);
 }
 
 #[test]
 fn ser_aes128_ctr() {
     let vec = Options::new().to_vec(&Cipher::Aes128Ctr).unwrap();
-    assert_eq!(vec, [1]);
+    assert_eq!(vec, [0x00, 0x00, 0x00, 0x01]);
 }

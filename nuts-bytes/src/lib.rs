@@ -29,7 +29,7 @@ mod source;
 mod target;
 mod writer;
 
-pub use error::{Error, IntType, Result};
+pub use error::{Error, Result};
 pub use options::Options;
 pub use reader::Reader;
 pub use source::{BufferSource, StreamSource, TakeBytes};

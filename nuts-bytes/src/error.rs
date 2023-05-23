@@ -24,16 +24,6 @@ use serde::{de, ser};
 use std::str::Utf8Error;
 use std::{error, fmt, io, result};
 
-/// Integer types from [`Error::InvalidInteger`].
-#[derive(Debug, PartialEq)]
-pub enum IntType {
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-}
-
 /// Errors thrown by the `bytes` modules.
 #[derive(Debug)]
 pub enum Error {
@@ -44,11 +34,6 @@ pub enum Error {
     /// No more space available when writing into a byte slice.
     NoSpace(Option<io::Error>),
 
-    /// Invalid integer type was found.
-    ///
-    /// The reader tried to read type `expected`, but found type `found`
-    /// instead.
-    InvalidInteger { expected: IntType, found: IntType },
 
     /// Tried to deserialize the given `u32` value into a character.
     ///
@@ -73,9 +58,6 @@ pub enum Error {
 }
 
 impl Error {
-    pub(crate) fn invalid_integer(expected: IntType, found: IntType) -> Error {
-        Error::InvalidInteger { expected, found }
-    }
 }
 
 impl fmt::Display for Error {
@@ -83,11 +65,6 @@ impl fmt::Display for Error {
         match self {
             Error::Eof(_) => write!(fmt, "No more bytes are available for reading."),
             Error::NoSpace(_) => write!(fmt, "no more space available for writing"),
-            Error::InvalidInteger { expected, found } => write!(
-                fmt,
-                "tries to read type {:?}, but found type {:?}",
-                expected, found
-            ),
             Error::InvalidChar(n) => write!(fmt, "not a char: {}", n),
             Error::InvalidString(cause) => write!(fmt, "not a string: {}", cause),
             Error::TrailingBytes => write!(fmt, "there are trailing bytes available"),

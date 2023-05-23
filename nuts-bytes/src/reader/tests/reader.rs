@@ -22,23 +22,18 @@
 
 use std::borrow::Cow;
 
-use crate::error::{Error, IntType};
-use crate::options::Int;
+use crate::assert_error;
+use crate::error::Error;
 use crate::reader::Reader;
 use crate::source::BufferSource;
-use crate::{assert_error, assert_error_eq};
 
-fn setup_fix(buf: &[u8]) -> Reader<BufferSource> {
-    Reader::new(Int::Fix, BufferSource::new(buf))
-}
-
-fn setup_var(buf: &[u8]) -> Reader<BufferSource> {
-    Reader::new(Int::Var, BufferSource::new(buf))
+fn setup(buf: &[u8]) -> Reader<BufferSource> {
+    Reader::new(BufferSource::new(buf))
 }
 
 #[test]
-fn fix_u8() {
-    let mut reader = setup_fix(&[1, 2, 3]);
+fn u8() {
+    let mut reader = setup(&[1, 2, 3]);
 
     assert_eq!(reader.read_u8().unwrap(), 1);
     assert_eq!(reader.as_ref().position(), 1);
@@ -59,8 +54,8 @@ fn fix_u8() {
 }
 
 #[test]
-fn fix_u16() {
-    let mut reader = setup_fix(&[1, 2, 3, 4, 5]);
+fn u16() {
+    let mut reader = setup(&[1, 2, 3, 4, 5]);
 
     assert_eq!(reader.read_u16().unwrap(), 0x0102);
     assert_eq!(reader.as_ref().position(), 2);
@@ -77,8 +72,8 @@ fn fix_u16() {
 }
 
 #[test]
-fn fix_u32() {
-    let mut reader = setup_fix(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+fn u32() {
+    let mut reader = setup(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 
     assert_eq!(reader.read_u32().unwrap(), 0x01020304);
     assert_eq!(reader.as_ref().position(), 4);
@@ -95,8 +90,8 @@ fn fix_u32() {
 }
 
 #[test]
-fn fix_u64() {
-    let mut reader = setup_fix(&[
+fn u64() {
+    let mut reader = setup(&[
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
     ]);
 
@@ -124,8 +119,8 @@ fn fix_u64() {
 }
 
 #[test]
-fn fix_u128() {
-    let mut reader = setup_fix(&[
+fn u128() {
+    let mut reader = setup(&[
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
         26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
     ]);
@@ -163,273 +158,8 @@ fn fix_u128() {
 }
 
 #[test]
-fn var_u8() {
-    let mut reader = setup_var(&[1, 2, 3]);
-
-    assert_eq!(reader.read_u8().unwrap(), 1);
-    assert_eq!(reader.as_ref().position(), 1);
-    assert_eq!(reader.as_ref().remaining_bytes(), [2, 3]);
-
-    assert_eq!(reader.read_u8().unwrap(), 2);
-    assert_eq!(reader.as_ref().position(), 2);
-    assert_eq!(reader.as_ref().remaining_bytes(), [3]);
-
-    assert_eq!(reader.read_u8().unwrap(), 3);
-    assert_eq!(reader.as_ref().position(), 3);
-    assert_eq!(reader.as_ref().remaining_bytes(), []);
-
-    let err = reader.read_u8().unwrap_err();
-    assert_error!(err, Error::Eof(|cause| cause.is_none()));
-    assert_eq!(reader.as_ref().position(), 3);
-    assert_eq!(reader.as_ref().remaining_bytes(), []);
-}
-
-#[test]
-fn var_u16() {
-    for (buf, n) in [
-        (vec![0], 0),
-        (vec![64], 64),
-        (vec![250], 250),
-        (vec![251, 0, 0], 0),
-        (vec![251, 0, 0xff], 0xff),
-        (vec![251, 0xff, 0xff], 0xffff),
-    ] {
-        let mut reader = setup_var(&buf);
-        assert_eq!(reader.read_u16().unwrap(), n);
-        assert_eq!(reader.as_ref().position(), buf.len());
-    }
-
-    for (buf, t) in [
-        (vec![252], IntType::U32),
-        (vec![253], IntType::U64),
-        (vec![254], IntType::U128),
-    ] {
-        let mut reader = setup_var(&buf);
-        let err = reader.read_u16().unwrap_err();
-        assert_eq!(reader.as_ref().position(), 1);
-        assert_error_eq!(err, Error::InvalidInteger { |expected| IntType::U16, |found| t });
-    }
-}
-
-#[test]
-fn var_u32() {
-    for (buf, n) in [
-        (vec![0], 0),
-        (vec![64], 64),
-        (vec![250], 250),
-        (vec![251, 0, 0], 0),
-        (vec![251, 0, 0xff], 0xff),
-        (vec![251, 0xff, 0xff], 0xffff),
-        (vec![252, 0, 0, 0, 0], 0),
-        (vec![252, 0, 0, 0, 0xff], 0xff),
-        (vec![252, 0, 0, 0xff, 0xff], 0xffff),
-        (vec![252, 0, 0xff, 0xff, 0xff], 0xffffff),
-        (vec![252, 0xff, 0xff, 0xff, 0xff], 0xffffffff),
-    ] {
-        let mut reader = setup_var(&buf);
-        assert_eq!(reader.read_u32().unwrap(), n);
-        assert_eq!(reader.as_ref().position(), buf.len());
-    }
-
-    for (buf, t) in [(vec![253], IntType::U64), (vec![254], IntType::U128)] {
-        let mut reader = setup_var(&buf);
-        let err = reader.read_u32().unwrap_err();
-        assert_eq!(reader.as_ref().position(), 1);
-        assert_error_eq!(err, Error::InvalidInteger { |expected| IntType::U32, |found| t });
-    }
-}
-
-#[test]
-fn var_u64() {
-    for (buf, n) in [
-        (vec![0], 0),
-        (vec![64], 64),
-        (vec![250], 250),
-        (vec![251, 0, 0], 0),
-        (vec![251, 0, 0xff], 0xff),
-        (vec![251, 0xff, 0xff], 0xffff),
-        (vec![252, 0, 0, 0, 0], 0),
-        (vec![252, 0, 0, 0, 0xff], 0xff),
-        (vec![252, 0, 0, 0xff, 0xff], 0xffff),
-        (vec![252, 0, 0xff, 0xff, 0xff], 0xffffff),
-        (vec![252, 0xff, 0xff, 0xff, 0xff], 0xffffffff),
-        (vec![253, 0, 0, 0, 0, 0, 0, 0, 0], 0),
-        (vec![253, 0, 0, 0, 0, 0, 0, 0, 0xff], 0xff),
-        (vec![253, 0, 0, 0, 0, 0, 0, 0xff, 0xff], 0xffff),
-        (vec![253, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff], 0xffffff),
-        (vec![253, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff], 0xffffffff),
-        (
-            vec![253, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff],
-            0xffffffffff,
-        ),
-        (
-            vec![253, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
-            0xffffffffffff,
-        ),
-        (
-            vec![253, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
-            0xffffffffffffff,
-        ),
-        (
-            vec![253, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
-            0xffffffffffffffff,
-        ),
-    ] {
-        let mut reader = setup_var(&buf);
-        assert_eq!(reader.read_u64().unwrap(), n);
-        assert_eq!(reader.as_ref().position(), buf.len());
-    }
-
-    for (buf, t) in [(vec![254], IntType::U128)] {
-        let mut reader = setup_var(&buf);
-        let err = reader.read_u64().unwrap_err();
-        assert_eq!(reader.as_ref().position(), 1);
-        assert_error_eq!(err, Error::InvalidInteger { |expected| IntType::U32, |found| t });
-    }
-}
-
-#[test]
-fn var_u128() {
-    for (buf, n) in [
-        (vec![0], 0),
-        (vec![64], 64),
-        (vec![250], 250),
-        (vec![251, 0, 0], 0),
-        (vec![251, 0, 0xff], 0xff),
-        (vec![251, 0xff, 0xff], 0xffff),
-        (vec![252, 0, 0, 0, 0], 0),
-        (vec![252, 0, 0, 0, 0xff], 0xff),
-        (vec![252, 0, 0, 0xff, 0xff], 0xffff),
-        (vec![252, 0, 0xff, 0xff, 0xff], 0xffffff),
-        (vec![252, 0xff, 0xff, 0xff, 0xff], 0xffffffff),
-        (vec![253, 0, 0, 0, 0, 0, 0, 0, 0], 0),
-        (vec![253, 0, 0, 0, 0, 0, 0, 0, 0xff], 0xff),
-        (vec![253, 0, 0, 0, 0, 0, 0, 0xff, 0xff], 0xffff),
-        (vec![253, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff], 0xffffff),
-        (vec![253, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff], 0xffffffff),
-        (vec![254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0),
-        (
-            vec![254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff],
-            0xff,
-        ),
-        (
-            vec![254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff],
-            0xffff,
-        ),
-        (
-            vec![254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff],
-            0xffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff,
-            ],
-            0xffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff,
-            ],
-            0xffffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            ],
-            0xffffffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            ],
-            0xffffffffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            ],
-            0xffffffffffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            ],
-            0xffffffffffffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            ],
-            0xffffffffffffffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                0xff,
-            ],
-            0xffffffffffffffffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                0xff,
-            ],
-            0xffffffffffffffffffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                0xff, 0xff,
-            ],
-            0xffffffffffffffffffffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                0xff, 0xff,
-            ],
-            0xffffffffffffffffffffffffffff,
-        ),
-        (
-            vec![
-                254, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                0xff, 0xff, 0xff,
-            ],
-            0xffffffffffffffffffffffffffffff,
-        ),
-        (
-            vec![
-                254, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                0xff, 0xff, 0xff,
-            ],
-            0xffffffffffffffffffffffffffffffff,
-        ),
-        (
-            vec![253, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff],
-            1099511627775,
-        ),
-        (
-            vec![253, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
-            281474976710655,
-        ),
-        (
-            vec![253, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
-            72057594037927935,
-        ),
-        (
-            vec![253, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
-            18446744073709551615,
-        ),
-    ] {
-        let mut reader = setup_var(&buf);
-        assert_eq!(reader.read_u128().unwrap(), n);
-        assert_eq!(reader.as_ref().position(), buf.len());
-    }
-}
-
-#[test]
 fn read_bytes() {
-    let mut reader = setup_fix(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    let mut reader = setup(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
     assert_eq!(reader.read_bytes(0).unwrap(), Cow::Borrowed(&[]));
     assert_eq!(
@@ -453,7 +183,7 @@ fn read_bytes() {
 
 #[test]
 fn read_bytes_to() {
-    let mut reader = setup_fix(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    let mut reader = setup(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
     let mut buf = [];
     reader.read_bytes_to(&mut buf).unwrap();

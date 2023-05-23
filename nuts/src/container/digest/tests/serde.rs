@@ -26,12 +26,14 @@ use crate::container::Digest;
 
 #[test]
 fn de_sha1() {
-    let digest = Options::new().from_bytes::<Digest>(&[0]).unwrap();
+    let digest = Options::new()
+        .from_bytes::<Digest>(&[0x00, 0x00, 0x00, 0x00])
+        .unwrap();
     assert_eq!(digest, Digest::Sha1);
 }
 
 #[test]
 fn ser_sha1() {
     let vec = Options::new().to_vec(&Digest::Sha1).unwrap();
-    assert_eq!(vec, [0]);
+    assert_eq!(vec, [0x00, 0x00, 0x00, 0x00]);
 }
