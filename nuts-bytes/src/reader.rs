@@ -61,8 +61,18 @@ impl<'tb, T: TakeBytes<'tb>> Reader<T> {
     }
 
     read_primitive!(
+        /// Reads an `i8` value from the reader.
+        read_i8 -> i8
+    );
+
+    read_primitive!(
         /// Reads an `u8` value from the reader.
         read_u8 -> u8
+    );
+
+    read_primitive!(
+        /// Reads an `i16` value from the reader.
+        read_i16 -> i16
     );
 
     read_primitive!(
@@ -71,13 +81,28 @@ impl<'tb, T: TakeBytes<'tb>> Reader<T> {
     );
 
     read_primitive!(
+        /// Reads an `i32` value from the reader.
+        read_i32 -> i32
+    );
+
+    read_primitive!(
         /// Reads an `u32` value from the reader.
         read_u32 -> u32
     );
 
     read_primitive!(
+        /// Reads an `i64` value from the reader.
+        read_i64 -> i64
+    );
+
+    read_primitive!(
         /// Reads an `u64` value from the reader.
         read_u64 -> u64
+    );
+
+    read_primitive!(
+        /// Reads an `i128` value from the reader.
+        read_i128 -> i128
     );
 
     read_primitive!(
@@ -130,20 +155,24 @@ impl<'a, 'de, 'tb: 'de, T: TakeBytes<'tb>> de::Deserializer<'de> for &'a mut Rea
         visitor.visit_bool(n != 0)
     }
 
-    fn deserialize_i8<V: Visitor<'de>>(self, _visitor: V) -> Result<V::Value> {
-        unimplemented!()
+    fn deserialize_i8<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        let n = self.read_i8()?;
+        visitor.visit_i8(n)
     }
 
-    fn deserialize_i16<V: Visitor<'de>>(self, _visitor: V) -> Result<V::Value> {
-        unimplemented!()
+    fn deserialize_i16<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        let n = self.read_i16()?;
+        visitor.visit_i16(n)
     }
 
-    fn deserialize_i32<V: Visitor<'de>>(self, _visitor: V) -> Result<V::Value> {
-        unimplemented!()
+    fn deserialize_i32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        let n = self.read_i32()?;
+        visitor.visit_i32(n)
     }
 
-    fn deserialize_i64<V: Visitor<'de>>(self, _visitor: V) -> Result<V::Value> {
-        unimplemented!()
+    fn deserialize_i64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        let n = self.read_i64()?;
+        visitor.visit_i64(n)
     }
 
     fn deserialize_u8<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {

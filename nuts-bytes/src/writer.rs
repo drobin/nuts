@@ -63,8 +63,18 @@ impl<T: PutBytes> Writer<T> {
     }
 
     write_primitive!(
+        /// Appends an `i8` value at the end of this writer.
+        write_i8 -> i8
+    );
+
+    write_primitive!(
         /// Appends an `u8` value at the end of this writer.
         write_u8 -> u8
+    );
+
+    write_primitive!(
+        /// Appends an `i16` value at the end of this writer.
+        write_i16 -> i16
     );
 
     write_primitive!(
@@ -73,13 +83,28 @@ impl<T: PutBytes> Writer<T> {
     );
 
     write_primitive!(
+        /// Appends an `i32` value at the end of this writer.
+        write_i32 -> i32
+    );
+
+    write_primitive!(
         /// Appends an `u32` value at the end of this writer.
         write_u32 -> u32
     );
 
     write_primitive!(
+        /// Appends an `i64` value at the end of this writer.
+        write_i64 -> i64
+    );
+
+    write_primitive!(
         /// Appends an `u64` value at the end of this writer.
         write_u64 -> u64
+    );
+
+    write_primitive!(
+        /// Appends an `i128` value at the end of this writer.
+        write_i128 -> i128
     );
 
     write_primitive!(
@@ -114,20 +139,20 @@ impl<'a, P: PutBytes> ser::Serializer for &'a mut Writer<P> {
         self.write_u8(if v { 1 } else { 0 })
     }
 
-    fn serialize_i8(self, _v: i8) -> Result<usize> {
-        unimplemented!()
+    fn serialize_i8(self, v: i8) -> Result<usize> {
+        self.write_i8(v)
     }
 
-    fn serialize_i16(self, _v: i16) -> Result<usize> {
-        unimplemented!()
+    fn serialize_i16(self, v: i16) -> Result<usize> {
+        self.write_i16(v)
     }
 
-    fn serialize_i32(self, _v: i32) -> Result<usize> {
-        unimplemented!()
+    fn serialize_i32(self, v: i32) -> Result<usize> {
+        self.write_i32(v)
     }
 
-    fn serialize_i64(self, _v: i64) -> Result<usize> {
-        unimplemented!()
+    fn serialize_i64(self, v: i64) -> Result<usize> {
+        self.write_i64(v)
     }
 
     fn serialize_u8(self, v: u8) -> Result<usize> {

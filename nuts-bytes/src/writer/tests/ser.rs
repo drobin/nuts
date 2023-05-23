@@ -41,6 +41,15 @@ fn bool() {
 }
 
 #[test]
+fn i8() {
+    for (n, buf) in [(-1i8, [0xff]), (0, [0]), (1, [1])] {
+        let mut writer = setup_writer();
+        assert_eq!(n.serialize(&mut writer).unwrap(), 1);
+        assert_eq!(writer.as_ref().as_ref(), buf);
+    }
+}
+
+#[test]
 fn u8() {
     for n in 0u8..2 {
         let mut writer = setup_writer();
@@ -50,8 +59,30 @@ fn u8() {
 }
 
 #[test]
+fn i16() {
+    for (n, buf) in [(-1i16, [0xff, 0xff]), (0, [0x00, 0x00]), (1, [0x00, 0x01])] {
+        let mut writer = setup_writer();
+        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        assert_eq!(writer.as_ref().as_ref(), buf);
+    }
+}
+
+#[test]
 fn u16() {
     for (n, buf) in [(0u16, [0x00, 0x00]), (1, [0x00, 0x01]), (2, [0x00, 0x02])] {
+        let mut writer = setup_writer();
+        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        assert_eq!(writer.as_ref().as_ref(), buf);
+    }
+}
+
+#[test]
+fn i32() {
+    for (n, buf) in [
+        (-1i32, [0xff, 0xff, 0xff, 0xff]),
+        (0, [0x00, 0x00, 0x00, 0x00]),
+        (1, [0x00, 0x00, 0x00, 0x01]),
+    ] {
         let mut writer = setup_writer();
         assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
@@ -72,6 +103,19 @@ fn u32() {
 }
 
 #[test]
+fn i64() {
+    for (n, buf) in [
+        (-1i64, [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
+        (0, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
+        (1, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]),
+    ] {
+        let mut writer = setup_writer();
+        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        assert_eq!(writer.as_ref().as_ref(), buf);
+    }
+}
+
+#[test]
 fn u64() {
     for (n, buf) in [
         (0u64, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
@@ -82,6 +126,13 @@ fn u64() {
         assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
+}
+
+#[test]
+fn i128() {
+    let mut writer = setup_writer();
+    let err = 0i128.serialize(&mut writer).unwrap_err();
+    assert_error_eq!(err, Error::Serde(|msg| "i128 is not supported"));
 }
 
 #[test]

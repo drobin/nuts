@@ -54,6 +54,24 @@ fn bool() {
 }
 
 #[test]
+fn i8() {
+    for (buf, n) in [([0xff], -1), ([0], 0), ([1], 1)] {
+        let o: i8 = opts().from_bytes(&buf).unwrap();
+        assert_eq!(o, n);
+
+        let o: i8 = opts_ign()
+            .from_bytes(&[buf.as_slice(), &[0]].concat())
+            .unwrap();
+        assert_eq!(o, n);
+
+        let err = opts()
+            .from_bytes::<i8>(&[buf.as_slice(), &[0]].concat())
+            .unwrap_err();
+        assert_error!(err, Error::TrailingBytes);
+    }
+}
+
+#[test]
 fn u8() {
     for n in 0..2 {
         let o: u8 = opts().from_bytes(&[n]).unwrap();
@@ -63,6 +81,24 @@ fn u8() {
         assert_eq!(o, n);
 
         let err = opts().from_bytes::<u8>(&[n, 0]).unwrap_err();
+        assert_error!(err, Error::TrailingBytes);
+    }
+}
+
+#[test]
+fn i16() {
+    for (buf, n) in [([0xff, 0xff], -1), ([0x00, 0x00], 0), ([0x00, 0x01], 1)] {
+        let r: i16 = opts().from_bytes(&buf).unwrap();
+        assert_eq!(r, n);
+
+        let r: i16 = opts_ign()
+            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap();
+        assert_eq!(r, n);
+
+        let err = opts()
+            .from_bytes::<i16>(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap_err();
         assert_error!(err, Error::TrailingBytes);
     }
 }
@@ -80,6 +116,28 @@ fn u16() {
 
         let err = opts()
             .from_bytes::<u16>(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap_err();
+        assert_error!(err, Error::TrailingBytes);
+    }
+}
+
+#[test]
+fn i32() {
+    for (buf, n) in [
+        ([0xff, 0xff, 0xff, 0xff], -1),
+        ([0x00, 0x00, 0x00, 0x00], 0),
+        ([0x00, 0x00, 0x00, 0x01], 1),
+    ] {
+        let r: i32 = opts().from_bytes(&buf).unwrap();
+        assert_eq!(r, n);
+
+        let r: i32 = opts_ign()
+            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap();
+        assert_eq!(r, n);
+
+        let err = opts()
+            .from_bytes::<i32>(&[buf.as_slice(), [0].as_slice()].concat())
             .unwrap_err();
         assert_error!(err, Error::TrailingBytes);
     }
@@ -108,6 +166,28 @@ fn u32() {
 }
 
 #[test]
+fn i64() {
+    for (buf, n) in [
+        ([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff], -1),
+        ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], 0),
+        ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01], 1),
+    ] {
+        let r: i64 = opts().from_bytes(&buf).unwrap();
+        assert_eq!(r, n);
+
+        let r: i64 = opts_ign()
+            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap();
+        assert_eq!(r, n);
+
+        let err = opts()
+            .from_bytes::<i64>(&[buf.as_slice(), [0].as_slice()].concat())
+            .unwrap_err();
+        assert_error!(err, Error::TrailingBytes);
+    }
+}
+
+#[test]
 fn u64() {
     for (buf, n) in [
         ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], 0),
@@ -127,6 +207,12 @@ fn u64() {
             .unwrap_err();
         assert_error!(err, Error::TrailingBytes);
     }
+}
+
+#[test]
+fn i128() {
+    let err = Options::new().from_bytes::<i128>(&[0]).unwrap_err();
+    assert_error_eq!(err, Error::Serde(|msg| "i128 is not supported"));
 }
 
 #[test]

@@ -32,6 +32,28 @@ fn setup(buf: &[u8]) -> Reader<BufferSource> {
 }
 
 #[test]
+fn i8() {
+    let mut reader = setup(&[0xff, 0, 1]);
+
+    assert_eq!(reader.read_i8().unwrap(), -1);
+    assert_eq!(reader.as_ref().position(), 1);
+    assert_eq!(reader.as_ref().remaining_bytes(), [0, 1]);
+
+    assert_eq!(reader.read_i8().unwrap(), 0);
+    assert_eq!(reader.as_ref().position(), 2);
+    assert_eq!(reader.as_ref().remaining_bytes(), [1]);
+
+    assert_eq!(reader.read_i8().unwrap(), 1);
+    assert_eq!(reader.as_ref().position(), 3);
+    assert_eq!(reader.as_ref().remaining_bytes(), []);
+
+    let err = reader.read_i8().unwrap_err();
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
+    assert_eq!(reader.as_ref().position(), 3);
+    assert_eq!(reader.as_ref().remaining_bytes(), []);
+}
+
+#[test]
 fn u8() {
     let mut reader = setup(&[1, 2, 3]);
 
@@ -54,6 +76,31 @@ fn u8() {
 }
 
 #[test]
+fn i16() {
+    let mut reader = setup(&[0xff, 0xff, 0x00, 0x00, 0x00, 0x01, 0x02]);
+
+    assert_eq!(reader.read_i16().unwrap(), -1);
+    assert_eq!(reader.as_ref().position(), 2);
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [0x00, 0x00, 0x00, 0x01, 0x02]
+    );
+
+    assert_eq!(reader.read_i16().unwrap(), 0);
+    assert_eq!(reader.as_ref().position(), 4);
+    assert_eq!(reader.as_ref().remaining_bytes(), [0x00, 0x01, 0x02]);
+
+    assert_eq!(reader.read_i16().unwrap(), 1);
+    assert_eq!(reader.as_ref().position(), 6);
+    assert_eq!(reader.as_ref().remaining_bytes(), [0x02]);
+
+    let err = reader.read_i16().unwrap_err();
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
+    assert_eq!(reader.as_ref().position(), 6);
+    assert_eq!(reader.as_ref().remaining_bytes(), [0x02]);
+}
+
+#[test]
 fn u16() {
     let mut reader = setup(&[1, 2, 3, 4, 5]);
 
@@ -72,6 +119,36 @@ fn u16() {
 }
 
 #[test]
+fn i32() {
+    let mut reader = setup(&[
+        0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02,
+    ]);
+
+    assert_eq!(reader.read_i32().unwrap(), -1);
+    assert_eq!(reader.as_ref().position(), 4);
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02]
+    );
+
+    assert_eq!(reader.read_i32().unwrap(), 0);
+    assert_eq!(reader.as_ref().position(), 8);
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [0x00, 0x00, 0x00, 0x01, 0x02]
+    );
+
+    assert_eq!(reader.read_i32().unwrap(), 1);
+    assert_eq!(reader.as_ref().position(), 12);
+    assert_eq!(reader.as_ref().remaining_bytes(), [0x02]);
+
+    let err = reader.read_u32().unwrap_err();
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
+    assert_eq!(reader.as_ref().position(), 12);
+    assert_eq!(reader.as_ref().remaining_bytes(), [0x02]);
+}
+
+#[test]
 fn u32() {
     let mut reader = setup(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 
@@ -87,6 +164,40 @@ fn u32() {
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(reader.as_ref().position(), 8);
     assert_eq!(reader.as_ref().remaining_bytes(), [9, 10, 11]);
+}
+
+#[test]
+fn i64() {
+    let mut reader = setup(&[
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02,
+    ]);
+
+    assert_eq!(reader.read_i64().unwrap(), -1);
+    assert_eq!(reader.as_ref().position(), 8);
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, 0x02
+        ]
+    );
+
+    assert_eq!(reader.read_i64().unwrap(), 0);
+    assert_eq!(reader.as_ref().position(), 16);
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02]
+    );
+
+    assert_eq!(reader.read_i64().unwrap(), 1);
+    assert_eq!(reader.as_ref().position(), 24);
+    assert_eq!(reader.as_ref().remaining_bytes(), [0x02]);
+
+    let err = reader.read_i64().unwrap_err();
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
+    assert_eq!(reader.as_ref().position(), 24);
+    assert_eq!(reader.as_ref().remaining_bytes(), [0x02]);
 }
 
 #[test]
@@ -116,6 +227,46 @@ fn u64() {
         reader.as_ref().remaining_bytes(),
         [17, 18, 19, 20, 21, 22, 23]
     );
+}
+
+#[test]
+fn i128() {
+    let mut reader = setup(&[
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x01, 0x02,
+    ]);
+
+    assert_eq!(reader.read_i128().unwrap(), -1);
+    assert_eq!(reader.as_ref().position(), 16);
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x02
+        ]
+    );
+
+    assert_eq!(reader.read_i128().unwrap(), 0);
+    assert_eq!(reader.as_ref().position(), 32);
+    assert_eq!(
+        reader.as_ref().remaining_bytes(),
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, 0x02
+        ]
+    );
+
+    assert_eq!(reader.read_i128().unwrap(), 1);
+    assert_eq!(reader.as_ref().position(), 48);
+    assert_eq!(reader.as_ref().remaining_bytes(), [0x02]);
+
+    let err = reader.read_i128().unwrap_err();
+    assert_error!(err, Error::Eof(|cause| cause.is_none()));
+    assert_eq!(reader.as_ref().position(), 48);
+    assert_eq!(reader.as_ref().remaining_bytes(), [0x02]);
 }
 
 #[test]

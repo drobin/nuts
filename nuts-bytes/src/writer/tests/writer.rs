@@ -78,6 +78,41 @@ fn bytes_slice() {
 }
 
 #[test]
+fn i8_vec() {
+    let mut writer = setup_vec();
+
+    assert_eq!(writer.write_i8(-1).unwrap(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [0xff,]);
+    assert_eq!(writer.write_i8(0).unwrap(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [0xff, 0x00,]);
+    assert_eq!(writer.write_i8(1).unwrap(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [0xff, 0x00, 0x01]);
+}
+
+#[test]
+fn i8_slice() {
+    let mut buf = [0; 3];
+    let mut writer = setup_slice(&mut buf);
+
+    assert_eq!(writer.write_i8(-1).unwrap(), 1);
+    assert_eq!(writer.as_ref().position(), 1);
+    assert_eq!(writer.as_ref().as_ref(), [0xff, 0x00, 0x00]);
+
+    assert_eq!(writer.write_i8(0).unwrap(), 1);
+    assert_eq!(writer.as_ref().position(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [0xff, 0x00, 0x00]);
+
+    assert_eq!(writer.write_i8(1).unwrap(), 1);
+    assert_eq!(writer.as_ref().position(), 3);
+    assert_eq!(writer.as_ref().as_ref(), [0xff, 0x00, 0x01]);
+
+    let err = writer.write_i8(2).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 3);
+    assert_eq!(writer.as_ref().as_ref(), [0xff, 0x00, 0x01]);
+}
+
+#[test]
 fn u8_vec() {
     let mut writer = setup_vec();
 
@@ -109,6 +144,56 @@ fn u8_slice() {
 }
 
 #[test]
+fn i16_vec() {
+    let mut writer = setup_vec();
+
+    assert_eq!(writer.write_i16(-1).unwrap(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [0xff, 0xff]);
+    assert_eq!(writer.write_i16(0).unwrap(), 2);
+    assert_eq!(writer.as_ref().as_ref(), [0xff, 0xff, 0x00, 0x00]);
+    assert_eq!(writer.write_i16(1).unwrap(), 2);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0xff, 0xff, 0x00, 0x00, 0x00, 0x01]
+    );
+}
+
+#[test]
+fn i16_slice() {
+    let mut buf = [b'x'; 7];
+    let mut writer = setup_slice(&mut buf);
+
+    assert_eq!(writer.write_i16(-1).unwrap(), 2);
+    assert_eq!(writer.as_ref().position(), 2);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0xff, 0xff, b'x', b'x', b'x', b'x', b'x']
+    );
+
+    assert_eq!(writer.write_i16(0).unwrap(), 2);
+    assert_eq!(writer.as_ref().position(), 4);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0xff, 0xff, 0x00, 0x00, b'x', b'x', b'x']
+    );
+
+    assert_eq!(writer.write_i16(1).unwrap(), 2);
+    assert_eq!(writer.as_ref().position(), 6);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0xff, 0xff, 0x00, 0x00, 0x00, 0x01, b'x']
+    );
+
+    let err = writer.write_i16(2).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 6);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0xff, 0xff, 0x00, 0x00, 0x00, 0x01, b'x']
+    );
+}
+
+#[test]
 fn u16_vec() {
     let mut writer = setup_vec();
 
@@ -135,6 +220,71 @@ fn u16_slice() {
     assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
     assert_eq!(writer.as_ref().position(), 4);
     assert_eq!(writer.as_ref().as_ref(), [0x00, 0x01, 0x00, 0x02, b'x']);
+}
+
+#[test]
+fn i32_vec() {
+    let mut writer = setup_vec();
+
+    assert_eq!(writer.write_i32(-1).unwrap(), 4);
+    assert_eq!(writer.as_ref().as_ref(), [0xff, 0xff, 0xff, 0xff,]);
+    assert_eq!(writer.write_i32(0).unwrap(), 4);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00]
+    );
+    assert_eq!(writer.write_i32(1).unwrap(), 4);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]
+    );
+}
+
+#[test]
+fn i32_slice() {
+    let mut buf = [b'x'; 15];
+    let mut writer = setup_slice(&mut buf);
+
+    assert_eq!(writer.write_i32(-1).unwrap(), 4);
+    assert_eq!(writer.as_ref().position(), 4);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x'
+        ]
+    );
+
+    assert_eq!(writer.write_i32(0).unwrap(), 4);
+    assert_eq!(writer.as_ref().position(), 8);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x'
+        ]
+    );
+
+    assert_eq!(writer.write_i32(1).unwrap(), 4);
+    assert_eq!(writer.as_ref().position(), 12);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'x', b'x',
+            b'x'
+        ]
+    );
+
+    let err = writer.write_i32(2).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 12);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'x', b'x',
+            b'x'
+        ]
+    );
 }
 
 #[test]
@@ -175,6 +325,84 @@ fn u32_slice() {
     assert_eq!(
         writer.as_ref().as_ref(),
         [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, b'x', b'x', b'x']
+    );
+}
+
+#[test]
+fn i64_vec() {
+    let mut writer = setup_vec();
+
+    assert_eq!(writer.write_i64(-1).unwrap(), 8);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,]
+    );
+    assert_eq!(writer.write_i64(0).unwrap(), 8);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00
+        ]
+    );
+    assert_eq!(writer.write_i64(1).unwrap(), 8);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01
+        ]
+    );
+}
+
+#[test]
+fn i64_slice() {
+    let mut buf = [b'x'; 31];
+    let mut writer = setup_slice(&mut buf);
+
+    assert_eq!(writer.write_i64(-1).unwrap(), 8);
+    assert_eq!(writer.as_ref().position(), 8);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x'
+        ]
+    );
+
+    assert_eq!(writer.write_i64(0).unwrap(), 8);
+    assert_eq!(writer.as_ref().position(), 16);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x'
+        ]
+    );
+
+    assert_eq!(writer.write_i64(1).unwrap(), 8);
+    assert_eq!(writer.as_ref().position(), 24);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x'
+        ]
+    );
+
+    let err = writer.write_i64(2).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 24);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x'
+        ]
     );
 }
 
@@ -230,6 +458,98 @@ fn u64_slice() {
         [
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x02, b'x', b'x', b'x', b'x', b'x', b'x', b'x'
+        ]
+    );
+}
+
+#[test]
+fn i128_vec() {
+    let mut writer = setup_vec();
+
+    assert_eq!(writer.write_i128(-1).unwrap(), 16);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff,
+        ]
+    );
+    assert_eq!(writer.write_i128(0).unwrap(), 16);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00
+        ]
+    );
+    assert_eq!(writer.write_i128(1).unwrap(), 16);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01
+        ]
+    );
+}
+
+#[test]
+fn i128_slice() {
+    let mut buf = [b'x'; 63];
+    let mut writer = setup_slice(&mut buf);
+
+    assert_eq!(writer.write_i128(-1).unwrap(), 16);
+    assert_eq!(writer.as_ref().position(), 16);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x', b'x', b'x'
+        ]
+    );
+
+    assert_eq!(writer.write_i128(0).unwrap(), 16);
+    assert_eq!(writer.as_ref().position(), 32);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x', b'x', b'x'
+        ]
+    );
+
+    assert_eq!(writer.write_i128(1).unwrap(), 16);
+    assert_eq!(writer.as_ref().position(), 48);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x', b'x', b'x'
+        ]
+    );
+
+    let err = writer.write_i128(2).unwrap_err();
+    assert_error!(err, Error::NoSpace(|cause| cause.is_none()));
+    assert_eq!(writer.as_ref().position(), 48);
+    assert_eq!(
+        writer.as_ref().as_ref(),
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'x', b'x', b'x', b'x', b'x', b'x', b'x', b'x',
+            b'x', b'x', b'x', b'x', b'x', b'x', b'x'
         ]
     );
 }
