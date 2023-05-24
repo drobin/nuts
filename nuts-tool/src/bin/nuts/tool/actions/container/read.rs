@@ -29,7 +29,8 @@ use nuts_backend::Backend;
 use nutsbackend_directory::{DirectoryBackend, DirectoryId};
 use std::cmp;
 
-use crate::tool::actions::{is_valid, name_arg, open_container};
+use crate::tool::actions::container::{name_arg, open_container};
+use crate::tool::actions::is_valid;
 use crate::tool::format::{Format, Output};
 use crate::tool::size::Size;
 

@@ -23,7 +23,7 @@
 use anyhow::Result;
 use clap::{App, ArgMatches};
 
-use crate::tool::actions::{name_arg, open_container};
+use crate::tool::actions::container::{name_arg, open_container};
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.about("Prints general information about the container.")

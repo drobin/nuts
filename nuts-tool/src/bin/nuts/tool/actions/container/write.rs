@@ -30,7 +30,8 @@ use nutsbackend_directory::{DirectoryBackend, DirectoryId};
 use std::cmp;
 use std::io::{self, Read};
 
-use crate::tool::actions::{is_valid, name_arg, open_container};
+use crate::tool::actions::container::{name_arg, open_container};
+use crate::tool::actions::is_valid;
 use crate::tool::size::Size;
 
 fn fill_buf(buf: &mut [u8]) -> Result<usize> {

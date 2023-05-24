@@ -24,7 +24,8 @@ use anyhow::Result;
 use clap::{App, ArgMatches};
 use std::fs;
 
-use crate::tool::actions::{container_dir_for, name_arg};
+use crate::tool::actions::container::name_arg;
+use crate::tool::actions::container_dir_for;
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.about("Removes a container again.").arg(name_arg(1))

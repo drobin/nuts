@@ -26,7 +26,8 @@ use log::debug;
 use nuts::container::{Cipher, Container, CreateOptionsBuilder, Kdf};
 use nutsbackend_directory::{DirectoryBackend, DirectoryCreateOptions};
 
-use crate::tool::actions::{container_dir_for, is_valid, name_arg};
+use crate::tool::actions::container::name_arg;
+use crate::tool::actions::{container_dir_for, is_valid};
 use crate::tool::password::ask_for_password;
 use crate::tool::size::Size;
 

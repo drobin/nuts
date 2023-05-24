@@ -20,17 +20,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+pub mod archive;
 pub mod container;
 
-use anyhow::Result;
-use clap::{Arg, ArgMatches};
-use nuts::container::{Container, OpenOptionsBuilder};
-use nutsbackend_directory::{DirectoryBackend, DirectoryOpenOptions};
 use std::result;
 use std::str::FromStr;
 
 use crate::tool::container_dir_for;
-use crate::tool::password::ask_for_password;
 
 fn is_valid<T: FromStr>(s: String) -> result::Result<(), String>
 where
@@ -38,22 +34,4 @@ where
 {
     s.parse::<T>()
         .map_or_else(|err| Err(err.to_string()), |_| Ok(()))
-}
-
-pub fn name_arg<'a, 'b>(idx: u64) -> Arg<'a, 'b> {
-    Arg::with_name("NAME")
-        .required(true)
-        .index(idx)
-        .help("The name of the container.")
-}
-
-fn open_container(args: &ArgMatches) -> Result<Container<DirectoryBackend>> {
-    let name = args.value_of("NAME").unwrap();
-    let path = container_dir_for(name)?;
-
-    let builder = OpenOptionsBuilder::new(DirectoryOpenOptions::for_path(path))
-        .with_password_callback(ask_for_password);
-    let options = builder.build()?;
-
-    Ok(Container::open(options)?)
 }

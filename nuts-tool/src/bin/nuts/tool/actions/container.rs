@@ -28,7 +28,11 @@ pub mod read;
 pub mod write;
 
 use anyhow::{anyhow, Result};
-use clap::{App, AppSettings, ArgMatches, SubCommand};
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use nuts::container::{Container, OpenOptionsBuilder};
+use nutsbackend_directory::{DirectoryBackend, DirectoryOpenOptions};
+
+use crate::tool::{container_dir_for, password::ask_for_password};
 
 pub fn command<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.about("General container tasks")
@@ -51,4 +55,22 @@ pub fn run(args: &ArgMatches) -> Result<()> {
         ("write", Some(matches)) => write::run(matches),
         _ => Err(anyhow!("Missing implementation for subcommand")),
     }
+}
+
+pub fn name_arg<'a, 'b>(idx: u64) -> Arg<'a, 'b> {
+    Arg::with_name("NAME")
+        .required(true)
+        .index(idx)
+        .help("The name of the container.")
+}
+
+fn open_container(args: &ArgMatches) -> Result<Container<DirectoryBackend>> {
+    let name = args.value_of("NAME").unwrap();
+    let path = container_dir_for(name)?;
+
+    let builder = OpenOptionsBuilder::new(DirectoryOpenOptions::for_path(path))
+        .with_password_callback(ask_for_password);
+    let options = builder.build()?;
+
+    Ok(Container::open(options)?)
 }
