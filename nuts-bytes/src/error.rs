@@ -29,11 +29,10 @@ use std::{error, fmt, io, result};
 pub enum Error {
     /// Failed to read the requested number of bytes. No more bytes are
     /// available for reading.
-    Eof(Option<io::Error>),
+    Eof(Option<Box<dyn error::Error + Send + Sync>>),
 
     /// No more space available when writing into a byte slice.
-    NoSpace(Option<io::Error>),
-
+    NoSpace(Option<Box<dyn error::Error + Send + Sync>>),
 
     /// Tried to deserialize the given `u32` value into a character.
     ///
@@ -55,9 +54,26 @@ pub enum Error {
 
     /// A custom error message from Serde.
     Serde(String),
+
+    /// Another custom error occured.
+    Other(Box<dyn error::Error + Send + Sync>),
 }
 
 impl Error {
+    /// Creates a new [`Error::Eof`] error from the given cause.
+    pub fn eof<E: Into<Box<dyn error::Error + Send + Sync>>>(err: E) -> Error {
+        Error::Eof(Some(err.into()))
+    }
+
+    /// Creates a new [`Error::NoSpace`] error from the given cause.
+    pub fn nospace<E: Into<Box<dyn error::Error + Send + Sync>>>(err: E) -> Error {
+        Error::NoSpace(Some(err.into()))
+    }
+
+    /// Creates a new [`Error::Other`] error from the given cause.
+    pub fn other<E: Into<Box<dyn error::Error + Send + Sync>>>(err: E) -> Error {
+        Error::Other(err.into())
+    }
 }
 
 impl fmt::Display for Error {
@@ -71,6 +87,7 @@ impl fmt::Display for Error {
             Error::RequiredLength => write!(fmt, "the length of the sequence or map is required"),
             Error::Io(cause) => fmt::Display::fmt(cause, fmt),
             Error::Serde(msg) => fmt::Display::fmt(msg, fmt),
+            Error::Other(cause) => fmt::Display::fmt(cause, fmt),
         }
     }
 }
@@ -78,10 +95,11 @@ impl fmt::Display for Error {
 impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            Error::Eof(Some(cause)) => Some(cause),
-            Error::NoSpace(Some(cause)) => Some(cause),
+            Error::Eof(Some(cause)) => Some(cause.as_ref()),
+            Error::NoSpace(Some(cause)) => Some(cause.as_ref()),
             Error::InvalidString(cause) => Some(cause),
             Error::Io(cause) => Some(cause),
+            Error::Other(cause) => Some(cause.as_ref()),
             _ => None,
         }
     }
@@ -102,8 +120,8 @@ impl de::Error for Error {
 impl From<io::Error> for Error {
     fn from(cause: io::Error) -> Self {
         match cause.kind() {
-            io::ErrorKind::UnexpectedEof => Error::Eof(Some(cause)),
-            io::ErrorKind::WriteZero => Error::NoSpace(Some(cause)),
+            io::ErrorKind::UnexpectedEof => Error::Eof(Some(cause.into())),
+            io::ErrorKind::WriteZero => Error::NoSpace(Some(cause.into())),
             _ => Error::Io(cause),
         }
     }
