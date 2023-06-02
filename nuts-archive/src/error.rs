@@ -30,6 +30,9 @@ use nuts::{
 };
 use nuts_backend::Backend;
 
+#[cfg(doc)]
+use crate::builder::Builder;
+
 /// Error type of this crate.
 pub enum Error<B: Backend> {
     /// The associated [`Container`] has no top-id.
@@ -45,6 +48,9 @@ pub enum Error<B: Backend> {
 
     /// Failed to (de-)serialize data.
     Bytes(nuts_bytes::Error),
+
+    /// Error returned by a [`Builder`] of an archive entry.
+    Builder(Box<dyn error::Error + Send + Sync>),
 }
 
 impl<B: Backend> fmt::Debug for Error<B> {
@@ -54,6 +60,7 @@ impl<B: Backend> fmt::Debug for Error<B> {
             Self::Io(cause) => fmt.debug_tuple("Io").field(cause).finish(),
             Self::Stream(cause) => fmt.debug_tuple("Stream").field(cause).finish(),
             Self::Bytes(cause) => fmt.debug_tuple("Bytes").field(cause).finish(),
+            Self::Builder(cause) => fmt.debug_tuple("Builder").field(cause).finish(),
         }
     }
 }
@@ -65,6 +72,7 @@ impl<B: Backend> fmt::Display for Error<B> {
             Error::Io(cause) => fmt::Display::fmt(cause, fmt),
             Error::Stream(cause) => fmt::Display::fmt(cause, fmt),
             Error::Bytes(cause) => fmt::Display::fmt(cause, fmt),
+            Error::Builder(cause) => fmt::Display::fmt(cause, fmt),
         }
     }
 }
@@ -76,6 +84,7 @@ impl<B: 'static + Backend> error::Error for Error<B> {
             Self::Io(cause) => Some(cause),
             Self::Stream(cause) => Some(cause),
             Self::Bytes(cause) => Some(cause),
+            Self::Builder(cause) => Some(cause.as_ref()),
         }
     }
 }

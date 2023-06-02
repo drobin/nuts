@@ -5,4 +5,5 @@ members = [
   "nuts-backend",
   "nuts-tool",
   "backends/directory",
+  "nuts-archive",
 ]
