@@ -25,8 +25,11 @@
 //! The archive is an application based on the nuts container. Inspired by the `tar`
 //! tool you can store files, directories and symlinks in a nuts container.
 
+mod entry;
 mod error;
 mod header;
+mod iter;
+mod mode;
 mod rc;
 
 use chrono::prelude::*;
@@ -40,7 +43,10 @@ use serde::{Deserialize, Serialize};
 use crate::header::Header;
 use crate::rc::StreamRc;
 
+pub use entry::Entry;
 pub use error::{Error, Result};
+pub use iter::{Iter, IterEntry};
+pub use mode::{Group, Type};
 
 fn now() -> DateTime<Utc> {
     if cfg!(test) {
@@ -121,4 +127,11 @@ impl<B: 'static + Backend> Archive<B> {
         }
     }
 
+    /// Scans the archive for entries.
+    ///
+    /// Returns an [`Iterator`], so you can iterate over all entries of the
+    /// archive.
+    pub fn scan(&mut self) -> Iter<B> {
+        Iter::new(StreamRc::clone(&self.stream))
+    }
 }
