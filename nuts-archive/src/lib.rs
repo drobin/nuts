@@ -38,7 +38,7 @@ use log::{debug, log_enabled, Level::Debug};
 use nuts::container::Container;
 use nuts::stream::{OpenOptions, Position, Stream};
 use nuts_backend::Backend;
-use nuts_bytes::Options;
+use nuts_bytes::{Reader, Writer};
 use serde::{Deserialize, Serialize};
 use std::cmp;
 
@@ -94,7 +94,7 @@ impl<B: 'static + Backend> Archive<B> {
         let mut rc = StreamRc::new(stream);
 
         let header = Header::create();
-        let mut writer = Options::new().build_writer(&mut rc);
+        let mut writer = Writer::new(&mut rc);
 
         header.serialize(&mut writer)?;
         debug!("archive created, {:?}", header);
@@ -111,7 +111,7 @@ impl<B: 'static + Backend> Archive<B> {
             .open(container, id)?;
         let mut rc = StreamRc::new(stream);
 
-        let mut reader = Options::new().build_reader(&mut rc);
+        let mut reader = Reader::new(&mut rc);
         let header = Header::deserialize(&mut reader)?;
 
         debug!("archive opened, {:?}", header);
@@ -168,7 +168,7 @@ impl<B: 'static + Backend> Archive<B> {
         actime: DateTime<Utc>,
         size: Option<u64>,
     ) -> Result<u64, B> {
-        let mut writer = Options::new().build_writer(&mut self.stream);
+        let mut writer = Writer::new(&mut self.stream);
         let entry = builder.to_entry(actime, size);
 
         let n = entry.serialize(&mut writer)?;
@@ -217,7 +217,7 @@ impl<B: 'static + Backend> Archive<B> {
 
         self.stream.borrow_mut().seek(Position::Start(0))?;
 
-        let mut writer = Options::new().build_writer(&mut self.stream);
+        let mut writer = Writer::new(&mut self.stream);
         self.header.serialize(&mut writer)?;
 
         Ok(())

@@ -27,7 +27,7 @@ use std::ops::Deref;
 use log::debug;
 use nuts::stream::Position;
 use nuts_backend::Backend;
-use nuts_bytes::Options;
+use nuts_bytes::Reader;
 use serde::Deserialize;
 
 use crate::entry::Entry;
@@ -116,7 +116,7 @@ impl<B: 'static + Backend> Iter<B> {
         self.stream.borrow_mut().seek(Position::Start(0))?;
 
         // Skip the header by reading it.
-        let mut reader = Options::new().build_reader(&mut self.stream);
+        let mut reader = Reader::new(&mut self.stream);
         Header::deserialize(&mut reader)?;
 
         Ok(())
@@ -136,7 +136,7 @@ impl<B: 'static + Backend> Iterator for Iter<B> {
             return Some(Err(err.into()));
         }
 
-        let mut reader = Options::new().build_reader(&mut self.stream);
+        let mut reader = Reader::new(&mut self.stream);
 
         match Entry::deserialize(&mut reader) {
             Ok(entry) => {

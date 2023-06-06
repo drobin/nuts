@@ -43,9 +43,6 @@ pub enum Error {
     /// UTF-8.
     InvalidString(Utf8Error),
 
-    /// Trailing (not consumed) data were detected.
-    TrailingBytes,
-
     /// The length is unknown when serializing a sequence or map.
     RequiredLength,
 
@@ -83,7 +80,6 @@ impl fmt::Display for Error {
             Error::NoSpace(_) => write!(fmt, "no more space available for writing"),
             Error::InvalidChar(n) => write!(fmt, "not a char: {}", n),
             Error::InvalidString(cause) => write!(fmt, "not a string: {}", cause),
-            Error::TrailingBytes => write!(fmt, "there are trailing bytes available"),
             Error::RequiredLength => write!(fmt, "the length of the sequence or map is required"),
             Error::Io(cause) => fmt::Display::fmt(cause, fmt),
             Error::Serde(msg) => fmt::Display::fmt(msg, fmt),

@@ -20,7 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::Options;
+use nuts_bytes::{BufferSource, Reader, VecTarget, Writer};
+use serde::{Deserialize, Serialize};
 
 use crate::id::DirectoryId;
 
@@ -103,12 +104,14 @@ fn from_str_inval_char() {
 
 #[test]
 fn de() {
-    let id = Options::new().from_bytes::<DirectoryId>(&ID).unwrap();
+    let mut reader = Reader::new(BufferSource::new(&ID));
+    let id = DirectoryId::deserialize(&mut reader).unwrap();
     assert_eq!(id.0, ID);
 }
 
 #[test]
 fn ser() {
-    let vec = Options::new().to_vec(&DirectoryId::generate()).unwrap();
-    assert_eq!(vec, ID);
+    let mut writer = Writer::new(VecTarget::new(vec![]));
+    assert_eq!(DirectoryId::generate().serialize(&mut writer).unwrap(), 16);
+    assert_eq!(writer.into_target().into_vec(), ID);
 }

@@ -20,32 +20,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::Options;
+use nuts_bytes::{BufferSource, Reader, VecTarget, Writer};
+use serde::{Deserialize, Serialize};
 
 use crate::container::digest::Digest;
 use crate::container::kdf::Kdf;
 
 #[test]
 fn de_none() {
-    let kdf = Options::new()
-        .from_bytes::<Kdf>(&[
-            0x00, 0x00, 0x00, 0x00, // none variant
-        ])
-        .unwrap();
+    let mut reader = Reader::new(BufferSource::new(&[
+        0x00, 0x00, 0x00, 0x00, // none variant
+    ]));
+    let kdf = Kdf::deserialize(&mut reader).unwrap();
 
     assert_eq!(kdf, Kdf::None);
 }
 
 #[test]
 fn de_pbkdf2() {
-    let kdf = Options::new()
-        .from_bytes::<Kdf>(&[
-            0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
-            0x00, 0x00, 0x00, 0x00, // sha1
-            0x00, 0x01, 0x00, 0x00, // iterations
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // salt
-        ])
-        .unwrap();
+    let mut reader = Reader::new(BufferSource::new(&[
+        0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
+        0x00, 0x00, 0x00, 0x00, // sha1
+        0x00, 0x01, 0x00, 0x00, // iterations
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // salt
+    ]));
+    let kdf = Kdf::deserialize(&mut reader).unwrap();
 
     assert_eq!(
         kdf,
@@ -59,10 +58,11 @@ fn de_pbkdf2() {
 
 #[test]
 fn ser_none() {
-    let vec = Options::new().to_vec(&Kdf::None).unwrap();
+    let mut writer = Writer::new(VecTarget::new(vec![]));
+    assert_eq!(Kdf::None.serialize(&mut writer).unwrap(), 4);
 
     assert_eq!(
-        vec,
+        writer.into_target().into_vec(),
         [
             0x00,0x00,0x00,0x00, // none variant
         ]
@@ -71,16 +71,20 @@ fn ser_none() {
 
 #[test]
 fn ser_pbkdf2() {
-    let vec = Options::new()
-        .to_vec(&Kdf::Pbkdf2 {
+    let mut writer = Writer::new(VecTarget::new(vec![]));
+    assert_eq!(
+        Kdf::Pbkdf2 {
             digest: Digest::Sha1,
             iterations: 65536,
             salt: vec![1, 2, 3],
-        })
-        .unwrap();
+        }
+        .serialize(&mut writer)
+        .unwrap(),
+        23
+    );
 
     assert_eq!(
-        vec,
+        writer.into_target().into_vec(),
         [
             0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
             0x00, 0x00, 0x00, 0x00, // sha1

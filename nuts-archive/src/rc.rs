@@ -49,10 +49,6 @@ impl<'tb, B: 'static + Backend> TakeBytes<'tb> for &mut StreamRc<B> {
             _ => nuts_bytes::Error::other(err),
         })
     }
-
-    fn have_remaining_bytes(&self) -> bool {
-        false
-    }
 }
 
 impl<B: 'static + Backend> PutBytes for &mut StreamRc<B> {

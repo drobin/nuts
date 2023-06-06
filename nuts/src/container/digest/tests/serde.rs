@@ -20,20 +20,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::Options;
+use nuts_bytes::{BufferSource, Reader, VecTarget, Writer};
+use serde::{Deserialize, Serialize};
 
 use crate::container::Digest;
 
 #[test]
 fn de_sha1() {
-    let digest = Options::new()
-        .from_bytes::<Digest>(&[0x00, 0x00, 0x00, 0x00])
-        .unwrap();
-    assert_eq!(digest, Digest::Sha1);
+    let mut reader = Reader::new(BufferSource::new(&[0x00, 0x00, 0x00, 0x00]));
+    assert_eq!(Digest::deserialize(&mut reader).unwrap(), Digest::Sha1);
 }
 
 #[test]
 fn ser_sha1() {
-    let vec = Options::new().to_vec(&Digest::Sha1).unwrap();
-    assert_eq!(vec, [0x00, 0x00, 0x00, 0x00]);
+    let mut writer = Writer::new(VecTarget::new(vec![]));
+    assert_eq!(Digest::Sha1.serialize(&mut writer).unwrap(), 4);
+    assert_eq!(writer.into_target().into_vec(), [0x00, 0x00, 0x00, 0x00]);
 }

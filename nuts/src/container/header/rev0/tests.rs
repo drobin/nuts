@@ -20,7 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::Options;
+use nuts_bytes::{BufferSource, Reader, VecTarget, Writer};
+use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
@@ -30,14 +31,13 @@ use crate::container::kdf::Kdf;
 
 #[test]
 fn de_none() {
-    let rev0 = Options::new()
-        .from_bytes::<rev0::Data>(&[
-            0x00, 0x00, 0x00, 0x00, // cipher
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
-            0x00, 0x00, 0x00, 0x00, // kdf
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
-        ])
-        .unwrap();
+    let mut reader = Reader::new(BufferSource::new(&[
+        0x00, 0x00, 0x00, 0x00, // cipher
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
+        0x00, 0x00, 0x00, 0x00, // kdf
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
+    ]));
+    let rev0 = rev0::Data::deserialize(&mut reader).unwrap();
 
     assert_eq!(rev0.cipher, Cipher::None);
     assert_eq!(rev0.iv, []);
@@ -47,15 +47,14 @@ fn de_none() {
 
 #[test]
 fn de_some() {
-    let rev0 = Options::new()
-        .from_bytes::<rev0::Data>(&[
-            0x00, 0x00, 0x00, 0x01, // cipher
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 1, 2, // iv,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x000, 0x01, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 3, 4, 5, // kdf
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 6, 7, 8, 9, // secret
-        ])
-        .unwrap();
+    let mut reader = Reader::new(BufferSource::new(&[
+        0x00, 0x00, 0x00, 0x01, // cipher
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 1, 2, // iv,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x000, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x03, 3, 4, 5, // kdf
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 6, 7, 8, 9, // secret
+    ]));
+    let rev0 = rev0::Data::deserialize(&mut reader).unwrap();
 
     assert_eq!(rev0.cipher, Cipher::Aes128Ctr);
     assert_eq!(rev0.iv, [1, 2]);
@@ -79,9 +78,10 @@ fn ser_none() {
         secret: Secret::new(vec![1, 2, 3]),
     };
 
-    let vec = Options::new().to_vec(&rev0).unwrap();
+    let mut writer = Writer::new(VecTarget::new(vec![]));
+    assert_eq!(rev0.serialize(&mut writer).unwrap(), 27);
     assert_eq!(
-        vec,
+        writer.into_target().into_vec(),
         [
             0x00, 0x00, 0x00, 0x00, // cipher
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
@@ -104,9 +104,10 @@ fn ser_some() {
         secret: Secret::new(vec![6, 7, 8, 9]),
     };
 
-    let vec = Options::new().to_vec(&rev0).unwrap();
+    let mut writer = Writer::new(VecTarget::new(vec![]));
+    assert_eq!(rev0.serialize(&mut writer).unwrap(), 49);
     assert_eq!(
-        vec,
+        writer.into_target().into_vec(),
         [
             0x00, 0x00, 0x00, 0x01, // cipher
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 1, 2, // iv,

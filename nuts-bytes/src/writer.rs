@@ -26,17 +26,12 @@ mod tests;
 use serde::{ser, Serialize};
 
 use crate::error::{Error, Result};
-#[cfg(doc)]
-use crate::options::Options;
 use crate::target::PutBytes;
 
 /// A cursor like utility that writes structured data into an arbitrary target.
 ///
 /// The target must implement the [`PutBytes`] trait which supports writing
 /// binary data into it.
-///
-/// The [`Options`] type is used to construct an instance of this `Writer`. See
-/// [`Options::build_writer()`] for more information.
 #[derive(Debug)]
 pub struct Writer<T> {
     target: T,
@@ -53,7 +48,12 @@ macro_rules! write_primitive {
 }
 
 impl<T: PutBytes> Writer<T> {
-    pub(crate) fn new(target: T) -> Writer<T> {
+    /// Creates a new `Writer` instance.
+    ///
+    /// The target, where the writer puts the binary data, is passed to the
+    /// function. Every type, that implements the [`PutBytes`] trait can be the
+    /// target of this writer.
+    pub fn new(target: T) -> Writer<T> {
         Writer { target }
     }
 

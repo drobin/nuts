@@ -28,8 +28,6 @@ use std::borrow::Cow;
 use std::str;
 
 use crate::error::{Error, Result};
-#[cfg(doc)]
-use crate::options::Options;
 use crate::source::TakeBytes;
 
 macro_rules! read_primitive {
@@ -48,15 +46,16 @@ macro_rules! read_primitive {
 ///
 /// The source must implement the [`TakeBytes`] trait which supports reading
 /// binary data from it.
-///
-/// The [`Options`] type is used to construct an instance of this `Reader`. See
-/// [`Options::build_reader()`] for more information.
 pub struct Reader<T> {
     source: T,
 }
 
 impl<'tb, T: TakeBytes<'tb>> Reader<T> {
-    pub(crate) fn new(source: T) -> Reader<T> {
+    /// Creates a new `Reader` instance.
+    ///
+    /// The source of the reader is passed to the function. Every type that
+    /// implements the [`TakeBytes`] trait can be the source of this reader.
+    pub fn new(source: T) -> Reader<T> {
         Reader { source }
     }
 

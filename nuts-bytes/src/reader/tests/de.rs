@@ -25,99 +25,54 @@ use std::collections::HashMap;
 use serde::Deserialize;
 
 use crate::error::Error;
-use crate::options::Options;
+use crate::reader::Reader;
+use crate::source::BufferSource;
 use crate::{assert_error, assert_error_eq};
 
-fn opts() -> Options {
-    Options::new()
-}
-
-fn opts_ign() -> Options {
-    opts().ignore_trailing()
+fn setup(bytes: &[u8]) -> Reader<BufferSource> {
+    Reader::new(BufferSource::new(bytes))
 }
 
 #[test]
 fn bool() {
-    for n in [1, 2] {
-        let b: bool = opts().from_bytes(&[n]).unwrap();
-        assert_eq!(b, true);
-
-        let b: bool = opts_ign().from_bytes(&[n, 0]).unwrap();
-        assert_eq!(b, true);
-
-        let err = opts().from_bytes::<bool>(&[n, 0]).unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+    for buf in [[1], [2]] {
+        let mut reader = setup(&buf);
+        assert_eq!(bool::deserialize(&mut reader).unwrap(), true);
     }
 
-    let b: bool = opts().from_bytes(&[0]).unwrap();
-    assert_eq!(b, false);
+    let mut reader = setup(&[0]);
+    assert_eq!(bool::deserialize(&mut reader).unwrap(), false);
 }
 
 #[test]
 fn i8() {
     for (buf, n) in [([0xff], -1), ([0], 0), ([1], 1)] {
-        let o: i8 = opts().from_bytes(&buf).unwrap();
-        assert_eq!(o, n);
-
-        let o: i8 = opts_ign()
-            .from_bytes(&[buf.as_slice(), &[0]].concat())
-            .unwrap();
-        assert_eq!(o, n);
-
-        let err = opts()
-            .from_bytes::<i8>(&[buf.as_slice(), &[0]].concat())
-            .unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&buf);
+        assert_eq!(i8::deserialize(&mut reader).unwrap(), n);
     }
 }
 
 #[test]
 fn u8() {
-    for n in 0..2 {
-        let o: u8 = opts().from_bytes(&[n]).unwrap();
-        assert_eq!(o, n);
-
-        let o: u8 = opts_ign().from_bytes(&[n, 0]).unwrap();
-        assert_eq!(o, n);
-
-        let err = opts().from_bytes::<u8>(&[n, 0]).unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+    for (buf, n) in [([0], 0), ([1], 1), ([2], 2)] {
+        let mut reader = setup(&buf);
+        assert_eq!(u8::deserialize(&mut reader).unwrap(), n);
     }
 }
 
 #[test]
 fn i16() {
     for (buf, n) in [([0xff, 0xff], -1), ([0x00, 0x00], 0), ([0x00, 0x01], 1)] {
-        let r: i16 = opts().from_bytes(&buf).unwrap();
-        assert_eq!(r, n);
-
-        let r: i16 = opts_ign()
-            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap();
-        assert_eq!(r, n);
-
-        let err = opts()
-            .from_bytes::<i16>(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&buf);
+        assert_eq!(i16::deserialize(&mut reader).unwrap(), n);
     }
 }
 
 #[test]
 fn u16() {
     for (buf, n) in [([0x00, 0x00], 0), ([0x00, 0x01], 1), ([0x00, 0x02], 2)] {
-        let r: u16 = opts().from_bytes(&buf).unwrap();
-        assert_eq!(r, n);
-
-        let r: u16 = opts_ign()
-            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap();
-        assert_eq!(r, n);
-
-        let err = opts()
-            .from_bytes::<u16>(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&buf);
+        assert_eq!(u16::deserialize(&mut reader).unwrap(), n);
     }
 }
 
@@ -128,18 +83,8 @@ fn i32() {
         ([0x00, 0x00, 0x00, 0x00], 0),
         ([0x00, 0x00, 0x00, 0x01], 1),
     ] {
-        let r: i32 = opts().from_bytes(&buf).unwrap();
-        assert_eq!(r, n);
-
-        let r: i32 = opts_ign()
-            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap();
-        assert_eq!(r, n);
-
-        let err = opts()
-            .from_bytes::<i32>(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&buf);
+        assert_eq!(i32::deserialize(&mut reader).unwrap(), n);
     }
 }
 
@@ -150,18 +95,8 @@ fn u32() {
         ([0x00, 0x00, 0x00, 0x01], 1),
         ([0x00, 0x00, 0x00, 0x02], 2),
     ] {
-        let r: u32 = opts().from_bytes(&buf).unwrap();
-        assert_eq!(r, n);
-
-        let r: u32 = opts_ign()
-            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap();
-        assert_eq!(r, n);
-
-        let err = opts()
-            .from_bytes::<u32>(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&buf);
+        assert_eq!(u32::deserialize(&mut reader).unwrap(), n);
     }
 }
 
@@ -172,18 +107,8 @@ fn i64() {
         ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], 0),
         ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01], 1),
     ] {
-        let r: i64 = opts().from_bytes(&buf).unwrap();
-        assert_eq!(r, n);
-
-        let r: i64 = opts_ign()
-            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap();
-        assert_eq!(r, n);
-
-        let err = opts()
-            .from_bytes::<i64>(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&buf);
+        assert_eq!(i64::deserialize(&mut reader).unwrap(), n);
     }
 }
 
@@ -194,53 +119,32 @@ fn u64() {
         ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01], 1),
         ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02], 2),
     ] {
-        let r: u64 = opts().from_bytes(&buf).unwrap();
-        assert_eq!(r, n);
-
-        let r: u64 = opts_ign()
-            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap();
-        assert_eq!(r, n);
-
-        let err = opts()
-            .from_bytes::<u64>(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&buf);
+        assert_eq!(u64::deserialize(&mut reader).unwrap(), n);
     }
 }
 
 #[test]
 fn i128() {
-    let err = Options::new().from_bytes::<i128>(&[0]).unwrap_err();
+    let mut reader = setup(&[0]);
+    let err = i128::deserialize(&mut reader).unwrap_err();
     assert_error_eq!(err, Error::Serde(|msg| "i128 is not supported"));
 }
 
 #[test]
 fn u128() {
-    let err = Options::new().from_bytes::<u128>(&[0]).unwrap_err();
+    let mut reader = setup(&[0]);
+    let err = u128::deserialize(&mut reader).unwrap_err();
     assert_error_eq!(err, Error::Serde(|msg| "u128 is not supported"));
 }
 
 #[test]
 fn char() {
-    let c = opts()
-        .from_bytes::<char>(&[0x00, 0x01, 0xF4, 0xAF])
-        .unwrap();
-    assert_eq!(c, '💯');
+    let mut reader = setup(&[0x00, 0x01, 0xF4, 0xAF]);
+    assert_eq!(char::deserialize(&mut reader).unwrap(), '💯');
 
-    let c = opts_ign()
-        .from_bytes::<char>(&[0x00, 0x01, 0xF4, 0xAF, 0x00])
-        .unwrap();
-    assert_eq!(c, '💯');
-
-    let err = opts()
-        .from_bytes::<char>(&[0x00, 0x01, 0xF4, 0xAF, 0x00])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
-
-    let err = opts()
-        .from_bytes::<char>(&[0x00, 0x11, 0x00, 0x00])
-        .unwrap_err();
+    let mut reader = setup(&[0x00, 0x11, 0x00, 0x00]);
+    let err = char::deserialize(&mut reader).unwrap_err();
     assert_error_eq!(err, Error::InvalidChar(|n| 0x110000));
 }
 
@@ -263,23 +167,14 @@ fn str() {
             "abc",
         ),
     ] {
-        let bytes2 = [bytes.clone(), vec![0]].concat();
-
-        let r = opts().from_bytes::<&str>(&bytes).unwrap();
-        assert_eq!(r, str);
-
-        let r = opts_ign().from_bytes::<&str>(&bytes2).unwrap();
-        assert_eq!(r, str);
-
-        let err = opts().from_bytes::<&str>(&bytes2).unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&bytes);
+        assert_eq!(<&str>::deserialize(&mut reader).unwrap(), str);
     }
 
-    let err = opts()
-        .from_bytes::<&str>(&[
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 159, 146, 150,
-        ])
-        .unwrap_err();
+    let mut reader = setup(&[
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 159, 146, 150,
+    ]);
+    let err = <&str>::deserialize(&mut reader).unwrap_err();
     assert_error!(
         err,
         Error::InvalidString(
@@ -307,23 +202,14 @@ fn string() {
             "abc",
         ),
     ] {
-        let bytes2 = [bytes.clone(), vec![0]].concat();
-
-        let r = opts().from_bytes::<String>(&bytes).unwrap();
-        assert_eq!(r, str);
-
-        let r = opts_ign().from_bytes::<String>(&bytes2).unwrap();
-        assert_eq!(r, str);
-
-        let err = opts().from_bytes::<String>(&bytes2).unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&bytes);
+        assert_eq!(String::deserialize(&mut reader).unwrap(), str);
     }
 
-    let err = opts()
-        .from_bytes::<String>(&[
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 159, 146, 150,
-        ])
-        .unwrap_err();
+    let mut reader = setup(&[
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 159, 146, 150,
+    ]);
+    let err = String::deserialize(&mut reader).unwrap_err();
     assert_error!(
         err,
         Error::InvalidString(
@@ -334,29 +220,17 @@ fn string() {
 
 #[test]
 fn array() {
-    let r: [u16; 0] = opts().from_bytes(&[]).unwrap();
-    assert_eq!(r, []);
+    let mut reader = setup(&[]);
+    assert_eq!(<[u16; 0]>::deserialize(&mut reader).unwrap(), []);
 
-    let r: [u16; 1] = opts().from_bytes(&[0x00, 0x01]).unwrap();
-    assert_eq!(r, [1]);
+    let mut reader = setup(&[0x00, 0x01]);
+    assert_eq!(<[u16; 1]>::deserialize(&mut reader).unwrap(), [1]);
 
-    let r: [u16; 2] = opts().from_bytes(&[0x00, 0x01, 0x00, 0x02]).unwrap();
-    assert_eq!(r, [1, 2]);
+    let mut reader = setup(&[0x00, 0x01, 0x00, 0x02]);
+    assert_eq!(<[u16; 2]>::deserialize(&mut reader).unwrap(), [1, 2]);
 
-    let r: [u16; 3] = opts()
-        .from_bytes(&[0x00, 0x01, 0x00, 0x02, 0x00, 0x03])
-        .unwrap();
-    assert_eq!(r, [1, 2, 3]);
-
-    let r: [u16; 3] = opts_ign()
-        .from_bytes(&[0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00])
-        .unwrap();
-    assert_eq!(r, [1, 2, 3]);
-
-    let err = opts()
-        .from_bytes::<[u16; 3]>(&[0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
+    let mut reader = setup(&[0x00, 0x01, 0x00, 0x02, 0x00, 0x03]);
+    assert_eq!(<[u16; 3]>::deserialize(&mut reader).unwrap(), [1, 2, 3]);
 }
 
 #[test]
@@ -376,16 +250,8 @@ fn bytes() {
             vec![1, 2, 3],
         ),
     ] {
-        let buf2 = [buf.clone(), vec![0]].concat();
-
-        let r = opts().from_bytes::<&[u8]>(&buf).unwrap();
-        assert_eq!(r, bytes);
-
-        let r = opts_ign().from_bytes::<&[u8]>(&buf2).unwrap();
-        assert_eq!(r, bytes);
-
-        let err = opts().from_bytes::<&[u8]>(&buf2).unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&buf);
+        assert_eq!(<&[u8]>::deserialize(&mut reader).unwrap(), bytes);
     }
 }
 
@@ -410,38 +276,20 @@ fn vec() {
             vec![1, 2, 3],
         ),
     ] {
-        let buf2 = [buf.clone(), vec![0]].concat();
-
-        let r = opts().from_bytes::<Vec<u16>>(&buf).unwrap();
-        assert_eq!(r, bytes);
-
-        let r = opts_ign().from_bytes::<Vec<u16>>(&buf2).unwrap();
-        assert_eq!(r, bytes);
-
-        let err = opts().from_bytes::<Vec<u16>>(&buf2).unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&buf);
+        assert_eq!(<Vec<u16>>::deserialize(&mut reader).unwrap(), bytes);
     }
 }
 
 #[test]
 fn option() {
     for buf in [[0x01, 0x00, 0x01], [0x02, 0x00, 0x01]] {
-        let r: Option<u16> = opts().from_bytes(&buf).unwrap();
-        assert_eq!(r, Some(1));
-
-        let r: Option<u16> = opts_ign()
-            .from_bytes(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap();
-        assert_eq!(r, Some(1));
-
-        let err = opts()
-            .from_bytes::<Option<u16>>(&[buf.as_slice(), [0].as_slice()].concat())
-            .unwrap_err();
-        assert_error!(err, Error::TrailingBytes);
+        let mut reader = setup(&buf);
+        assert_eq!(<Option<u16>>::deserialize(&mut reader).unwrap(), Some(1));
     }
 
-    let r: Option<u16> = opts().from_bytes(&[0]).unwrap();
-    assert_eq!(r, None);
+    let mut reader = setup(&[0]);
+    assert_eq!(<Option<u16>>::deserialize(&mut reader).unwrap(), None);
 }
 
 fn sorted_keys<K: Ord, V>(m: &HashMap<K, V>) -> Vec<&K> {
@@ -454,82 +302,30 @@ fn sorted_keys<K: Ord, V>(m: &HashMap<K, V>) -> Vec<&K> {
 
 #[test]
 fn map() {
-    let m = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-        .unwrap();
+    let mut reader = setup(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let m = HashMap::<u8, u16>::deserialize(&mut reader).unwrap();
     assert!(m.is_empty());
 
-    let m = opts_ign()
-        .from_bytes::<HashMap<u8, u16>>(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-        .unwrap();
-    assert!(m.is_empty());
-
-    let err = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
-
-    let m = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x67,
-        ])
-        .unwrap();
+    let mut reader = setup(&[
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x67,
+    ]);
+    let m = HashMap::<u8, u16>::deserialize(&mut reader).unwrap();
     assert_eq!(sorted_keys(&m), [&1]);
     assert_eq!(m.get(&1).unwrap(), &4711);
 
-    let m = opts_ign()
-        .from_bytes::<HashMap<u8, u16>>(&[
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x67, 0x00,
-        ])
-        .unwrap();
-    assert_eq!(sorted_keys(&m), [&1]);
-    assert_eq!(m.get(&1).unwrap(), &4711);
-
-    let err = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x67, 0x00,
-        ])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
-
-    let m = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x12, 0x67, 0x02, 0x02, 0x9A,
-        ])
-        .unwrap();
+    let mut reader = setup(&[
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x12, 0x67, 0x02, 0x02, 0x9A,
+    ]);
+    let m = HashMap::<u8, u16>::deserialize(&mut reader).unwrap();
     assert_eq!(sorted_keys(&m), [&1, &2]);
     assert_eq!(m.get(&1).unwrap(), &4711);
     assert_eq!(m.get(&2).unwrap(), &666);
-
-    let m = opts_ign()
-        .from_bytes::<HashMap<u8, u16>>(&[
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x12, 0x67, 0x02, 0x02, 0x9A,
-            0x00,
-        ])
-        .unwrap();
-    assert_eq!(sorted_keys(&m), [&1, &2]);
-    assert_eq!(m.get(&1).unwrap(), &4711);
-    assert_eq!(m.get(&2).unwrap(), &666);
-
-    let err = opts()
-        .from_bytes::<HashMap<u8, u16>>(&[
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x12, 0x67, 0x02, 0x02, 0x9A,
-            0x00,
-        ])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
 }
 
 #[test]
 fn unit() {
-    let u = opts().from_bytes::<()>(&[]).unwrap();
-    assert_eq!(u, ());
-
-    let u = opts_ign().from_bytes::<()>(&[0]).unwrap();
-    assert_eq!(u, ());
-
-    let err = opts().from_bytes::<()>(&[0]).unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
+    let mut reader = setup(&[]);
+    assert_eq!(<()>::deserialize(&mut reader).unwrap(), ());
 }
 
 #[test]
@@ -550,60 +346,29 @@ fn r#struct() {
     }
 
     // unit-struct
-    let s = opts().from_bytes::<UnitStruct>(&[]).unwrap();
-    assert_eq!(s, UnitStruct);
-
-    let s = opts_ign().from_bytes::<UnitStruct>(&[0]).unwrap();
-    assert_eq!(s, UnitStruct);
-
-    let err = opts().from_bytes::<UnitStruct>(&[0]).unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
+    let mut reader = setup(&[]);
+    assert_eq!(UnitStruct::deserialize(&mut reader).unwrap(), UnitStruct);
 
     // newtype-struct
-    let s = opts().from_bytes::<NewTypeStruct>(&[0x12, 0x67]).unwrap();
-    assert_eq!(s, NewTypeStruct(4711));
-
-    let s = opts_ign()
-        .from_bytes::<NewTypeStruct>(&[0x12, 0x67, 0x00])
-        .unwrap();
-    assert_eq!(s, NewTypeStruct(4711));
-
-    let err = opts()
-        .from_bytes::<NewTypeStruct>(&[0x12, 0x67, 0x00])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
+    let mut reader = setup(&[0x12, 0x67]);
+    assert_eq!(
+        NewTypeStruct::deserialize(&mut reader).unwrap(),
+        NewTypeStruct(4711)
+    );
 
     // tuple-struct
-    let s = opts()
-        .from_bytes::<TupleStruct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A])
-        .unwrap();
-    assert_eq!(s, TupleStruct(4711, 666));
-
-    let s = opts_ign()
-        .from_bytes::<TupleStruct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00])
-        .unwrap();
-    assert_eq!(s, TupleStruct(4711, 666));
-
-    let err = opts()
-        .from_bytes::<TupleStruct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
+    let mut reader = setup(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]);
+    assert_eq!(
+        TupleStruct::deserialize(&mut reader).unwrap(),
+        TupleStruct(4711, 666)
+    );
 
     // struct
-    let s = opts()
-        .from_bytes::<Struct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A])
-        .unwrap();
-    assert_eq!(s, Struct { f1: 4711, f2: 666 });
-
-    let s = opts_ign()
-        .from_bytes::<Struct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00])
-        .unwrap();
-    assert_eq!(s, Struct { f1: 4711, f2: 666 });
-
-    let err = opts()
-        .from_bytes::<Struct>(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
+    let mut reader = setup(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]);
+    assert_eq!(
+        Struct::deserialize(&mut reader).unwrap(),
+        Struct { f1: 4711, f2: 666 }
+    );
 }
 
 #[test]
@@ -617,81 +382,27 @@ fn r#enum() {
     }
 
     // unit-variant
-    let e = opts()
-        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x00])
-        .unwrap();
-    assert_eq!(e, Enum::V1);
-
-    let e = opts_ign()
-        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x00, 0x00])
-        .unwrap();
-    assert_eq!(e, Enum::V1);
-
-    let err = opts()
-        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x00, 0x00])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
+    let mut reader = setup(&[0x00, 0x00, 0x00, 0x00]);
+    assert_eq!(Enum::deserialize(&mut reader).unwrap(), Enum::V1);
 
     // newtype-variant
-    let e = opts()
-        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x01, 0x12, 0x67])
-        .unwrap();
-    assert_eq!(e, Enum::V2(4711));
-
-    let e = opts_ign()
-        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x01, 0x12, 0x67, 0x00])
-        .unwrap();
-    assert_eq!(e, Enum::V2(4711));
-
-    let err = opts()
-        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x01, 0x12, 0x67, 0x00])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
+    let mut reader = setup(&[0x00, 0x00, 0x00, 0x01, 0x12, 0x67]);
+    assert_eq!(Enum::deserialize(&mut reader).unwrap(), Enum::V2(4711));
 
     // tuple-variant
-    let e = opts()
-        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x02, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A])
-        .unwrap();
-    assert_eq!(e, Enum::V3(4711, 666));
-
-    let e = opts_ign()
-        .from_bytes::<Enum>(&[
-            0x00, 0x00, 0x00, 0x02, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00,
-        ])
-        .unwrap();
-    assert_eq!(e, Enum::V3(4711, 666));
-
-    let err = opts()
-        .from_bytes::<Enum>(&[
-            0x00, 0x00, 0x00, 0x02, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00,
-        ])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
+    let mut reader = setup(&[0x00, 0x00, 0x00, 0x02, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]);
+    assert_eq!(Enum::deserialize(&mut reader).unwrap(), Enum::V3(4711, 666));
 
     // struct-variant
-    let e = opts()
-        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x03, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A])
-        .unwrap();
-    assert_eq!(e, Enum::V4 { f1: 4711, f2: 666 });
-
-    let e = opts_ign()
-        .from_bytes::<Enum>(&[
-            0x00, 0x00, 0x00, 0x03, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00,
-        ])
-        .unwrap();
-    assert_eq!(e, Enum::V4 { f1: 4711, f2: 666 });
-
-    let err = opts()
-        .from_bytes::<Enum>(&[
-            0x00, 0x00, 0x00, 0x03, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A, 0x00,
-        ])
-        .unwrap_err();
-    assert_error!(err, Error::TrailingBytes);
+    let mut reader = setup(&[0x00, 0x00, 0x00, 0x03, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]);
+    assert_eq!(
+        Enum::deserialize(&mut reader).unwrap(),
+        Enum::V4 { f1: 4711, f2: 666 }
+    );
 
     // invalid index
-    let err = Options::new()
-        .from_bytes::<Enum>(&[0x00, 0x00, 0x00, 0x04])
-        .unwrap_err();
+    let mut reader = setup(&[0x00, 0x00, 0x00, 0x04]);
+    let err = Enum::deserialize(&mut reader).unwrap_err();
     assert_error_eq!(
         err,
         Error::Serde(|msg| "invalid value: integer `4`, expected variant index 0 <= i < 4")

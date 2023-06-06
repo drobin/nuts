@@ -20,7 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Error, Options};
+use nuts_bytes::{BufferSource, Error, Reader, VecTarget, Writer};
+use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};
@@ -43,23 +44,23 @@ fn new() {
 
 #[test]
 fn de_inval_magic() {
-    let err = Options::new().from_bytes::<Inner>(b"xuts-io").unwrap_err();
+    let mut reader = Reader::new(BufferSource::new(b"xuts-io"));
+    let err = Inner::deserialize(&mut reader).unwrap_err();
     let msg = into_error!(err, Error::Serde);
     assert_eq!(msg, "invalid magic");
 }
 
 #[test]
 fn de_rev0() {
-    let inner = Options::new()
-        .from_bytes::<Inner>(&[
-            b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
-            0x00, 0x00, 0x00, 0x00, // rev0 variant,
-            0x00, 0x00, 0x00, 0x00, // cipher
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
-            0x00, 0x00, 0x00, 0x00, // kdf
-            0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
-        ])
-        .unwrap();
+    let mut reader = Reader::new(BufferSource::new(&[
+        b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
+        0x00, 0x00, 0x00, 0x00, // rev0 variant,
+        0x00, 0x00, 0x00, 0x00, // cipher
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
+        0x00, 0x00, 0x00, 0x00, // kdf
+        0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
+    ]));
+    let inner = Inner::deserialize(&mut reader).unwrap();
 
     let Revision::Rev0(rev0) = inner.rev;
 
@@ -78,9 +79,10 @@ fn ser_rev0() {
         secret: Secret::new(vec![1, 2, 3]),
     }));
 
-    let vec = Options::new().to_vec(&inner).unwrap();
+    let mut writer = Writer::new(VecTarget::new(vec![]));
+    assert_eq!(inner.serialize(&mut writer).unwrap(), 38);
     assert_eq!(
-        vec,
+        writer.into_target().into_vec(),
         [
             b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
             0x00, 0x00, 0x00, 0x00, // rev0 variant,

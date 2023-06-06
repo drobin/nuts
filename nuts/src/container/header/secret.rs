@@ -23,10 +23,9 @@
 #[cfg(test)]
 mod tests;
 
-use serde::{Deserialize, Serialize};
-
 use nuts_backend::Backend;
-use nuts_bytes::Options;
+use nuts_bytes::{BufferSource, Reader, VecTarget, Writer};
+use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::{Cipher, CipherCtx};
 use crate::container::header::HeaderError;
@@ -89,7 +88,8 @@ impl Secret {
         };
 
         let pbuf = ctx.decrypt(&key, &iv, &self.0)?;
-        let plain_secret = Options::new().from_bytes::<PlainSecret<B>>(pbuf)?;
+        let mut reader = Reader::new(BufferSource::new(pbuf));
+        let plain_secret = PlainSecret::deserialize(&mut reader)?;
 
         Ok(plain_secret)
     }
@@ -133,7 +133,10 @@ impl<B: Backend> PlainSecret<B> {
         kdf: &Kdf,
         iv: &[u8],
     ) -> Result<Secret, HeaderError> {
-        let pbuf: SecureVec = Options::new().to_vec(&self)?.into();
+        let mut writer = Writer::new(VecTarget::new(vec![]));
+        self.serialize(&mut writer)?;
+
+        let pbuf: SecureVec = writer.into_target().into_vec().into();
 
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;

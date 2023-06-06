@@ -56,9 +56,6 @@ pub trait TakeBytes<'tb> {
     /// If not enough data are available to fill `buf` an [`Error::Eof`] error
     /// is returned.
     fn take_bytes_to(&mut self, buf: &mut [u8]) -> Result<()>;
-
-    /// Tests whether there a still some uread data available for reading.
-    fn have_remaining_bytes(&self) -> bool;
 }
 
 /// A reader source that reads from a slice of binary data.
@@ -96,10 +93,6 @@ impl<'a> BufferSource<'a> {
 }
 
 impl<'tb, 'a: 'tb> TakeBytes<'tb> for BufferSource<'a> {
-    fn have_remaining_bytes(&self) -> bool {
-        self.remaining_bytes().len() > 0
-    }
-
     fn take_bytes(&mut self, n: usize) -> Result<Cow<'a, [u8]>> {
         match self.buf.get(self.offs..self.offs + n) {
             Some(buf) => {
@@ -146,10 +139,6 @@ impl<R> AsRef<R> for StreamSource<R> {
 }
 
 impl<'tb, R: Read> TakeBytes<'tb> for StreamSource<R> {
-    fn have_remaining_bytes(&self) -> bool {
-        false
-    }
-
     fn take_bytes(&mut self, n: usize) -> Result<Cow<'tb, [u8]>> {
         let mut vec = Cow::<[u8]>::Owned(vec![0; n]);
 

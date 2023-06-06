@@ -28,7 +28,8 @@ use std::error;
 use std::fmt::{self, Write as FmtWrite};
 
 use nuts_backend::Backend;
-use nuts_bytes::Options;
+use nuts_bytes::{BufferSource, BufferTarget, Reader, Writer};
+use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};
@@ -136,7 +137,9 @@ impl<B: Backend> Header<B> {
         buf: &[u8],
         store: &mut PasswordStore,
     ) -> Result<(Header<B>, B::Settings), HeaderError> {
-        let inner = Options::new().ignore_trailing().from_bytes::<Inner>(buf)?;
+        let mut reader = Reader::new(BufferSource::new(buf));
+        let inner = Inner::deserialize(&mut reader)?;
+
         let Revision::Rev0(rev0) = inner.rev;
 
         let plain_secret = rev0
@@ -181,7 +184,8 @@ impl<B: Backend> Header<B> {
         };
         let inner = Inner::new(Revision::Rev0(rev0));
 
-        Options::new().to_bytes(&inner, buf)?;
+        let mut writer = Writer::new(BufferTarget::new(buf));
+        inner.serialize(&mut writer)?;
 
         Ok(())
     }

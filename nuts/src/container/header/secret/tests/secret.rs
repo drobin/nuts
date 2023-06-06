@@ -22,7 +22,8 @@
 
 use std::rc::Rc;
 
-use nuts_bytes::{Error as BytesError, Options};
+use nuts_bytes::{BufferSource, Error as BytesError, Reader, VecTarget, Writer};
+use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
@@ -35,30 +36,36 @@ use crate::memory::MemoryBackend;
 #[test]
 fn ser_empty() {
     let secret = Secret(vec![]);
-    let vec = Options::new().to_vec(&secret).unwrap();
-    assert_eq!(vec, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let mut writer = Writer::new(VecTarget::new(vec![]));
+    assert_eq!(secret.serialize(&mut writer).unwrap(), 8);
+    assert_eq!(
+        writer.into_target().into_vec(),
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+    );
 }
 
 #[test]
 fn ser() {
     let secret = Secret(vec![1, 2, 3]);
-    let vec = Options::new().to_vec(&secret).unwrap();
-    assert_eq!(vec, [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]);
+    let mut writer = Writer::new(VecTarget::new(vec![]));
+    assert_eq!(secret.serialize(&mut writer).unwrap(), 11);
+    assert_eq!(
+        writer.into_target().into_vec(),
+        [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]
+    );
 }
 
 #[test]
 fn de_empty() {
-    let secret = Options::new()
-        .from_bytes::<Secret>(&[0, 0, 0, 0, 0, 0, 0, 0])
-        .unwrap();
+    let mut reader = Reader::new(BufferSource::new(&[0, 0, 0, 0, 0, 0, 0, 0]));
+    let secret = Secret::deserialize(&mut reader).unwrap();
     assert_eq!(secret, []);
 }
 
 #[test]
 fn de() {
-    let secret = Options::new()
-        .from_bytes::<Secret>(&[0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3])
-        .unwrap();
+    let mut reader = Reader::new(BufferSource::new(&[0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]));
+    let secret = Secret::deserialize(&mut reader).unwrap();
     assert_eq!(secret, [1, 2, 3]);
 }
 
