@@ -20,26 +20,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{BufferSource, Error, Reader, VecTarget, Writer};
+use nuts_bytes::{Error, Reader, VecTarget, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
 
 #[test]
 fn de_none() {
-    let mut reader = Reader::new(BufferSource::new(&[0x00, 0x00, 0x00, 0x00]));
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x00].as_slice());
     assert_eq!(Cipher::deserialize(&mut reader).unwrap(), Cipher::None);
 }
 
 #[test]
 fn de_aes128_ctr() {
-    let mut reader = Reader::new(BufferSource::new(&[0x00, 0x00, 0x00, 0x01]));
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x01].as_slice());
     assert_eq!(Cipher::deserialize(&mut reader).unwrap(), Cipher::Aes128Ctr);
 }
 
 #[test]
 fn de_invalid() {
-    let mut reader = Reader::new(BufferSource::new(&[0x00, 0x00, 0x00, 0x02]));
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x02].as_slice());
     let err = Cipher::deserialize(&mut reader).unwrap_err();
     let msg = into_error!(err, Error::Serde);
     assert_eq!(

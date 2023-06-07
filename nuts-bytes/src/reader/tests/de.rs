@@ -20,34 +20,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::collections::HashMap;
-
 use serde::Deserialize;
+use std::collections::HashMap;
 
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::source::BufferSource;
 use crate::{assert_error, assert_error_eq};
-
-fn setup(bytes: &[u8]) -> Reader<BufferSource> {
-    Reader::new(BufferSource::new(bytes))
-}
 
 #[test]
 fn bool() {
     for buf in [[1], [2]] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(bool::deserialize(&mut reader).unwrap(), true);
     }
 
-    let mut reader = setup(&[0]);
+    let mut reader = Reader::new([0].as_slice());
     assert_eq!(bool::deserialize(&mut reader).unwrap(), false);
 }
 
 #[test]
 fn i8() {
     for (buf, n) in [([0xff], -1), ([0], 0), ([1], 1)] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(i8::deserialize(&mut reader).unwrap(), n);
     }
 }
@@ -55,7 +49,7 @@ fn i8() {
 #[test]
 fn u8() {
     for (buf, n) in [([0], 0), ([1], 1), ([2], 2)] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(u8::deserialize(&mut reader).unwrap(), n);
     }
 }
@@ -63,7 +57,7 @@ fn u8() {
 #[test]
 fn i16() {
     for (buf, n) in [([0xff, 0xff], -1), ([0x00, 0x00], 0), ([0x00, 0x01], 1)] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(i16::deserialize(&mut reader).unwrap(), n);
     }
 }
@@ -71,7 +65,7 @@ fn i16() {
 #[test]
 fn u16() {
     for (buf, n) in [([0x00, 0x00], 0), ([0x00, 0x01], 1), ([0x00, 0x02], 2)] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(u16::deserialize(&mut reader).unwrap(), n);
     }
 }
@@ -83,7 +77,7 @@ fn i32() {
         ([0x00, 0x00, 0x00, 0x00], 0),
         ([0x00, 0x00, 0x00, 0x01], 1),
     ] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(i32::deserialize(&mut reader).unwrap(), n);
     }
 }
@@ -95,7 +89,7 @@ fn u32() {
         ([0x00, 0x00, 0x00, 0x01], 1),
         ([0x00, 0x00, 0x00, 0x02], 2),
     ] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(u32::deserialize(&mut reader).unwrap(), n);
     }
 }
@@ -107,7 +101,7 @@ fn i64() {
         ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], 0),
         ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01], 1),
     ] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(i64::deserialize(&mut reader).unwrap(), n);
     }
 }
@@ -119,31 +113,31 @@ fn u64() {
         ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01], 1),
         ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02], 2),
     ] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(u64::deserialize(&mut reader).unwrap(), n);
     }
 }
 
 #[test]
 fn i128() {
-    let mut reader = setup(&[0]);
+    let mut reader = Reader::new([0].as_slice());
     let err = i128::deserialize(&mut reader).unwrap_err();
     assert_error_eq!(err, Error::Serde(|msg| "i128 is not supported"));
 }
 
 #[test]
 fn u128() {
-    let mut reader = setup(&[0]);
+    let mut reader = Reader::new([0].as_slice());
     let err = u128::deserialize(&mut reader).unwrap_err();
     assert_error_eq!(err, Error::Serde(|msg| "u128 is not supported"));
 }
 
 #[test]
 fn char() {
-    let mut reader = setup(&[0x00, 0x01, 0xF4, 0xAF]);
+    let mut reader = Reader::new([0x00, 0x01, 0xF4, 0xAF].as_slice());
     assert_eq!(char::deserialize(&mut reader).unwrap(), '💯');
 
-    let mut reader = setup(&[0x00, 0x11, 0x00, 0x00]);
+    let mut reader = Reader::new([0x00, 0x11, 0x00, 0x00].as_slice());
     let err = char::deserialize(&mut reader).unwrap_err();
     assert_error_eq!(err, Error::InvalidChar(|n| 0x110000));
 }
@@ -167,13 +161,16 @@ fn str() {
             "abc",
         ),
     ] {
-        let mut reader = setup(&bytes);
+        let mut reader = Reader::new(bytes.as_slice());
         assert_eq!(<&str>::deserialize(&mut reader).unwrap(), str);
     }
 
-    let mut reader = setup(&[
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 159, 146, 150,
-    ]);
+    let mut reader = Reader::new(
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 159, 146, 150,
+        ]
+        .as_slice(),
+    );
     let err = <&str>::deserialize(&mut reader).unwrap_err();
     assert_error!(
         err,
@@ -202,13 +199,16 @@ fn string() {
             "abc",
         ),
     ] {
-        let mut reader = setup(&bytes);
+        let mut reader = Reader::new(bytes.as_slice());
         assert_eq!(String::deserialize(&mut reader).unwrap(), str);
     }
 
-    let mut reader = setup(&[
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 159, 146, 150,
-    ]);
+    let mut reader = Reader::new(
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 159, 146, 150,
+        ]
+        .as_slice(),
+    );
     let err = String::deserialize(&mut reader).unwrap_err();
     assert_error!(
         err,
@@ -220,16 +220,16 @@ fn string() {
 
 #[test]
 fn array() {
-    let mut reader = setup(&[]);
+    let mut reader = Reader::new([].as_slice());
     assert_eq!(<[u16; 0]>::deserialize(&mut reader).unwrap(), []);
 
-    let mut reader = setup(&[0x00, 0x01]);
+    let mut reader = Reader::new([0x00, 0x01].as_slice());
     assert_eq!(<[u16; 1]>::deserialize(&mut reader).unwrap(), [1]);
 
-    let mut reader = setup(&[0x00, 0x01, 0x00, 0x02]);
+    let mut reader = Reader::new([0x00, 0x01, 0x00, 0x02].as_slice());
     assert_eq!(<[u16; 2]>::deserialize(&mut reader).unwrap(), [1, 2]);
 
-    let mut reader = setup(&[0x00, 0x01, 0x00, 0x02, 0x00, 0x03]);
+    let mut reader = Reader::new([0x00, 0x01, 0x00, 0x02, 0x00, 0x03].as_slice());
     assert_eq!(<[u16; 3]>::deserialize(&mut reader).unwrap(), [1, 2, 3]);
 }
 
@@ -250,7 +250,7 @@ fn bytes() {
             vec![1, 2, 3],
         ),
     ] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(<&[u8]>::deserialize(&mut reader).unwrap(), bytes);
     }
 }
@@ -276,7 +276,7 @@ fn vec() {
             vec![1, 2, 3],
         ),
     ] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(<Vec<u16>>::deserialize(&mut reader).unwrap(), bytes);
     }
 }
@@ -284,11 +284,11 @@ fn vec() {
 #[test]
 fn option() {
     for buf in [[0x01, 0x00, 0x01], [0x02, 0x00, 0x01]] {
-        let mut reader = setup(&buf);
+        let mut reader = Reader::new(buf.as_slice());
         assert_eq!(<Option<u16>>::deserialize(&mut reader).unwrap(), Some(1));
     }
 
-    let mut reader = setup(&[0]);
+    let mut reader = Reader::new([0].as_slice());
     assert_eq!(<Option<u16>>::deserialize(&mut reader).unwrap(), None);
 }
 
@@ -302,20 +302,26 @@ fn sorted_keys<K: Ord, V>(m: &HashMap<K, V>) -> Vec<&K> {
 
 #[test]
 fn map() {
-    let mut reader = setup(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00].as_slice());
     let m = HashMap::<u8, u16>::deserialize(&mut reader).unwrap();
     assert!(m.is_empty());
 
-    let mut reader = setup(&[
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x67,
-    ]);
+    let mut reader = Reader::new(
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x67,
+        ]
+        .as_slice(),
+    );
     let m = HashMap::<u8, u16>::deserialize(&mut reader).unwrap();
     assert_eq!(sorted_keys(&m), [&1]);
     assert_eq!(m.get(&1).unwrap(), &4711);
 
-    let mut reader = setup(&[
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x12, 0x67, 0x02, 0x02, 0x9A,
-    ]);
+    let mut reader = Reader::new(
+        [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x12, 0x67, 0x02, 0x02, 0x9A,
+        ]
+        .as_slice(),
+    );
     let m = HashMap::<u8, u16>::deserialize(&mut reader).unwrap();
     assert_eq!(sorted_keys(&m), [&1, &2]);
     assert_eq!(m.get(&1).unwrap(), &4711);
@@ -324,7 +330,7 @@ fn map() {
 
 #[test]
 fn unit() {
-    let mut reader = setup(&[]);
+    let mut reader = Reader::new([].as_slice());
     assert_eq!(<()>::deserialize(&mut reader).unwrap(), ());
 }
 
@@ -346,25 +352,25 @@ fn r#struct() {
     }
 
     // unit-struct
-    let mut reader = setup(&[]);
+    let mut reader = Reader::new([].as_slice());
     assert_eq!(UnitStruct::deserialize(&mut reader).unwrap(), UnitStruct);
 
     // newtype-struct
-    let mut reader = setup(&[0x12, 0x67]);
+    let mut reader = Reader::new([0x12, 0x67].as_slice());
     assert_eq!(
         NewTypeStruct::deserialize(&mut reader).unwrap(),
         NewTypeStruct(4711)
     );
 
     // tuple-struct
-    let mut reader = setup(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]);
+    let mut reader = Reader::new([0x12, 0x67, 0x00, 0x00, 0x02, 0x9A].as_slice());
     assert_eq!(
         TupleStruct::deserialize(&mut reader).unwrap(),
         TupleStruct(4711, 666)
     );
 
     // struct
-    let mut reader = setup(&[0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]);
+    let mut reader = Reader::new([0x12, 0x67, 0x00, 0x00, 0x02, 0x9A].as_slice());
     assert_eq!(
         Struct::deserialize(&mut reader).unwrap(),
         Struct { f1: 4711, f2: 666 }
@@ -382,26 +388,28 @@ fn r#enum() {
     }
 
     // unit-variant
-    let mut reader = setup(&[0x00, 0x00, 0x00, 0x00]);
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x00].as_slice());
     assert_eq!(Enum::deserialize(&mut reader).unwrap(), Enum::V1);
 
     // newtype-variant
-    let mut reader = setup(&[0x00, 0x00, 0x00, 0x01, 0x12, 0x67]);
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x01, 0x12, 0x67].as_slice());
     assert_eq!(Enum::deserialize(&mut reader).unwrap(), Enum::V2(4711));
 
     // tuple-variant
-    let mut reader = setup(&[0x00, 0x00, 0x00, 0x02, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]);
+    let mut reader =
+        Reader::new([0x00, 0x00, 0x00, 0x02, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A].as_slice());
     assert_eq!(Enum::deserialize(&mut reader).unwrap(), Enum::V3(4711, 666));
 
     // struct-variant
-    let mut reader = setup(&[0x00, 0x00, 0x00, 0x03, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]);
+    let mut reader =
+        Reader::new([0x00, 0x00, 0x00, 0x03, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A].as_slice());
     assert_eq!(
         Enum::deserialize(&mut reader).unwrap(),
         Enum::V4 { f1: 4711, f2: 666 }
     );
 
     // invalid index
-    let mut reader = setup(&[0x00, 0x00, 0x00, 0x04]);
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x04].as_slice());
     let err = Enum::deserialize(&mut reader).unwrap_err();
     assert_error_eq!(
         err,

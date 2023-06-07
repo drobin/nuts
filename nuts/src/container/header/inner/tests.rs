@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{BufferSource, Error, Reader, VecTarget, Writer};
+use nuts_bytes::{Error, Reader, VecTarget, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
@@ -44,7 +44,7 @@ fn new() {
 
 #[test]
 fn de_inval_magic() {
-    let mut reader = Reader::new(BufferSource::new(b"xuts-io"));
+    let mut reader = Reader::new(b"xuts-io".as_slice());
     let err = Inner::deserialize(&mut reader).unwrap_err();
     let msg = into_error!(err, Error::Serde);
     assert_eq!(msg, "invalid magic");
@@ -52,14 +52,17 @@ fn de_inval_magic() {
 
 #[test]
 fn de_rev0() {
-    let mut reader = Reader::new(BufferSource::new(&[
-        b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
-        0x00, 0x00, 0x00, 0x00, // rev0 variant,
-        0x00, 0x00, 0x00, 0x00, // cipher
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
-        0x00, 0x00, 0x00, 0x00, // kdf
-        0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
-    ]));
+    let mut reader = Reader::new(
+        [
+            b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
+            0x00, 0x00, 0x00, 0x00, // rev0 variant,
+            0x00, 0x00, 0x00, 0x00, // cipher
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
+            0x00, 0x00, 0x00, 0x00, // kdf
+            0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
+        ]
+        .as_slice(),
+    );
     let inner = Inner::deserialize(&mut reader).unwrap();
 
     let Revision::Rev0(rev0) = inner.rev;

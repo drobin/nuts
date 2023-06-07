@@ -24,8 +24,6 @@
 mod tests;
 
 use std::borrow::Cow;
-use std::cmp;
-use std::io::Read;
 
 use crate::error::{Error, Result};
 #[cfg(doc)]
@@ -55,54 +53,6 @@ pub trait TakeBytes<'tb> {
     ///
     /// If not enough data are available to fill `buf` an [`Error::Eof`] error
     /// is returned.
-    fn take_bytes_to(&mut self, buf: &mut [u8]) -> Result<()>;
-}
-
-/// A reader source that reads from a slice of binary data.
-///
-/// # Example
-///
-/// ```rust
-/// use nuts_bytes::BufferSource;
-///
-/// let source = BufferSource::new(&[1, 2, 3]);
-/// ```
-pub struct BufferSource<'a> {
-    buf: &'a [u8],
-    offs: usize,
-}
-
-impl<'a> BufferSource<'a> {
-    /// Creates a new `BufferSource` instance which reads from the given `buf`.
-    pub fn new(buf: &'a [u8]) -> BufferSource<'a> {
-        BufferSource { buf, offs: 0 }
-    }
-
-    /// Returns the current position in the source.
-    pub fn position(&self) -> usize {
-        self.offs
-    }
-
-    /// Returns the slice of remaining (unread) data from the source.
-    ///
-    /// If all data were consumed the returned slice is empty.
-    pub fn remaining_bytes(&self) -> &'a [u8] {
-        let n = cmp::min(self.offs, self.buf.len());
-        self.buf.get(n..).unwrap()
-    }
-}
-
-impl<'tb, 'a: 'tb> TakeBytes<'tb> for BufferSource<'a> {
-    fn take_bytes(&mut self, n: usize) -> Result<Cow<'a, [u8]>> {
-        match self.buf.get(self.offs..self.offs + n) {
-            Some(buf) => {
-                self.offs += n;
-                Ok(Cow::Borrowed(buf))
-            }
-            None => Err(Error::Eof(None)),
-        }
-    }
-
     fn take_bytes_to(&mut self, buf: &mut [u8]) -> Result<()> {
         self.take_bytes(buf.len()).map(|bytes| {
             buf.copy_from_slice(bytes.as_ref());
@@ -111,43 +61,21 @@ impl<'tb, 'a: 'tb> TakeBytes<'tb> for BufferSource<'a> {
     }
 }
 
-/// A reader source that reads from a [`Read`] instance.
+/// `TakeBytes` is implemented for `&[u8]` by taking the first part of the
+/// slice.
 ///
-/// Reads from a stream type that implements the [`Read`] trait.
-///
-/// # Example
-///
-/// ```rust
-/// use nuts_bytes::StreamSource;
-/// use std::io::Cursor;
-///
-/// let cursor = Cursor::new(&[1, 2, 3]);
-/// let source = StreamSource::new(cursor);
-/// ```
-pub struct StreamSource<R>(R);
-
-impl<R> StreamSource<R> {
-    pub fn new(r: R) -> StreamSource<R> {
-        StreamSource(r)
-    }
-}
-
-impl<R> AsRef<R> for StreamSource<R> {
-    fn as_ref(&self) -> &R {
-        &self.0
-    }
-}
-
-impl<'tb, R: Read> TakeBytes<'tb> for StreamSource<R> {
+/// Note that taking bytes updates the slice to point to the yet unread part.
+/// The slice will be empty when EOF is reached.
+impl<'tb> TakeBytes<'tb> for &'tb [u8] {
     fn take_bytes(&mut self, n: usize) -> Result<Cow<'tb, [u8]>> {
-        let mut vec = Cow::<[u8]>::Owned(vec![0; n]);
+        if n <= self.len() {
+            let (a, b) = self.split_at(n);
 
-        self.0
-            .read_exact(vec.to_mut())
-            .map_or_else(|err| Err(err.into()), |()| Ok(vec))
-    }
+            *self = b;
 
-    fn take_bytes_to(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.0.read_exact(buf).map_err(|err| err.into())
+            Ok(Cow::Borrowed(a))
+        } else {
+            Err(Error::Eof(None))
+        }
     }
 }

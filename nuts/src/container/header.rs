@@ -28,7 +28,7 @@ use std::error;
 use std::fmt::{self, Write as FmtWrite};
 
 use nuts_backend::Backend;
-use nuts_bytes::{BufferSource, BufferTarget, Reader, Writer};
+use nuts_bytes::{BufferTarget, Reader, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
@@ -137,7 +137,7 @@ impl<B: Backend> Header<B> {
         buf: &[u8],
         store: &mut PasswordStore,
     ) -> Result<(Header<B>, B::Settings), HeaderError> {
-        let mut reader = Reader::new(BufferSource::new(buf));
+        let mut reader = Reader::new(buf);
         let inner = Inner::deserialize(&mut reader)?;
 
         let Revision::Rev0(rev0) = inner.rev;

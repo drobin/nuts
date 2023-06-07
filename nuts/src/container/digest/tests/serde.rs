@@ -20,14 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{BufferSource, Reader, VecTarget, Writer};
+use nuts_bytes::{Reader, VecTarget, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::Digest;
 
 #[test]
 fn de_sha1() {
-    let mut reader = Reader::new(BufferSource::new(&[0x00, 0x00, 0x00, 0x00]));
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x00].as_slice());
     assert_eq!(Digest::deserialize(&mut reader).unwrap(), Digest::Sha1);
 }
 

@@ -22,7 +22,7 @@
 
 use std::rc::Rc;
 
-use nuts_bytes::{BufferSource, Error as BytesError, Reader, VecTarget, Writer};
+use nuts_bytes::{Error as BytesError, Reader, VecTarget, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
@@ -57,14 +57,14 @@ fn ser() {
 
 #[test]
 fn de_empty() {
-    let mut reader = Reader::new(BufferSource::new(&[0, 0, 0, 0, 0, 0, 0, 0]));
+    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 0].as_slice());
     let secret = Secret::deserialize(&mut reader).unwrap();
     assert_eq!(secret, []);
 }
 
 #[test]
 fn de() {
-    let mut reader = Reader::new(BufferSource::new(&[0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]));
+    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3].as_slice());
     let secret = Secret::deserialize(&mut reader).unwrap();
     assert_eq!(secret, [1, 2, 3]);
 }

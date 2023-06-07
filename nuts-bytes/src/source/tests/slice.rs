@@ -24,79 +24,52 @@ use std::borrow::Cow;
 
 use crate::assert_error;
 use crate::error::Error;
-use crate::source::{BufferSource, TakeBytes};
-
-#[test]
-fn remaining_bytes() {
-    let mut source = BufferSource::new(&[1, 2, 3]);
-
-    for (offs, buf) in [vec![1, 2, 3], vec![2, 3], vec![3], vec![], vec![]]
-        .iter()
-        .enumerate()
-    {
-        source.offs = offs;
-        assert_eq!(source.position(), offs);
-        assert_eq!(source.remaining_bytes(), buf);
-    }
-}
+use crate::source::TakeBytes;
 
 #[test]
 fn take_bytes() {
-    let mut source = BufferSource::new(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    let mut source = [1, 2, 3, 4, 5, 6, 7, 8, 9].as_slice();
 
     assert_eq!(source.take_bytes(0).unwrap(), Cow::Borrowed(&[]));
-    assert_eq!(source.position(), 0);
-    assert_eq!(source.remaining_bytes(), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
-
+    assert_eq!(source, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert_eq!(source.take_bytes(1).unwrap(), Cow::Borrowed(&[1]));
-    assert_eq!(source.position(), 1);
-    assert_eq!(source.remaining_bytes(), [2, 3, 4, 5, 6, 7, 8, 9]);
-
+    assert_eq!(source, [2, 3, 4, 5, 6, 7, 8, 9]);
     assert_eq!(source.take_bytes(2).unwrap(), Cow::Borrowed(&[2, 3]));
-    assert_eq!(source.position(), 3);
-    assert_eq!(source.remaining_bytes(), [4, 5, 6, 7, 8, 9]);
-
+    assert_eq!(source, [4, 5, 6, 7, 8, 9]);
     assert_eq!(source.take_bytes(3).unwrap(), Cow::Borrowed(&[4, 5, 6]));
-    assert_eq!(source.position(), 6);
-    assert_eq!(source.remaining_bytes(), [7, 8, 9]);
+    assert_eq!(source, [7, 8, 9]);
 
     let err = source.take_bytes(4).unwrap_err();
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
-    assert_eq!(source.position(), 6);
-    assert_eq!(source.remaining_bytes(), [7, 8, 9]);
+    assert_eq!(source, [7, 8, 9]);
 }
 
 #[test]
 fn take_bytes_to() {
-    let mut source = BufferSource::new(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    let mut source = [1, 2, 3, 4, 5, 6, 7, 8, 9].as_slice();
 
     let mut buf = [];
     source.take_bytes_to(&mut buf).unwrap();
-    assert_eq!(source.position(), 0);
-    assert_eq!(source.remaining_bytes(), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    assert_eq!(source, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
     let mut buf = [0; 1];
     source.take_bytes_to(&mut buf).unwrap();
     assert_eq!(buf, [1]);
-    assert_eq!(source.position(), 1);
-    assert_eq!(source.remaining_bytes(), [2, 3, 4, 5, 6, 7, 8, 9]);
+    assert_eq!(source, [2, 3, 4, 5, 6, 7, 8, 9]);
 
     let mut buf = [0; 2];
     source.take_bytes_to(&mut buf).unwrap();
     assert_eq!(buf, [2, 3]);
-    assert_eq!(source.position(), 3);
-    assert_eq!(source.remaining_bytes(), [4, 5, 6, 7, 8, 9]);
+    assert_eq!(source, [4, 5, 6, 7, 8, 9]);
 
     let mut buf = [0; 3];
     source.take_bytes_to(&mut buf).unwrap();
     assert_eq!(buf, [4, 5, 6]);
-    assert_eq!(source.position(), 6);
-    assert_eq!(source.remaining_bytes(), [7, 8, 9]);
+    assert_eq!(source, [7, 8, 9]);
 
     let mut buf = [0; 4];
     let err = source.take_bytes_to(&mut buf).unwrap_err();
     assert_error!(err, Error::Eof(|cause| cause.is_none()));
     assert_eq!(buf, [0, 0, 0, 0]);
-    assert_eq!(source.position(), 6);
-    assert_eq!(source.remaining_bytes(), [7, 8, 9]);
+    assert_eq!(source, [7, 8, 9]);
 }

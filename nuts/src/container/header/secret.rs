@@ -24,7 +24,7 @@
 mod tests;
 
 use nuts_backend::Backend;
-use nuts_bytes::{BufferSource, Reader, VecTarget, Writer};
+use nuts_bytes::{Reader, VecTarget, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::{Cipher, CipherCtx};
@@ -88,7 +88,7 @@ impl Secret {
         };
 
         let pbuf = ctx.decrypt(&key, &iv, &self.0)?;
-        let mut reader = Reader::new(BufferSource::new(pbuf));
+        let mut reader = Reader::new(pbuf);
         let plain_secret = PlainSecret::deserialize(&mut reader)?;
 
         Ok(plain_secret)

@@ -30,7 +30,7 @@ mod writer;
 
 pub use error::{Error, Result};
 pub use reader::Reader;
-pub use source::{BufferSource, StreamSource, TakeBytes};
+pub use source::TakeBytes;
 pub use target::{BufferTarget, PutBytes, StreamTarget, VecTarget};
 pub use writer::Writer;
 

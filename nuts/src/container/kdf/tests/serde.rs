@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{BufferSource, Reader, VecTarget, Writer};
+use nuts_bytes::{Reader, VecTarget, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::digest::Digest;
@@ -28,9 +28,12 @@ use crate::container::kdf::Kdf;
 
 #[test]
 fn de_none() {
-    let mut reader = Reader::new(BufferSource::new(&[
-        0x00, 0x00, 0x00, 0x00, // none variant
-    ]));
+    let mut reader = Reader::new(
+        [
+            0x00, 0x00, 0x00, 0x00, // none variant
+        ]
+        .as_slice(),
+    );
     let kdf = Kdf::deserialize(&mut reader).unwrap();
 
     assert_eq!(kdf, Kdf::None);
@@ -38,12 +41,15 @@ fn de_none() {
 
 #[test]
 fn de_pbkdf2() {
-    let mut reader = Reader::new(BufferSource::new(&[
-        0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
-        0x00, 0x00, 0x00, 0x00, // sha1
-        0x00, 0x01, 0x00, 0x00, // iterations
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // salt
-    ]));
+    let mut reader = Reader::new(
+        [
+            0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
+            0x00, 0x00, 0x00, 0x00, // sha1
+            0x00, 0x01, 0x00, 0x00, // iterations
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // salt
+        ]
+        .as_slice(),
+    );
     let kdf = Kdf::deserialize(&mut reader).unwrap();
 
     assert_eq!(

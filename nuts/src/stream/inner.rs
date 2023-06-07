@@ -29,7 +29,7 @@ use std::cmp;
 use std::ops::{Deref, DerefMut};
 
 use nuts_backend::{Backend, BlockId};
-use nuts_bytes::{BufferSource, BufferTarget, Reader, Writer};
+use nuts_bytes::{BufferTarget, Reader, Writer};
 
 use crate::container::Container;
 use crate::stream::error::Error;
@@ -84,15 +84,14 @@ impl<B: Backend> Buffer<B> {
     }
 
     fn decode_block(&self) -> Result<(B::Id, B::Id, usize, usize), nuts_bytes::Error> {
-        let source = BufferSource::new(&self.buf);
-        let mut reader = Reader::new(source);
+        let mut reader = Reader::new(self.buf.as_slice());
 
         let id1 = B::Id::deserialize(&mut reader)?;
         let id2 = B::Id::deserialize(&mut reader)?;
         let len = u32::deserialize(&mut reader)?;
 
-        let pos = reader.as_ref().position();
-        let nbytes = cmp::min(len as usize, reader.as_ref().remaining_bytes().len());
+        let pos = self.buf.len() - reader.as_ref().len();
+        let nbytes = cmp::min(len as usize, reader.as_ref().len());
 
         Ok((id1, id2, pos, nbytes))
     }
