@@ -23,7 +23,7 @@
 use std::rc::Rc;
 
 use nuts_bytes::{Error as BytesError, Reader, Writer};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::container::cipher::Cipher;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
@@ -55,14 +55,14 @@ fn ser() {
 #[test]
 fn de_empty() {
     let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 0].as_slice());
-    let secret = Secret::deserialize(&mut reader).unwrap();
+    let secret = reader.deserialize::<Secret>().unwrap();
     assert_eq!(secret, []);
 }
 
 #[test]
 fn de() {
     let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3].as_slice());
-    let secret = Secret::deserialize(&mut reader).unwrap();
+    let secret = reader.deserialize::<Secret>().unwrap();
     assert_eq!(secret, [1, 2, 3]);
 }
 

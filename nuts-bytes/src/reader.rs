@@ -24,6 +24,7 @@
 mod tests;
 
 use serde::de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
+use serde::Deserialize;
 use std::borrow::Cow;
 use std::str;
 
@@ -57,6 +58,18 @@ impl<'tb, T: TakeBytes<'tb>> Reader<T> {
     /// implements the [`TakeBytes`] trait can be the source of this reader.
     pub fn new(source: T) -> Reader<T> {
         Reader { source }
+    }
+
+    /// Deserializes from this binary representation into a data structure
+    /// which implements [Serde](https://www.serde.rs) [`Deserialize`] trait.
+    ///
+    /// This is simply a wrapper for
+    ///
+    /// ```text
+    /// D::deserialize(self)
+    /// ```
+    pub fn deserialize<D: Deserialize<'tb>>(&mut self) -> Result<D> {
+        D::deserialize(self)
     }
 
     read_primitive!(

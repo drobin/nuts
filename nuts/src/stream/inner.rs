@@ -24,7 +24,7 @@ pub(super) mod stream;
 #[cfg(test)]
 mod tests;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::cmp;
 use std::ops::{Deref, DerefMut};
 
@@ -86,9 +86,9 @@ impl<B: Backend> Buffer<B> {
     fn decode_block(&self) -> Result<(B::Id, B::Id, usize, usize), nuts_bytes::Error> {
         let mut reader = Reader::new(self.buf.as_slice());
 
-        let id1 = B::Id::deserialize(&mut reader)?;
-        let id2 = B::Id::deserialize(&mut reader)?;
-        let len = u32::deserialize(&mut reader)?;
+        let id1 = reader.deserialize()?;
+        let id2 = reader.deserialize()?;
+        let len = reader.deserialize::<u32>()?;
 
         let pos = self.buf.len() - reader.as_ref().len();
         let nbytes = cmp::min(len as usize, reader.as_ref().len());

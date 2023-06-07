@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Reader, Writer};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::container::digest::Digest;
 use crate::container::kdf::Kdf;
@@ -34,7 +34,7 @@ fn de_none() {
         ]
         .as_slice(),
     );
-    let kdf = Kdf::deserialize(&mut reader).unwrap();
+    let kdf = reader.deserialize::<Kdf>().unwrap();
 
     assert_eq!(kdf, Kdf::None);
 }
@@ -50,7 +50,7 @@ fn de_pbkdf2() {
         ]
         .as_slice(),
     );
-    let kdf = Kdf::deserialize(&mut reader).unwrap();
+    let kdf = reader.deserialize::<Kdf>().unwrap();
 
     assert_eq!(
         kdf,

@@ -88,8 +88,7 @@ impl Secret {
         };
 
         let pbuf = ctx.decrypt(&key, &iv, &self.0)?;
-        let mut reader = Reader::new(pbuf);
-        let plain_secret = PlainSecret::deserialize(&mut reader)?;
+        let plain_secret = Reader::new(pbuf).deserialize()?;
 
         Ok(plain_secret)
     }

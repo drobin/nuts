@@ -21,14 +21,14 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Reader, Writer};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::container::Digest;
 
 #[test]
 fn de_sha1() {
     let mut reader = Reader::new([0x00, 0x00, 0x00, 0x00].as_slice());
-    assert_eq!(Digest::deserialize(&mut reader).unwrap(), Digest::Sha1);
+    assert_eq!(reader.deserialize::<Digest>().unwrap(), Digest::Sha1);
 }
 
 #[test]

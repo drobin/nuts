@@ -28,7 +28,6 @@ use log::debug;
 use nuts::stream::Position;
 use nuts_backend::Backend;
 use nuts_bytes::Reader;
-use serde::Deserialize;
 
 use crate::entry::Entry;
 use crate::error::Error;
@@ -116,8 +115,7 @@ impl<B: 'static + Backend> Iter<B> {
         self.stream.borrow_mut().seek(Position::Start(0))?;
 
         // Skip the header by reading it.
-        let mut reader = Reader::new(&mut self.stream);
-        Header::deserialize(&mut reader)?;
+        Reader::new(&mut self.stream).deserialize::<Header>()?;
 
         Ok(())
     }
@@ -138,7 +136,7 @@ impl<B: 'static + Backend> Iterator for Iter<B> {
 
         let mut reader = Reader::new(&mut self.stream);
 
-        match Entry::deserialize(&mut reader) {
+        match reader.deserialize::<Entry>() {
             Ok(entry) => {
                 self.skip = entry.size() as i64;
                 Some(Ok(IterEntry::new(entry, StreamRc::clone(&self.stream))))

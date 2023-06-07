@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Reader, Writer};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
@@ -40,7 +40,7 @@ fn de_none() {
         ]
         .as_slice(),
     );
-    let rev0 = rev0::Data::deserialize(&mut reader).unwrap();
+    let rev0 = reader.deserialize::<rev0::Data>().unwrap();
 
     assert_eq!(rev0.cipher, Cipher::None);
     assert_eq!(rev0.iv, []);
@@ -60,7 +60,7 @@ fn de_some() {
         ]
         .as_slice(),
     );
-    let rev0 = rev0::Data::deserialize(&mut reader).unwrap();
+    let rev0 = reader.deserialize::<rev0::Data>().unwrap();
 
     assert_eq!(rev0.cipher, Cipher::Aes128Ctr);
     assert_eq!(rev0.iv, [1, 2]);

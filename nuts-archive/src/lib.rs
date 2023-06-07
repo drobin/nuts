@@ -39,7 +39,7 @@ use nuts::container::Container;
 use nuts::stream::{OpenOptions, Position, Stream};
 use nuts_backend::Backend;
 use nuts_bytes::{Reader, Writer};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::cmp;
 
 use crate::builder::EntryBuilder;
@@ -111,8 +111,7 @@ impl<B: 'static + Backend> Archive<B> {
             .open(container, id)?;
         let mut rc = StreamRc::new(stream);
 
-        let mut reader = Reader::new(&mut rc);
-        let header = Header::deserialize(&mut reader)?;
+        let header = Reader::new(&mut rc).deserialize()?;
 
         debug!("archive opened, {:?}", header);
 

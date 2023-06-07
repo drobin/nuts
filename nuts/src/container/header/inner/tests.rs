@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Error, Reader, Writer};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};
@@ -45,7 +45,7 @@ fn new() {
 #[test]
 fn de_inval_magic() {
     let mut reader = Reader::new(b"xuts-io".as_slice());
-    let err = Inner::deserialize(&mut reader).unwrap_err();
+    let err = reader.deserialize::<Inner>().unwrap_err();
     let msg = into_error!(err, Error::Serde);
     assert_eq!(msg, "invalid magic");
 }
@@ -63,7 +63,7 @@ fn de_rev0() {
         ]
         .as_slice(),
     );
-    let inner = Inner::deserialize(&mut reader).unwrap();
+    let inner = reader.deserialize::<Inner>().unwrap();
 
     let Revision::Rev0(rev0) = inner.rev;
 

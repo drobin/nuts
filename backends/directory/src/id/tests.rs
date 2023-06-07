@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Reader, Writer};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::id::DirectoryId;
 
@@ -104,8 +104,9 @@ fn from_str_inval_char() {
 
 #[test]
 fn de() {
-    let mut reader = Reader::new(ID.as_slice());
-    let id = DirectoryId::deserialize(&mut reader).unwrap();
+    let id = Reader::new(ID.as_slice())
+        .deserialize::<DirectoryId>()
+        .unwrap();
     assert_eq!(id.0, ID);
 }
 

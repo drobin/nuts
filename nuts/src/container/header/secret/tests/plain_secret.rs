@@ -23,7 +23,7 @@
 use std::rc::Rc;
 
 use nuts_bytes::{Error, Reader, Writer};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::container::cipher::Cipher;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
@@ -44,7 +44,7 @@ fn ser() {
 #[test]
 fn de() {
     let mut reader = Reader::new(PLAIN_SECRET.as_slice());
-    let out = PlainSecret::<MemoryBackend>::deserialize(&mut reader).unwrap();
+    let out = reader.deserialize::<PlainSecret<MemoryBackend>>().unwrap();
     assert_eq!(out, plain_secret());
 }
 
@@ -54,7 +54,9 @@ fn de_inval() {
     vec[0] += 1;
 
     let mut reader = Reader::new(vec.as_slice());
-    let err = PlainSecret::<MemoryBackend>::deserialize(&mut reader).unwrap_err();
+    let err = reader
+        .deserialize::<PlainSecret<MemoryBackend>>()
+        .unwrap_err();
     let msg = into_error!(err, Error::Serde);
     assert_eq!(msg, "secret-magic mismatch");
 }
