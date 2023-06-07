@@ -1,9 +1,9 @@
-[workspace]
-members = [
-  "nuts-bytes",
-  "nuts",
-  "nuts-backend",
-  "nuts-tool",
-  "backends/directory",
-  "nuts-archive",
-]
+[package]
+name = "nuts-bytes"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.152", features = ["derive"] }
