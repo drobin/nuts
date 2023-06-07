@@ -24,10 +24,10 @@ use serde::Serialize;
 use std::collections::HashMap;
 
 use crate::error::Error;
-use crate::{assert_error_eq, VecTarget, Writer};
+use crate::{assert_error_eq, Writer};
 
-fn setup() -> Writer<VecTarget> {
-    Writer::new(VecTarget::new(vec![]))
+fn setup() -> Writer<Vec<u8>> {
+    Writer::new(vec![])
 }
 
 #[test]
@@ -307,20 +307,14 @@ fn map() {
     let mut writer = setup();
     assert_eq!(map.serialize(&mut writer).unwrap(), 14);
     assert_eq!(
-        writer.as_ref().as_ref()[0..8],
+        writer.as_ref()[0..8],
         [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02]
     );
 
-    if writer.as_ref().as_ref()[8] == 0x01 {
-        assert_eq!(
-            writer.as_ref().as_ref()[8..],
-            [0x01, 0x12, 0x67, 0x02, 0x02, 0x9A]
-        );
+    if writer.as_ref()[8] == 0x01 {
+        assert_eq!(writer.as_ref()[8..], [0x01, 0x12, 0x67, 0x02, 0x02, 0x9A]);
     } else {
-        assert_eq!(
-            writer.as_ref().as_ref()[8..],
-            [0x02, 0x02, 0x9A, 0x01, 0x12, 0x67]
-        );
+        assert_eq!(writer.as_ref()[8..], [0x02, 0x02, 0x9A, 0x01, 0x12, 0x67]);
     }
 }
 

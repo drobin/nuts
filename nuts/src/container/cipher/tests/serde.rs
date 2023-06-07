@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Error, Reader, VecTarget, Writer};
+use nuts_bytes::{Error, Reader, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
@@ -50,14 +50,14 @@ fn de_invalid() {
 
 #[test]
 fn ser_none() {
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
     assert_eq!(Cipher::None.serialize(&mut writer).unwrap(), 4);
-    assert_eq!(writer.into_target().into_vec(), [0x00, 0x00, 0x00, 0x00]);
+    assert_eq!(writer.into_target(), [0x00, 0x00, 0x00, 0x00]);
 }
 
 #[test]
 fn ser_aes128_ctr() {
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
     assert_eq!(Cipher::Aes128Ctr.serialize(&mut writer).unwrap(), 4);
-    assert_eq!(writer.into_target().into_vec(), [0x00, 0x00, 0x00, 0x01]);
+    assert_eq!(writer.into_target(), [0x00, 0x00, 0x00, 0x01]);
 }

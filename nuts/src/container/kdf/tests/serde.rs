@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Reader, VecTarget, Writer};
+use nuts_bytes::{Reader, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::digest::Digest;
@@ -64,11 +64,11 @@ fn de_pbkdf2() {
 
 #[test]
 fn ser_none() {
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
     assert_eq!(Kdf::None.serialize(&mut writer).unwrap(), 4);
 
     assert_eq!(
-        writer.into_target().into_vec(),
+        writer.into_target(),
         [
             0x00,0x00,0x00,0x00, // none variant
         ]
@@ -77,7 +77,7 @@ fn ser_none() {
 
 #[test]
 fn ser_pbkdf2() {
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
     assert_eq!(
         Kdf::Pbkdf2 {
             digest: Digest::Sha1,
@@ -90,7 +90,7 @@ fn ser_pbkdf2() {
     );
 
     assert_eq!(
-        writer.into_target().into_vec(),
+        writer.into_target(),
         [
             0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
             0x00, 0x00, 0x00, 0x00, // sha1

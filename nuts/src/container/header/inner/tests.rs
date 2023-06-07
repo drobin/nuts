@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Error, Reader, VecTarget, Writer};
+use nuts_bytes::{Error, Reader, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
@@ -82,10 +82,10 @@ fn ser_rev0() {
         secret: Secret::new(vec![1, 2, 3]),
     }));
 
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
     assert_eq!(inner.serialize(&mut writer).unwrap(), 38);
     assert_eq!(
-        writer.into_target().into_vec(),
+        writer.into_target(),
         [
             b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
             0x00, 0x00, 0x00, 0x00, // rev0 variant,

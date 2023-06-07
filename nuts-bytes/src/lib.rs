@@ -31,7 +31,7 @@ mod writer;
 pub use error::{Error, Result};
 pub use reader::Reader;
 pub use source::TakeBytes;
-pub use target::{BufferTarget, PutBytes, StreamTarget, VecTarget};
+pub use target::PutBytes;
 pub use writer::Writer;
 
 #[cfg(test)]

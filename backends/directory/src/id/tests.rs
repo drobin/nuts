@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Reader, VecTarget, Writer};
+use nuts_bytes::{Reader, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::id::DirectoryId;
@@ -111,7 +111,7 @@ fn de() {
 
 #[test]
 fn ser() {
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
     assert_eq!(DirectoryId::generate().serialize(&mut writer).unwrap(), 16);
-    assert_eq!(writer.into_target().into_vec(), ID);
+    assert_eq!(writer.into_target(), ID);
 }

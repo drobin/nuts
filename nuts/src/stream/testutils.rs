@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use nuts_backend::{Backend, BlockId};
-use nuts_bytes::{VecTarget, Writer};
+use nuts_bytes::Writer;
 use serde::Serialize;
 
 use crate::container::{Cipher, Container, CreateOptionsBuilder};
@@ -42,7 +42,7 @@ fn make_block<B: Backend>(
     next: &B::Id,
     payload: &[u8],
 ) {
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
 
     prev.serialize(&mut writer).unwrap(); // prev
     next.serialize(&mut writer).unwrap(); // next

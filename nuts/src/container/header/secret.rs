@@ -24,7 +24,7 @@
 mod tests;
 
 use nuts_backend::Backend;
-use nuts_bytes::{Reader, VecTarget, Writer};
+use nuts_bytes::{Reader, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::{Cipher, CipherCtx};
@@ -133,10 +133,10 @@ impl<B: Backend> PlainSecret<B> {
         kdf: &Kdf,
         iv: &[u8],
     ) -> Result<Secret, HeaderError> {
-        let mut writer = Writer::new(VecTarget::new(vec![]));
+        let mut writer = Writer::new(vec![]);
         self.serialize(&mut writer)?;
 
-        let pbuf: SecureVec = writer.into_target().into_vec().into();
+        let pbuf: SecureVec = writer.into_target().into();
 
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;

@@ -20,68 +20,68 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::target::{PutBytes, VecTarget};
+use crate::target::PutBytes;
 
 #[test]
 fn empty_put_0() {
-    let mut target = VecTarget::new(vec![]);
+    let mut target = vec![];
 
     target.put_bytes(&[]).unwrap();
-    assert_eq!(target.as_ref(), []);
+    assert_eq!(target, []);
 }
 
 #[test]
 fn empty_put_1() {
-    let mut target = VecTarget::new(vec![]);
+    let mut target = vec![];
 
     target.put_bytes(&[1]).unwrap();
-    assert_eq!(target.as_ref(), [1]);
+    assert_eq!(target, [1]);
 }
 
 #[test]
 fn empty_put_2() {
-    let mut target = VecTarget::new(vec![]);
+    let mut target = vec![];
 
     target.put_bytes(&[1, 2]).unwrap();
-    assert_eq!(target.as_ref(), [1, 2]);
+    assert_eq!(target, [1, 2]);
 }
 
 #[test]
 fn empty_put_3() {
-    let mut target = VecTarget::new(vec![]);
+    let mut target = vec![];
 
     target.put_bytes(&[1, 2, 3]).unwrap();
-    assert_eq!(target.as_ref(), [1, 2, 3]);
+    assert_eq!(target, [1, 2, 3]);
 }
 
 #[test]
 fn put_0() {
-    let mut target = VecTarget::new(vec![b'x']);
+    let mut target = vec![b'x'];
 
     target.put_bytes(&[]).unwrap();
-    assert_eq!(target.as_ref(), [b'x']);
+    assert_eq!(target, [b'x']);
 }
 
 #[test]
 fn put_1() {
-    let mut target = VecTarget::new(vec![b'x']);
+    let mut target = vec![b'x'];
 
     target.put_bytes(&[1]).unwrap();
-    assert_eq!(target.as_ref(), [b'x', 1]);
+    assert_eq!(target, [b'x', 1]);
 }
 
 #[test]
 fn put_2() {
-    let mut target = VecTarget::new(vec![b'x']);
+    let mut target = vec![b'x'];
 
     target.put_bytes(&[1, 2]).unwrap();
-    assert_eq!(target.as_ref(), [b'x', 1, 2]);
+    assert_eq!(target, [b'x', 1, 2]);
 }
 
 #[test]
 fn put_3() {
-    let mut target = VecTarget::new(vec![b'x']);
+    let mut target = vec![b'x'];
 
     target.put_bytes(&[1, 2, 3]).unwrap();
-    assert_eq!(target.as_ref(), [b'x', 1, 2, 3]);
+    assert_eq!(target, [b'x', 1, 2, 3]);
 }

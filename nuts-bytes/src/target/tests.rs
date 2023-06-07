@@ -20,6 +20,5 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod buffer;
-mod stream;
+mod slice;
 mod vec;

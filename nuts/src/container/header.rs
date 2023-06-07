@@ -28,7 +28,7 @@ use std::error;
 use std::fmt::{self, Write as FmtWrite};
 
 use nuts_backend::Backend;
-use nuts_bytes::{BufferTarget, Reader, Writer};
+use nuts_bytes::{Reader, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
@@ -184,7 +184,7 @@ impl<B: Backend> Header<B> {
         };
         let inner = Inner::new(Revision::Rev0(rev0));
 
-        let mut writer = Writer::new(BufferTarget::new(buf));
+        let mut writer = Writer::new(buf);
         inner.serialize(&mut writer)?;
 
         Ok(())

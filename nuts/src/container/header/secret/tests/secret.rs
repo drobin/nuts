@@ -22,7 +22,7 @@
 
 use std::rc::Rc;
 
-use nuts_bytes::{Error as BytesError, Reader, VecTarget, Writer};
+use nuts_bytes::{Error as BytesError, Reader, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
@@ -36,10 +36,10 @@ use crate::memory::MemoryBackend;
 #[test]
 fn ser_empty() {
     let secret = Secret(vec![]);
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
     assert_eq!(secret.serialize(&mut writer).unwrap(), 8);
     assert_eq!(
-        writer.into_target().into_vec(),
+        writer.into_target(),
         [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
     );
 }
@@ -47,12 +47,9 @@ fn ser_empty() {
 #[test]
 fn ser() {
     let secret = Secret(vec![1, 2, 3]);
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
     assert_eq!(secret.serialize(&mut writer).unwrap(), 11);
-    assert_eq!(
-        writer.into_target().into_vec(),
-        [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]
-    );
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]);
 }
 
 #[test]

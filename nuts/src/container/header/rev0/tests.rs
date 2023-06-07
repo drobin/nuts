@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Reader, VecTarget, Writer};
+use nuts_bytes::{Reader, Writer};
 use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
@@ -84,10 +84,10 @@ fn ser_none() {
         secret: Secret::new(vec![1, 2, 3]),
     };
 
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
     assert_eq!(rev0.serialize(&mut writer).unwrap(), 27);
     assert_eq!(
-        writer.into_target().into_vec(),
+        writer.into_target(),
         [
             0x00, 0x00, 0x00, 0x00, // cipher
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
@@ -110,10 +110,10 @@ fn ser_some() {
         secret: Secret::new(vec![6, 7, 8, 9]),
     };
 
-    let mut writer = Writer::new(VecTarget::new(vec![]));
+    let mut writer = Writer::new(vec![]);
     assert_eq!(rev0.serialize(&mut writer).unwrap(), 49);
     assert_eq!(
-        writer.into_target().into_vec(),
+        writer.into_target(),
         [
             0x00, 0x00, 0x00, 0x01, // cipher
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 1, 2, // iv,
