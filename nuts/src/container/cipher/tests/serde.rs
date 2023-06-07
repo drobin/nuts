@@ -21,7 +21,6 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Error, Reader, Writer};
-use serde::Serialize;
 
 use crate::container::cipher::Cipher;
 
@@ -51,13 +50,13 @@ fn de_invalid() {
 #[test]
 fn ser_none() {
     let mut writer = Writer::new(vec![]);
-    assert_eq!(Cipher::None.serialize(&mut writer).unwrap(), 4);
+    assert_eq!(writer.serialize(&Cipher::None).unwrap(), 4);
     assert_eq!(writer.into_target(), [0x00, 0x00, 0x00, 0x00]);
 }
 
 #[test]
 fn ser_aes128_ctr() {
     let mut writer = Writer::new(vec![]);
-    assert_eq!(Cipher::Aes128Ctr.serialize(&mut writer).unwrap(), 4);
+    assert_eq!(writer.serialize(&Cipher::Aes128Ctr).unwrap(), 4);
     assert_eq!(writer.into_target(), [0x00, 0x00, 0x00, 0x01]);
 }

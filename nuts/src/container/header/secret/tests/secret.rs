@@ -23,7 +23,6 @@
 use std::rc::Rc;
 
 use nuts_bytes::{Error as BytesError, Reader, Writer};
-use serde::Serialize;
 
 use crate::container::cipher::Cipher;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
@@ -37,7 +36,7 @@ use crate::memory::MemoryBackend;
 fn ser_empty() {
     let secret = Secret(vec![]);
     let mut writer = Writer::new(vec![]);
-    assert_eq!(secret.serialize(&mut writer).unwrap(), 8);
+    assert_eq!(writer.serialize(&secret).unwrap(), 8);
     assert_eq!(
         writer.into_target(),
         [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -48,7 +47,7 @@ fn ser_empty() {
 fn ser() {
     let secret = Secret(vec![1, 2, 3]);
     let mut writer = Writer::new(vec![]);
-    assert_eq!(secret.serialize(&mut writer).unwrap(), 11);
+    assert_eq!(writer.serialize(&secret).unwrap(), 11);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]);
 }
 

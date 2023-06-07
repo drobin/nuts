@@ -26,15 +26,11 @@ use std::collections::HashMap;
 use crate::error::Error;
 use crate::{assert_error_eq, Writer};
 
-fn setup() -> Writer<Vec<u8>> {
-    Writer::new(vec![])
-}
-
 #[test]
 fn bool() {
     for (t, buf) in [(true, [0x01]), (false, [0x00])] {
-        let mut writer = setup();
-        assert_eq!(t.serialize(&mut writer).unwrap(), 1);
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&t).unwrap(), 1);
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
@@ -42,8 +38,8 @@ fn bool() {
 #[test]
 fn i8() {
     for (n, buf) in [(-1i8, [0xff]), (0, [0]), (1, [1])] {
-        let mut writer = setup();
-        assert_eq!(n.serialize(&mut writer).unwrap(), 1);
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&n).unwrap(), 1);
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
@@ -51,8 +47,8 @@ fn i8() {
 #[test]
 fn u8() {
     for n in 0u8..2 {
-        let mut writer = setup();
-        assert_eq!(n.serialize(&mut writer).unwrap(), 1);
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&n).unwrap(), 1);
         assert_eq!(writer.as_ref().as_ref(), [n]);
     }
 }
@@ -60,8 +56,8 @@ fn u8() {
 #[test]
 fn i16() {
     for (n, buf) in [(-1i16, [0xff, 0xff]), (0, [0x00, 0x00]), (1, [0x00, 0x01])] {
-        let mut writer = setup();
-        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&n).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
@@ -69,8 +65,8 @@ fn i16() {
 #[test]
 fn u16() {
     for (n, buf) in [(0u16, [0x00, 0x00]), (1, [0x00, 0x01]), (2, [0x00, 0x02])] {
-        let mut writer = setup();
-        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&n).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
@@ -82,8 +78,8 @@ fn i32() {
         (0, [0x00, 0x00, 0x00, 0x00]),
         (1, [0x00, 0x00, 0x00, 0x01]),
     ] {
-        let mut writer = setup();
-        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&n).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
@@ -95,8 +91,8 @@ fn u32() {
         (1, [0x00, 0x00, 0x00, 0x01]),
         (2, [0x00, 0x00, 0x00, 0x02]),
     ] {
-        let mut writer = setup();
-        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&n).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
@@ -108,8 +104,8 @@ fn i64() {
         (0, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
         (1, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]),
     ] {
-        let mut writer = setup();
-        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&n).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
@@ -121,30 +117,30 @@ fn u64() {
         (1, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]),
         (2, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02]),
     ] {
-        let mut writer = setup();
-        assert_eq!(n.serialize(&mut writer).unwrap(), buf.len());
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&n).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
 #[test]
 fn i128() {
-    let mut writer = setup();
-    let err = 0i128.serialize(&mut writer).unwrap_err();
+    let mut writer = Writer::new(vec![]);
+    let err = writer.serialize(&0i128).unwrap_err();
     assert_error_eq!(err, Error::Serde(|msg| "i128 is not supported"));
 }
 
 #[test]
 fn u128() {
-    let mut writer = setup();
-    let err = 0u128.serialize(&mut writer).unwrap_err();
+    let mut writer = Writer::new(vec![]);
+    let err = writer.serialize(&0u128).unwrap_err();
     assert_error_eq!(err, Error::Serde(|msg| "u128 is not supported"));
 }
 
 #[test]
 fn char() {
-    let mut writer = setup();
-    assert_eq!('💯'.serialize(&mut writer).unwrap(), 4);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&'💯').unwrap(), 4);
     assert_eq!(writer.as_ref().as_ref(), [0x00, 0x01, 0xF4, 0xAF]);
 }
 
@@ -167,8 +163,8 @@ fn str() {
             ],
         ),
     ] {
-        let mut writer = setup();
-        assert_eq!(str.serialize(&mut writer).unwrap(), buf.len());
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&str).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
@@ -192,8 +188,8 @@ fn string() {
             ],
         ),
     ] {
-        let mut writer = setup();
-        assert_eq!(str.to_string().serialize(&mut writer).unwrap(), buf.len());
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&str.to_string()).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
@@ -201,23 +197,23 @@ fn string() {
 #[test]
 fn array() {
     let arr: [u16; 0] = [];
-    let mut writer = setup();
-    assert_eq!(arr.serialize(&mut writer).unwrap(), 0);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&arr).unwrap(), 0);
     assert_eq!(writer.as_ref().as_ref(), []);
 
     let arr: [u16; 1] = [1];
-    let mut writer = setup();
-    assert_eq!(arr.serialize(&mut writer).unwrap(), 2);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&arr).unwrap(), 2);
     assert_eq!(writer.as_ref().as_ref(), [0x00, 0x01]);
 
     let arr: [u16; 2] = [1, 2];
-    let mut writer = setup();
-    assert_eq!(arr.serialize(&mut writer).unwrap(), 4);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&arr).unwrap(), 4);
     assert_eq!(writer.as_ref().as_ref(), [0x00, 0x01, 0x00, 0x02]);
 
     let arr: [u16; 3] = [1, 2, 3];
-    let mut writer = setup();
-    assert_eq!(arr.serialize(&mut writer).unwrap(), 6);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&arr).unwrap(), 6);
     assert_eq!(
         writer.as_ref().as_ref(),
         [0x00, 0x01, 0x00, 0x02, 0x00, 0x03]
@@ -241,8 +237,8 @@ fn bytes() {
             vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3],
         ),
     ] {
-        let mut writer = setup();
-        assert_eq!(bytes.as_slice().serialize(&mut writer).unwrap(), buf.len());
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&bytes.as_slice()).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
@@ -268,44 +264,44 @@ fn vec() {
             ],
         ),
     ] {
-        let mut writer = setup();
-        assert_eq!(bytes.serialize(&mut writer).unwrap(), buf.len());
+        let mut writer = Writer::new(vec![]);
+        assert_eq!(writer.serialize(&bytes).unwrap(), buf.len());
         assert_eq!(writer.as_ref().as_ref(), buf);
     }
 }
 
 #[test]
 fn option() {
-    let mut writer = setup();
-    assert_eq!(Some(1u16).serialize(&mut writer).unwrap(), 3);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&Some(1u16)).unwrap(), 3);
     assert_eq!(writer.as_ref().as_ref(), [0x01, 0x00, 0x01]);
 
-    let mut writer = setup();
-    assert_eq!(Option::<u16>::None.serialize(&mut writer).unwrap(), 1);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&Option::<u16>::None).unwrap(), 1);
     assert_eq!(writer.as_ref().as_ref(), [0x00]);
 }
 
 #[test]
 fn map() {
     let map = HashMap::<u8, u16>::new();
-    let mut writer = setup();
-    assert_eq!(map.serialize(&mut writer).unwrap(), 8);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&map).unwrap(), 8);
     assert_eq!(
         writer.as_ref().as_ref(),
         [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
     );
 
     let map = HashMap::<u8, u16>::from([(1, 4711)]);
-    let mut writer = setup();
-    assert_eq!(map.serialize(&mut writer).unwrap(), 11);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&map).unwrap(), 11);
     assert_eq!(
         writer.as_ref().as_ref(),
         [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x67]
     );
 
     let map = HashMap::<u8, u16>::from([(1, 4711), (2, 666)]);
-    let mut writer = setup();
-    assert_eq!(map.serialize(&mut writer).unwrap(), 14);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&map).unwrap(), 14);
     assert_eq!(
         writer.as_ref()[0..8],
         [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02]
@@ -320,8 +316,8 @@ fn map() {
 
 #[test]
 fn unit() {
-    let mut writer = setup();
-    assert_eq!(().serialize(&mut writer).unwrap(), 0);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&()).unwrap(), 0);
     assert_eq!(writer.as_ref().as_ref(), []);
 }
 
@@ -343,29 +339,26 @@ fn r#struct() {
     }
 
     // unit-struct
-    let mut writer = setup();
-    assert_eq!(UnitStruct.serialize(&mut writer).unwrap(), 0);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&UnitStruct).unwrap(), 0);
     assert_eq!(writer.as_ref().as_ref(), []);
 
     // newtype-struct
-    let mut writer = setup();
-    assert_eq!(NewTypeStruct(4711).serialize(&mut writer).unwrap(), 2);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&NewTypeStruct(4711)).unwrap(), 2);
     assert_eq!(writer.as_ref().as_ref(), [0x12, 0x67]);
 
     // tuple-struct
-    let mut writer = setup();
-    assert_eq!(TupleStruct(4711, 666).serialize(&mut writer).unwrap(), 6);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&TupleStruct(4711, 666)).unwrap(), 6);
     assert_eq!(
         writer.as_ref().as_ref(),
         [0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]
     );
 
     // struct
-    let mut writer = setup();
-    assert_eq!(
-        Struct { f1: 4711, f2: 666 }.serialize(&mut writer).unwrap(),
-        6
-    );
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&Struct { f1: 4711, f2: 666 }).unwrap(), 6);
     assert_eq!(
         writer.as_ref().as_ref(),
         [0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]
@@ -383,32 +376,30 @@ fn r#enum() {
     }
 
     // unit-variant
-    let mut writer = setup();
-    assert_eq!(Enum::V1.serialize(&mut writer).unwrap(), 4);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&Enum::V1).unwrap(), 4);
     assert_eq!(writer.as_ref().as_ref(), [0x00, 0x00, 0x00, 0x00]);
 
     // newtype-variant
-    let mut writer = setup();
-    assert_eq!(Enum::V2(4711).serialize(&mut writer).unwrap(), 6);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&Enum::V2(4711)).unwrap(), 6);
     assert_eq!(
         writer.as_ref().as_ref(),
         [0x00, 0x00, 0x00, 0x01, 0x12, 0x67]
     );
 
     // tuple-variant
-    let mut writer = setup();
-    assert_eq!(Enum::V3(4711, 666).serialize(&mut writer).unwrap(), 10);
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.serialize(&Enum::V3(4711, 666)).unwrap(), 10);
     assert_eq!(
         writer.as_ref().as_ref(),
         [0x00, 0x00, 0x00, 0x02, 0x12, 0x67, 0x00, 0x00, 0x02, 0x9A]
     );
 
     // struct-variant
-    let mut writer = setup();
+    let mut writer = Writer::new(vec![]);
     assert_eq!(
-        Enum::V4 { f1: 4711, f2: 666 }
-            .serialize(&mut writer)
-            .unwrap(),
+        writer.serialize(&Enum::V4 { f1: 4711, f2: 666 }).unwrap(),
         10
     );
     assert_eq!(

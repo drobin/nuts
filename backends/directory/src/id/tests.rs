@@ -21,7 +21,6 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Reader, Writer};
-use serde::Serialize;
 
 use crate::id::DirectoryId;
 
@@ -113,6 +112,6 @@ fn de() {
 #[test]
 fn ser() {
     let mut writer = Writer::new(vec![]);
-    assert_eq!(DirectoryId::generate().serialize(&mut writer).unwrap(), 16);
+    assert_eq!(writer.serialize(&DirectoryId::generate()).unwrap(), 16);
     assert_eq!(writer.into_target(), ID);
 }

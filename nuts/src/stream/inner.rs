@@ -24,12 +24,10 @@ pub(super) mod stream;
 #[cfg(test)]
 mod tests;
 
-use serde::Serialize;
-use std::cmp;
-use std::ops::{Deref, DerefMut};
-
 use nuts_backend::{Backend, BlockId};
 use nuts_bytes::{Reader, Writer};
+use std::cmp;
+use std::ops::{Deref, DerefMut};
 
 use crate::container::Container;
 use crate::stream::error::Error;
@@ -105,8 +103,8 @@ impl<B: Backend> Buffer<B> {
         let buf_len = self.buf.len();
         let mut writer = Writer::new(self.buf.as_mut_slice());
 
-        id1.serialize(&mut writer)?;
-        id2.serialize(&mut writer)?;
+        writer.serialize(id1)?;
+        writer.serialize(id2)?;
 
         let max = writer.as_ref().len() - 4;
 
@@ -115,13 +113,13 @@ impl<B: Backend> Buffer<B> {
                 let len = cmp::min(max, buf.len());
                 let payload = &buf[..len];
 
-                (len as u32).serialize(&mut writer)?;
+                writer.serialize(&(len as u32))?;
                 writer.write_bytes(payload)?;
             }
             EncodeOption::Skip(size) => {
                 let len = cmp::min(max, size);
 
-                (len as u32).serialize(&mut writer)?;
+                writer.serialize(&(len as u32))?;
             }
         };
 

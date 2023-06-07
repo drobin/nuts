@@ -22,7 +22,6 @@
 
 use nuts_backend::{Backend, BlockId};
 use nuts_bytes::Writer;
-use serde::Serialize;
 
 use crate::container::{Cipher, Container, CreateOptionsBuilder};
 use crate::memory::{MemId, MemOptions, MemoryBackend};
@@ -44,8 +43,8 @@ fn make_block<B: Backend>(
 ) {
     let mut writer = Writer::new(vec![]);
 
-    prev.serialize(&mut writer).unwrap(); // prev
-    next.serialize(&mut writer).unwrap(); // next
+    writer.serialize(prev).unwrap(); // prev
+    writer.serialize(next).unwrap(); // next
     writer.write_u32(payload.len() as u32).unwrap(); // length
     writer.write_bytes(payload).unwrap();
 

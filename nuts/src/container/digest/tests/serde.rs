@@ -21,7 +21,6 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Reader, Writer};
-use serde::Serialize;
 
 use crate::container::Digest;
 
@@ -34,6 +33,6 @@ fn de_sha1() {
 #[test]
 fn ser_sha1() {
     let mut writer = Writer::new(vec![]);
-    assert_eq!(Digest::Sha1.serialize(&mut writer).unwrap(), 4);
+    assert_eq!(writer.serialize(&Digest::Sha1).unwrap(), 4);
     assert_eq!(writer.into_target(), [0x00, 0x00, 0x00, 0x00]);
 }

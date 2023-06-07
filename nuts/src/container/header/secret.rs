@@ -133,9 +133,9 @@ impl<B: Backend> PlainSecret<B> {
         iv: &[u8],
     ) -> Result<Secret, HeaderError> {
         let mut writer = Writer::new(vec![]);
-        self.serialize(&mut writer)?;
-
-        let pbuf: SecureVec = writer.into_target().into();
+        let pbuf: SecureVec = writer
+            .serialize(&self)
+            .map(|_| writer.into_target().into())?;
 
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;

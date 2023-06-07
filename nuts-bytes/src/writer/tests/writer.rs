@@ -24,17 +24,9 @@ use crate::assert_error;
 use crate::error::Error;
 use crate::writer::Writer;
 
-fn setup_vec() -> Writer<Vec<u8>> {
-    Writer::new(vec![])
-}
-
-fn setup_slice<'a>(target: &'a mut [u8]) -> Writer<&'a mut [u8]> {
-    Writer::new(target)
-}
-
 #[test]
 fn bytes_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_bytes(&[]).unwrap(), 0);
     assert_eq!(*writer.as_ref(), []);
@@ -54,7 +46,7 @@ fn bytes_slice() {
     let mut buf = [0; 9];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_bytes(&[]).unwrap(), 0);
         assert_eq!(*writer.as_ref(), [0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -78,7 +70,7 @@ fn bytes_slice() {
 
 #[test]
 fn i8_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_i8(-1).unwrap(), 1);
     assert_eq!(*writer.as_ref(), [0xff,]);
@@ -93,7 +85,7 @@ fn i8_slice() {
     let mut buf = [0; 3];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_i8(-1).unwrap(), 1);
         assert_eq!(*writer.as_ref(), [0x00, 0x00]);
@@ -114,7 +106,7 @@ fn i8_slice() {
 
 #[test]
 fn u8_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_u8(1).unwrap(), 1);
     assert_eq!(*writer.as_ref(), [1,]);
@@ -129,7 +121,7 @@ fn u8_slice() {
     let mut buf = [0; 2];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_u8(1).unwrap(), 1);
         assert_eq!(*writer.as_ref(), [0]);
@@ -147,7 +139,7 @@ fn u8_slice() {
 
 #[test]
 fn i16_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_i16(-1).unwrap(), 2);
     assert_eq!(*writer.as_ref(), [0xff, 0xff]);
@@ -162,7 +154,7 @@ fn i16_slice() {
     let mut buf = [b'x'; 7];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_i16(-1).unwrap(), 2);
         assert_eq!(*writer.as_ref(), [b'x', b'x', b'x', b'x', b'x']);
@@ -183,7 +175,7 @@ fn i16_slice() {
 
 #[test]
 fn u16_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_u16(1).unwrap(), 2);
     assert_eq!(*writer.as_ref(), [0x00, 0x01]);
@@ -196,7 +188,7 @@ fn u16_slice() {
     let mut buf = [b'x'; 5];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_u16(1).unwrap(), 2);
         assert_eq!(*writer.as_ref(), [b'x', b'x', b'x']);
@@ -214,7 +206,7 @@ fn u16_slice() {
 
 #[test]
 fn i32_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_i32(-1).unwrap(), 4);
     assert_eq!(*writer.as_ref(), [0xff, 0xff, 0xff, 0xff,]);
@@ -235,7 +227,7 @@ fn i32_slice() {
     let mut buf = [b'x'; 15];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_i32(-1).unwrap(), 4);
         assert_eq!(
@@ -265,7 +257,7 @@ fn i32_slice() {
 
 #[test]
 fn u32_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_u32(1).unwrap(), 4);
     assert_eq!(*writer.as_ref(), [0x00, 0x00, 0x00, 0x01,]);
@@ -281,7 +273,7 @@ fn u32_slice() {
     let mut buf = [b'x'; 11];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_u32(1).unwrap(), 4);
         assert_eq!(*writer.as_ref(), [b'x', b'x', b'x', b'x', b'x', b'x', b'x']);
@@ -302,7 +294,7 @@ fn u32_slice() {
 
 #[test]
 fn i64_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_i64(-1).unwrap(), 8);
     assert_eq!(
@@ -332,7 +324,7 @@ fn i64_slice() {
     let mut buf = [b'x'; 31];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_i64(-1).unwrap(), 8);
         assert_eq!(
@@ -372,7 +364,7 @@ fn i64_slice() {
 
 #[test]
 fn u64_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_u64(1).unwrap(), 8);
     assert_eq!(
@@ -394,7 +386,7 @@ fn u64_slice() {
     let mut buf = [b'x'; 23];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_u64(1).unwrap(), 8);
         assert_eq!(
@@ -424,7 +416,7 @@ fn u64_slice() {
 
 #[test]
 fn i128_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_i128(-1).unwrap(), 16);
     assert_eq!(
@@ -460,7 +452,7 @@ fn i128_slice() {
     let mut buf = [b'x'; 63];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_i128(-1).unwrap(), 16);
         assert_eq!(
@@ -517,7 +509,7 @@ fn i128_slice() {
 
 #[test]
 fn u128_vec() {
-    let mut writer = setup_vec();
+    let mut writer = Writer::new(vec![]);
 
     assert_eq!(writer.write_u128(1).unwrap(), 16);
     assert_eq!(
@@ -543,7 +535,7 @@ fn u128_slice() {
     let mut buf = [b'x'; 47];
 
     {
-        let mut writer = setup_slice(&mut buf);
+        let mut writer = Writer::new(buf.as_mut_slice());
 
         assert_eq!(writer.write_u128(1).unwrap(), 16);
         assert_eq!(

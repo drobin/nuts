@@ -29,7 +29,6 @@ use std::fmt::{self, Write as FmtWrite};
 
 use nuts_backend::Backend;
 use nuts_bytes::{Reader, Writer};
-use serde::Serialize;
 
 use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};
@@ -183,8 +182,7 @@ impl<B: Backend> Header<B> {
         };
         let inner = Inner::new(Revision::Rev0(rev0));
 
-        let mut writer = Writer::new(buf);
-        inner.serialize(&mut writer)?;
+        Writer::new(buf).serialize(&inner)?;
 
         Ok(())
     }

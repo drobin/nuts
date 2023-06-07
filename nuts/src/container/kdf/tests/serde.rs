@@ -21,7 +21,6 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Reader, Writer};
-use serde::Serialize;
 
 use crate::container::digest::Digest;
 use crate::container::kdf::Kdf;
@@ -65,7 +64,7 @@ fn de_pbkdf2() {
 #[test]
 fn ser_none() {
     let mut writer = Writer::new(vec![]);
-    assert_eq!(Kdf::None.serialize(&mut writer).unwrap(), 4);
+    assert_eq!(writer.serialize(&Kdf::None).unwrap(), 4);
 
     assert_eq!(
         writer.into_target(),
@@ -79,13 +78,13 @@ fn ser_none() {
 fn ser_pbkdf2() {
     let mut writer = Writer::new(vec![]);
     assert_eq!(
-        Kdf::Pbkdf2 {
-            digest: Digest::Sha1,
-            iterations: 65536,
-            salt: vec![1, 2, 3],
-        }
-        .serialize(&mut writer)
-        .unwrap(),
+        writer
+            .serialize(&Kdf::Pbkdf2 {
+                digest: Digest::Sha1,
+                iterations: 65536,
+                salt: vec![1, 2, 3],
+            })
+            .unwrap(),
         23
     );
 

@@ -57,6 +57,19 @@ impl<T: PutBytes> Writer<T> {
         Writer { target }
     }
 
+    /// Serializes a data structure that implements
+    /// [Serde](https://www.serde.rs) [`Serialize`] trait into this binary
+    /// representation.
+    ///
+    /// This is simply a wrapper for
+    ///
+    /// ```text
+    /// s.serialize(self)
+    /// ```
+    pub fn serialize<S: Serialize>(&mut self, s: &S) -> Result<usize> {
+        s.serialize(self)
+    }
+
     /// Consumes this `Writer`, returning the underlying target.
     pub fn into_target(self) -> T {
         self.target

@@ -39,7 +39,6 @@ use nuts::container::Container;
 use nuts::stream::{OpenOptions, Position, Stream};
 use nuts_backend::Backend;
 use nuts_bytes::{Reader, Writer};
-use serde::Serialize;
 use std::cmp;
 
 use crate::builder::EntryBuilder;
@@ -94,9 +93,8 @@ impl<B: 'static + Backend> Archive<B> {
         let mut rc = StreamRc::new(stream);
 
         let header = Header::create();
-        let mut writer = Writer::new(&mut rc);
+        Writer::new(&mut rc).serialize(&header)?;
 
-        header.serialize(&mut writer)?;
         debug!("archive created, {:?}", header);
 
         Ok(Archive { header, stream: rc })
@@ -167,10 +165,9 @@ impl<B: 'static + Backend> Archive<B> {
         actime: DateTime<Utc>,
         size: Option<u64>,
     ) -> Result<u64, B> {
-        let mut writer = Writer::new(&mut self.stream);
         let entry = builder.to_entry(actime, size);
 
-        let n = entry.serialize(&mut writer)?;
+        let n = Writer::new(&mut self.stream).serialize(&entry)?;
 
         if log_enabled!(Debug) {
             if let Some(n) = size {
@@ -216,8 +213,7 @@ impl<B: 'static + Backend> Archive<B> {
 
         self.stream.borrow_mut().seek(Position::Start(0))?;
 
-        let mut writer = Writer::new(&mut self.stream);
-        self.header.serialize(&mut writer)?;
+        Writer::new(&mut self.stream).serialize(&self.header)?;
 
         Ok(())
     }

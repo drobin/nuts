@@ -21,7 +21,6 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Error, Reader, Writer};
-use serde::Serialize;
 
 use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};
@@ -83,7 +82,7 @@ fn ser_rev0() {
     }));
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(inner.serialize(&mut writer).unwrap(), 38);
+    assert_eq!(writer.serialize(&inner).unwrap(), 38);
     assert_eq!(
         writer.into_target(),
         [
