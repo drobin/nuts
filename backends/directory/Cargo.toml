@@ -9,5 +9,5 @@ edition = "2021"
 getrandom = "0.2.8"
 log = "0.4.14"
 nuts-backend = { path = "../../nuts-backend" }
-nuts-bytes = { path = "../../nuts-bytes" }
+nuts-bytes = "0.1.0"
 serde = { version = "1.0.152", features = ["derive"] }
