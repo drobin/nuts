@@ -232,6 +232,10 @@ pub use source::TakeBytes;
 pub use target::PutBytes;
 pub use writer::Writer;
 
+#[doc = include_str!("../README.md")]
+#[cfg(doctest)]
+pub struct ReadmeDoctests;
+
 #[cfg(test)]
 macro_rules! assert_error {
     ($err:expr, $type:ident :: $memb:ident) => {
