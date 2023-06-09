@@ -57,28 +57,6 @@ fn get() {
 }
 
 #[test]
-fn get_mut() {
-    let (container, id) = {
-        let (container, id) = setup_one();
-        let mut stream = Inner::open(container, id.clone()).unwrap();
-
-        assert_eq!(stream.goto_first().unwrap(), &id);
-        let buf = stream.payload_mut().unwrap();
-        assert_eq!(buf, [1, 2, 3]);
-
-        buf[0] = b'x';
-        stream.flush().unwrap();
-
-        (stream.into_container(), id)
-    };
-
-    let mut stream = Inner::open(container, id.clone()).unwrap();
-
-    assert_eq!(stream.goto_next().unwrap().unwrap(), &id);
-    assert_eq!(stream.payload().unwrap(), [b'x', 2, 3]);
-}
-
-#[test]
 fn set_empty() {
     let (container, id) = {
         let (container, id) = setup_one();

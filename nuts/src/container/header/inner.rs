@@ -24,6 +24,7 @@
 mod tests;
 
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
 use crate::container::header::rev0;
 

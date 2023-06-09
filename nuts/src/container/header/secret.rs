@@ -25,6 +25,7 @@ mod tests;
 
 use nuts_bytes::{Reader, Writer};
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
 use crate::backend::Backend;
 use crate::container::cipher::{Cipher, CipherCtx};

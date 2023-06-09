@@ -440,19 +440,6 @@ impl<B: Backend> Inner<B> {
             .flatten()
     }
 
-    /// Returns a mutable payload slice of the [current](Self::current) block.
-    ///
-    /// So the payload can be modified. **Note:** You need to call
-    /// [`Self::flush()`] to save your changes!
-    ///
-    ///  If there is no current block, [`None`] is returned.
-    pub fn payload_mut(&mut self) -> Option<&mut [u8]> {
-        self.cur
-            .as_ref()
-            .map(|cur| self.buf.get_mut(cur.start..cur.start + cur.len))
-            .flatten()
-    }
-
     /// Updates the payload of the [current](Self::current) block.
     ///
     /// On success returns the number of bytes assigned to the current block.
