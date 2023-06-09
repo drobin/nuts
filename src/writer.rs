@@ -253,7 +253,7 @@ impl<'a, P: PutBytes> ser::Serializer for &'a mut Writer<P> {
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
         len.ok_or(Error::RequiredLength)
             .and_then(|len| self.write_u64(len as u64))
-            .map(|n| StateSerializer::new(self, n))
+            .map(move |n| StateSerializer::new(self, n))
     }
 
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple> {
@@ -276,13 +276,13 @@ impl<'a, P: PutBytes> ser::Serializer for &'a mut Writer<P> {
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant> {
         self.write_u32(variant_index)
-            .map(|n| StateSerializer::new(self, n))
+            .map(move |n| StateSerializer::new(self, n))
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
         len.ok_or(Error::RequiredLength)
             .and_then(|len| self.write_u64(len as u64))
-            .map(|n| StateSerializer::new(self, n))
+            .map(move |n| StateSerializer::new(self, n))
     }
 
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
@@ -297,7 +297,7 @@ impl<'a, P: PutBytes> ser::Serializer for &'a mut Writer<P> {
         _len: usize,
     ) -> Result<Self::SerializeStructVariant> {
         self.write_u32(variant_index)
-            .map(|n| StateSerializer::new(self, n))
+            .map(move |n| StateSerializer::new(self, n))
     }
 }
 
