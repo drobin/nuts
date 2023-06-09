@@ -35,9 +35,9 @@ mod rc;
 
 use chrono::prelude::*;
 use log::{debug, log_enabled, Level::Debug};
+use nuts::backend::Backend;
 use nuts::container::Container;
 use nuts::stream::{OpenOptions, Position, Stream};
-use nuts_backend::Backend;
 use nuts_bytes::{Reader, Writer};
 use std::cmp;
 

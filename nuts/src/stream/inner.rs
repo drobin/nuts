@@ -24,11 +24,11 @@ pub(super) mod stream;
 #[cfg(test)]
 mod tests;
 
-use nuts_backend::{Backend, BlockId};
 use nuts_bytes::{Reader, Writer};
 use std::cmp;
 use std::ops::{Deref, DerefMut};
 
+use crate::backend::{Backend, BlockId};
 use crate::container::Container;
 use crate::stream::error::Error;
 use crate::svec::SecureVec;

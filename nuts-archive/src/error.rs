@@ -22,13 +22,13 @@
 
 use std::{error, fmt, io, result};
 
+use nuts::backend::Backend;
 use nuts::stream;
 #[cfg(doc)]
 use nuts::{
     container::{Container, CreateOptionsBuilder},
     stream::Stream,
 };
-use nuts_backend::Backend;
 
 #[cfg(doc)]
 use crate::builder::Builder;

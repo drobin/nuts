@@ -31,7 +31,7 @@ use std::io::{self, ErrorKind, Read, Write};
 use std::path::PathBuf;
 use std::{cmp, result};
 
-use nuts_backend::{Backend, BLOCK_MIN_SIZE};
+use nuts::backend::{Backend, BLOCK_MIN_SIZE};
 
 pub use error::Error;
 pub use id::DirectoryId;

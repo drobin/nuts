@@ -23,8 +23,8 @@
 use anyhow::Result;
 use clap::{App, ArgMatches};
 use log::debug;
+use nuts::backend::Backend;
 use nuts_archive::{self, Archive, Group, IterEntry, Type};
-use nuts_backend::Backend;
 use nutsbackend_directory::DirectoryBackend;
 use std::result;
 

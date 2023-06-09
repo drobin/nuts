@@ -20,8 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use nuts::backend::Backend;
 use nuts::stream::Stream;
-use nuts_backend::Backend;
 use nuts_bytes::{PutBytes, TakeBytes};
 use std::borrow::Cow;
 use std::cell::RefCell;

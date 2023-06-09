@@ -22,8 +22,7 @@
 
 use std::{error, fmt};
 
-use nuts_backend::Backend;
-
+use crate::backend::Backend;
 use crate::container;
 #[cfg(doc)]
 use crate::stream::Stream;

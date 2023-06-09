@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 getrandom = "0.2.8"
 log = "0.4.14"
-nuts-backend = { path = "../../nuts-backend" }
+nuts = { path = "../../nuts", default-features = false, features = ["backend"] }
 nuts-bytes = "0.1.0"
 serde = { version = "1.0.152", features = ["derive"] }

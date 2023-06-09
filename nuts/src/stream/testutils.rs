@@ -20,9 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_backend::{Backend, BlockId};
 use nuts_bytes::Writer;
 
+use crate::backend::{Backend, BlockId};
 use crate::container::{Cipher, Container, CreateOptionsBuilder};
 use crate::memory::{MemId, MemOptions, MemoryBackend};
 

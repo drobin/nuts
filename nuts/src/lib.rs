@@ -23,9 +23,14 @@
 #[cfg(test)]
 #[macro_use]
 pub(crate) mod asserts;
+#[cfg(feature = "backend")]
+pub mod backend;
+#[cfg(feature = "container")]
 pub mod container;
 #[cfg(test)]
 pub mod memory;
+#[cfg(feature = "container")]
 pub mod openssl;
+#[cfg(feature = "stream")]
 pub mod stream;
 pub(crate) mod svec;

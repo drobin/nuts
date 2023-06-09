@@ -26,8 +26,7 @@ mod tests;
 use std::cmp;
 use std::ops::Deref;
 
-use nuts_backend::Backend;
-
+use crate::backend::Backend;
 use crate::container::Container;
 use crate::stream::error::Error;
 use crate::stream::inner::{EncodeOption, Inner};

@@ -27,7 +27,7 @@ use std::num::ParseIntError;
 use std::str::FromStr;
 use std::{cmp, error, fmt, mem, result};
 
-use nuts_backend::{Backend, BlockId, Options};
+use crate::backend::{Backend, BlockId, Options};
 
 #[derive(Debug)]
 pub struct MemError(String);

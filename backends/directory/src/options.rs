@@ -23,7 +23,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-use nuts_backend::{Options, BLOCK_MIN_SIZE};
+use nuts::backend::{Options, BLOCK_MIN_SIZE};
 
 use crate::error::{Error, Result};
 use crate::DirectoryBackend;

@@ -6,14 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+default = ["backend", "container", "stream"]
+backend = []
+container = ["backend", "dep:nuts-bytes", "dep:openssl-sys", "dep:serde"]
 debug-plain-keys = []
+stream = ["container"]
 
 [dependencies]
 log = "0.4.14"
-nuts-backend = { path = "../nuts-backend" }
-nuts-bytes = "0.1.0"
-openssl-sys = "0.9.80"
-serde = { version = "1.0.152", features = ["derive"] }
+nuts-bytes = { version = "0.1.0", optional = true }
+openssl-sys = { version = "0.9.80", optional = true }
+serde = { version = "1.0.152", features = ["derive"], optional = true }
 
 [dev-dependencies]
 nutsbackend-directory = { path = "../backends/directory" }

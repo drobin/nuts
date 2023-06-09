@@ -28,7 +28,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use nuts_backend::BlockId;
+use nuts::backend::BlockId;
 
 use crate::error::{Error, Result};
 

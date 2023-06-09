@@ -25,8 +25,8 @@ use std::io::{self, Read};
 use std::ops::Deref;
 
 use log::debug;
+use nuts::backend::Backend;
 use nuts::stream::Position;
-use nuts_backend::Backend;
 use nuts_bytes::Reader;
 
 use crate::entry::Entry;

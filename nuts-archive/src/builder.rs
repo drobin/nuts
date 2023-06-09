@@ -21,9 +21,9 @@
 // IN THE SOFTWARE.
 
 use chrono::prelude::*;
+use nuts::backend::Backend;
 #[cfg(doc)]
 use nuts::stream::Stream;
-use nuts_backend::Backend;
 use std::borrow::Cow;
 use std::fs::{self, File, Metadata};
 use std::io::{self, Cursor, Read};

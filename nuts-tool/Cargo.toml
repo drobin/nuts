@@ -14,7 +14,6 @@ glob = "0.3.1"
 home = "0.5.4"
 log = "0.4.14"
 nuts = { path = "../nuts" }
-nuts-backend = { path = "../nuts-backend" }
 nutsbackend-directory = { path = "../backends/directory" }
 nuts-archive = { path = "../nuts-archive" }
 rpassword = "5.0.1"

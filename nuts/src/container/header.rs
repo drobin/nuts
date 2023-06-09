@@ -27,9 +27,9 @@ mod secret;
 use std::error;
 use std::fmt::{self, Write as FmtWrite};
 
-use nuts_backend::Backend;
 use nuts_bytes::{Reader, Writer};
 
+use crate::backend::Backend;
 use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};
 use crate::container::kdf::Kdf;

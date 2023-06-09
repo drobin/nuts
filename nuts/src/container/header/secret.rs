@@ -23,10 +23,10 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_backend::Backend;
 use nuts_bytes::{Reader, Writer};
 use serde::{Deserialize, Serialize};
 
+use crate::backend::Backend;
 use crate::container::cipher::{Cipher, CipherCtx};
 use crate::container::header::HeaderError;
 use crate::container::kdf::Kdf;

@@ -20,8 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_backend::Backend;
-
+use crate::backend::Backend;
 use crate::container::cipher::Cipher;
 use crate::container::kdf::Kdf;
 

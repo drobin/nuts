@@ -23,8 +23,7 @@
 use std::rc::Rc;
 use std::result;
 
-use nuts_backend::{Backend, Options};
-
+use crate::backend::{Backend, Options};
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
 #[cfg(doc)]
