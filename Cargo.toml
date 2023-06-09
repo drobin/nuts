@@ -1,6 +1,13 @@
-[workspace]
-members = [
-  "nuts-tool",
-  "backends/directory",
-  "nuts-archive",
-]
+[package]
+name = "nutsbackend-directory"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+getrandom = "0.2.8"
+log = "0.4.14"
+nuts = { path = "../nuts-container", default-features = false, features = ["backend"] }
+nuts-bytes = "0.1.0"
+serde = { version = "1.0.152", features = ["derive"] }
