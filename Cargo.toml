@@ -1,6 +1,5 @@
 [workspace]
 members = [
-  "nuts",
   "nuts-tool",
   "backends/directory",
   "nuts-archive",
