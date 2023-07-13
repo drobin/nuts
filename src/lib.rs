@@ -26,19 +26,67 @@ mod info;
 mod options;
 
 use log::warn;
-use std::fs::{self, File, OpenOptions};
+use std::cmp;
+use std::fs::{self, File};
 use std::io::{self, ErrorKind, Read, Write};
-use std::path::PathBuf;
-use std::{cmp, result};
+use std::path::{Path, PathBuf};
 
-use nuts::backend::{Backend, BLOCK_MIN_SIZE};
+use nuts::backend::Backend;
 
 pub use error::Error;
-pub use id::DirectoryId;
-pub use info::DirectoryInfo;
-pub use options::{DirectoryCreateOptions, DirectoryOpenOptions, DirectorySettings};
+pub use id::Id;
+pub use info::Info;
+pub use options::{CreateOptions, OpenOptions, Settings};
 
-use error::Result;
+use crate::error::Result;
+
+fn open_read(path: &Path, id: &Id) -> io::Result<File> {
+    let path = id.to_pathbuf(path);
+    fs::OpenOptions::new().read(true).open(path)
+}
+
+fn open_write(path: &Path, id: &Id, aquire: bool) -> io::Result<File> {
+    let path = id.to_pathbuf(path);
+
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir)?;
+    }
+
+    let fh = if aquire {
+        fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)?
+    } else {
+        fs::OpenOptions::new().write(true).create(true).open(path)?
+    };
+
+    Ok(fh)
+}
+
+fn read_block(path: &Path, id: &Id, bsize: u32, buf: &mut [u8]) -> Result<usize> {
+    let len = cmp::min(buf.len(), bsize as usize);
+    let target = &mut buf[..len];
+
+    let mut fh = open_read(path, id)?;
+
+    fh.read_exact(target)?;
+
+    Ok(len)
+}
+
+fn write_block(path: &Path, id: &Id, bsize: u32, buf: &[u8]) -> Result<usize> {
+    let len = cmp::min(buf.len(), bsize as usize);
+    let pad_len = bsize as usize - len;
+
+    let mut fh = open_write(path, id, false)?;
+
+    fh.write_all(&buf[..len])?;
+    fh.write_all(&vec![0; pad_len])?;
+    fh.flush()?;
+
+    Ok(len)
+}
 
 #[derive(Debug)]
 pub struct DirectoryBackend {
@@ -46,87 +94,29 @@ pub struct DirectoryBackend {
     path: PathBuf,
 }
 
-impl DirectoryBackend {
-    fn open_read(&self, id: &DirectoryId) -> io::Result<File> {
-        let path = id.to_pathbuf(&self.path);
-        OpenOptions::new().read(true).open(path)
-    }
-
-    fn open_write(&self, id: &DirectoryId, aquire: bool) -> io::Result<File> {
-        let path = id.to_pathbuf(&self.path);
-
-        if let Some(dir) = path.parent() {
-            fs::create_dir_all(dir)?;
-        }
-
-        let fh = if aquire {
-            OpenOptions::new().write(true).create_new(true).open(path)?
-        } else {
-            OpenOptions::new().write(true).create(true).open(path)?
-        };
-
-        Ok(fh)
-    }
-}
-
 impl Backend for DirectoryBackend {
-    type CreateOptions = DirectoryCreateOptions;
-    type OpenOptions = DirectoryOpenOptions;
-    type Settings = DirectorySettings;
+    type CreateOptions = CreateOptions;
+    type OpenOptions = OpenOptions;
+    type Settings = Settings;
     type Err = Error;
-    type Id = DirectoryId;
-    type Info = DirectoryInfo;
+    type Id = Id;
+    type Info = Info;
 
-    fn create(options: DirectoryCreateOptions) -> Result<(Self, DirectorySettings)> {
-        let path = options.path.clone();
-
-        if !options.overwrite {
-            let header_path = DirectoryId::min().to_pathbuf(&path);
-
-            if header_path.exists() {
-                return Err(Error::Exists);
-            }
-        }
-
-        let backend = DirectoryBackend {
-            bsize: options.bsize,
-            path,
-        };
-        let envelope = options.into();
-
-        Ok((backend, envelope))
-    }
-
-    fn open(options: DirectoryOpenOptions) -> Result<Self> {
-        Ok(DirectoryBackend {
-            bsize: BLOCK_MIN_SIZE,
-            path: options.path,
-        })
-    }
-
-    fn configure(&mut self, envelope: Self::Settings) {
-        self.bsize = envelope.bsize;
-    }
-
-    fn info(&self) -> Result<DirectoryInfo> {
-        Ok(DirectoryInfo { bsize: self.bsize })
+    fn info(&self) -> Result<Info> {
+        Ok(Info { bsize: self.bsize })
     }
 
     fn block_size(&self) -> u32 {
         self.bsize
     }
 
-    fn header_id(&self) -> DirectoryId {
-        DirectoryId::min()
-    }
-
     fn aquire(&mut self) -> Result<Self::Id> {
         const MAX: u8 = 3;
 
         for n in 0..MAX {
-            let id = DirectoryId::generate();
+            let id = Id::generate();
 
-            match self.open_write(&id, true) {
+            match open_write(&self.path, &id, true) {
                 Ok(mut fh) => {
                     fh.flush()?;
                     return Ok(id);
@@ -150,27 +140,11 @@ impl Backend for DirectoryBackend {
         Ok(fs::remove_file(&path)?)
     }
 
-    fn read(&mut self, id: &DirectoryId, buf: &mut [u8]) -> result::Result<usize, Self::Err> {
-        let len = cmp::min(buf.len(), self.bsize as usize);
-        let target = &mut buf[..len];
-
-        let mut fh = self.open_read(id)?;
-
-        fh.read_exact(target)?;
-
-        Ok(len)
+    fn read(&mut self, id: &Id, buf: &mut [u8]) -> Result<usize> {
+        read_block(&self.path, id, self.bsize, buf)
     }
 
-    fn write(&mut self, id: &DirectoryId, buf: &[u8]) -> result::Result<usize, Self::Err> {
-        let len = cmp::min(buf.len(), self.bsize as usize);
-        let pad_len = self.bsize as usize - len;
-
-        let mut fh = self.open_write(id, false)?;
-
-        fh.write_all(&buf[..len])?;
-        fh.write_all(&vec![0; pad_len])?;
-        fh.flush()?;
-
-        Ok(len)
+    fn write(&mut self, id: &Id, buf: &[u8]) -> Result<usize> {
+        write_block(&self.path, id, self.bsize, buf)
     }
 }

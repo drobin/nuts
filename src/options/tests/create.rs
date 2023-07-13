@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,9 +20,36 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-/// [Information](nuts::backend::Backend::Info) from the backend.
-#[derive(Debug)]
-pub struct Info {
-    /// The block size.
-    pub bsize: u32,
+use crate::error::Error;
+use crate::options::CreateOptions;
+
+#[test]
+fn valid_default() {
+    let options = CreateOptions::for_path("foo");
+
+    options.validate().unwrap();
+
+    assert_eq!(options.path.to_str().unwrap(), "foo");
+    assert_eq!(options.bsize, 512);
+}
+
+#[test]
+fn invalid_bsize() {
+    for n in [0, 1, 511] {
+        let options = CreateOptions::for_path("foo").with_bsize(n);
+        let err = options.validate().unwrap_err();
+        assert!(matches!(err, Error::InvalidBlockSize(_n)));
+    }
+}
+
+#[test]
+fn valid_bsize() {
+    for n in [512, 513, 514, 1024] {
+        let options = CreateOptions::for_path("foo").with_bsize(n);
+
+        options.validate().unwrap();
+
+        assert_eq!(options.path.to_str().unwrap(), "foo");
+        assert_eq!(options.bsize, n);
+    }
 }

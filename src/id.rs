@@ -54,27 +54,27 @@ const HEX: [char; SIZE] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
 ];
 
-/// The id of the backend.
+/// The [id](nuts::backend::Backend::Id) of the backend.
 ///
 /// This id as an 16 byte random number.
 ///
-/// When storing a block to disks the path to the file is derive from the id:
+/// When storing a block to disks the path to the file is derived from the id:
 /// * The id is converted into a hex string.
-/// * Ths path then would be: `<first two chars>/<next two chars>/<remaining chars>`
+/// * The path then would be: `<first two chars>/<next two chars>/<remaining chars>`
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct DirectoryId([u8; SIZE]);
+pub struct Id([u8; SIZE]);
 
-impl DirectoryId {
-    pub(crate) fn generate() -> DirectoryId {
-        DirectoryId(rand_bytes())
+impl Id {
+    pub(crate) fn generate() -> Id {
+        Id(rand_bytes())
     }
 
-    pub(crate) fn min() -> DirectoryId {
-        DirectoryId([u8::MIN; SIZE])
+    pub(crate) fn min() -> Id {
+        Id([u8::MIN; SIZE])
     }
 
-    pub(crate) fn max() -> DirectoryId {
-        DirectoryId([u8::MAX; SIZE])
+    pub(crate) fn max() -> Id {
+        Id([u8::MAX; SIZE])
     }
 
     fn as_hex(&self) -> String {
@@ -106,13 +106,13 @@ impl DirectoryId {
     }
 }
 
-impl fmt::Display for DirectoryId {
+impl fmt::Display for Id {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_str(&self.as_hex())
     }
 }
 
-impl FromStr for DirectoryId {
+impl FromStr for Id {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
@@ -120,7 +120,7 @@ impl FromStr for DirectoryId {
             return Err(Error::InvalidId(s.to_string()));
         }
 
-        let mut id = DirectoryId::min();
+        let mut id = Id::min();
         let mut iter = s.chars();
 
         for n in id.0.iter_mut() {
@@ -142,13 +142,13 @@ impl FromStr for DirectoryId {
     }
 }
 
-impl BlockId for DirectoryId {
-    fn null() -> DirectoryId {
-        DirectoryId::max()
+impl BlockId for Id {
+    fn null() -> Id {
+        Id::max()
     }
 
     fn is_null(&self) -> bool {
-        self.0 == DirectoryId::max().0
+        self.0 == Id::max().0
     }
 
     fn size() -> usize {

@@ -31,14 +31,14 @@ pub enum Error {
     /// You are creating a new backend which already exists.
     Exists,
 
-    /// Could not generate a unique [id](crate::DirectoryId).
+    /// Could not generate a unique [id](crate::Id).
     UniqueId,
 
-    /// The [id](crate::DirectoryId) is invalid, is not a hex string.
+    /// The [id](crate::Id) is invalid, is not a hex string.
     InvalidId(String),
 
-    /// The block size passed to
-    /// [DirectoryCreateOptions](crate::DirectoryCreateOptions) is invalid.
+    /// The block size passed to [CreateOptions](crate::CreateOptions) is
+    /// invalid.
     InvalidBlockSize(u32),
 }
 

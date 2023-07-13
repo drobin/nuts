@@ -22,7 +22,7 @@
 
 use nuts_bytes::{Reader, Writer};
 
-use crate::id::DirectoryId;
+use crate::id::Id;
 
 const ID: [u8; 16] = [
     0xdb, 0x3d, 0x05, 0x23, 0xd4, 0x50, 0x75, 0x30, 0xe8, 0x6d, 0xf9, 0x6a, 0x1b, 0x76, 0xaa, 0x0c,
@@ -31,19 +31,19 @@ const ID_SLICE: &str = "db3d0523d4507530e86df96a1b76aa0c";
 
 #[test]
 fn generate() {
-    let id = DirectoryId::generate();
+    let id = Id::generate();
     assert_eq!(id.0, ID);
 }
 
 #[test]
 fn min() {
-    let id = DirectoryId::min();
+    let id = Id::min();
     assert_eq!(id.0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 }
 
 #[test]
 fn max() {
-    let id = DirectoryId::max();
+    let id = Id::max();
     assert_eq!(
         id.0,
         [
@@ -55,13 +55,13 @@ fn max() {
 
 #[test]
 fn as_hex() {
-    let id = DirectoryId::generate();
+    let id = Id::generate();
     assert_eq!(id.as_hex(), ID_SLICE);
 }
 
 #[test]
 fn to_pathbuf() {
-    let id = DirectoryId::generate();
+    let id = Id::generate();
     let path = id.to_pathbuf("foo");
 
     assert_eq!(
@@ -72,13 +72,13 @@ fn to_pathbuf() {
 
 #[test]
 fn from_str() {
-    let id = ID_SLICE.parse::<DirectoryId>().unwrap();
+    let id = ID_SLICE.parse::<Id>().unwrap();
     assert_eq!(id.0, ID);
 }
 
 #[test]
 fn from_str_inval_len() {
-    let err = ID_SLICE[..31].parse::<DirectoryId>().unwrap_err();
+    let err = ID_SLICE[..31].parse::<Id>().unwrap_err();
 
     assert_eq!(
         format!("{}", err),
@@ -93,7 +93,7 @@ fn from_str_inval_char() {
 
     assert_eq!(inval_id.len(), 32);
 
-    let err = inval_id.parse::<DirectoryId>().unwrap_err();
+    let err = inval_id.parse::<Id>().unwrap_err();
 
     assert_eq!(
         format!("{}", err),
@@ -103,15 +103,13 @@ fn from_str_inval_char() {
 
 #[test]
 fn de() {
-    let id = Reader::new(ID.as_slice())
-        .deserialize::<DirectoryId>()
-        .unwrap();
+    let id = Reader::new(ID.as_slice()).deserialize::<Id>().unwrap();
     assert_eq!(id.0, ID);
 }
 
 #[test]
 fn ser() {
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.serialize(&DirectoryId::generate()).unwrap(), 16);
+    assert_eq!(writer.serialize(&Id::generate()).unwrap(), 16);
     assert_eq!(writer.into_target(), ID);
 }

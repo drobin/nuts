@@ -20,41 +20,78 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-use nuts::backend::{Options, BLOCK_MIN_SIZE};
+use nuts::backend::{Create, Open, HEADER_MAX_SIZE};
 
 use crate::error::{Error, Result};
+use crate::id::Id;
 use crate::DirectoryBackend;
+use crate::{read_block, write_block};
 
-#[derive(Debug)]
-pub struct DirectoryCreateOptions {
-    pub(crate) path: PathBuf,
-    pub(crate) bsize: u32,
-    pub(crate) overwrite: bool,
+const BLOCK_MIN_SIZE: u32 = 512;
+
+/// [Options](nuts::backend::Backend::CreateOptions) needed to create the backend.
+///
+/// You must pass the path, where the directory tree should be stored, to
+/// [`CreateOptions::for_path()`], if creating a `CreateOptions` instance.
+///
+/// Furthermore the following options can be specified:
+///
+/// * [`CreateOptions::with_overwrite()`]: If set to `true` an already existing
+///   path is reused. **Note**: If you overwrite an existing path, the content
+///   is not removed! If set to `false` and the base path exists, the build
+///   operation aborts with [`Error::Exists`]. The default is `false`.
+/// * [`CreateOptions::with_bsize()`]: Specifies the block size of the backend.
+///   This is the number of bytes, which can  be stored in an individual block.
+///   The minimum block size is 512 bytes. The default is `512`.
+#[derive(Clone, Debug)]
+pub struct CreateOptions {
+    path: PathBuf,
+    bsize: u32,
+    overwrite: bool,
 }
 
-impl DirectoryCreateOptions {
+impl CreateOptions {
+    /// Creates a new `CreateOptions` instance.
+    ///
+    /// You must pass the `path`, where the directory tree should be stored, to
+    /// the function.
+    ///
+    /// For further options default values are applied.
     pub fn for_path<P: AsRef<Path>>(path: P) -> Self {
-        DirectoryCreateOptions {
+        CreateOptions {
             path: path.as_ref().to_path_buf(),
             bsize: BLOCK_MIN_SIZE,
             overwrite: false,
         }
     }
 
+    /// Assigns a new overwrite flag to the options.
+    ///
+    /// If set to `true` an already existing path is reused. **Note**: If you
+    /// overwrite an existing path, the content is not removed! If set to
+    /// `false` and the base path exists, the build operation aborts with
+    /// [`Error::Exists`].
     pub fn with_overwrite(mut self, overwrite: bool) -> Self {
         self.overwrite = overwrite;
         self
     }
 
+    /// Assigns a new block size to the options.
+    ///
+    /// This is the number of bytes, which can  be stored in an individual
+    /// block.
     pub fn with_bsize(mut self, bsize: u32) -> Self {
         self.bsize = bsize;
         self
     }
 
-    fn bsize_validate(&self) -> Result<()> {
+    fn validate(&self) -> Result<()> {
         if self.bsize >= BLOCK_MIN_SIZE {
             Ok(())
         } else {
@@ -63,38 +100,77 @@ impl DirectoryCreateOptions {
     }
 }
 
-impl Options<DirectoryBackend> for DirectoryCreateOptions {
-    fn validate(&self) -> Result<()> {
-        self.bsize_validate()
+impl Create<DirectoryBackend> for CreateOptions {
+    fn settings(&self) -> Settings {
+        self.clone().into()
+    }
+
+    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
+        self.validate()
+            .and_then(|()| write_block(&self.path, &Id::min(), self.bsize, bytes))
+            .map(|_| ())
+    }
+
+    fn build(self) -> Result<DirectoryBackend> {
+        self.validate()?;
+
+        if !self.overwrite {
+            let header_path = Id::min().to_pathbuf(&self.path);
+
+            if header_path.exists() {
+                return Err(Error::Exists);
+            }
+        }
+
+        Ok(DirectoryBackend {
+            bsize: self.bsize,
+            path: self.path,
+        })
     }
 }
 
-pub struct DirectoryOpenOptions {
-    pub(crate) path: PathBuf,
+/// [Options](nuts::backend::Backend::OpenOptions) needed to open the backend.
+///
+/// You must pass the path, where the directory tree is stored, to
+/// [`OpenOptions::for_path()`], if creating a `OpenOptions` instance.
+pub struct OpenOptions {
+    path: PathBuf,
 }
 
-impl DirectoryOpenOptions {
-    pub fn for_path<P: AsRef<Path>>(path: P) -> DirectoryOpenOptions {
-        DirectoryOpenOptions {
+impl OpenOptions {
+    /// Creates a new `OpenOptions` instance.
+    ///
+    /// You must pass the `path`, where the directory tree should is stored, to
+    /// the function.
+    pub fn for_path<P: AsRef<Path>>(path: P) -> OpenOptions {
+        OpenOptions {
             path: path.as_ref().to_path_buf(),
         }
     }
 }
 
-impl Options<DirectoryBackend> for DirectoryOpenOptions {
-    fn validate(&self) -> Result<()> {
-        Ok(())
+impl Open<DirectoryBackend> for OpenOptions {
+    fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<()> {
+        read_block(&self.path, &Id::min(), HEADER_MAX_SIZE as u32, bytes).map(|_| ())
+    }
+
+    fn build(self, settings: Settings) -> Result<DirectoryBackend> {
+        Ok(DirectoryBackend {
+            bsize: settings.bsize,
+            path: self.path,
+        })
     }
 }
 
+/// [Settings](nuts::backend::Backend::Settings) used by the backend.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct DirectorySettings {
-    pub(crate) bsize: u32,
+pub struct Settings {
+    bsize: u32,
 }
 
-impl From<DirectoryCreateOptions> for DirectorySettings {
-    fn from(options: DirectoryCreateOptions) -> Self {
-        DirectorySettings {
+impl From<CreateOptions> for Settings {
+    fn from(options: CreateOptions) -> Self {
+        Settings {
             bsize: options.bsize,
         }
     }
