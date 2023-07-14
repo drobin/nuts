@@ -33,7 +33,7 @@ use log::debug;
 use std::borrow::Cow;
 use std::{any, cmp};
 
-use crate::backend::{Backend, BlockId, BLOCK_MIN_SIZE};
+use crate::backend::{Backend, BlockId, Create, Open, HEADER_MAX_SIZE};
 use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;
@@ -91,20 +91,17 @@ impl<B: Backend> Container<B> {
     // returned.
     //
     // Further errors are listed in the [`Error`] type.
-    pub fn create(options: CreateOptions<B>) -> ContainerResult<Container<B>, B> {
-        let mut header = Header::create(&options)?;
-        let (mut backend, settings) = map_err!(B::create(options.backend))?;
-        let ctx = CipherCtx::new(header.cipher, backend.block_size())?;
+    pub fn create(mut options: CreateOptions<B>) -> ContainerResult<Container<B>, B> {
+        let header = Header::create(&options)?;
+        let settings = options.backend.settings();
 
         let callback = options.callback.map(|cb| cb.clone());
         let mut store = PasswordStore::new(callback);
 
-        if options.top_id {
-            header.top_id = Some(map_err!(backend.aquire())?);
-            debug!("Generated top-id for container");
-        }
+        Self::write_header(&mut options.backend, &header, settings, &mut store)?;
+        let backend = map_err!(options.backend.build())?;
 
-        Self::write_header(&mut backend, &header, settings, &mut store)?;
+        let ctx = CipherCtx::new(header.cipher, backend.block_size())?;
 
         debug!(
             "Container created, backend: {}, header: {:?}",
@@ -132,14 +129,12 @@ impl<B: Backend> Container<B> {
     // returned.
     ///
     // Further errors are listed in the [`Error`] type.
-    pub fn open(options: OpenOptions<B>) -> ContainerResult<Container<B>, B> {
+    pub fn open(mut options: OpenOptions<B>) -> ContainerResult<Container<B>, B> {
         let callback = options.callback.map(|cb| cb.clone());
         let mut store = PasswordStore::new(callback);
 
-        let mut backend = map_err!(B::open(options.backend))?;
-        let (header, settings) = Self::read_header(&mut backend, &mut store)?;
-
-        backend.configure(settings);
+        let (header, settings) = Self::read_header(&mut options.backend, &mut store)?;
+        let backend = map_err!(options.backend.build(settings))?;
 
         let ctx = CipherCtx::new(header.cipher, backend.block_size())?;
 
@@ -301,29 +296,26 @@ impl<B: Backend> Container<B> {
     }
 
     fn read_header(
-        backend: &mut B,
+        backend: &mut B::OpenOptions,
         store: &mut PasswordStore,
     ) -> ContainerResult<(Header<B>, B::Settings), B> {
-        let id = backend.header_id();
-        let mut buf = [0; BLOCK_MIN_SIZE as usize];
+        let mut buf = [0; HEADER_MAX_SIZE];
 
-        match backend.read(&id, &mut buf) {
+        match backend.get_header_bytes(&mut buf) {
             Ok(_) => Ok(Header::read(&buf, store)?),
             Err(cause) => Err(Error::Backend(cause)),
         }
     }
 
     fn write_header(
-        backend: &mut B,
+        backend: &mut B::CreateOptions,
         header: &Header<B>,
         settings: B::Settings,
         store: &mut PasswordStore,
-    ) -> ContainerResult<usize, B> {
-        let id = backend.header_id();
-        let mut buf = [0; BLOCK_MIN_SIZE as usize];
+    ) -> ContainerResult<(), B> {
+        let mut buf = [0; HEADER_MAX_SIZE];
 
         header.write(settings, &mut buf, store)?;
-
-        map_err!(backend.write(&id, &buf))
+        map_err!(backend.put_header_bytes(&buf))
     }
 }

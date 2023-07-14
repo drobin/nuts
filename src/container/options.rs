@@ -23,7 +23,7 @@
 use std::rc::Rc;
 use std::result;
 
-use crate::backend::{Backend, Options};
+use crate::backend::Backend;
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
 #[cfg(doc)]
@@ -140,7 +140,7 @@ impl<B: Backend> CreateOptionsBuilder<B> {
     ///
     /// If validation has failed an [`Error`] is returned.
     pub fn build(self) -> Result<CreateOptions<B>, B::Err> {
-        self.0.backend.validate().map(|()| self.0)
+        Ok(self.0)
     }
 }
 
@@ -196,6 +196,6 @@ impl<B: Backend> OpenOptionsBuilder<B> {
     ///
     /// If validation has failed an [`Error`] is returned.
     pub fn build(self) -> Result<OpenOptions<B>, B::Err> {
-        self.0.backend.validate().map(|()| self.0)
+        Ok(self.0)
     }
 }

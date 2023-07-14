@@ -21,21 +21,21 @@
 // IN THE SOFTWARE.
 
 use crate::container::Container;
-use crate::memory::{MemId, MemoryBackend};
+use crate::memory::{Id, MemoryBackend};
 use crate::stream::{Error, OpenOptions};
 
 use crate::stream::testutils::{
     setup_one, setup_one_with, setup_three, setup_three_with, setup_two, setup_two_with,
 };
 
-fn one(with: Option<&[u8]>) -> (Container<MemoryBackend>, MemId) {
+fn one(with: Option<&[u8]>) -> (Container<MemoryBackend>, Id) {
     match with {
         Some(payload) => setup_one_with(payload),
         None => setup_one(),
     }
 }
 
-fn two(with: Option<(&[u8], &[u8])>) -> (Container<MemoryBackend>, MemId) {
+fn two(with: Option<(&[u8], &[u8])>) -> (Container<MemoryBackend>, Id) {
     let (container, (id1, _)) = match with {
         Some((payload1, payload2)) => setup_two_with(payload1, payload2),
         None => setup_two(),
@@ -44,7 +44,7 @@ fn two(with: Option<(&[u8], &[u8])>) -> (Container<MemoryBackend>, MemId) {
     (container, id1)
 }
 
-fn three(with: Option<(&[u8], &[u8], &[u8])>) -> (Container<MemoryBackend>, MemId) {
+fn three(with: Option<(&[u8], &[u8], &[u8])>) -> (Container<MemoryBackend>, Id) {
     let (container, (id1, ..)) = match with {
         Some((payload1, payload2, payload3)) => setup_three_with(payload1, payload2, payload3),
         None => setup_three(),

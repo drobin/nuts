@@ -27,7 +27,7 @@ pub(crate) mod asserts;
 pub mod backend;
 #[cfg(feature = "container")]
 pub mod container;
-#[cfg(test)]
+#[cfg(all(feature = "backend", feature = "container"))]
 pub mod memory;
 #[cfg(feature = "container")]
 pub mod openssl;

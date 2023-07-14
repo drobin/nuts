@@ -20,6 +20,35 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+//! The backend of a container
+//!
+//! # Create a container
+//!
+//! The [`Create`] trait is used to create a new instance of a [`Backend`].
+//!
+//! Mainly, is performs the following tasks:
+//!
+//! 1. It creates the [`Backend::Settings`] of the backend. The settings
+//!    contains runtime information which are stored in the header of the
+//!    container. Later, when the container is opened again, the settings are
+//!    extracted from the header and passed back to the backend.
+//! 2. It creates the header of the backend instance. Its gets the binary data
+//!    of the header (which already contains the binary encoded settings) and
+//!    must store it at a suitable location.
+//! 3. The final [`Create::build()`] call creates the backend instance, which
+//!    is used by the container.
+//!
+//! # Open a container
+//!
+//! The [`Open`] trait is used to open an existing [`Backend`] instance.
+//!
+//! The container asks the trait for the binary header data using the
+//! [`Open::get_header_bytes()`] method. The implementation should load it from
+//! a suitable location.
+//!
+//! The final [`Open::build()`] call creates the backend instance, which is
+//! used by the container.
+
 use std::error;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
@@ -27,21 +56,8 @@ use std::str::FromStr;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-/// The minimum size of a block.
-pub const BLOCK_MIN_SIZE: u32 = 512;
-
-/// Trait that needs to be implemented by [`Backend::CreateOptions`] and
-/// [`Backend::OpenOptions`].
-pub trait Options<B: Backend> {
-    /// Validates this `Options` implementation.
-    ///
-    /// It should check whether all values are valid.
-    ///
-    /// # Errors
-    ///
-    /// In case of an invalid value a self-defined [`Backend::Err`] is returned.
-    fn validate(&self) -> Result<(), B::Err>;
-}
+// The maximun size of the header.
+pub const HEADER_MAX_SIZE: usize = 512;
 
 /// Trait identifies a block in the storage.
 pub trait BlockId:
@@ -59,34 +75,114 @@ pub trait BlockId:
     fn size() -> usize;
 }
 
+/// Trait to configure the creation of a [`Backend`].
+///
+/// Should contain options used to create a specific backend. When a container
+/// is created, this trait is used to create the related backend.
+///
+/// The [`Create::settings()`] method returns an instance of the settings of
+/// this backend instance. The settings contains runtime configuration used by
+/// the backend. The container stores the settings (possibly encrypted) in the
+/// header of the container and should contain all settings/information needed
+/// by the backend. It is loaded again from the header when the container is
+/// opened.
+///
+/// The container uses the [`Create::put_header_bytes()`] method to ask the
+/// backend to put the given `bytes` into the header. The container does not
+/// know where the backend stores the header, that's why such a method is used.
+/// Not more than [`HEADER_MAX_SIZE`] bytes can be stored in the header.
+///
+/// Finally, the container calls [`Create::build()`] to create an instance of the
+/// [`Backend`]. The resulting backend instance should be able to handle all
+/// operations on it. The [`Create::build()`] method should validate all its
+/// settings before returning the backend instance!
+pub trait Create<B: Backend> {
+    /// Returns the settings of this backend instance.
+    ///
+    /// The settings contains runtime configuration used by the backend. The
+    /// container stores the settings (possibly encrypted) in the header of the
+    /// container and should contain all settings/information needed by the
+    /// backend. It is loaded again from the header when the container is
+    /// opened.
+    fn settings(&self) -> B::Settings;
+
+    /// Puts the given `bytes` into the header of the backend.
+    ///
+    /// The container uses the [`Create::put_header_bytes()`] method to ask the
+    /// backend to put data into the header. The container does not know where
+    /// the backend stores the header, that's why such a method is used. Not
+    /// more than [`HEADER_MAX_SIZE`] bytes can be stored in the header.
+    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<(), B::Err>;
+
+    /// Create an instance of the [`Backend`].
+    ///
+    /// The container calls [`Create::build()`] to create an instance of the
+    /// [`Backend`]. The resulting backend instance should be able to handle
+    /// all operations on it. The [`Create::build()`] method should validate
+    /// all its settings before returning the backend instance!
+    fn build(self) -> Result<B, B::Err>;
+}
+
+/// Trait used to open a [`Backend`].
+///
+/// Should contain options used to open a specific backend. When a container
+/// is opened, this trait is used to open the related backend.
+///
+/// The container uses the [`Open::get_header_bytes()`] method to ask the
+/// backend for the header bytes. The container does not know where the backend
+/// stores the header, that's why such a method is used. Not more than
+/// [`HEADER_MAX_SIZE`] bytes can be stored in the header.
+///
+/// Finally, the container calls [`Create::build()`] to create an instance of the
+/// [`Backend`]. The settings of the backend (extracted from the header) are
+/// passed to the [`Open::build()`] method and can be used to configure the
+/// [`Backend`] instance. The resulting backend instance should be able to
+/// handle all operations on it. The [`Open::build()`] method should validate
+/// all its settings before returning the backend instance!
+pub trait Open<B: Backend> {
+    /// Receives the binary header data from the backend.
+    ///
+    /// The container uses the [`Open::get_header_bytes()`] method to ask the
+    /// backend for the header bytes. The container does not know where the backend
+    /// stores the header, that's why such a method is used. Not more than
+    /// [`HEADER_MAX_SIZE`] bytes can be stored in the header.
+    ///
+    /// The method should put the data into the `bytes` slice.
+    fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), B::Err>;
+
+    /// Create an instance of the [`Backend`].
+    ///
+    /// The container calls [`Create::build()`] to create an instance of the
+    /// [`Backend`]. The settings of the backend (extracted from the header) are
+    /// passed to the method and can be used to configure the [`Backend`]. The
+    /// resulting backend instance should be able to handle all operations on
+    /// it. The method should validate all its settings before returning the
+    /// backend instance!
+    fn build(self, settings: B::Settings) -> Result<B, B::Err>;
+}
+
+/// Trait that describes a backend of a container.
 pub trait Backend
 where
     Self: Sized,
 {
     /// Options used to create a backend instance.
     ///
-    /// Passed to [`Backend::create`] and customizes the backend.
-    type CreateOptions: Options<Self>;
+    /// Used to create a backend.
+    type CreateOptions: Create<Self>;
 
     /// Options used to open a backend instance.
     ///
-    /// Passed to [`Backend::open`] and contains options used to open the
-    /// backend.
-    type OpenOptions: Options<Self>;
+    /// Use to open the backend.
+    type OpenOptions: Open<Self>;
 
     /// Runtime configuration used by the backend.
     ///
     /// It should contain all settings/information needed by the backend. It is
-    /// loaded from the header when the backend is [opened](Backend::open).
+    /// loaded from the header when the backend is opened. See the [`Open`]
+    /// trait for more information on how the backend is opened.
     ///
-    /// The [`Backend::create`] method returns an instance of this type, so the
-    /// container stores the settings (possibly encrypted) in the header of the
-    /// container.
-    ///
-    /// When the container is [opened](nuts::container::Container::open), the
-    /// [`Backend::open`] method is called to open the backend. Next, the
-    /// container reads its header, extracts the settings from it and pass it
-    /// down to the backend by calling the [`Backend::open_ready`] method.
+    /// The [`Create`] trait is used to create the settings of a backend.
     type Settings: Clone + DeserializeOwned + Serialize;
 
     /// The error type used by methods of this trait.
@@ -103,46 +199,6 @@ where
     /// sensible information which are removed from [`Backend::Info`].
     type Info;
 
-    /// Creates a new instance of the backend.
-    ///
-    /// On success the backend is open and ready to read and write data.
-    ///
-    /// The method returns
-    /// * The backend instance itself. The upper container uses this instance.
-    /// * A [`Backend::Settings`] instance. The settings are stored in the
-    /// header of the container and are extracted again when the container is
-    /// opened again.
-    ///
-    /// # Errors
-    ///
-    /// On any error a self-defined [`Backend::Err`] is returned.
-    fn create(options: Self::CreateOptions) -> Result<(Self, Self::Settings), Self::Err>;
-
-    /// Opens an instance of the backend.
-    ///
-    /// On success the backend is open and ready to read and write data. The
-    /// [settings](Backend::Settings) are sill missing. Once the backend is
-    /// open, the upper container reads the header and extracts the settings
-    /// from it. Finally it calls [`Backend::open_ready`] to assign the
-    /// settings to its backend. Thats why there is one [`Backend::read`]
-    /// attempt to the backend, which reads the header block. This read should
-    /// succeed even without complete settings. Consider using default values
-    /// for your settings.
-    ///
-    /// The method returns the backend instance itself.
-    ///
-    /// # Errors
-    ///
-    /// On any error a self-defined [`Backend::Err`] is returned.
-    fn open(options: Self::OpenOptions) -> Result<Self, Self::Err>;
-
-    /// Method is called by the container to configure the backend.
-    ///
-    /// Once the backend is [open](Backend::open), the upper container reads
-    /// the header and extracts the settings from it. Finally it calls
-    /// [`Backend::configure`] to assign the settings to its backend.
-    fn configure(&mut self, settings: Self::Settings);
-
     /// Returns information from the backend.
     ///
     /// It includes information like public settings. The difference to
@@ -154,18 +210,8 @@ where
     /// On any error a self-defined [`Backend::Err`] is returned.
     fn info(&self) -> Result<Self::Info, Self::Err>;
 
-    /// Returns the current block size.
-    ///
-    /// * If the backend was [created](Backend::create) you should be able to
-    ///   provide the final block size because all options and settings are
-    ///   available.
-    /// * If the backend was [opened](Backend::open) and [Self::open_ready()]
-    ///   was not invoked yet, the final block size might not be available. In
-    ///   this case [`BLOCK_MIN_SIZE`] should be returned.
+    /// Returns the block size of the backend.
     fn block_size(&self) -> u32;
-
-    /// Returns the if where the container stores the header.
-    fn header_id(&self) -> Self::Id;
 
     /// Aquires a new block in the backend.
     ///

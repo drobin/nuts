@@ -21,23 +21,23 @@
 // IN THE SOFTWARE.
 
 use crate::container::Container;
-use crate::memory::{MemId, MemoryBackend};
+use crate::memory::{Id, MemoryBackend};
 use crate::openssl::rand::RND;
 use crate::stream::inner::Inner;
 use crate::stream::{Error, OpenOptions};
 
 use crate::stream::testutils::{setup_one, setup_three, setup_two};
 
-fn one() -> (Container<MemoryBackend>, MemId) {
+fn one() -> (Container<MemoryBackend>, Id) {
     setup_one()
 }
 
-fn two() -> (Container<MemoryBackend>, MemId) {
+fn two() -> (Container<MemoryBackend>, Id) {
     let (container, (id1, ..)) = setup_two();
     (container, id1)
 }
 
-fn three() -> (Container<MemoryBackend>, MemId) {
+fn three() -> (Container<MemoryBackend>, Id) {
     let (container, (id1, ..)) = setup_three();
     (container, id1)
 }

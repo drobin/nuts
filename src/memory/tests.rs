@@ -20,35 +20,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod plain_secret;
-mod secret;
-
-use crate::container::header::secret::{Magics, PlainSecret};
+use crate::container::{Cipher, Container, CreateOptionsBuilder, Digest, Kdf, OpenOptionsBuilder};
 use crate::memory::MemoryBackend;
 
-// key: AE 18 FF 41 77 79 0F 07 AB 11 E2 F1 8C 87 AD 9A
-// iv: 01010101010101010101010101010101
-const SECRET: [u8; 34] = [
-    0x5c, 0x68, 0x30, 0x8f, 0x47, 0x19, 0xf4, 0x76, 0xf2, 0x72, 0xbc, 0x06, 0x1c, 0xf3, 0x58, 0xca,
-    0x54, 0x2c, 0xca, 0xf8, 0xe6, 0x7d, 0xe1, 0xfb, 0xb4, 0xe1, 0x1c, 0xbe, 0xb7, 0x82, 0x54, 0x3b,
-    0xee, 0x16,
-];
+#[test]
+fn create() {
+    let backend = MemoryBackend::new();
+    let kdf = Kdf::pbkdf2(Digest::Sha1, 65536, b"123");
 
-const PLAIN_SECRET: [u8; 34] = [
-    0x00, 0x00, 0x12, 0x67, // magic1
-    0x00, 0x00, 0x12, 0x67, // magic2
-    0, 0, 0, 0, 0, 0, 0, 2, 1, 2, // key
-    0, 0, 0, 0, 0, 0, 0, 3, 3, 4, 5, // iv
-    0x01, 0x00, 0x00, 0x02, 0x9A, // Some(top-id)
-          // settings (empty)
-];
+    // Let's create an encrypted container (with aes128-ctr).
+    let options = CreateOptionsBuilder::<MemoryBackend>::new(backend, Cipher::Aes128Ctr)
+        .with_password_callback(|| Ok(b"abc".to_vec()))
+        .with_kdf(kdf.clone())
+        .build()
+        .unwrap();
+    let container = Container::create(options).unwrap();
+    let info = container.info().unwrap();
 
-fn plain_secret() -> PlainSecret<MemoryBackend> {
-    PlainSecret {
-        magics: Magics([4711, 4711]),
-        key: vec![1, 2].into(),
-        iv: vec![3, 4, 5].into(),
-        top_id: Some("666".parse().unwrap()),
-        settings: (),
-    }
+    assert_eq!(info.cipher, Cipher::Aes128Ctr);
+    assert_eq!(info.kdf, kdf);
+}
+
+#[test]
+fn open() {
+    let backend = MemoryBackend::new();
+
+    // When opening a contaier with a MemoryBackend attached,
+    // the container is always unencrypted.
+    let options = OpenOptionsBuilder::<MemoryBackend>::new(backend)
+        .build()
+        .unwrap();
+    let container = Container::open(options).unwrap();
+    let info = container.info().unwrap();
+
+    assert_eq!(info.cipher, Cipher::None);
+    assert_eq!(info.kdf, Kdf::None);
 }
