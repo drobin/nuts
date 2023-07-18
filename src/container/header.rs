@@ -104,16 +104,16 @@ impl From<NoPasswordError> for HeaderError {
     }
 }
 
-pub struct Header<B: Backend> {
+pub struct Header {
     pub(crate) cipher: Cipher,
     pub(crate) kdf: Kdf,
     pub(crate) key: SecureVec,
     pub(crate) iv: SecureVec,
-    pub(crate) top_id: Option<B::Id>,
+    pub(crate) userdata: SecureVec,
 }
 
-impl<B: Backend> Header<B> {
-    pub fn create(options: &CreateOptions<B>) -> Result<Header<B>, HeaderError> {
+impl Header {
+    pub fn create<B: Backend>(options: &CreateOptions<B>) -> Result<Header, HeaderError> {
         let cipher = options.cipher;
         let mut key = vec![0; cipher.key_len()];
         let mut iv = vec![0; cipher.iv_len()];
@@ -128,14 +128,14 @@ impl<B: Backend> Header<B> {
             kdf,
             key: key.into(),
             iv: iv.into(),
-            top_id: None,
+            userdata: vec![].into(),
         })
     }
 
-    pub fn read(
+    pub fn read<B: Backend>(
         buf: &[u8],
         store: &mut PasswordStore,
-    ) -> Result<(Header<B>, B::Settings), HeaderError> {
+    ) -> Result<(Header, B::Settings), HeaderError> {
         let inner = Reader::new(buf).deserialize::<Inner>()?;
 
         let Revision::Rev0(rev0) = inner.rev;
@@ -150,13 +150,13 @@ impl<B: Backend> Header<B> {
                 kdf: rev0.kdf,
                 key: plain_secret.key,
                 iv: plain_secret.iv,
-                top_id: plain_secret.top_id,
+                userdata: plain_secret.userdata,
             },
             plain_secret.settings,
         ))
     }
 
-    pub fn write(
+    pub fn write<B: Backend>(
         &self,
         settings: B::Settings,
         buf: &mut [u8],
@@ -165,7 +165,7 @@ impl<B: Backend> Header<B> {
         let plain_secret = PlainSecret::<B>::generate(
             self.key.clone(),
             self.iv.clone(),
-            self.top_id.clone(),
+            self.userdata.clone(),
             settings,
         )?;
 
@@ -188,7 +188,7 @@ impl<B: Backend> Header<B> {
     }
 }
 
-impl<B: Backend> fmt::Debug for Header<B> {
+impl fmt::Debug for Header {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (key, iv) = if cfg!(feature = "debug-plain-keys") && cfg!(debug_assertions) {
             let mut key = String::with_capacity(2 * self.key.len());

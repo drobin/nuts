@@ -33,7 +33,7 @@ use log::debug;
 use std::borrow::Cow;
 use std::{any, cmp};
 
-use crate::backend::{Backend, BlockId, Create, Open, HEADER_MAX_SIZE};
+use crate::backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;
@@ -65,7 +65,8 @@ macro_rules! map_err {
 /// the container resp. write data into the container.
 pub struct Container<B: Backend> {
     backend: B,
-    header: Header<B>,
+    store: PasswordStore,
+    header: Header,
     ctx: CipherCtx,
 }
 
@@ -111,6 +112,7 @@ impl<B: Backend> Container<B> {
 
         Ok(Container {
             backend,
+            store,
             header,
             ctx,
         })
@@ -146,6 +148,7 @@ impl<B: Backend> Container<B> {
 
         Ok(Container {
             backend,
+            store,
             header,
             ctx,
         })
@@ -154,18 +157,6 @@ impl<B: Backend> Container<B> {
     /// Returns the backend of this container.
     pub fn backend(&self) -> &B {
         &self.backend
-    }
-
-    /// Returns the top-id of the container.
-    ///
-    /// The top-id can be useful for services runnning on top of the container
-    /// to have a defined, first, top block. The id is stored in the header of
-    /// the container and is generated during creation of the container.
-    ///
-    /// A [`None`] value is returned, if the generation of the top-id is
-    /// disabled. See [`CreateOptionsBuilder::with_top_id()`] for details.
-    pub fn top_id(&self) -> Option<&B::Id> {
-        self.header.top_id.as_ref()
     }
 
     /// Returns information from the container.
@@ -181,6 +172,35 @@ impl<B: Backend> Container<B> {
             cipher: self.header.cipher,
             kdf: self.header.kdf.clone(),
         })
+    }
+
+    /// Returns userdata assigned to the container.
+    ///
+    /// Userdata are arbitrary data stored in the (encrypted) header of the
+    /// container. It can be used by a service running on top of a _nuts_
+    /// container to store information about the service itself.
+    pub fn userdata(&self) -> &[u8] {
+        &self.header.userdata
+    }
+
+    /// Updates the userdata.
+    ///
+    /// Assigns a new set of new userdata to the container; any previous
+    /// userdata are overwritten.
+    ///
+    /// # Errors
+    ///
+    /// Errors are listed in the [`Error`] type.
+    pub fn update_userdata(&mut self, userdata: &[u8]) -> ContainerResult<(), B> {
+        let (mut header, settings) = Self::read_header(&mut self.backend, &mut self.store)?;
+
+        header.userdata.clear();
+        header.userdata.extend_from_slice(userdata);
+
+        Self::write_header(&mut self.backend, &header, settings, &mut self.store)?;
+        self.header = header;
+
+        Ok(())
     }
 
     /// Aquires a new block in the backend.
@@ -295,27 +315,27 @@ impl<B: Backend> Container<B> {
         map_err!(self.backend.write(id, ctext))
     }
 
-    fn read_header(
-        backend: &mut B::OpenOptions,
+    fn read_header<H: HeaderGet<B>>(
+        reader: &mut H,
         store: &mut PasswordStore,
-    ) -> ContainerResult<(Header<B>, B::Settings), B> {
+    ) -> ContainerResult<(Header, B::Settings), B> {
         let mut buf = [0; HEADER_MAX_SIZE];
 
-        match backend.get_header_bytes(&mut buf) {
-            Ok(_) => Ok(Header::read(&buf, store)?),
+        match reader.get_header_bytes(&mut buf) {
+            Ok(_) => Ok(Header::read::<B>(&buf, store)?),
             Err(cause) => Err(Error::Backend(cause)),
         }
     }
 
-    fn write_header(
-        backend: &mut B::CreateOptions,
-        header: &Header<B>,
+    fn write_header<H: HeaderSet<B>>(
+        writer: &mut H,
+        header: &Header,
         settings: B::Settings,
         store: &mut PasswordStore,
     ) -> ContainerResult<(), B> {
         let mut buf = [0; HEADER_MAX_SIZE];
 
-        header.write(settings, &mut buf, store)?;
-        map_err!(backend.put_header_bytes(&buf))
+        header.write::<B>(settings, &mut buf, store)?;
+        map_err!(writer.put_header_bytes(&buf))
     }
 }

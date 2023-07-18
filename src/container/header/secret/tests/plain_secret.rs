@@ -36,7 +36,7 @@ use crate::memory::MemoryBackend;
 fn ser() {
     let plain_secret = plain_secret();
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.serialize(&plain_secret).unwrap(), 34);
+    assert_eq!(writer.serialize(&plain_secret).unwrap(), 37);
     assert_eq!(writer.into_target(), PLAIN_SECRET);
 }
 

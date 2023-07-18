@@ -106,7 +106,7 @@ pub struct PlainSecret<B: Backend> {
     magics: Magics,
     pub key: SecureVec,
     pub iv: SecureVec,
-    pub top_id: Option<B::Id>,
+    pub userdata: SecureVec,
     pub settings: B::Settings,
 }
 
@@ -114,14 +114,14 @@ impl<B: Backend> PlainSecret<B> {
     pub fn generate(
         key: SecureVec,
         iv: SecureVec,
-        top_id: Option<B::Id>,
+        userdata: SecureVec,
         settings: B::Settings,
     ) -> Result<PlainSecret<B>, OpenSSLError> {
         Ok(PlainSecret {
             magics: Magics::generate()?,
             key,
             iv,
-            top_id,
+            userdata,
             settings,
         })
     }

@@ -95,7 +95,7 @@ use std::num::ParseIntError;
 use std::str::FromStr;
 use std::{cmp, error, fmt, mem};
 
-use crate::backend::{Backend, BlockId, Create, Open, HEADER_MAX_SIZE};
+use crate::backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 use crate::container::{Cipher, Kdf};
 
 const BSIZE: u32 = 512;
@@ -188,7 +188,7 @@ impl MemoryBackend {
         writer.serialize(&1u32)?; // magic 2
         writer.serialize::<Vec<u8>>(&vec![])?; // key
         writer.serialize::<Vec<u8>>(&vec![])?; // iv
-        writer.serialize(&Option::<Id>::None)?; // top-id
+        writer.serialize::<Vec<u8>>(&vec![])?; // userdata
         writer.serialize(&())?; // settings
 
         Ok(writer.into_target())
@@ -209,14 +209,23 @@ impl MemoryBackend {
     }
 }
 
-impl Create<Self> for MemoryBackend {
-    fn settings(&self) -> () {
-        ()
+impl HeaderGet<Self> for MemoryBackend {
+    fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
+        // let's generate some header-data on the fly
+        self.header_bytes(bytes)
     }
+}
 
+impl HeaderSet<Self> for MemoryBackend {
     fn put_header_bytes(&mut self, _bytes: &[u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
         // ignore this call, you cannot make it persistent
         Ok(())
+    }
+}
+
+impl Create<Self> for MemoryBackend {
+    fn settings(&self) -> () {
+        ()
     }
 
     fn build(self) -> Result<MemoryBackend, Error> {
@@ -225,11 +234,6 @@ impl Create<Self> for MemoryBackend {
 }
 
 impl Open<Self> for MemoryBackend {
-    fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
-        // let's generate some header-data on the fly
-        self.header_bytes(bytes)
-    }
-
     fn build(self, _settings: ()) -> Result<MemoryBackend, Error> {
         Ok(self)
     }

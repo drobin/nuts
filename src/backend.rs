@@ -32,9 +32,9 @@
 //!    contains runtime information which are stored in the header of the
 //!    container. Later, when the container is opened again, the settings are
 //!    extracted from the header and passed back to the backend.
-//! 2. It creates the header of the backend instance. Its gets the binary data
-//!    of the header (which already contains the binary encoded settings) and
-//!    must store it at a suitable location.
+//! 2. It creates the header of the backend instance using the [`HeaderSet`]
+//!    trait. Its gets the binary data of the header (which already contains
+//!    the binary encoded settings) and must store it at a suitable location.
 //! 3. The final [`Create::build()`] call creates the backend instance, which
 //!    is used by the container.
 //!
@@ -43,8 +43,8 @@
 //! The [`Open`] trait is used to open an existing [`Backend`] instance.
 //!
 //! The container asks the trait for the binary header data using the
-//! [`Open::get_header_bytes()`] method. The implementation should load it from
-//! a suitable location.
+//! [`HeaderGet`] trait. The implementation should load it from a suitable
+//! location.
 //!
 //! The final [`Open::build()`] call creates the backend instance, which is
 //! used by the container.
@@ -75,6 +75,40 @@ pub trait BlockId:
     fn size() -> usize;
 }
 
+/// Trait used to receive the header of a container.
+///
+/// The container uses the [`HeaderGet::get_header_bytes()`] method to ask the
+/// backend for the header bytes. The container does not know where the backend
+/// stores the header, that's why such a method is used. Not more than
+/// [`HEADER_MAX_SIZE`] bytes can be stored in the header.
+pub trait HeaderGet<B: Backend> {
+    /// Receives the binary header data from the backend.
+    ///
+    /// The container uses this method to ask the backend for the header bytes.
+    /// The container does not know where the backend stores the header, that's
+    /// why such a method is used. Not more than [`HEADER_MAX_SIZE`] bytes can
+    /// be stored in the header.
+    ///
+    /// The method should put the data into the `bytes` slice.
+    fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), B::Err>;
+}
+
+/// Trait used to update the header of a container.
+///
+/// The container uses the [`HeaderSet::put_header_bytes()`] method to ask the
+/// backend to put the given `bytes` into the header. The container does not
+/// know where the backend stores the header, that's why such a trait is used.
+/// Not more than [`HEADER_MAX_SIZE`] bytes can be stored in the header.
+pub trait HeaderSet<B: Backend> {
+    /// Puts the given `bytes` into the header of the backend.
+    ///
+    /// The container uses this method to ask the backend to put data into the
+    /// header. The container does not know where the backend stores the
+    /// header, that's why such a method is used. Not more than
+    /// [`HEADER_MAX_SIZE`] bytes can be stored in the header.
+    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<(), B::Err>;
+}
+
 /// Trait to configure the creation of a [`Backend`].
 ///
 /// Should contain options used to create a specific backend. When a container
@@ -87,16 +121,14 @@ pub trait BlockId:
 /// by the backend. It is loaded again from the header when the container is
 /// opened.
 ///
-/// The container uses the [`Create::put_header_bytes()`] method to ask the
-/// backend to put the given `bytes` into the header. The container does not
-/// know where the backend stores the header, that's why such a method is used.
-/// Not more than [`HEADER_MAX_SIZE`] bytes can be stored in the header.
+/// Any type that implements this `Create` trait must also implement the
+/// [`HeaderSet`] trait because the header of the container is created here.
 ///
 /// Finally, the container calls [`Create::build()`] to create an instance of the
 /// [`Backend`]. The resulting backend instance should be able to handle all
 /// operations on it. The [`Create::build()`] method should validate all its
 /// settings before returning the backend instance!
-pub trait Create<B: Backend> {
+pub trait Create<B: Backend>: HeaderSet<B> {
     /// Returns the settings of this backend instance.
     ///
     /// The settings contains runtime configuration used by the backend. The
@@ -105,14 +137,6 @@ pub trait Create<B: Backend> {
     /// backend. It is loaded again from the header when the container is
     /// opened.
     fn settings(&self) -> B::Settings;
-
-    /// Puts the given `bytes` into the header of the backend.
-    ///
-    /// The container uses the [`Create::put_header_bytes()`] method to ask the
-    /// backend to put data into the header. The container does not know where
-    /// the backend stores the header, that's why such a method is used. Not
-    /// more than [`HEADER_MAX_SIZE`] bytes can be stored in the header.
-    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<(), B::Err>;
 
     /// Create an instance of the [`Backend`].
     ///
@@ -128,28 +152,16 @@ pub trait Create<B: Backend> {
 /// Should contain options used to open a specific backend. When a container
 /// is opened, this trait is used to open the related backend.
 ///
-/// The container uses the [`Open::get_header_bytes()`] method to ask the
-/// backend for the header bytes. The container does not know where the backend
-/// stores the header, that's why such a method is used. Not more than
-/// [`HEADER_MAX_SIZE`] bytes can be stored in the header.
+/// Any type that implements this `Open` trait must also implement the
+/// [`HeaderGet`] trait because the header of the container is read here.
 ///
-/// Finally, the container calls [`Create::build()`] to create an instance of the
+/// Finally, the container calls [`Open::build()`] to create an instance of the
 /// [`Backend`]. The settings of the backend (extracted from the header) are
 /// passed to the [`Open::build()`] method and can be used to configure the
 /// [`Backend`] instance. The resulting backend instance should be able to
 /// handle all operations on it. The [`Open::build()`] method should validate
 /// all its settings before returning the backend instance!
-pub trait Open<B: Backend> {
-    /// Receives the binary header data from the backend.
-    ///
-    /// The container uses the [`Open::get_header_bytes()`] method to ask the
-    /// backend for the header bytes. The container does not know where the backend
-    /// stores the header, that's why such a method is used. Not more than
-    /// [`HEADER_MAX_SIZE`] bytes can be stored in the header.
-    ///
-    /// The method should put the data into the `bytes` slice.
-    fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), B::Err>;
-
+pub trait Open<B: Backend>: HeaderGet<B> {
     /// Create an instance of the [`Backend`].
     ///
     /// The container calls [`Create::build()`] to create an instance of the
@@ -162,7 +174,7 @@ pub trait Open<B: Backend> {
 }
 
 /// Trait that describes a backend of a container.
-pub trait Backend
+pub trait Backend: HeaderGet<Self> + HeaderSet<Self>
 where
     Self: Sized,
 {
