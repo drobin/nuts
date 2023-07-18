@@ -31,7 +31,7 @@ use std::fs::{self, File};
 use std::io::{self, ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 
-use nuts::backend::Backend;
+use nuts::backend::{Backend, HeaderGet, HeaderSet, HEADER_MAX_SIZE};
 
 pub use error::Error;
 pub use id::Id;
@@ -88,10 +88,30 @@ fn write_block(path: &Path, id: &Id, bsize: u32, buf: &[u8]) -> Result<usize> {
     Ok(len)
 }
 
+fn read_header(path: &Path, buf: &mut [u8]) -> Result<()> {
+    read_block(path, &Id::min(), HEADER_MAX_SIZE as u32, buf).map(|_| ())
+}
+
+fn write_header(path: &Path, bsize: u32, buf: &[u8]) -> Result<()> {
+    write_block(path, &Id::min(), bsize, buf).map(|_| ())
+}
+
 #[derive(Debug)]
 pub struct DirectoryBackend {
     bsize: u32,
     path: PathBuf,
+}
+
+impl HeaderGet<Self> for DirectoryBackend {
+    fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<()> {
+        read_header(&self.path, bytes)
+    }
+}
+
+impl HeaderSet<Self> for DirectoryBackend {
+    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
+        write_header(&self.path, self.bsize, bytes)
+    }
 }
 
 impl Backend for DirectoryBackend {

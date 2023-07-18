@@ -26,12 +26,11 @@ mod tests;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-use nuts::backend::{Create, Open, HEADER_MAX_SIZE};
+use nuts::backend::{Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 
 use crate::error::{Error, Result};
 use crate::id::Id;
-use crate::DirectoryBackend;
-use crate::{read_block, write_block};
+use crate::{read_header, write_header, DirectoryBackend};
 
 const BLOCK_MIN_SIZE: u32 = 512;
 
@@ -100,15 +99,16 @@ impl CreateOptions {
     }
 }
 
+impl HeaderSet<DirectoryBackend> for CreateOptions {
+    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
+        self.validate()
+            .and_then(|()| write_header(&self.path, self.bsize, bytes))
+    }
+}
+
 impl Create<DirectoryBackend> for CreateOptions {
     fn settings(&self) -> Settings {
         self.clone().into()
-    }
-
-    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
-        self.validate()
-            .and_then(|()| write_block(&self.path, &Id::min(), self.bsize, bytes))
-            .map(|_| ())
     }
 
     fn build(self) -> Result<DirectoryBackend> {
@@ -149,11 +149,13 @@ impl OpenOptions {
     }
 }
 
-impl Open<DirectoryBackend> for OpenOptions {
+impl HeaderGet<DirectoryBackend> for OpenOptions {
     fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<()> {
-        read_block(&self.path, &Id::min(), HEADER_MAX_SIZE as u32, bytes).map(|_| ())
+        read_header(&self.path, bytes)
     }
+}
 
+impl Open<DirectoryBackend> for OpenOptions {
     fn build(self, settings: Settings) -> Result<DirectoryBackend> {
         Ok(DirectoryBackend {
             bsize: settings.bsize,
