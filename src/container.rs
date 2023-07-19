@@ -102,7 +102,7 @@ impl<B: Backend> Container<B> {
         Self::write_header(&mut options.backend, &header, settings, &mut store)?;
         let backend = map_err!(options.backend.build())?;
 
-        let ctx = CipherCtx::new(header.cipher, backend.block_size())?;
+        let ctx = CipherCtx::new(header.cipher)?;
 
         debug!(
             "Container created, backend: {}, header: {:?}",
@@ -138,7 +138,7 @@ impl<B: Backend> Container<B> {
         let (header, settings) = Self::read_header(&mut options.backend, &mut store)?;
         let backend = map_err!(options.backend.build(settings))?;
 
-        let ctx = CipherCtx::new(header.cipher, backend.block_size())?;
+        let ctx = CipherCtx::new(header.cipher)?;
 
         debug!(
             "Container opened, backend: {}, header: {:?}",
@@ -296,8 +296,9 @@ impl<B: Backend> Container<B> {
         let iv = &self.header.iv;
 
         let mut ptext = Cow::from(buf);
+        let ptext_len = cmp::min(ptext.len(), block_size);
 
-        if ptext.len() < block_size {
+        if ptext.len() != block_size {
             // pad with 0 if not a complete block
             ptext.to_mut().resize(block_size, 0);
         }
@@ -306,13 +307,14 @@ impl<B: Backend> Container<B> {
 
         match ptext {
             Cow::Owned(buf) => {
+                // whiteout owned buffer
                 let _: SecureVec = buf.into();
             }
             _ => {}
         };
 
         let ctext = result?;
-        map_err!(self.backend.write(id, ctext))
+        map_err!(self.backend.write(id, ctext)).map(|_| ptext_len)
     }
 
     fn read_header<H: HeaderGet<B>>(

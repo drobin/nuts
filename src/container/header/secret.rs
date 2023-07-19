@@ -79,7 +79,7 @@ impl Secret {
         kdf: &Kdf,
         iv: &[u8],
     ) -> Result<PlainSecret<B>, HeaderError> {
-        let mut ctx = CipherCtx::new(cipher, self.0.len() as u32)?;
+        let mut ctx = CipherCtx::new(cipher)?;
 
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;
@@ -145,7 +145,7 @@ impl<B: Backend> PlainSecret<B> {
             vec![].into()
         };
 
-        let mut ctx = CipherCtx::new(cipher, pbuf.len() as u32)?;
+        let mut ctx = CipherCtx::new(cipher)?;
         let cbuf = ctx.encrypt(&key, &iv, &pbuf)?;
 
         Ok(Secret(cbuf.to_vec()))

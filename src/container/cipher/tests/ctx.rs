@@ -28,7 +28,7 @@ const IV: [u8; 16] = [b'y'; 16];
 
 #[test]
 fn encrypt_none_with_key_iv() {
-    let mut ctx = CipherCtx::new(Cipher::None, 3).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::None).unwrap();
 
     let out = ctx.encrypt(&KEY, &IV, &[1, 2, 3]).unwrap();
     assert_eq!(out, [1, 2, 3]);
@@ -36,23 +36,15 @@ fn encrypt_none_with_key_iv() {
 
 #[test]
 fn encrypt_none_without_key_iv() {
-    let mut ctx = CipherCtx::new(Cipher::None, 3).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::None).unwrap();
 
     let out = ctx.encrypt(&[], &[], &[1, 2, 3]).unwrap();
     assert_eq!(out, [1, 2, 3]);
 }
 
 #[test]
-fn encrypt_none_padded() {
-    let mut ctx = CipherCtx::new(Cipher::None, 4).unwrap();
-
-    let out = ctx.encrypt(&[], &[], &[1, 2, 3]).unwrap();
-    assert_eq!(out, [1, 2, 3, 0]);
-}
-
-#[test]
 fn decrypt_none_with_key() {
-    let mut ctx = CipherCtx::new(Cipher::None, 3).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::None).unwrap();
 
     let out = ctx.decrypt(&KEY, &IV, &[1, 2, 3]).unwrap();
     assert_eq!(out, [1, 2, 3]);
@@ -60,7 +52,7 @@ fn decrypt_none_with_key() {
 
 #[test]
 fn decrypt_none_without_key() {
-    let mut ctx = CipherCtx::new(Cipher::None, 3).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::None).unwrap();
 
     let out = ctx.decrypt(&[], &[], &[1, 2, 3]).unwrap();
     assert_eq!(out, [1, 2, 3]);
@@ -68,7 +60,7 @@ fn decrypt_none_without_key() {
 
 #[test]
 fn decrypt_none_padded() {
-    let mut ctx = CipherCtx::new(Cipher::None, 4).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::None).unwrap();
 
     let out = ctx.decrypt(&[], &[], &[1, 2, 3, 0]).unwrap();
     assert_eq!(out, [1, 2, 3, 0]);
@@ -76,23 +68,15 @@ fn decrypt_none_padded() {
 
 #[test]
 fn encrypt_aes128_ctr() {
-    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr, 3).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let out = ctx.encrypt(&KEY, &IV, &[1, 2, 3]).unwrap();
     assert_eq!(out, [146, 140, 10]);
 }
 
 #[test]
-fn encrypt_aes128_ctr_padded() {
-    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr, 4).unwrap();
-
-    let out = ctx.encrypt(&KEY, &IV, &[1, 2, 3]).unwrap();
-    assert_eq!(out, [146, 140, 10, 195]);
-}
-
-#[test]
 fn encrypt_aes128_ctr_inval_key() {
-    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr, 3).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let err = ctx.encrypt(&KEY[..15], &IV, &[1, 2, 3]).unwrap_err();
     assert_error!(err, OpenSSLError::InvalidKey);
@@ -100,7 +84,7 @@ fn encrypt_aes128_ctr_inval_key() {
 
 #[test]
 fn encrypt_aes128_ctr_inval_iv() {
-    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr, 3).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let err = ctx.encrypt(&KEY, &IV[..15], &[1, 2, 3]).unwrap_err();
     assert_error!(err, OpenSSLError::InvalidIv);
@@ -108,7 +92,7 @@ fn encrypt_aes128_ctr_inval_iv() {
 
 #[test]
 fn decrypt_aes128_ctr() {
-    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr, 3).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let out = ctx.decrypt(&KEY, &IV, &[146, 140, 10]).unwrap();
     assert_eq!(out, [1, 2, 3]);
@@ -116,7 +100,7 @@ fn decrypt_aes128_ctr() {
 
 #[test]
 fn decrypt_aes128_ctr_padded() {
-    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr, 4).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let out = ctx.decrypt(&KEY, &IV, &[146, 140, 10, 195]).unwrap();
     assert_eq!(out, [1, 2, 3, 0]);
@@ -124,7 +108,7 @@ fn decrypt_aes128_ctr_padded() {
 
 #[test]
 fn decrypt_aes128_ctr_inval_key() {
-    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr, 3).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let err = ctx.decrypt(&KEY[..15], &IV, &[146, 140, 10]).unwrap_err();
     assert_error!(err, OpenSSLError::InvalidKey);
@@ -132,7 +116,7 @@ fn decrypt_aes128_ctr_inval_key() {
 
 #[test]
 fn decrypt_aes128_ctr_inval_iv() {
-    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr, 3).unwrap();
+    let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let err = ctx.decrypt(&KEY, &IV[..15], &[146, 140, 10]).unwrap_err();
     assert_error!(err, OpenSSLError::InvalidIv);

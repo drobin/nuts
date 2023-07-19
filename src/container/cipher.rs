@@ -24,7 +24,6 @@
 mod tests;
 
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 use std::str::FromStr;
 use std::{error, fmt};
 
@@ -119,50 +118,36 @@ impl FromStr for Cipher {
 pub struct CipherCtx {
     ctx: evp::CipherCtx,
     cipher: Cipher,
-    block_size: usize,
     out: SecureVec,
 }
 
 impl CipherCtx {
-    pub fn new(cipher: Cipher, block_size: u32) -> Result<CipherCtx, OpenSSLError> {
+    pub fn new(cipher: Cipher) -> Result<CipherCtx, OpenSSLError> {
         Ok(CipherCtx {
             ctx: evp::CipherCtx::new()?,
             cipher,
-            block_size: block_size as usize,
             out: vec![].into(),
         })
     }
 
     pub fn encrypt(&mut self, key: &[u8], iv: &[u8], input: &[u8]) -> Result<&[u8], OpenSSLError> {
-        let ptext = self.prepare_ptext(input);
-
         match self.cipher.to_evp() {
-            Some(cipher) => self.encrypt_some(cipher, key, iv, &ptext),
-            None => self.update_none(&ptext),
+            Some(cipher) => self.update_some(cipher, evp::CipherMode::Encrypt, key, iv, input),
+            None => self.update_none(input),
         }
     }
 
     pub fn decrypt(&mut self, key: &[u8], iv: &[u8], input: &[u8]) -> Result<&[u8], OpenSSLError> {
         match self.cipher.to_evp() {
-            Some(cipher) => self.decrypt_some(cipher, key, iv, input),
+            Some(cipher) => self.update_some(cipher, evp::CipherMode::Decrypt, key, iv, input),
             None => self.update_none(input),
         }
     }
 
-    fn prepare_ptext<'a>(&self, input: &'a [u8]) -> Cow<'a, [u8]> {
-        let mut ptext = Cow::from(input);
-
-        if ptext.len() < self.block_size {
-            // pad with 0 if not a complete block
-            ptext.to_mut().resize(self.block_size, 0);
-        }
-
-        ptext
-    }
-
-    fn encrypt_some(
+    fn update_some(
         &mut self,
         cipher: evp::Cipher,
+        mode: evp::CipherMode,
         key: &[u8],
         iv: &[u8],
         input: &[u8],
@@ -170,25 +155,7 @@ impl CipherCtx {
         self.out.resize(input.len(), 0);
 
         self.ctx.reset()?;
-        self.ctx.init(cipher, evp::CipherMode::Encrypt, key, iv)?;
-        let n = self.ctx.update(input, &mut self.out)?;
-
-        self.out.resize(n, 0);
-
-        Ok(&self.out)
-    }
-
-    fn decrypt_some(
-        &mut self,
-        cipher: evp::Cipher,
-        key: &[u8],
-        iv: &[u8],
-        input: &[u8],
-    ) -> Result<&[u8], OpenSSLError> {
-        self.out.resize(input.len(), 0);
-
-        self.ctx.reset()?;
-        self.ctx.init(cipher, evp::CipherMode::Decrypt, key, iv)?;
+        self.ctx.init(cipher, mode, key, iv)?;
         let n = self.ctx.update(input, &mut self.out)?;
 
         self.out.resize(n, 0);
