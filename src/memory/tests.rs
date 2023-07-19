@@ -20,21 +20,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::container::{Cipher, Container, CreateOptionsBuilder, Digest, Kdf, OpenOptionsBuilder};
-use crate::memory::MemoryBackend;
-
 #[test]
 fn create() {
+    use crate::container::*;
+    use crate::memory::MemoryBackend;
+
+    // Example creates an encrypted container with an attached MemoryBackend.
+
     let backend = MemoryBackend::new();
     let kdf = Kdf::pbkdf2(Digest::Sha1, 65536, b"123");
 
     // Let's create an encrypted container (with aes128-ctr).
-    let options = CreateOptionsBuilder::<MemoryBackend>::new(backend, Cipher::Aes128Ctr)
+    let options = CreateOptionsBuilder::new(Cipher::Aes128Ctr)
         .with_password_callback(|| Ok(b"abc".to_vec()))
         .with_kdf(kdf.clone())
-        .build()
+        .build::<MemoryBackend>()
         .unwrap();
-    let container = Container::create(options).unwrap();
+    let container = Container::<MemoryBackend>::create(backend, options).unwrap();
     let info = container.info().unwrap();
 
     assert_eq!(info.cipher, Cipher::Aes128Ctr);
@@ -43,14 +45,18 @@ fn create() {
 
 #[test]
 fn open() {
+    use crate::container::*;
+    use crate::memory::MemoryBackend;
+
+    // Example opens a container with an attached MemoryBackend,
+    // which is always unencrypted.
+
     let backend = MemoryBackend::new();
 
     // When opening a contaier with a MemoryBackend attached,
     // the container is always unencrypted.
-    let options = OpenOptionsBuilder::<MemoryBackend>::new(backend)
-        .build()
-        .unwrap();
-    let container = Container::open(options).unwrap();
+    let options = OpenOptionsBuilder::new().build::<MemoryBackend>().unwrap();
+    let container = Container::<MemoryBackend>::open(backend, options).unwrap();
     let info = container.info().unwrap();
 
     assert_eq!(info.cipher, Cipher::None);
@@ -59,28 +65,31 @@ fn open() {
 
 #[test]
 fn reopen() {
+    use crate::container::*;
+    use crate::memory::MemoryBackend;
+
     let (backend, kdf) = {
         let backend = MemoryBackend::new();
         let kdf = Kdf::pbkdf2(Digest::Sha1, 65536, b"123");
 
         // Let's create an encrypted container (with aes128-ctr).
-        let options = CreateOptionsBuilder::<MemoryBackend>::new(backend, Cipher::Aes128Ctr)
+        let options = CreateOptionsBuilder::new(Cipher::Aes128Ctr)
             .with_password_callback(|| Ok(b"abc".to_vec()))
             .with_kdf(kdf.clone())
-            .build()
+            .build::<MemoryBackend>()
             .unwrap();
-        let container = Container::create(options).unwrap();
+        let container = Container::<MemoryBackend>::create(backend, options).unwrap();
 
         (container.into_backend(), kdf)
     };
 
     // When opening a contaier with a MemoryBackend attached,
     // the container is always unencrypted.
-    let options = OpenOptionsBuilder::<MemoryBackend>::new(backend)
+    let options = OpenOptionsBuilder::new()
         .with_password_callback(|| Ok(b"abc".to_vec()))
-        .build()
+        .build::<MemoryBackend>()
         .unwrap();
-    let container = Container::open(options).unwrap();
+    let container = Container::<MemoryBackend>::open(backend, options).unwrap();
     let info = container.info().unwrap();
 
     assert_eq!(info.cipher, Cipher::Aes128Ctr);

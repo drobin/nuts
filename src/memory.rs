@@ -37,21 +37,21 @@
 //! data to this backend.
 //!
 //! ```rust
-//! // Example creates an encrypted container with an attached MemoryBackend.
-//!
-//! use nuts::container::{Cipher, Container, CreateOptionsBuilder, Digest, Kdf};
+//! use nuts::container::*;
 //! use nuts::memory::MemoryBackend;
+//!
+//! // Example creates an encrypted container with an attached MemoryBackend.
 //!
 //! let backend = MemoryBackend::new();
 //! let kdf = Kdf::pbkdf2(Digest::Sha1, 65536, b"123");
 //!
 //! // Let's create an encrypted container (with aes128-ctr).
-//! let options = CreateOptionsBuilder::<MemoryBackend>::new(backend, Cipher::Aes128Ctr)
+//! let options = CreateOptionsBuilder::new(Cipher::Aes128Ctr)
 //!     .with_password_callback(|| Ok(b"abc".to_vec()))
 //!     .with_kdf(kdf.clone())
-//!     .build()
+//!     .build::<MemoryBackend>()
 //!     .unwrap();
-//! let container = Container::create(options).unwrap();
+//! let container = Container::<MemoryBackend>::create(backend, options).unwrap();
 //! let info = container.info().unwrap();
 //!
 //! assert_eq!(info.cipher, Cipher::Aes128Ctr);
@@ -64,20 +64,18 @@
 //! [container](crate::container::Container) is created.
 //!
 //! ```rust
+//! use nuts::container::*;
+//! use nuts::memory::MemoryBackend;
+//!
 //! // Example opens a container with an attached MemoryBackend,
 //! // which is always unencrypted.
-//!
-//! use nuts::container::{Cipher, Container, Kdf, OpenOptionsBuilder};
-//! use nuts::memory::MemoryBackend;
 //!
 //! let backend = MemoryBackend::new();
 //!
 //! // When opening a contaier with a MemoryBackend attached,
 //! // the container is always unencrypted.
-//! let options = OpenOptionsBuilder::<MemoryBackend>::new(backend)
-//!     .build()
-//!     .unwrap();
-//! let container = Container::open(options).unwrap();
+//! let options = OpenOptionsBuilder::new().build::<MemoryBackend>().unwrap();
+//! let container = Container::<MemoryBackend>::open(backend, options).unwrap();
 //! let info = container.info().unwrap();
 //!
 //! assert_eq!(info.cipher, Cipher::None);

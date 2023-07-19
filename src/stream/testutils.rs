@@ -27,11 +27,11 @@ use crate::container::{Cipher, Container, CreateOptionsBuilder};
 use crate::memory::{Id, MemoryBackend};
 
 pub(super) fn setup_container() -> Container<MemoryBackend> {
-    let options = CreateOptionsBuilder::<MemoryBackend>::new(MemoryBackend::new(), Cipher::None)
-        .build()
+    let options = CreateOptionsBuilder::new(Cipher::None)
+        .build::<MemoryBackend>()
         .unwrap();
 
-    Container::create(options).unwrap()
+    Container::create(MemoryBackend::new(), options).unwrap()
 }
 
 fn make_block<B: Backend>(

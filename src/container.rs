@@ -73,8 +73,9 @@ pub struct Container<B: Backend> {
 impl<B: Backend> Container<B> {
     /// Creates a new container.
     ///
-    /// The new container is initialized with the given `options`. In case of
-    /// an invalid option, the container is not created.
+    /// The new container is initialized with the given backend
+    /// (``backend_options) and container (`options`) options. In case of an
+    /// invalid option, the container is not created.
     ///
     // If encryption is turned on, you will be asked for a password over the
     // [`password callback`]. The returned password is then used for
@@ -92,15 +93,18 @@ impl<B: Backend> Container<B> {
     // returned.
     //
     // Further errors are listed in the [`Error`] type.
-    pub fn create(mut options: CreateOptions<B>) -> ContainerResult<Container<B>, B> {
+    pub fn create(
+        mut backend_options: B::CreateOptions,
+        options: CreateOptions,
+    ) -> ContainerResult<Container<B>, B> {
         let header = Header::create(&options)?;
-        let settings = options.backend.settings();
+        let settings = backend_options.settings();
 
         let callback = options.callback.map(|cb| cb.clone());
         let mut store = PasswordStore::new(callback);
 
-        Self::write_header(&mut options.backend, &header, settings, &mut store)?;
-        let backend = map_err!(options.backend.build())?;
+        Self::write_header(&mut backend_options, &header, settings, &mut store)?;
+        let backend = map_err!(backend_options.build())?;
 
         let ctx = CipherCtx::new(header.cipher)?;
 
@@ -120,6 +124,9 @@ impl<B: Backend> Container<B> {
 
     /// Opens an existing container.
     ///
+    /// The `backend_options` are come generic options used to open the backend
+    /// instance.
+    ///
     /// The `options` argument are options used to open the container. Use the
     /// [`OpenOptionsBuilder`] utility to create such an instance.
     ///
@@ -131,12 +138,15 @@ impl<B: Backend> Container<B> {
     // returned.
     ///
     // Further errors are listed in the [`Error`] type.
-    pub fn open(mut options: OpenOptions<B>) -> ContainerResult<Container<B>, B> {
+    pub fn open(
+        mut backend_options: B::OpenOptions,
+        options: OpenOptions,
+    ) -> ContainerResult<Container<B>, B> {
         let callback = options.callback.map(|cb| cb.clone());
         let mut store = PasswordStore::new(callback);
 
-        let (header, settings) = Self::read_header(&mut options.backend, &mut store)?;
-        let backend = map_err!(options.backend.build(settings))?;
+        let (header, settings) = Self::read_header(&mut backend_options, &mut store)?;
+        let backend = map_err!(backend_options.build(settings))?;
 
         let ctx = CipherCtx::new(header.cipher)?;
 
@@ -157,6 +167,11 @@ impl<B: Backend> Container<B> {
     /// Returns the backend of this container.
     pub fn backend(&self) -> &B {
         &self.backend
+    }
+
+    /// Consumes this container, returning the inner backend.
+    pub fn into_backend(self) -> B {
+        self.backend
     }
 
     /// Returns information from the container.

@@ -26,11 +26,10 @@ use std::result;
 use crate::backend::Backend;
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
-#[cfg(doc)]
-use crate::container::error::Error;
 use crate::container::kdf::Kdf;
+use crate::container::ContainerResult;
 #[cfg(doc)]
-use crate::container::Container;
+use crate::container::{error::Error, Container};
 use crate::openssl::OpenSSLError;
 
 #[derive(Debug)]
@@ -54,23 +53,20 @@ impl KdfBuilder {
 ///
 /// Use the [`CreateOptionsBuilder`] utility to create a `CreateOptions`
 /// instance.
-pub struct CreateOptions<B: Backend> {
-    pub(crate) backend: B::CreateOptions,
+pub struct CreateOptions {
     pub(crate) callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>,
     pub(crate) cipher: Cipher,
     pub(crate) kdf: KdfBuilder,
-    pub(crate) top_id: bool,
 }
 
 /// Utility used to create a [`CreateOptions`] instance.
-pub struct CreateOptionsBuilder<B: Backend>(CreateOptions<B>);
+pub struct CreateOptionsBuilder(CreateOptions);
 
-impl<B: Backend> CreateOptionsBuilder<B> {
+impl CreateOptionsBuilder {
     /// Creates a builder instance.
     ///
-    /// Assigns the [`Backend::CreateOptions`] of the backend to the builder.
     /// The container should use the given `cipher`.
-    pub fn new(options: B::CreateOptions, cipher: Cipher) -> Self {
+    pub fn new(cipher: Cipher) -> Self {
         let kdf = if cipher == Cipher::None {
             KdfBuilder::Kdf(Kdf::None)
         } else {
@@ -78,11 +74,9 @@ impl<B: Backend> CreateOptionsBuilder<B> {
         };
 
         CreateOptionsBuilder(CreateOptions {
-            backend: options,
             callback: None,
             cipher,
             kdf,
-            top_id: false,
         })
     }
 
@@ -121,16 +115,6 @@ impl<B: Backend> CreateOptionsBuilder<B> {
         self
     }
 
-    /// If enabled generate a [`Backend::Id`] and store it in the header of the
-    /// container.
-    ///
-    /// This option can be useful if the service running on top of
-    /// [`Container`] needs an entrypoint on the container.
-    pub fn with_top_id(mut self, enable: bool) -> Self {
-        self.0.top_id = enable;
-        self
-    }
-
     /// Creates the [`CreateOptions`] instance.
     ///
     /// Before the [`CreateOptions`] instance is created all options passed to
@@ -139,7 +123,7 @@ impl<B: Backend> CreateOptionsBuilder<B> {
     /// # Errors
     ///
     /// If validation has failed an [`Error`] is returned.
-    pub fn build(self) -> Result<CreateOptions<B>, B::Err> {
+    pub fn build<B: Backend>(self) -> ContainerResult<CreateOptions, B> {
         Ok(self.0)
     }
 }
@@ -147,21 +131,17 @@ impl<B: Backend> CreateOptionsBuilder<B> {
 /// Options used to open a container.
 ///
 /// Use the [`OpenOptionsBuilder`] utility to create a `OpenOptions` instance.
-pub struct OpenOptions<B: Backend> {
-    pub(crate) backend: B::OpenOptions,
+pub struct OpenOptions {
     pub(crate) callback: Option<Rc<dyn Fn() -> Result<Vec<u8>, String>>>,
 }
 
 /// Utility used to create a [`OpenOptions`] instance.
-pub struct OpenOptionsBuilder<B: Backend>(OpenOptions<B>);
+pub struct OpenOptionsBuilder(OpenOptions);
 
-impl<B: Backend> OpenOptionsBuilder<B> {
-    /// Creates a builder instance using the given [`Backend::OpenOptions`] instance.
-    pub fn new(options: B::OpenOptions) -> Self {
-        OpenOptionsBuilder(OpenOptions {
-            backend: options,
-            callback: None,
-        })
+impl OpenOptionsBuilder {
+    /// Creates a builder instance.
+    pub fn new() -> Self {
+        OpenOptionsBuilder(OpenOptions { callback: None })
     }
 
     /// Assigns a password callback to the container.
@@ -195,7 +175,7 @@ impl<B: Backend> OpenOptionsBuilder<B> {
     /// # Errors
     ///
     /// If validation has failed an [`Error`] is returned.
-    pub fn build(self) -> Result<OpenOptions<B>, B::Err> {
+    pub fn build<B: Backend>(self) -> ContainerResult<OpenOptions, B> {
         Ok(self.0)
     }
 }

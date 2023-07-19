@@ -113,7 +113,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn create<B: Backend>(options: &CreateOptions<B>) -> Result<Header, HeaderError> {
+    pub fn create(options: &CreateOptions) -> Result<Header, HeaderError> {
         let cipher = options.cipher;
         let mut key = vec![0; cipher.key_len()];
         let mut iv = vec![0; cipher.iv_len()];
