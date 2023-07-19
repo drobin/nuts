@@ -173,12 +173,37 @@ impl BlockId for Id {
 ///
 /// See the [module](crate::memory) documentation for details.
 #[derive(Debug, PartialEq)]
-pub struct MemoryBackend(HashMap<u32, [u8; BSIZE as usize]>);
+pub struct MemoryBackend {
+    blocks: HashMap<u32, [u8; BSIZE as usize]>,
+    header: Option<[u8; HEADER_MAX_SIZE]>,
+}
 
 impl MemoryBackend {
     /// Creates a new instance of the `MemoryBackend` type.
     pub fn new() -> MemoryBackend {
-        MemoryBackend(HashMap::new())
+        MemoryBackend {
+            blocks: HashMap::new(),
+            header: None,
+        }
+    }
+
+    /// Inserts a new block.
+    ///
+    /// The block contains only zeros.
+    ///
+    /// Returns the id of the new block.
+    pub fn insert(&mut self) -> Result<Id, Error> {
+        let id = Id(self.max_id() + 1);
+        let block = [0; BSIZE as usize];
+
+        match self.blocks.insert(id.0, block) {
+            Some(_) => Err(Error::AlreadAquired(id)),
+            None => Ok(id),
+        }
+    }
+
+    fn max_id(&self) -> u32 {
+        *self.blocks.keys().max().unwrap_or(&0)
     }
 
     fn secret_bytes(&self) -> Result<Vec<u8>, Error> {
@@ -211,14 +236,16 @@ impl MemoryBackend {
 
 impl HeaderGet<Self> for MemoryBackend {
     fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
-        // let's generate some header-data on the fly
-        self.header_bytes(bytes)
+        match self.header.as_ref() {
+            Some(source) => Ok(bytes.copy_from_slice(source)),
+            None => self.header_bytes(bytes),
+        }
     }
 }
 
 impl HeaderSet<Self> for MemoryBackend {
-    fn put_header_bytes(&mut self, _bytes: &[u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
-        // ignore this call, you cannot make it persistent
+    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
+        self.header = Some(*bytes);
         Ok(())
     }
 }
@@ -256,24 +283,16 @@ impl Backend for MemoryBackend {
     }
 
     fn aquire(&mut self) -> Result<Id, Error> {
-        let id = match self.0.keys().max() {
-            Some(n) => n + 1,
-            None => 0,
-        };
-
-        match self.0.insert(id, [0; BSIZE as usize]) {
-            Some(_) => return Err(Error::AlreadAquired(Id(id))),
-            None => Ok(Id(id)),
-        }
+        self.insert()
     }
 
     fn release(&mut self, id: Id) -> Result<(), Error> {
-        self.0.remove(&id.0);
+        self.blocks.remove(&id.0);
         Ok(())
     }
 
     fn read(&mut self, id: &Id, buf: &mut [u8]) -> Result<usize, Error> {
-        match self.0.get(&id.0) {
+        match self.blocks.get(&id.0) {
             Some(src) => {
                 let len = cmp::min(src.len(), buf.len());
 
@@ -289,7 +308,7 @@ impl Backend for MemoryBackend {
     }
 
     fn write(&mut self, id: &Id, buf: &[u8]) -> Result<usize, Error> {
-        match self.0.get_mut(&id.0) {
+        match self.blocks.get_mut(&id.0) {
             Some(target) => {
                 let mut source = Cow::from(buf);
                 let mut len = source.len();

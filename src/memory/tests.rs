@@ -56,3 +56,33 @@ fn open() {
     assert_eq!(info.cipher, Cipher::None);
     assert_eq!(info.kdf, Kdf::None);
 }
+
+#[test]
+fn reopen() {
+    let (backend, kdf) = {
+        let backend = MemoryBackend::new();
+        let kdf = Kdf::pbkdf2(Digest::Sha1, 65536, b"123");
+
+        // Let's create an encrypted container (with aes128-ctr).
+        let options = CreateOptionsBuilder::<MemoryBackend>::new(backend, Cipher::Aes128Ctr)
+            .with_password_callback(|| Ok(b"abc".to_vec()))
+            .with_kdf(kdf.clone())
+            .build()
+            .unwrap();
+        let container = Container::create(options).unwrap();
+
+        (container.into_backend(), kdf)
+    };
+
+    // When opening a contaier with a MemoryBackend attached,
+    // the container is always unencrypted.
+    let options = OpenOptionsBuilder::<MemoryBackend>::new(backend)
+        .with_password_callback(|| Ok(b"abc".to_vec()))
+        .build()
+        .unwrap();
+    let container = Container::open(options).unwrap();
+    let info = container.info().unwrap();
+
+    assert_eq!(info.cipher, Cipher::Aes128Ctr);
+    assert_eq!(info.kdf, kdf);
+}
