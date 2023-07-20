@@ -20,6 +20,227 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+//! # The basic container
+//!
+//! This module contains types for the basic container handling. A
+//! [`Container`] acts like an encrypted block device, where you can read and
+//! write encrypted blocks of data. See the [`Container`] documentation for
+//! details.
+//!
+//! The [`Container`] has no knowlege about the storage layer. Every type that
+//! implements the [`Backend`] trait can act as the storage layer for the
+//! [`Container`]. The [`Container`] receives (possibly) encrypted data from
+//! the backend and pushes (possibly) encrypted data back to the backend.
+//! See the [`backend` module](crate::backend) documentation for details.
+//!
+//! ## Create a container
+//!
+//! The [`Container::create()`] method is used to create a new container. It
+//! expects an instance of a type that implements the
+//! [`Backend::CreateOptions`] trait, which acts as a builder for the related
+//! [`Backend`].
+//!
+//! Example:
+//!
+//! ```rust
+//! use nuts::container::*;
+//! use nuts::memory::MemoryBackend;
+//!
+//! // Create a container with a memory backend.
+//! let backend = MemoryBackend::new();
+//!
+//! // Let's create an encrypted container (with aes128-ctr).
+//! // Because you are encrypting the container, you need to assign a
+//! // password callback.
+//! let kdf = Kdf::pbkdf2(Digest::Sha1, 65536, b"123");
+//! let options = CreateOptionsBuilder::new(Cipher::Aes128Ctr)
+//!     .with_password_callback(|| Ok(b"abc".to_vec()))
+//!     .with_kdf(kdf.clone())
+//!     .build::<MemoryBackend>()
+//!     .unwrap();
+//!
+//! // Create the container and fetch information.
+//! // Here you can directly pass the backend instance to the create() method
+//! // because MemoryBackend implements the Backend::CreateOptions trait.
+//! let container = Container::<MemoryBackend>::create(backend, options).unwrap();
+//! let info = container.info().unwrap();
+//!
+//! assert_eq!(info.cipher, Cipher::Aes128Ctr);
+//! assert_eq!(info.kdf, kdf);
+//! ```
+//!
+//! ## Open a container
+//!
+//! The [`Container::open()`] method is used to open a container. It expects an
+//! instance of a type that implements the [`Backend::OpenOptions`] trait,
+//! which acts as a builder for the related [`Backend`].
+//!
+//! Example:
+//!
+//! ```rust
+//! use nuts::container::*;
+//! use nuts::memory::MemoryBackend;
+//!
+//! let (backend, kdf) = {
+//!     // In this example you create a container in a separate block.
+//!     // So, the created container is closed again when leaving the scope.
+//!     let backend = MemoryBackend::new();
+//!     let kdf = Kdf::pbkdf2(Digest::Sha1, 65536, b"123");
+//!     let options = CreateOptionsBuilder::new(Cipher::Aes128Ctr)
+//!         .with_password_callback(|| Ok(b"abc".to_vec()))
+//!         .with_kdf(kdf.clone())
+//!         .build::<MemoryBackend>()
+//!         .unwrap();
+//!
+//!     // Create the container.
+//!     let container = Container::<MemoryBackend>::create(backend, options).unwrap();
+//!     let backend = container.into_backend();
+//!
+//!     (backend, kdf)
+//! };
+//!
+//! // Open the container and fetch information.
+//! // Here you can directly pass the backend instance to the open() method
+//! // because MemoryBackend implements the Backend::OpenOptions trait.
+//! let options = OpenOptionsBuilder::new()
+//!     .with_password_callback(|| Ok(b"abc".to_vec()))
+//!     .build::<MemoryBackend>()
+//!     .unwrap();
+//! let container = Container::<MemoryBackend>::open(backend, options).unwrap();
+//! let info = container.info().unwrap();
+//!
+//! assert_eq!(info.cipher, Cipher::Aes128Ctr);
+//! assert_eq!(info.kdf, kdf);
+//! ```
+//!
+//! ## Read from a container
+//!
+//! ```rust
+//! use nuts::container::*;
+//! use nuts::memory::MemoryBackend;
+//!
+//! // Create a container with a memory backend.
+//! let mut backend = MemoryBackend::new();
+//!
+//! // Insert a block into the backend.
+//! // Note that the insert() method is a part of the MemoryBackend and directly
+//! // inserts a block into the backend (bypassing the crypto capabilities of the
+//! // container).
+//! let id = backend.insert().unwrap();
+//!
+//! // Create the container.
+//! let options = CreateOptionsBuilder::new(Cipher::None)
+//!     .build::<MemoryBackend>()
+//!     .unwrap();
+//! let mut container = Container::<MemoryBackend>::create(backend, options).unwrap();
+//!
+//! // Read full block.
+//! let mut buf = [b'x'; 512];
+//! assert_eq!(container.read(&id, &mut buf).unwrap(), 512);
+//! assert_eq!(buf, [0; 512]);
+//!
+//! // Read block into a buffer which is smaller than the block-size.
+//! // The buffer is filled with the first 400 bytes from the block.
+//! let mut buf = [b'x'; 400];
+//! assert_eq!(container.read(&id, &mut buf).unwrap(), 400);
+//! assert_eq!(buf, [0; 400]);
+//!
+//! // Read block into a buffer which is bigger than the block-size.
+//! // The first 512 bytes are filled with the content of the block,
+//! // the remaining 8 bytes are not touched.
+//! let mut buf = [b'x'; 520];
+//! assert_eq!(container.read(&id, &mut buf).unwrap(), 512);
+//! assert_eq!(buf[..512], [0; 512]);
+//! assert_eq!(buf[512..], [b'x'; 8]);
+//! ```
+//!
+//! ## Write into a container
+//!
+//! ```rust
+//! use nuts::container::*;
+//! use nuts::memory::MemoryBackend;
+//!
+//! // In this example you create a container in a separate block.
+//! // So, the created container is closed again when leaving the scope.
+//! let mut backend = MemoryBackend::new();
+//!
+//! // Insert a block into the backend.
+//! // Note that the insert() method is a part of the MemoryBackend and directly
+//! // inserts a block into the backend (bypassing the crypto capabilities of the
+//! // container).
+//! let id = backend.insert().unwrap();
+//!
+//! // Create the container.
+//! let options = CreateOptionsBuilder::new(Cipher::None)
+//!     .build::<MemoryBackend>()
+//!     .unwrap();
+//! let mut container = Container::<MemoryBackend>::create(backend, options).unwrap();
+//!
+//! // Write a full block. The whole block is filled with 'x'.
+//! assert_eq!(container.write(&id, &[b'x'; 512]).unwrap(), 512);
+//!
+//! let mut buf = [0; 512];
+//! assert_eq!(container.read(&id, &mut buf).unwrap(), 512);
+//! assert_eq!(buf, [b'x'; 512]);
+//!
+//! // Write a block from a buffer which is smaller than the block-size.
+//! // The first bytes of the block are filled with the data from the buffer,
+//! // the remaining space is padded with '0'.
+//! assert_eq!(container.write(&id, &[b'x'; 400]).unwrap(), 400);
+//!
+//! let mut buf = [0; 512];
+//! assert_eq!(container.read(&id, &mut buf).unwrap(), 512);
+//! assert_eq!(buf[..400], [b'x'; 400]);
+//! assert_eq!(buf[400..], [0; 112]);
+//!
+//! // Write a block from a buffer which is bigger than the block-size.
+//! // The block is filled with the first data from the buffer.
+//! assert_eq!(container.write(&id, &[b'x'; 520]).unwrap(), 512);
+//!
+//! let mut buf = [0; 512];
+//! assert_eq!(container.read(&id, &mut buf).unwrap(), 512);
+//! assert_eq!(buf, [b'x'; 512]);
+//! ```
+//!
+//! ## The header of a container
+//!
+//! The header of the container stores all data necessary to open the container
+//! again. There are:
+//!
+//! * The [`Cipher`]: The cipher defines the cipher used for encryption and
+//!   decryption of the individual blocks of the container.
+//!
+//!   If the cipher is set to [`Cipher::None`], then encryption is disabled and
+//!   all the data are stored unencrypted in the container.
+//!
+//!   If encryption is enabled (with a cipher which is not [`Cipher::None`]),
+//!   then the blocks of the container are encrypted with a master-key stored
+//!   and secured in the header of the container. This part of the header
+//!   (other sensible data are also stored there) is called _secret_ and is
+//!   encrypted with the wrapping-key derivited by the key derivation function
+//!   ([`Kdf`]). So, with a user supplied passphrase you are derivating the
+//!   wrapping-key, which decrypts the _secret_ part of the header, where the
+//!   master-key (used for en-/decryption of the data blocks) is stored.
+//!
+//! * The key derivation function ([`Kdf`]) defines a way to create a key from
+//!   a user supplied passphrase. In the next step this key is used to encrypt resp.
+//!   decrypt the _secret_ part of the header.
+//!
+//! * The _secret_ is the encrypted part of the header and contains sensible
+//!   data of the container. The secret is encrypted with a wrapping-key, which
+//!   is the output of the [`Kdf`]. The _secret_ contains:
+//!
+//!   * _master-key_: The master-key is used for encryption of the blocks of
+//!     the container.
+//!
+//!   * _userdata_: Any service running on top of the container can store
+//!     individual, arbitrary data in the header. Usually the data are used for
+//!     bootstrapping the service.
+//!
+//!   * _settings of the backend_: The backend of the container stores its
+//!     runtime information in the secret. It gets it back when opening the
+//!     backend again. See [`Backend::Settings`] for more information.
+
 mod cipher;
 mod digest;
 mod error;
@@ -28,6 +249,8 @@ mod info;
 mod kdf;
 mod options;
 mod password;
+#[cfg(test)]
+mod tests;
 
 use log::debug;
 use std::borrow::Cow;
@@ -73,26 +296,27 @@ pub struct Container<B: Backend> {
 impl<B: Backend> Container<B> {
     /// Creates a new container.
     ///
-    /// The new container is initialized with the given backend
-    /// (``backend_options) and container (`options`) options. In case of an
-    /// invalid option, the container is not created.
+    /// This method expects two arguments:
     ///
-    // If encryption is turned on, you will be asked for a password over the
-    // [`password callback`]. The returned password is then used for
-    // encryption of the secure part of the header.
-    //
-    /// The header with the (possibly encrypted) secret is created and stored
-    /// in the header-block of the container. The header contains all
-    /// information you need to open the container again.
+    /// 1. `backend_options`, which is a type that implements the
+    ///    [`Backend::CreateOptions`] trait. It acts as a builder for a
+    ///    concrete [`Backend`] instance.
+    /// 2. `options`, which is a builder of this `Container`. A
+    ///    [`CreateOptions`] instance can be created with the
+    ///    [`CreateOptionsBuilder`] utility.
+    ///
+    /// If encryption is turned on, you will be asked for a password over the
+    /// [password callback](CreateOptionsBuilder::with_password_callback). The
+    /// returned password is then used for encryption of the secure part of the
+    /// header.
+    ///
+    /// The header with the (possibly encrypted) secret is created and passed
+    /// to the [`Backend`]. The header contains all information you need to
+    /// open the container again.
     ///
     /// # Errors
     ///
     /// Errors are listed in the [`Error`] type.
-    // If encryption is enabled but no password callback is assigned or the
-    // assigned callback returns an error, an [`Error::NoPassword`] error is
-    // returned.
-    //
-    // Further errors are listed in the [`Error`] type.
     pub fn create(
         mut backend_options: B::CreateOptions,
         options: CreateOptions,
@@ -124,20 +348,23 @@ impl<B: Backend> Container<B> {
 
     /// Opens an existing container.
     ///
-    /// The `backend_options` are come generic options used to open the backend
-    /// instance.
+    /// This method expects two arguments:
     ///
-    /// The `options` argument are options used to open the container. Use the
-    /// [`OpenOptionsBuilder`] utility to create such an instance.
+    /// 1. `backend_options`, which is a type that implements the
+    ///    [`Backend::OpenOptions`] trait. It acts as a builder for a concrete
+    ///    [`Backend`] instance.
+    /// 2. `options`, which is a builder of this `Container`. A
+    ///    [`OpenOptions`] instance can be created with the
+    ///    [`OpenOptionsBuilder`] utility.
+    ///
+    /// If encryption is turned on for the container, you will be asked for a
+    /// password over the
+    /// [password callback](OpenOptionsBuilder::with_password_callback). The
+    /// returned password is then used to decrypt the secure part of the header.
     ///
     /// # Errors
     ///
     /// Errors are listed in the [`Error`] type.
-    // If encryption is enabled but no password callback is assigned or the
-    // assigned callback returns an error, an [`Error::NoPassword`] error is
-    // returned.
-    ///
-    // Further errors are listed in the [`Error`] type.
     pub fn open(
         mut backend_options: B::OpenOptions,
         options: OpenOptions,
