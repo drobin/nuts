@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use crate::container::cipher::{Cipher, CipherCtx};
-use crate::openssl::OpenSSLError;
+use crate::container::openssl::OpenSSLError;
 
 const KEY: [u8; 16] = [b'x'; 16];
 const IV: [u8; 16] = [b'y'; 16];

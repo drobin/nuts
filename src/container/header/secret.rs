@@ -31,8 +31,8 @@ use crate::backend::Backend;
 use crate::container::cipher::{Cipher, CipherCtx};
 use crate::container::header::HeaderError;
 use crate::container::kdf::Kdf;
+use crate::container::openssl::{rand, OpenSSLError};
 use crate::container::password::PasswordStore;
-use crate::openssl::{rand, OpenSSLError};
 use crate::svec::SecureVec;
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]

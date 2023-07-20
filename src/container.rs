@@ -247,6 +247,7 @@ mod error;
 mod header;
 mod info;
 mod kdf;
+mod openssl;
 mod options;
 mod password;
 #[cfg(test)]
@@ -268,6 +269,7 @@ pub use error::{ContainerResult, Error};
 pub use header::HeaderError;
 pub use info::Info;
 pub use kdf::Kdf;
+pub use openssl::error::OpenSSLError;
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
 pub use password::NoPasswordError;
 

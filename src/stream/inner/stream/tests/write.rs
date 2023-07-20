@@ -22,9 +22,9 @@
 
 use crate::container::Container;
 use crate::memory::{Id, MemoryBackend};
-use crate::openssl::rand::RND;
 use crate::stream::inner::Inner;
 use crate::stream::{Error, OpenOptions, Position};
+use crate::tests::RND;
 
 use crate::stream::testutils::{setup_one, setup_three, setup_two};
 

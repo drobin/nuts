@@ -21,7 +21,7 @@
 
 use crate::container::digest::Digest;
 use crate::container::kdf::{Kdf, KdfError, KdfNoneError, KdfPbkdf2Error};
-use crate::openssl::rand::RND;
+use crate::tests::RND;
 
 #[test]
 fn from_str_invalid() {

@@ -20,9 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::openssl::rand::RND;
 use crate::stream::inner::Inner;
 use crate::stream::{Error, OpenOptions, Position};
+use crate::tests::RND;
 
 use crate::stream::testutils::setup_container;
 

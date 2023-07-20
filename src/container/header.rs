@@ -33,9 +33,9 @@ use crate::backend::Backend;
 use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};
 use crate::container::kdf::Kdf;
+use crate::container::openssl::{rand, OpenSSLError};
 use crate::container::options::CreateOptions;
 use crate::container::password::{NoPasswordError, PasswordStore};
-use crate::openssl::{rand, OpenSSLError};
 use crate::svec::SecureVec;
 
 use self::secret::PlainSecret;

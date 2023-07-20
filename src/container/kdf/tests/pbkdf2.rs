@@ -22,7 +22,7 @@
 
 use crate::container::digest::Digest;
 use crate::container::kdf::Kdf;
-use crate::openssl::rand::RND;
+use crate::tests::RND;
 
 #[test]
 fn ok() {
