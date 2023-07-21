@@ -31,6 +31,7 @@ pub mod container;
 pub mod memory;
 #[cfg(feature = "stream")]
 pub mod stream;
+#[cfg(any(feature = "container", feature = "stream"))]
 pub(crate) mod svec;
-#[cfg(test)]
+#[cfg(all(test, any(feature = "container", feature = "stream")))]
 mod tests;
