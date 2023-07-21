@@ -202,6 +202,16 @@ impl<B: Backend> Stream<B> {
             .open(container, id)
     }
 
+    /// Reads some bytes from this stream into the specified buffer, returning
+    /// how many bytes were read.
+    ///
+    /// A return value `> 0` indicates that the buffer buf has been filled in
+    /// with the given number of bytes. If `0` is returned, then it
+    /// an indicate one of two scenarios:
+    ///
+    /// 1. This stream has reached its "end of file" and will likely no longer
+    ///    be able to produce bytes.
+    /// 2. The buffer specified was `0` bytes in length.
     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error<B>> {
         if !self.readable {
             return Err(Error::NotReadable);
@@ -263,6 +273,23 @@ impl<B: Backend> Stream<B> {
         }
     }
 
+    /// Write a buffer into this stream, returning how many bytes were written.
+    ///
+    /// This function will attempt to write the entire contents of `buf`, but
+    /// the entire write might not succeed, or the write may also generate an
+    /// error.
+    ///
+    /// If the stream is positioned at the end then a new block is appended to
+    /// the stream. If positioned somewhere else the content at the current
+    /// position is replaced with `buf`.
+    ///
+    /// Returns the number of bytes written into the stream. A return value of
+    /// `0` means that the buffer provided is empty.
+    ///
+    /// **Note:** The content may be written into an internal cache and not
+    /// passed to the underlaying [`Container`]. To ensure that all the content
+    /// is passed to the container, the final call should always be a
+    /// [`Stream::flush()`].
     pub fn write(&mut self, buf: &[u8]) -> Result<usize, Error<B>> {
         if !self.writable {
             return Err(Error::NotWritable);
@@ -309,6 +336,10 @@ impl<B: Backend> Stream<B> {
     /// is no more data to be written or an error is returned. This method will
     /// not return until the entire buffer has been successfully written or an
     /// error occurs. The first error from this method will be returned.
+    ///
+    /// On success an implicit call to [`Stream::flush()`] is performed to make
+    /// sure all data are passed to the underlaying [`Container`]. No explicit
+    /// [`Stream::flush()`] is required here.
     ///
     /// # Errors
     ///
@@ -369,6 +400,13 @@ impl<B: Backend> Stream<B> {
         }
     }
 
+    /// Flush this stream, ensuring that all buffered contents reach their
+    /// destination.
+    ///
+    /// Takes the currently cached data and passes them to the underlaying
+    /// [`Container`]. This should be always the final call to a series of
+    /// [`Stream::write()`] calls. An explicit call to `flush()` after a
+    /// [`Stream::write_all()`] is not required.
     pub fn flush(&mut self) -> Result<(), Error<B>> {
         match self.inner.cur.as_ref() {
             Some(cur) => {
@@ -405,6 +443,11 @@ impl<B: Backend> Stream<B> {
         Ok(())
     }
 
+    /// Seek the stream to an offset.
+    ///
+    /// Seeking to the start or end of the stream has a time complexity of
+    /// `O(1)`, while seeking to an arbitrary position (independent from the
+    /// starting point) has a time complexity of `O(n)`.
     pub fn seek(&mut self, pos: Position) -> Result<(), Error<B>> {
         let n = match pos {
             Position::Start(n) => self.inner.goto_first().map(|_| n as i64)?,
