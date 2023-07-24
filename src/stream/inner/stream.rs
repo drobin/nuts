@@ -24,7 +24,6 @@
 mod tests;
 
 use std::cmp;
-use std::ops::Deref;
 
 use crate::backend::Backend;
 use crate::container::Container;
@@ -221,7 +220,7 @@ impl<B: Backend> Stream<B> {
             return Ok(0);
         }
 
-        while remaining(self) == 0 {
+        while remaining(&self.inner) == 0 {
             match self.inner.goto_next() {
                 Some(result) => {
                     if let Err(err) = result {
@@ -232,7 +231,7 @@ impl<B: Backend> Stream<B> {
             }
         }
 
-        let remaining = remaining(self);
+        let remaining = remaining(&self.inner);
         let nbytes = cmp::min(remaining, buf.len());
 
         let cur = self.inner.cur.as_mut().unwrap();
@@ -309,7 +308,7 @@ impl<B: Backend> Stream<B> {
 
         let mut nbytes = self.write_overwrite(buf)?;
 
-        if nbytes == 0 && self.is_last() {
+        if nbytes == 0 && self.inner.is_last() {
             nbytes = self.write_append(buf)?;
         }
 
@@ -520,19 +519,5 @@ impl<B: Backend> Stream<B> {
         }
 
         Ok(())
-    }
-}
-
-impl<B: Backend> AsRef<Inner<B>> for Stream<B> {
-    fn as_ref(&self) -> &Inner<B> {
-        &self.inner
-    }
-}
-
-impl<B: Backend> Deref for Stream<B> {
-    type Target = Inner<B>;
-
-    fn deref(&self) -> &Inner<B> {
-        &self.inner
     }
 }

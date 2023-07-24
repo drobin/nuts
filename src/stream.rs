@@ -27,4 +27,3 @@ mod testutils;
 
 pub use error::Error;
 pub use inner::stream::{OpenOptions, Position, Stream};
-pub use inner::Inner;

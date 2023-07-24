@@ -39,7 +39,7 @@ fn start_one() {
         let mut buf = [0; 3];
 
         stream.seek(Position::Start(offs)).unwrap();
-        assert_eq!(stream.current().unwrap(), &id);
+        assert_eq!(stream.inner.current().unwrap(), &id);
         assert_eq!(stream.read(&mut buf).unwrap(), nread);
         assert_eq!(buf, rbuf);
     }
@@ -63,7 +63,7 @@ fn start_two() {
         let mut buf = [0; 3];
 
         stream.seek(Position::Start(offs)).unwrap();
-        assert_eq!(stream.current().unwrap(), cur);
+        assert_eq!(stream.inner.current().unwrap(), cur);
         assert_eq!(stream.read(&mut buf).unwrap(), nread);
         assert_eq!(buf, rbuf);
     }
@@ -90,7 +90,7 @@ fn start_three() {
         let mut buf = [0; 3];
 
         stream.seek(Position::Start(offs)).unwrap();
-        assert_eq!(stream.current().unwrap(), cur);
+        assert_eq!(stream.inner.current().unwrap(), cur);
         assert_eq!(stream.read(&mut buf).unwrap(), nread);
         assert_eq!(buf, rbuf);
     }
@@ -111,7 +111,7 @@ fn end_one() {
         let mut buf = [0; 3];
 
         stream.seek(Position::End(offs)).unwrap();
-        assert_eq!(stream.current().unwrap(), &id);
+        assert_eq!(stream.inner.current().unwrap(), &id);
         assert_eq!(stream.read(&mut buf).unwrap(), nread);
         assert_eq!(buf, rbuf);
     }
@@ -136,7 +136,7 @@ fn end_two() {
         let mut buf = [0; 3];
 
         stream.seek(Position::End(offs)).unwrap();
-        assert_eq!(stream.current().unwrap(), cur);
+        assert_eq!(stream.inner.current().unwrap(), cur);
         assert_eq!(stream.read(&mut buf).unwrap(), nread);
         assert_eq!(buf, rbuf);
     }
@@ -164,7 +164,7 @@ fn end_three() {
         let mut buf = [0; 3];
 
         stream.seek(Position::End(offs)).unwrap();
-        assert_eq!(stream.current().unwrap(), cur);
+        assert_eq!(stream.inner.current().unwrap(), cur);
         assert_eq!(stream.read(&mut buf).unwrap(), nread);
         assert_eq!(buf, rbuf);
     }
@@ -207,7 +207,7 @@ fn current_one() {
 
         stream.inner.cur.as_mut().unwrap().offs = coffs;
         stream.seek(Position::Current(offs)).unwrap();
-        assert_eq!(stream.current().unwrap(), &id);
+        assert_eq!(stream.inner.current().unwrap(), &id);
         assert_eq!(stream.read(&mut buf).unwrap(), nread);
         assert_eq!(buf, rbuf);
     }
@@ -302,7 +302,7 @@ fn current_two() {
 
         stream.inner.cur.as_mut().unwrap().offs = coffs;
         stream.seek(Position::Current(offs)).unwrap();
-        assert_eq!(stream.current().unwrap(), cur);
+        assert_eq!(stream.inner.current().unwrap(), cur);
         assert_eq!(stream.read(&mut buf).unwrap(), nread);
         assert_eq!(buf, rbuf);
     }
@@ -469,7 +469,7 @@ fn current_three() {
 
         stream.inner.cur.as_mut().unwrap().offs = coffs;
         stream.seek(Position::Current(offs)).unwrap();
-        assert_eq!(stream.current().unwrap(), cur);
+        assert_eq!(stream.inner.current().unwrap(), cur);
         assert_eq!(stream.read(&mut buf).unwrap(), nread);
         assert_eq!(buf, rbuf);
     }

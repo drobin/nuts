@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::stream::Inner;
+use crate::stream::inner::Inner;
 
 use crate::stream::testutils::{setup_one, setup_three, setup_two};
 
