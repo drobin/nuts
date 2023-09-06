@@ -37,8 +37,8 @@
 //! data to this backend.
 //!
 //! ```rust
-//! use nuts::container::*;
-//! use nuts::memory::MemoryBackend;
+//! use nuts_container::container::*;
+//! use nuts_container::memory::MemoryBackend;
 //!
 //! // Example creates an encrypted container with an attached MemoryBackend.
 //!
@@ -64,8 +64,8 @@
 //! [container](crate::container::Container) is created.
 //!
 //! ```rust
-//! use nuts::container::*;
-//! use nuts::memory::MemoryBackend;
+//! use nuts_container::container::*;
+//! use nuts_container::memory::MemoryBackend;
 //!
 //! // Example opens a container with an attached MemoryBackend,
 //! // which is always unencrypted.

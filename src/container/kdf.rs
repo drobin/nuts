@@ -166,7 +166,7 @@ impl Kdf {
     /// # Examples
     ///
     /// ```rust
-    /// use nuts::container::*;
+    /// use nuts_container::container::*;
     ///
     /// let pbkdf2 = Kdf::pbkdf2(Digest::Sha1, 5, &[1, 2, 3]);
     ///
@@ -205,7 +205,7 @@ impl Kdf {
     /// # Examples
     ///
     /// ```rust
-    /// use nuts::container::*;
+    /// use nuts_container::container::*;
     ///
     /// let kdf = Kdf::generate_pbkdf2(Digest::Sha1, 5, 3).unwrap();
     ///

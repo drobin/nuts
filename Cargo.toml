@@ -1,5 +1,5 @@
 [package]
-name = "nuts"
+name = "nuts-container"
 version = "0.1.0"
 edition = "2018"
 
@@ -16,6 +16,3 @@ log = "0.4.14"
 nuts-bytes = { version = "0.1.0", optional = true }
 openssl-sys = { version = "0.9.80", optional = true }
 serde = { version = "1.0.152", features = ["derive"], optional = true }
-
-[dev-dependencies]
-testx = "0.1.2"

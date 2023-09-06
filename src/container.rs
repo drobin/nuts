@@ -43,8 +43,8 @@
 //! Example:
 //!
 //! ```rust
-//! use nuts::container::*;
-//! use nuts::memory::MemoryBackend;
+//! use nuts_container::container::*;
+//! use nuts_container::memory::MemoryBackend;
 //!
 //! // Create a container with a memory backend.
 //! let backend = MemoryBackend::new();
@@ -78,8 +78,8 @@
 //! Example:
 //!
 //! ```rust
-//! use nuts::container::*;
-//! use nuts::memory::MemoryBackend;
+//! use nuts_container::container::*;
+//! use nuts_container::memory::MemoryBackend;
 //!
 //! let (backend, kdf) = {
 //!     // In this example you create a container in a separate block.
@@ -116,8 +116,8 @@
 //! ## Read from a container
 //!
 //! ```rust
-//! use nuts::container::*;
-//! use nuts::memory::MemoryBackend;
+//! use nuts_container::container::*;
+//! use nuts_container::memory::MemoryBackend;
 //!
 //! // Create a container with a memory backend.
 //! let mut backend = MemoryBackend::new();
@@ -157,8 +157,8 @@
 //! ## Write into a container
 //!
 //! ```rust
-//! use nuts::container::*;
-//! use nuts::memory::MemoryBackend;
+//! use nuts_container::container::*;
+//! use nuts_container::memory::MemoryBackend;
 //!
 //! // In this example you create a container in a separate block.
 //! // So, the created container is closed again when leaving the scope.
