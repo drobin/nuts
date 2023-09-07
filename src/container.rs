@@ -251,8 +251,6 @@ mod openssl;
 mod options;
 mod password;
 mod svec;
-#[cfg(test)]
-mod tests;
 
 use log::debug;
 use std::borrow::Cow;

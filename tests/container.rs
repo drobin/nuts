@@ -22,8 +22,8 @@
 
 #[test]
 fn create() {
-    use crate::container::*;
-    use crate::memory::MemoryBackend;
+    use nuts_container::container::*;
+    use nuts_container::memory::MemoryBackend;
 
     // Create a container with a memory backend.
     let backend = MemoryBackend::new();
@@ -50,8 +50,8 @@ fn create() {
 
 #[test]
 fn open() {
-    use crate::container::*;
-    use crate::memory::MemoryBackend;
+    use nuts_container::container::*;
+    use nuts_container::memory::MemoryBackend;
 
     let (backend, kdf) = {
         // In this example you create a container in a separate block.
@@ -87,8 +87,8 @@ fn open() {
 
 #[test]
 fn read() {
-    use crate::container::*;
-    use crate::memory::MemoryBackend;
+    use nuts_container::container::*;
+    use nuts_container::memory::MemoryBackend;
 
     // Create a container with a memory backend.
     let mut backend = MemoryBackend::new();
@@ -127,8 +127,8 @@ fn read() {
 
 #[test]
 fn write() {
-    use crate::container::*;
-    use crate::memory::MemoryBackend;
+    use nuts_container::container::*;
+    use nuts_container::memory::MemoryBackend;
 
     // In this example you create a container in a separate block.
     // So, the created container is closed again when leaving the scope.
