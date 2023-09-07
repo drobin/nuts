@@ -26,7 +26,7 @@ mod tests;
 use std::rc::Rc;
 use std::{error, fmt};
 
-use crate::svec::SecureVec;
+use crate::container::svec::SecureVec;
 
 #[derive(Debug)]
 pub struct NoPasswordError(Option<String>);

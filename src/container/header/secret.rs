@@ -33,7 +33,7 @@ use crate::container::header::HeaderError;
 use crate::container::kdf::Kdf;
 use crate::container::openssl::{rand, OpenSSLError};
 use crate::container::password::PasswordStore;
-use crate::svec::SecureVec;
+use crate::container::svec::SecureVec;
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(try_from = "[u32; 2]")]

@@ -28,7 +28,7 @@ use std::str::FromStr;
 use std::{error, fmt};
 
 use crate::container::openssl::{evp, OpenSSLError};
-use crate::svec::SecureVec;
+use crate::container::svec::SecureVec;
 
 /// An error which can be returned when parsing a [`Cipher`].
 ///

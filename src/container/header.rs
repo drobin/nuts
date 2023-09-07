@@ -36,7 +36,7 @@ use crate::container::kdf::Kdf;
 use crate::container::openssl::{rand, OpenSSLError};
 use crate::container::options::CreateOptions;
 use crate::container::password::{NoPasswordError, PasswordStore};
-use crate::svec::SecureVec;
+use crate::container::svec::SecureVec;
 
 use self::secret::PlainSecret;
 

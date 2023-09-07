@@ -250,6 +250,7 @@ mod kdf;
 mod openssl;
 mod options;
 mod password;
+mod svec;
 #[cfg(test)]
 mod tests;
 
@@ -261,7 +262,7 @@ use crate::backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADE
 use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;
-use crate::svec::SecureVec;
+use crate::container::svec::SecureVec;
 
 pub use cipher::{Cipher, CipherError};
 pub use digest::{Digest, DigestError};
