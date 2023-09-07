@@ -1,3 +1,25 @@
+// MIT License
+//
+// Copyright (c) 2023 Robin Doer
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+
 pub const RND: [u8; 1536] = [
     0x91, 0xc0, 0xb2, 0xcf, 0xe7, 0xd1, 0x1e, 0xe3, 0x19, 0x17, 0xc4, 0x48, 0xfa, 0xd5, 0x2f, 0x30,
     0xfa, 0x4a, 0x1e, 0x9c, 0xd5, 0xa4, 0x9d, 0xbe, 0x00, 0xcc, 0x42, 0x01, 0x18, 0xb5, 0xbe, 0x0f,
@@ -96,3 +118,14 @@ pub const RND: [u8; 1536] = [
     0x41, 0xea, 0x51, 0x5d, 0x40, 0x4f, 0xe3, 0x19, 0x0, 0x93, 0xcc, 0x74, 0xcc, 0x48, 0x3c, 0x4b,
     0x61, 0x87, 0x45, 0x7a, 0x95, 0xfb, 0xdb, 0x19, 0x7a, 0x62, 0x46, 0x5, 0x31, 0x76, 0x3a, 0xdf,
 ];
+
+macro_rules! into_error {
+    ($err:expr, $($path:ident)::+) => {
+        match $err {
+            $($path)::+(cause) => cause,
+            _ => panic!("invalid error"),
+        }
+    };
+}
+
+pub(crate) use into_error;

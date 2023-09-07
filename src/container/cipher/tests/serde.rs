@@ -23,6 +23,7 @@
 use nuts_bytes::{Error, Reader, Writer};
 
 use crate::container::cipher::Cipher;
+use crate::tests::into_error;
 
 #[test]
 fn de_none() {

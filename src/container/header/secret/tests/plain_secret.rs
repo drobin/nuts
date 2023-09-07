@@ -31,6 +31,7 @@ use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
 use crate::container::Digest;
 use crate::memory::MemoryBackend;
+use crate::tests::into_error;
 
 #[test]
 fn ser() {

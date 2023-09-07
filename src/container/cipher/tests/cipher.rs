@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 use crate::container::cipher::{Cipher, CipherError};
+use crate::tests::into_error;
 
 #[test]
 fn block_size_none() {

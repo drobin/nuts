@@ -21,7 +21,7 @@
 
 use crate::container::digest::Digest;
 use crate::container::kdf::{Kdf, KdfError, KdfNoneError, KdfPbkdf2Error};
-use crate::tests::RND;
+use crate::tests::{into_error, RND};
 
 #[test]
 fn from_str_invalid() {

@@ -27,6 +27,7 @@ use crate::container::header::inner::{Inner, Revision};
 use crate::container::header::rev0;
 use crate::container::header::secret::Secret;
 use crate::container::kdf::Kdf;
+use crate::tests::into_error;
 
 #[test]
 fn new() {

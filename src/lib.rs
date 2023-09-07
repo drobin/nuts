@@ -20,9 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-#[macro_use]
-pub(crate) mod asserts;
 #[cfg(feature = "backend")]
 pub mod backend;
 #[cfg(feature = "container")]
