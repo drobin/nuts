@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022 Robin Doer
+// Copyright (c) 2022,2023 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -19,15 +19,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
-
-macro_rules! assert_error {
-    ($err:expr, $type:ident :: $memb:ident) => {
-        match $err {
-            $type::$memb => {}
-            _ => panic!("invalid error"),
-        }
-    };
-}
 
 macro_rules! into_error {
     ($err:expr, $type:ident :: $memb:ident) => {

@@ -79,7 +79,7 @@ fn encrypt_aes128_ctr_inval_key() {
     let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let err = ctx.encrypt(&KEY[..15], &IV, &[1, 2, 3]).unwrap_err();
-    assert_error!(err, OpenSSLError::InvalidKey);
+    assert!(matches!(err, OpenSSLError::InvalidKey));
 }
 
 #[test]
@@ -87,7 +87,7 @@ fn encrypt_aes128_ctr_inval_iv() {
     let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let err = ctx.encrypt(&KEY, &IV[..15], &[1, 2, 3]).unwrap_err();
-    assert_error!(err, OpenSSLError::InvalidIv);
+    assert!(matches!(err, OpenSSLError::InvalidIv));
 }
 
 #[test]
@@ -111,7 +111,7 @@ fn decrypt_aes128_ctr_inval_key() {
     let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let err = ctx.decrypt(&KEY[..15], &IV, &[146, 140, 10]).unwrap_err();
-    assert_error!(err, OpenSSLError::InvalidKey);
+    assert!(matches!(err, OpenSSLError::InvalidKey));
 }
 
 #[test]
@@ -119,5 +119,5 @@ fn decrypt_aes128_ctr_inval_iv() {
     let mut ctx = CipherCtx::new(Cipher::Aes128Ctr).unwrap();
 
     let err = ctx.decrypt(&KEY, &IV[..15], &[146, 140, 10]).unwrap_err();
-    assert_error!(err, OpenSSLError::InvalidIv);
+    assert!(matches!(err, OpenSSLError::InvalidIv));
 }
