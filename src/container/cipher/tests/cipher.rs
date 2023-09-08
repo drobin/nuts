@@ -34,6 +34,12 @@ fn block_size_aes128_ctr() {
 }
 
 #[test]
+#[should_panic(expected = "not implemented")]
+fn block_size_aes128_gcm() {
+    assert_eq!(Cipher::Aes128Gcm.block_size(), 1);
+}
+
+#[test]
 fn key_len_none() {
     assert_eq!(Cipher::None.key_len(), 0);
 }
@@ -41,6 +47,12 @@ fn key_len_none() {
 #[test]
 fn key_len_aes128_ctr() {
     assert_eq!(Cipher::Aes128Ctr.key_len(), 16);
+}
+
+#[test]
+#[should_panic(expected = "not implemented")]
+fn key_len_aes128_gcm() {
+    assert_eq!(Cipher::Aes128Gcm.key_len(), 16);
 }
 
 #[test]
@@ -54,6 +66,12 @@ fn iv_len_aes128_ctr() {
 }
 
 #[test]
+#[should_panic(expected = "not implemented")]
+fn iv_len_aes128_gcm() {
+    assert_eq!(Cipher::Aes128Gcm.iv_len(), 12);
+}
+
+#[test]
 fn tag_size_none() {
     assert_eq!(Cipher::None.tag_size(), 0);
 }
@@ -64,6 +82,11 @@ fn tag_size_aes128_ctr() {
 }
 
 #[test]
+fn tag_size_aes128_gcm() {
+    assert_eq!(Cipher::Aes128Gcm.tag_size(), 16);
+}
+
+#[test]
 fn from_str_none() {
     assert_eq!("none".parse::<Cipher>().unwrap(), Cipher::None);
 }
@@ -71,6 +94,11 @@ fn from_str_none() {
 #[test]
 fn from_str_aes128_ctr() {
     assert_eq!("aes128-ctr".parse::<Cipher>().unwrap(), Cipher::Aes128Ctr);
+}
+
+#[test]
+fn from_str_aes128_gcm() {
+    assert_eq!("aes128-gcm".parse::<Cipher>().unwrap(), Cipher::Aes128Gcm);
 }
 
 #[test]
@@ -89,4 +117,9 @@ fn to_string_none() {
 #[test]
 fn to_string_aes128_ctr() {
     assert_eq!(Cipher::Aes128Ctr.to_string(), "aes128-ctr");
+}
+
+#[test]
+fn to_string_aes128_gcm() {
+    assert_eq!(Cipher::Aes128Gcm.to_string(), "aes128-gcm");
 }

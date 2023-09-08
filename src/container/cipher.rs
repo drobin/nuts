@@ -57,6 +57,9 @@ pub enum Cipher {
 
     /// AES with a 128-bit key in CTR mode
     Aes128Ctr,
+
+    /// AES with a 128-bit key in GCM mode
+    Aes128Gcm,
 }
 
 impl Cipher {
@@ -98,6 +101,7 @@ impl Cipher {
         match self {
             Cipher::None => 0,
             Cipher::Aes128Ctr => 0,
+            Cipher::Aes128Gcm => 16,
         }
     }
 
@@ -105,6 +109,7 @@ impl Cipher {
         match self {
             Cipher::None => None,
             Cipher::Aes128Ctr => Some(evp::Cipher::aes128_ctr()),
+            Cipher::Aes128Gcm => unimplemented!(),
         }
     }
 }
@@ -114,6 +119,7 @@ impl fmt::Display for Cipher {
         let s = match self {
             Cipher::None => "none",
             Cipher::Aes128Ctr => "aes128-ctr",
+            Cipher::Aes128Gcm => "aes128-gcm",
         };
 
         fmt.write_str(s)
@@ -127,6 +133,7 @@ impl FromStr for Cipher {
         match str {
             "none" => Ok(Cipher::None),
             "aes128-ctr" => Ok(Cipher::Aes128Ctr),
+            "aes128-gcm" => Ok(Cipher::Aes128Gcm),
             _ => Err(CipherError::Invalid(str.to_string())),
         }
     }
