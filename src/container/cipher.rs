@@ -84,6 +84,23 @@ impl Cipher {
         }
     }
 
+    /// Returns the tag size of the cipher.
+    ///
+    /// An AE-cipher results into a
+    ///
+    /// 1. ciphertext
+    /// 2. tag
+    ///
+    /// Ciphertext and tag are both stored in a block of the container. Use
+    /// this method to get the size of the tag. For a non-AE-cipher the
+    /// tag-size is `0`.
+    pub fn tag_size(&self) -> usize {
+        match self {
+            Cipher::None => 0,
+            Cipher::Aes128Ctr => 0,
+        }
+    }
+
     fn to_evp(&self) -> Option<evp::Cipher> {
         match self {
             Cipher::None => None,

@@ -54,6 +54,16 @@ fn iv_len_aes128_ctr() {
 }
 
 #[test]
+fn tag_size_none() {
+    assert_eq!(Cipher::None.tag_size(), 0);
+}
+
+#[test]
+fn tag_size_aes128_ctr() {
+    assert_eq!(Cipher::Aes128Ctr.tag_size(), 0);
+}
+
+#[test]
 fn from_str_none() {
     assert_eq!("none".parse::<Cipher>().unwrap(), Cipher::None);
 }
