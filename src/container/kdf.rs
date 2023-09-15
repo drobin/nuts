@@ -29,7 +29,7 @@ use std::str::FromStr;
 use std::{error, fmt};
 
 use crate::container::digest::Digest;
-use crate::container::openssl::{evp, rand, OpenSSLError};
+use crate::container::ossl::{evp, rand, OpenSSLError};
 use crate::container::svec::SecureVec;
 
 use super::DigestError;

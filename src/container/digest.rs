@@ -27,7 +27,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::{error, fmt};
 
-use crate::container::openssl::evp;
+use crate::container::ossl::evp;
 
 /// An error which can be returned when parsing a [`Digest`].
 ///

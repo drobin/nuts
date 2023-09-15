@@ -20,43 +20,56 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(not(test))]
-mod production {
-    use openssl_sys::RAND_bytes;
-    use std::os::raw::c_int;
+pub(super) mod error;
+pub(super) mod evp;
+pub(super) mod rand;
 
-    use crate::container::openssl::error::OpenSSLResult;
-    use crate::container::openssl::MapResult;
+use std::os::raw::c_int;
+use std::ptr;
 
-    pub fn rand_bytes(buf: &mut [u8]) -> OpenSSLResult<()> {
-        unsafe { RAND_bytes(buf.as_mut_ptr(), buf.len() as c_int) }.map_result(|_| ())
+use crate::container::ossl::error::OpenSSLResult;
+
+pub use error::OpenSSLError;
+
+trait MapResult
+where
+    Self: PartialOrd<c_int> + Sized,
+{
+    fn into_result(self) -> OpenSSLResult<Self> {
+        self.map_result(|n| n)
+    }
+
+    fn map_result<F, T>(self, op: F) -> OpenSSLResult<T>
+    where
+        F: FnOnce(Self) -> T,
+    {
+        if self > 0 {
+            Ok(op(self))
+        } else {
+            Err(OpenSSLError::library())
+        }
     }
 }
 
-#[cfg(test)]
-mod test {
-    use crate::container::openssl::error::OpenSSLResult;
-    use crate::tests::RND;
+trait MapResultPtr<T>
+where
+    Self: PartialEq<*mut T> + Sized,
+{
+    fn into_result(self) -> OpenSSLResult<Self> {
+        self.map_result(|n| n)
+    }
 
-    pub fn rand_bytes(buf: &mut [u8]) -> OpenSSLResult<()> {
-        assert!(buf.len() <= RND.len());
-        buf.clone_from_slice(&RND[..buf.len()]);
-        Ok(())
+    fn map_result<F, R>(self, op: F) -> OpenSSLResult<R>
+    where
+        F: FnOnce(Self) -> R,
+    {
+        if self == ptr::null_mut() {
+            Err(OpenSSLError::library())
+        } else {
+            Ok(op(self))
+        }
     }
 }
 
-use crate::container::openssl::error::OpenSSLResult;
-
-#[cfg(test)]
-pub use test::rand_bytes;
-
-#[cfg(not(test))]
-pub use production::rand_bytes;
-
-pub fn rand_u32() -> OpenSSLResult<u32> {
-    let mut bytes = [0; 4];
-
-    rand_bytes(&mut bytes)?;
-
-    Ok(u32::from_be_bytes(bytes))
-}
+impl MapResult for c_int {}
+impl<T> MapResultPtr<T> for *mut T {}

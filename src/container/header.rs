@@ -33,8 +33,8 @@ use crate::backend::Backend;
 use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};
 use crate::container::kdf::Kdf;
-use crate::container::openssl::{rand, OpenSSLError};
 use crate::container::options::CreateOptions;
+use crate::container::ossl::{rand, OpenSSLError};
 use crate::container::password::{NoPasswordError, PasswordStore};
 use crate::container::svec::SecureVec;
 

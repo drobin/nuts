@@ -27,7 +27,7 @@ use crate::backend::Backend;
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
 use crate::container::kdf::Kdf;
-use crate::container::openssl::OpenSSLError;
+use crate::container::ossl::OpenSSLError;
 use crate::container::ContainerResult;
 #[cfg(doc)]
 use crate::container::{error::Error, Container};

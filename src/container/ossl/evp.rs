@@ -29,8 +29,8 @@ use openssl_sys::{
 use std::os::raw::c_int;
 use std::ptr;
 
-use crate::container::openssl::error::{OpenSSLError, OpenSSLResult};
-use crate::container::openssl::{MapResult, MapResultPtr};
+use crate::container::ossl::error::{OpenSSLError, OpenSSLResult};
+use crate::container::ossl::{MapResult, MapResultPtr};
 
 extern "C" {
     fn EVP_CIPHER_CTX_reset(ctx: *mut EVP_CIPHER_CTX) -> c_int;

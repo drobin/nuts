@@ -24,7 +24,7 @@ use std::{error, fmt};
 
 use crate::backend::Backend;
 use crate::container::header::HeaderError;
-use crate::container::openssl::OpenSSLError;
+use crate::container::ossl::OpenSSLError;
 
 /// Error type used by this module.
 pub enum Error<B: Backend> {

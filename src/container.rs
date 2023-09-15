@@ -247,8 +247,8 @@ mod error;
 mod header;
 mod info;
 mod kdf;
-mod openssl;
 mod options;
+mod ossl;
 mod password;
 mod svec;
 
@@ -268,8 +268,8 @@ pub use error::{ContainerResult, Error};
 pub use header::HeaderError;
 pub use info::Info;
 pub use kdf::Kdf;
-pub use openssl::error::OpenSSLError;
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
+pub use ossl::error::OpenSSLError;
 pub use password::NoPasswordError;
 
 macro_rules! map_err {
