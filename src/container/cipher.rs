@@ -24,9 +24,11 @@
 mod tests;
 
 use openssl::cipher as ossl_cipher;
+use openssl::cipher_ctx as ossl_cipherctx;
+use openssl::error as ossl_error;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use std::{error, fmt};
+use std::{cmp, error, fmt};
 
 use crate::container::ossl::{evp, OpenSSLError};
 use crate::container::svec::SecureVec;
@@ -37,18 +39,32 @@ use crate::container::svec::SecureVec;
 /// [`Cipher`].
 #[derive(Debug)]
 pub enum CipherError {
+    OpenSSL(ossl_error::ErrorStack),
+    InvalidKey,
+    InvalidIv,
+    InvalidBlockSize,
     Invalid(String),
 }
 
 impl fmt::Display for CipherError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
+            Self::InvalidKey => write!(fmt, "Invalid key"),
+            Self::InvalidIv => write!(fmt, "Invalid iv"),
+            Self::InvalidBlockSize => write!(fmt, "Invalid block-size"),
             Self::Invalid(str) => write!(fmt, "invalid cipher: {}", str),
         }
     }
 }
 
 impl error::Error for CipherError {}
+
+impl From<ossl_error::ErrorStack> for CipherError {
+    fn from(cause: ossl_error::ErrorStack) -> Self {
+        CipherError::OpenSSL(cause)
+    }
+}
 
 /// Supported cipher algorithms.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -104,6 +120,74 @@ impl Cipher {
             Cipher::Aes128Ctr => 0,
             Cipher::Aes128Gcm => 16,
         }
+    }
+
+    pub fn encrypt(
+        &self,
+        input: &[u8],
+        output: &mut Vec<u8>,
+        key: &[u8],
+        iv: &[u8],
+    ) -> Result<usize, CipherError> {
+        match self {
+            Self::None => Ok(Self::make_none(input, output)),
+            _ => self.encrypt_aad(None, input, output, key, iv),
+        }
+    }
+
+    fn make_none(input: &[u8], output: &mut Vec<u8>) -> usize {
+        output.clear();
+        output.extend_from_slice(input);
+
+        input.len()
+    }
+
+    fn encrypt_aad(
+        &self,
+        aad: Option<&[u8]>,
+        input: &[u8],
+        output: &mut Vec<u8>,
+        key: &[u8],
+        iv: &[u8],
+    ) -> Result<usize, CipherError> {
+        let key = key.get(..self.key_len()).ok_or(CipherError::InvalidKey)?;
+        let iv = iv.get(..self.iv_len()).ok_or(CipherError::InvalidIv)?;
+
+        // number of plaintext bytes: equals to number of input bytes. There is
+        // no need to align at block size because blocksize is 1 for all
+        // ciphers.
+        let ptext_len = input.len();
+
+        // number of ciphertext bytes: equals to plaintext bytes (for now) because
+        // blocksize is 1 for all ciphers.
+        let ctext_len = ptext_len;
+
+        if ptext_len == 0 {
+            return Ok(0);
+        }
+
+        if ptext_len % self.block_size() != 0 {
+            return Err(CipherError::InvalidBlockSize);
+        }
+
+        let mut ctx = ossl_cipherctx::CipherCtx::new()?;
+
+        ctx.encrypt_init(self.to_openssl(), Some(key), Some(iv))?;
+        ctx.set_padding(false);
+
+        if let Some(buf) = aad {
+            ctx.cipher_update(buf, None)?;
+        }
+
+        output.resize(ctext_len + self.tag_size(), 0);
+        ctx.cipher_update(&input[..ptext_len], Some(&mut output[..ctext_len]))?;
+
+        if self.tag_size() > 0 {
+            ctx.cipher_final(&mut [])?;
+            ctx.tag(&mut output[ctext_len..])?;
+        }
+
+        Ok(ctext_len)
     }
 
     fn to_evp(&self) -> Option<evp::Cipher> {

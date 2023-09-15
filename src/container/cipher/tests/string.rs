@@ -24,66 +24,6 @@ use crate::container::cipher::{Cipher, CipherError};
 use crate::tests::into_error;
 
 #[test]
-fn block_size_none() {
-    assert_eq!(Cipher::None.block_size(), 1);
-}
-
-#[test]
-fn block_size_aes128_ctr() {
-    assert_eq!(Cipher::Aes128Ctr.block_size(), 1);
-}
-
-#[test]
-fn block_size_aes128_gcm() {
-    assert_eq!(Cipher::Aes128Gcm.block_size(), 1);
-}
-
-#[test]
-fn key_len_none() {
-    assert_eq!(Cipher::None.key_len(), 0);
-}
-
-#[test]
-fn key_len_aes128_ctr() {
-    assert_eq!(Cipher::Aes128Ctr.key_len(), 16);
-}
-
-#[test]
-fn key_len_aes128_gcm() {
-    assert_eq!(Cipher::Aes128Gcm.key_len(), 16);
-}
-
-#[test]
-fn iv_len_none() {
-    assert_eq!(Cipher::None.iv_len(), 0);
-}
-
-#[test]
-fn iv_len_aes128_ctr() {
-    assert_eq!(Cipher::Aes128Ctr.iv_len(), 16);
-}
-
-#[test]
-fn iv_len_aes128_gcm() {
-    assert_eq!(Cipher::Aes128Gcm.iv_len(), 12);
-}
-
-#[test]
-fn tag_size_none() {
-    assert_eq!(Cipher::None.tag_size(), 0);
-}
-
-#[test]
-fn tag_size_aes128_ctr() {
-    assert_eq!(Cipher::Aes128Ctr.tag_size(), 0);
-}
-
-#[test]
-fn tag_size_aes128_gcm() {
-    assert_eq!(Cipher::Aes128Gcm.tag_size(), 16);
-}
-
-#[test]
 fn from_str_none() {
     assert_eq!("none".parse::<Cipher>().unwrap(), Cipher::None);
 }

@@ -20,31 +20,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod aes128_ctr;
-mod aes128_gcm;
-mod ctx;
-mod none;
-mod serde;
-mod string;
+use crate::container::cipher::Cipher;
 
-const KEY: [u8; 16] = [b'x'; 16];
-const IV: [u8; 16] = [b'y'; 16];
+use super::encrypt_test;
 
-macro_rules! encrypt_test {
-    ($name:ident, $cipher:ident, [ $($input:literal),* ], $num:literal, [ $($expected:literal),* ]) => {
-        #[test]
-        fn $name() {
-            use crate::container::cipher::tests::{KEY, IV};
-
-            let input = [$($input),*];
-            let mut output = Vec::new();
-
-            let n = Cipher::$cipher.encrypt(&input, &mut output, &KEY, &IV).unwrap();
-
-            assert_eq!(n, $num);
-            assert_eq!(output, [$($expected),*]);
-        }
-    };
+#[test]
+fn block_size() {
+    assert_eq!(Cipher::None.block_size(), 1);
 }
 
-pub(crate) use encrypt_test;
+#[test]
+fn key_len() {
+    assert_eq!(Cipher::None.key_len(), 0);
+}
+
+#[test]
+fn iv_len() {
+    assert_eq!(Cipher::None.iv_len(), 0);
+}
+
+#[test]
+fn tag_size() {
+    assert_eq!(Cipher::None.tag_size(), 0);
+}
+
+encrypt_test!(encrypt_1, None, [1, 2, 3], 3, [1, 2, 3]);
+encrypt_test!(encrypt_2, None, [1, 2], 2, [1, 2]);
+encrypt_test!(encrypt_3, None, [1], 1, [1]);
+encrypt_test!(encrypt_4, None, [], 0, []);

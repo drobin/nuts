@@ -20,31 +20,47 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod aes128_ctr;
-mod aes128_gcm;
-mod ctx;
-mod none;
-mod serde;
-mod string;
+use crate::container::cipher::{Cipher, CipherError};
 
-const KEY: [u8; 16] = [b'x'; 16];
-const IV: [u8; 16] = [b'y'; 16];
+use super::{encrypt_test, IV, KEY};
 
-macro_rules! encrypt_test {
-    ($name:ident, $cipher:ident, [ $($input:literal),* ], $num:literal, [ $($expected:literal),* ]) => {
-        #[test]
-        fn $name() {
-            use crate::container::cipher::tests::{KEY, IV};
-
-            let input = [$($input),*];
-            let mut output = Vec::new();
-
-            let n = Cipher::$cipher.encrypt(&input, &mut output, &KEY, &IV).unwrap();
-
-            assert_eq!(n, $num);
-            assert_eq!(output, [$($expected),*]);
-        }
-    };
+#[test]
+fn block_size() {
+    assert_eq!(Cipher::Aes128Ctr.block_size(), 1);
 }
 
-pub(crate) use encrypt_test;
+#[test]
+fn key_len() {
+    assert_eq!(Cipher::Aes128Ctr.key_len(), 16);
+}
+
+#[test]
+fn iv_len() {
+    assert_eq!(Cipher::Aes128Ctr.iv_len(), 16);
+}
+
+#[test]
+fn tag_size() {
+    assert_eq!(Cipher::Aes128Ctr.tag_size(), 0);
+}
+
+#[test]
+fn encrypt_inval_key() {
+    let err = Cipher::Aes128Ctr
+        .encrypt(&[1, 2, 3], &mut Vec::new(), &KEY[..15], &IV)
+        .unwrap_err();
+    assert!(matches!(err, CipherError::InvalidKey));
+}
+
+#[test]
+fn encrypt_inval_iv() {
+    let err = Cipher::Aes128Ctr
+        .encrypt(&[1, 2, 3], &mut Vec::new(), &KEY, &IV[..15])
+        .unwrap_err();
+    assert!(matches!(err, CipherError::InvalidIv));
+}
+
+encrypt_test!(encrypt_1, Aes128Ctr, [1, 2, 3], 3, [146, 140, 10]);
+encrypt_test!(encrypt_2, Aes128Ctr, [1, 2], 2, [146, 140]);
+encrypt_test!(encrypt_3, Aes128Ctr, [1], 1, [146]);
+encrypt_test!(encrypt_4, Aes128Ctr, [], 0, []);
