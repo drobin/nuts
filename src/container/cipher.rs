@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use openssl::cipher as ossl_cipher;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::{error, fmt};
@@ -65,7 +66,7 @@ pub enum Cipher {
 impl Cipher {
     /// Returns the block size of the cipher.
     pub fn block_size(&self) -> usize {
-        match self.to_evp() {
+        match self.to_openssl() {
             None => 1,
             Some(c) => c.block_size(),
         }
@@ -73,7 +74,7 @@ impl Cipher {
 
     /// Returns the key size of the cipher.
     pub fn key_len(&self) -> usize {
-        match self.to_evp() {
+        match self.to_openssl() {
             None => 0,
             Some(c) => c.key_length(),
         }
@@ -81,7 +82,7 @@ impl Cipher {
 
     /// Returns the IV size of the cipher.
     pub fn iv_len(&self) -> usize {
-        match self.to_evp() {
+        match self.to_openssl() {
             None => 0,
             Some(c) => c.iv_length(),
         }
@@ -110,6 +111,14 @@ impl Cipher {
             Cipher::None => None,
             Cipher::Aes128Ctr => Some(evp::Cipher::aes128_ctr()),
             Cipher::Aes128Gcm => unimplemented!(),
+        }
+    }
+
+    fn to_openssl(self) -> Option<&'static ossl_cipher::CipherRef> {
+        match self {
+            Cipher::None => None,
+            Cipher::Aes128Ctr => Some(ossl_cipher::Cipher::aes_128_ctr()),
+            Cipher::Aes128Gcm => Some(ossl_cipher::Cipher::aes_128_gcm()),
         }
     }
 }

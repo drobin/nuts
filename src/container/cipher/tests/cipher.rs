@@ -34,7 +34,6 @@ fn block_size_aes128_ctr() {
 }
 
 #[test]
-#[should_panic(expected = "not implemented")]
 fn block_size_aes128_gcm() {
     assert_eq!(Cipher::Aes128Gcm.block_size(), 1);
 }
@@ -50,7 +49,6 @@ fn key_len_aes128_ctr() {
 }
 
 #[test]
-#[should_panic(expected = "not implemented")]
 fn key_len_aes128_gcm() {
     assert_eq!(Cipher::Aes128Gcm.key_len(), 16);
 }
@@ -66,7 +64,6 @@ fn iv_len_aes128_ctr() {
 }
 
 #[test]
-#[should_panic(expected = "not implemented")]
 fn iv_len_aes128_gcm() {
     assert_eq!(Cipher::Aes128Gcm.iv_len(), 12);
 }
