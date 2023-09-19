@@ -22,7 +22,7 @@
 
 use crate::container::cipher::{Cipher, CipherError};
 
-use super::{encrypt_test, IV, KEY};
+use super::{cipher_test, IV, KEY};
 
 #[test]
 fn block_size() {
@@ -45,6 +45,88 @@ fn tag_size() {
 }
 
 #[test]
+fn decrypt_inval_key() {
+    let err = Cipher::Aes128Gcm
+        .decrypt(
+            &[
+                143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91,
+            ],
+            &mut Vec::new(),
+            &KEY[..15],
+            &IV,
+        )
+        .unwrap_err();
+    assert!(matches!(err, CipherError::InvalidKey));
+}
+
+#[test]
+fn decrypt_inval_iv() {
+    let err = Cipher::Aes128Gcm
+        .decrypt(
+            &[
+                143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91,
+            ],
+            &mut Vec::new(),
+            &KEY,
+            &IV[..11],
+        )
+        .unwrap_err();
+    assert!(matches!(err, CipherError::InvalidIv));
+}
+
+#[test]
+fn decrypt_not_trustworthy() {
+    let err = Cipher::Aes128Gcm
+        .decrypt(
+            &[
+                143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, b'x',
+            ],
+            &mut Vec::new(),
+            &KEY,
+            &IV,
+        )
+        .unwrap_err();
+    assert!(matches!(err, CipherError::NotTrustworthy));
+}
+
+cipher_test!(
+    decrypt_1,
+    Aes128Gcm.decrypt,
+    [143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91],
+    3,
+    [1, 2, 3]
+);
+cipher_test!(
+    decrypt_2,
+    Aes128Gcm.decrypt,
+    [143, 103, 41, 94, 18, 247, 152, 74, 58, 41, 133, 131, 106, 84, 84, 135, 195, 243],
+    2,
+    [1, 2]
+);
+cipher_test!(
+    decrypt_3,
+    Aes128Gcm.decrypt,
+    [143, 113, 88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213],
+    1,
+    [1]
+);
+cipher_test!(
+    decrypt_4,
+    Aes128Gcm.decrypt,
+    [113, 88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213],
+    0,
+    []
+);
+cipher_test!(
+    decrypt_5,
+    Aes128Gcm.decrypt,
+    [88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213],
+    0,
+    []
+);
+cipher_test!(decrypt_6, Aes128Gcm.decrypt, [], 0, []);
+
+#[test]
 fn encrypt_inval_key() {
     let err = Cipher::Aes128Gcm
         .encrypt(&[1, 2, 3], &mut Vec::new(), &KEY[..15], &IV)
@@ -60,25 +142,25 @@ fn encrypt_inval_iv() {
     assert!(matches!(err, CipherError::InvalidIv));
 }
 
-encrypt_test!(
+cipher_test!(
     encrypt_1,
-    Aes128Gcm,
+    Aes128Gcm.encrypt,
     [1, 2, 3],
     3,
     [143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91]
 );
-encrypt_test!(
+cipher_test!(
     encrypt_2,
-    Aes128Gcm,
+    Aes128Gcm.encrypt,
     [1, 2],
     2,
     [143, 103, 41, 94, 18, 247, 152, 74, 58, 41, 133, 131, 106, 84, 84, 135, 195, 243]
 );
-encrypt_test!(
+cipher_test!(
     encrypt_3,
-    Aes128Gcm,
+    Aes128Gcm.encrypt,
     [1],
     1,
     [143, 113, 88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213]
 );
-encrypt_test!(encrypt_4, Aes128Gcm, [], 0, []);
+cipher_test!(encrypt_4, Aes128Gcm.encrypt, [], 0, []);

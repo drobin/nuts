@@ -30,8 +30,8 @@ mod string;
 const KEY: [u8; 16] = [b'x'; 16];
 const IV: [u8; 16] = [b'y'; 16];
 
-macro_rules! encrypt_test {
-    ($name:ident, $cipher:ident, [ $($input:literal),* ], $num:literal, [ $($expected:literal),* ]) => {
+macro_rules! cipher_test {
+    ($name:ident, $cipher:ident . $method:ident, [ $($input:literal),* ], $num:literal, [ $($expected:literal),* ]) => {
         #[test]
         fn $name() {
             use crate::container::cipher::tests::{KEY, IV};
@@ -39,7 +39,7 @@ macro_rules! encrypt_test {
             let input = [$($input),*];
             let mut output = Vec::new();
 
-            let n = Cipher::$cipher.encrypt(&input, &mut output, &KEY, &IV).unwrap();
+            let n = Cipher::$cipher.$method(&input, &mut output, &KEY, &IV).unwrap();
 
             assert_eq!(n, $num);
             assert_eq!(output, [$($expected),*]);
@@ -47,4 +47,4 @@ macro_rules! encrypt_test {
     };
 }
 
-pub(crate) use encrypt_test;
+pub(crate) use cipher_test;

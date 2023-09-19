@@ -28,7 +28,7 @@ use openssl::cipher_ctx as ossl_cipherctx;
 use openssl::error as ossl_error;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use std::{cmp, error, fmt};
+use std::{error, fmt};
 
 use crate::container::ossl::{evp, OpenSSLError};
 use crate::container::svec::SecureVec;
@@ -43,6 +43,13 @@ pub enum CipherError {
     InvalidKey,
     InvalidIv,
     InvalidBlockSize,
+
+    /// A cipher-text is not trustworthy.
+    ///
+    /// If an authenticated decryption is performed, and the tag mismatches,
+    /// this error is raised.
+    NotTrustworthy,
+
     Invalid(String),
 }
 
@@ -53,6 +60,7 @@ impl fmt::Display for CipherError {
             Self::InvalidKey => write!(fmt, "Invalid key"),
             Self::InvalidIv => write!(fmt, "Invalid iv"),
             Self::InvalidBlockSize => write!(fmt, "Invalid block-size"),
+            Self::NotTrustworthy => write!(fmt, "The plaintext is not trustworthy"),
             Self::Invalid(str) => write!(fmt, "invalid cipher: {}", str),
         }
     }
@@ -122,6 +130,19 @@ impl Cipher {
         }
     }
 
+    pub fn decrypt(
+        &self,
+        input: &[u8],
+        output: &mut Vec<u8>,
+        key: &[u8],
+        iv: &[u8],
+    ) -> Result<usize, CipherError> {
+        match self {
+            Self::None => Ok(Self::make_none(input, output)),
+            _ => self.decrypt_aad(None, input, output, key, iv),
+        }
+    }
+
     pub fn encrypt(
         &self,
         input: &[u8],
@@ -140,6 +161,53 @@ impl Cipher {
         output.extend_from_slice(input);
 
         input.len()
+    }
+
+    fn decrypt_aad(
+        &self,
+        aad: Option<&[u8]>,
+        input: &[u8],
+        output: &mut Vec<u8>,
+        key: &[u8],
+        iv: &[u8],
+    ) -> Result<usize, CipherError> {
+        let key = key.get(..self.key_len()).ok_or(CipherError::InvalidKey)?;
+        let iv = iv.get(..self.iv_len()).ok_or(CipherError::InvalidIv)?;
+
+        // number of ciphertext bytes: remove tag from the input.
+        let ctext_bytes = input.len().checked_sub(self.tag_size()).unwrap_or(0);
+
+        // number of plaintext bytes: equals to ciphertext bytes (for now) because
+        // blocksize is 1 for all ciphers.
+        let ptext_bytes = ctext_bytes;
+
+        if ctext_bytes == 0 {
+            return Ok(0);
+        }
+
+        if ctext_bytes % self.block_size() != 0 {
+            return Err(CipherError::InvalidBlockSize);
+        }
+
+        let mut ctx = ossl_cipherctx::CipherCtx::new()?;
+
+        ctx.decrypt_init(self.to_openssl(), Some(key), Some(iv))?;
+        ctx.set_padding(false);
+
+        if let Some(buf) = aad {
+            ctx.cipher_update(buf, None)?;
+        }
+
+        output.resize(ptext_bytes, 0);
+        ctx.cipher_update(&input[..ctext_bytes], Some(&mut output[..ptext_bytes]))?;
+
+        if self.tag_size() > 0 {
+            ctx.set_tag(&input[ctext_bytes..])?;
+            ctx.cipher_final(&mut [])
+                .map_err(|_| CipherError::NotTrustworthy)?;
+        }
+
+        Ok(ctext_bytes)
     }
 
     fn encrypt_aad(

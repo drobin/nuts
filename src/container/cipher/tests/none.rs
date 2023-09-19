@@ -22,7 +22,7 @@
 
 use crate::container::cipher::Cipher;
 
-use super::encrypt_test;
+use super::cipher_test;
 
 #[test]
 fn block_size() {
@@ -44,7 +44,12 @@ fn tag_size() {
     assert_eq!(Cipher::None.tag_size(), 0);
 }
 
-encrypt_test!(encrypt_1, None, [1, 2, 3], 3, [1, 2, 3]);
-encrypt_test!(encrypt_2, None, [1, 2], 2, [1, 2]);
-encrypt_test!(encrypt_3, None, [1], 1, [1]);
-encrypt_test!(encrypt_4, None, [], 0, []);
+cipher_test!(decrypt_1, None.decrypt, [1, 2, 3], 3, [1, 2, 3]);
+cipher_test!(decrypt_2, None.decrypt, [1, 2], 2, [1, 2]);
+cipher_test!(decrypt_3, None.decrypt, [1], 1, [1]);
+cipher_test!(decrypt_4, None.decrypt, [], 0, []);
+
+cipher_test!(encrypt_1, None.encrypt, [1, 2, 3], 3, [1, 2, 3]);
+cipher_test!(encrypt_2, None.encrypt, [1, 2], 2, [1, 2]);
+cipher_test!(encrypt_3, None.encrypt, [1], 1, [1]);
+cipher_test!(encrypt_4, None.encrypt, [], 0, []);
