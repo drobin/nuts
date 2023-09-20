@@ -23,11 +23,10 @@
 #[cfg(test)]
 mod tests;
 
+use openssl::hash::MessageDigest;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::{error, fmt};
-
-use crate::container::ossl::evp;
 
 /// An error which can be returned when parsing a [`Digest`].
 ///
@@ -86,9 +85,9 @@ impl Digest {
         }
     }
 
-    pub(crate) fn to_evp(&self) -> evp::Digest {
+    pub(crate) fn to_openssl(&self) -> MessageDigest {
         match self {
-            Digest::Sha1 => evp::Digest::sha1(),
+            Digest::Sha1 => MessageDigest::sha1(),
         }
     }
 }

@@ -257,7 +257,6 @@ use std::borrow::Cow;
 use std::{any, cmp};
 
 use crate::backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
-use crate::container::cipher::CipherCtx;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;
 use crate::container::svec::SecureVec;
@@ -269,7 +268,6 @@ pub use header::HeaderError;
 pub use info::Info;
 pub use kdf::Kdf;
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
-pub use ossl::error::OpenSSLError;
 pub use password::NoPasswordError;
 
 macro_rules! map_err {
@@ -291,7 +289,8 @@ pub struct Container<B: Backend> {
     backend: B,
     store: PasswordStore,
     header: Header,
-    ctx: CipherCtx,
+    buf_in: SecureVec,
+    buf_out: SecureVec,
 }
 
 impl<B: Backend> Container<B> {
@@ -331,8 +330,6 @@ impl<B: Backend> Container<B> {
         Self::write_header(&mut backend_options, &header, settings, &mut store)?;
         let backend = map_err!(backend_options.build())?;
 
-        let ctx = CipherCtx::new(header.cipher)?;
-
         debug!(
             "Container created, backend: {}, header: {:?}",
             any::type_name::<B>(),
@@ -343,7 +340,8 @@ impl<B: Backend> Container<B> {
             backend,
             store,
             header,
-            ctx,
+            buf_in: vec![].into(),
+            buf_out: vec![].into(),
         })
     }
 
@@ -376,8 +374,6 @@ impl<B: Backend> Container<B> {
         let (header, settings) = Self::read_header(&mut backend_options, &mut store)?;
         let backend = map_err!(backend_options.build(settings))?;
 
-        let ctx = CipherCtx::new(header.cipher)?;
-
         debug!(
             "Container opened, backend: {}, header: {:?}",
             any::type_name::<B>(),
@@ -388,7 +384,8 @@ impl<B: Backend> Container<B> {
             backend,
             store,
             header,
-            ctx,
+            buf_in: vec![].into(),
+            buf_out: vec![].into(),
         })
     }
 
@@ -497,15 +494,18 @@ impl<B: Backend> Container<B> {
             return Err(Error::NullId);
         }
 
-        let mut ctext = vec![0; self.backend.block_size() as usize];
-        let n = map_err!(self.backend.read(id, &mut ctext))?;
+        self.buf_in.resize(self.backend.block_size() as usize, 0);
+        map_err!(self.backend.read(id, &mut self.buf_in))?;
 
         let key = &self.header.key;
         let iv = &self.header.iv;
-        let ptext = self.ctx.decrypt(key, iv, &ctext[..n])?;
 
-        let n = cmp::min(ptext.len(), buf.len());
-        buf[..n].copy_from_slice(&ptext[..n]);
+        self.header
+            .cipher
+            .decrypt(&self.buf_in, &mut self.buf_out, key, iv)?;
+
+        let n = cmp::min(self.buf_out.len(), buf.len());
+        buf[..n].copy_from_slice(&self.buf_out[..n]);
 
         Ok(n)
     }
@@ -546,7 +546,9 @@ impl<B: Backend> Container<B> {
             ptext.to_mut().resize(block_size, 0);
         }
 
-        let result = self.ctx.encrypt(key, iv, &ptext);
+        self.header
+            .cipher
+            .encrypt(&ptext, &mut self.buf_out, key, iv)?;
 
         match ptext {
             Cow::Owned(buf) => {
@@ -556,8 +558,7 @@ impl<B: Backend> Container<B> {
             _ => {}
         };
 
-        let ctext = result?;
-        map_err!(self.backend.write(id, ctext)).map(|_| ptext_len)
+        map_err!(self.backend.write(id, &self.buf_out)).map(|_| ptext_len)
     }
 
     fn read_header<H: HeaderGet<B>>(

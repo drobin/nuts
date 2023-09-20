@@ -23,13 +23,15 @@
 #[cfg(test)]
 mod tests;
 
+use openssl::error::ErrorStack;
+use openssl::pkcs5::pbkdf2_hmac;
 use serde::{Deserialize, Serialize};
 use std::num::ParseIntError;
 use std::str::FromStr;
 use std::{error, fmt};
 
 use crate::container::digest::Digest;
-use crate::container::ossl::{evp, rand, OpenSSLError};
+use crate::container::ossl;
 use crate::container::svec::SecureVec;
 
 use super::DigestError;
@@ -59,7 +61,7 @@ pub enum KdfPbkdf2Error {
     InvalidDigest(DigestError),
     InvalidIterations(ParseIntError),
     InvalidSaltLen(ParseIntError),
-    OpenSSL(OpenSSLError),
+    OpenSSL(ErrorStack),
 }
 
 impl fmt::Display for KdfPbkdf2Error {
@@ -96,8 +98,8 @@ impl From<DigestError> for KdfPbkdf2Error {
     }
 }
 
-impl From<OpenSSLError> for KdfPbkdf2Error {
-    fn from(cause: OpenSSLError) -> Self {
+impl From<ErrorStack> for KdfPbkdf2Error {
+    fn from(cause: ErrorStack) -> Self {
         KdfPbkdf2Error::OpenSSL(cause)
     }
 }
@@ -229,9 +231,9 @@ impl Kdf {
         digest: Digest,
         iterations: u32,
         salt_len: u32,
-    ) -> Result<Kdf, OpenSSLError> {
+    ) -> Result<Kdf, ErrorStack> {
         let mut salt = vec![0; salt_len as usize];
-        rand::rand_bytes(&mut salt)?;
+        ossl::rand_bytes(&mut salt)?;
 
         Ok(Kdf::Pbkdf2 {
             digest,
@@ -240,7 +242,7 @@ impl Kdf {
         })
     }
 
-    pub(crate) fn create_key(&self, password: &[u8]) -> Result<SecureVec, OpenSSLError> {
+    pub(crate) fn create_key(&self, password: &[u8]) -> Result<SecureVec, ErrorStack> {
         match self {
             Kdf::None => Ok(vec![].into()),
             Kdf::Pbkdf2 {
@@ -256,10 +258,10 @@ impl Kdf {
                     panic!("invalid salt, cannot be empty");
                 }
 
-                let md = digest.to_evp();
+                let md = digest.to_openssl();
                 let mut key = vec![0; digest.size()];
 
-                evp::pbkdf2_hmac(password, salt, *iterations, md, &mut key)?;
+                pbkdf2_hmac(password, salt, *iterations as usize, md, &mut key)?;
 
                 Ok(key.into())
             }

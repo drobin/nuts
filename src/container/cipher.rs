@@ -24,14 +24,11 @@
 mod tests;
 
 use openssl::cipher as ossl_cipher;
-use openssl::cipher_ctx as ossl_cipherctx;
-use openssl::error as ossl_error;
+use openssl::cipher_ctx::CipherCtx;
+use openssl::error::ErrorStack;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::{error, fmt};
-
-use crate::container::ossl::{evp, OpenSSLError};
-use crate::container::svec::SecureVec;
 
 /// An error which can be returned when parsing a [`Cipher`].
 ///
@@ -39,7 +36,7 @@ use crate::container::svec::SecureVec;
 /// [`Cipher`].
 #[derive(Debug)]
 pub enum CipherError {
-    OpenSSL(ossl_error::ErrorStack),
+    OpenSSL(ErrorStack),
     InvalidKey,
     InvalidIv,
     InvalidBlockSize,
@@ -68,8 +65,8 @@ impl fmt::Display for CipherError {
 
 impl error::Error for CipherError {}
 
-impl From<ossl_error::ErrorStack> for CipherError {
-    fn from(cause: ossl_error::ErrorStack) -> Self {
+impl From<ErrorStack> for CipherError {
+    fn from(cause: ErrorStack) -> Self {
         CipherError::OpenSSL(cause)
     }
 }
@@ -189,7 +186,7 @@ impl Cipher {
             return Err(CipherError::InvalidBlockSize);
         }
 
-        let mut ctx = ossl_cipherctx::CipherCtx::new()?;
+        let mut ctx = CipherCtx::new()?;
 
         ctx.decrypt_init(self.to_openssl(), Some(key), Some(iv))?;
         ctx.set_padding(false);
@@ -238,7 +235,7 @@ impl Cipher {
             return Err(CipherError::InvalidBlockSize);
         }
 
-        let mut ctx = ossl_cipherctx::CipherCtx::new()?;
+        let mut ctx = CipherCtx::new()?;
 
         ctx.encrypt_init(self.to_openssl(), Some(key), Some(iv))?;
         ctx.set_padding(false);
@@ -256,14 +253,6 @@ impl Cipher {
         }
 
         Ok(ctext_len)
-    }
-
-    fn to_evp(&self) -> Option<evp::Cipher> {
-        match self {
-            Cipher::None => None,
-            Cipher::Aes128Ctr => Some(evp::Cipher::aes128_ctr()),
-            Cipher::Aes128Gcm => unimplemented!(),
-        }
     }
 
     fn to_openssl(self) -> Option<&'static ossl_cipher::CipherRef> {
@@ -297,61 +286,5 @@ impl FromStr for Cipher {
             "aes128-gcm" => Ok(Cipher::Aes128Gcm),
             _ => Err(CipherError::Invalid(str.to_string())),
         }
-    }
-}
-
-pub struct CipherCtx {
-    ctx: evp::CipherCtx,
-    cipher: Cipher,
-    out: SecureVec,
-}
-
-impl CipherCtx {
-    pub fn new(cipher: Cipher) -> Result<CipherCtx, OpenSSLError> {
-        Ok(CipherCtx {
-            ctx: evp::CipherCtx::new()?,
-            cipher,
-            out: vec![].into(),
-        })
-    }
-
-    pub fn encrypt(&mut self, key: &[u8], iv: &[u8], input: &[u8]) -> Result<&[u8], OpenSSLError> {
-        match self.cipher.to_evp() {
-            Some(cipher) => self.update_some(cipher, evp::CipherMode::Encrypt, key, iv, input),
-            None => self.update_none(input),
-        }
-    }
-
-    pub fn decrypt(&mut self, key: &[u8], iv: &[u8], input: &[u8]) -> Result<&[u8], OpenSSLError> {
-        match self.cipher.to_evp() {
-            Some(cipher) => self.update_some(cipher, evp::CipherMode::Decrypt, key, iv, input),
-            None => self.update_none(input),
-        }
-    }
-
-    fn update_some(
-        &mut self,
-        cipher: evp::Cipher,
-        mode: evp::CipherMode,
-        key: &[u8],
-        iv: &[u8],
-        input: &[u8],
-    ) -> Result<&[u8], OpenSSLError> {
-        self.out.resize(input.len(), 0);
-
-        self.ctx.reset()?;
-        self.ctx.init(cipher, mode, key, iv)?;
-        let n = self.ctx.update(input, &mut self.out)?;
-
-        self.out.resize(n, 0);
-
-        Ok(&self.out)
-    }
-
-    fn update_none(&mut self, input: &[u8]) -> Result<&[u8], OpenSSLError> {
-        self.out.clear();
-        self.out.extend_from_slice(input);
-
-        Ok(&self.out)
     }
 }

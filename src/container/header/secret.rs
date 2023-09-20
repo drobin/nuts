@@ -24,14 +24,15 @@
 mod tests;
 
 use nuts_bytes::{Reader, Writer};
+use openssl::error::ErrorStack;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
 use crate::backend::Backend;
-use crate::container::cipher::{Cipher, CipherCtx};
+use crate::container::cipher::Cipher;
 use crate::container::header::HeaderError;
 use crate::container::kdf::Kdf;
-use crate::container::ossl::{rand, OpenSSLError};
+use crate::container::ossl;
 use crate::container::password::PasswordStore;
 use crate::container::svec::SecureVec;
 
@@ -40,8 +41,8 @@ use crate::container::svec::SecureVec;
 struct Magics([u32; 2]);
 
 impl Magics {
-    fn generate() -> Result<Magics, OpenSSLError> {
-        rand::rand_u32().map(|magic| Magics([magic, magic]))
+    fn generate() -> Result<Magics, ErrorStack> {
+        ossl::rand_u32().map(|magic| Magics([magic, magic]))
     }
 }
 
@@ -79,8 +80,6 @@ impl Secret {
         kdf: &Kdf,
         iv: &[u8],
     ) -> Result<PlainSecret<B>, HeaderError> {
-        let mut ctx = CipherCtx::new(cipher)?;
-
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;
             kdf.create_key(password)?
@@ -88,8 +87,11 @@ impl Secret {
             vec![].into()
         };
 
-        let pbuf = ctx.decrypt(&key, &iv, &self.0)?;
-        let plain_secret = Reader::new(pbuf).deserialize()?;
+        let mut pbuf = Vec::new();
+
+        cipher.decrypt(&self.0, &mut pbuf, &key, &iv)?;
+
+        let plain_secret = Reader::new(&pbuf[..]).deserialize()?;
 
         Ok(plain_secret)
     }
@@ -116,7 +118,7 @@ impl<B: Backend> PlainSecret<B> {
         iv: SecureVec,
         userdata: SecureVec,
         settings: B::Settings,
-    ) -> Result<PlainSecret<B>, OpenSSLError> {
+    ) -> Result<PlainSecret<B>, ErrorStack> {
         Ok(PlainSecret {
             magics: Magics::generate()?,
             key,
@@ -145,9 +147,9 @@ impl<B: Backend> PlainSecret<B> {
             vec![].into()
         };
 
-        let mut ctx = CipherCtx::new(cipher)?;
-        let cbuf = ctx.encrypt(&key, &iv, &pbuf)?;
+        let mut cbuf = Vec::new();
+        cipher.encrypt(&pbuf, &mut cbuf, &key, &iv)?;
 
-        Ok(Secret(cbuf.to_vec()))
+        Ok(Secret(cbuf))
     }
 }

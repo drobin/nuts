@@ -20,6 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use openssl::error::ErrorStack;
 use std::rc::Rc;
 use std::result;
 
@@ -27,7 +28,6 @@ use crate::backend::Backend;
 use crate::container::cipher::Cipher;
 use crate::container::digest::Digest;
 use crate::container::kdf::Kdf;
-use crate::container::ossl::OpenSSLError;
 use crate::container::ContainerResult;
 #[cfg(doc)]
 use crate::container::{error::Error, Container};
@@ -39,7 +39,7 @@ pub(crate) enum KdfBuilder {
 }
 
 impl KdfBuilder {
-    pub(crate) fn build(&self) -> Result<Kdf, OpenSSLError> {
+    pub(crate) fn build(&self) -> Result<Kdf, ErrorStack> {
         match self {
             KdfBuilder::Pbkdf2(digest, iterations, salt_len) => {
                 Kdf::generate_pbkdf2(*digest, *iterations, *salt_len)

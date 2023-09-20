@@ -22,7 +22,6 @@
 
 mod aes128_ctr;
 mod aes128_gcm;
-mod ctx;
 mod none;
 mod serde;
 mod string;

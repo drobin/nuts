@@ -20,56 +20,40 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub(super) mod error;
-pub(super) mod evp;
-pub(super) mod rand;
+#[cfg(not(test))]
+mod production {
+    use openssl::error::ErrorStack;
 
-use std::os::raw::c_int;
-use std::ptr;
-
-use crate::container::ossl::error::OpenSSLResult;
-
-pub use error::OpenSSLError;
-
-trait MapResult
-where
-    Self: PartialOrd<c_int> + Sized,
-{
-    fn into_result(self) -> OpenSSLResult<Self> {
-        self.map_result(|n| n)
-    }
-
-    fn map_result<F, T>(self, op: F) -> OpenSSLResult<T>
-    where
-        F: FnOnce(Self) -> T,
-    {
-        if self > 0 {
-            Ok(op(self))
-        } else {
-            Err(OpenSSLError::library())
-        }
+    pub fn rand_bytes(buf: &mut [u8]) -> Result<(), ErrorStack> {
+        openssl::rand::rand_bytes(buf)
     }
 }
 
-trait MapResultPtr<T>
-where
-    Self: PartialEq<*mut T> + Sized,
-{
-    fn into_result(self) -> OpenSSLResult<Self> {
-        self.map_result(|n| n)
-    }
+#[cfg(test)]
+mod test {
+    use openssl::error::ErrorStack;
 
-    fn map_result<F, R>(self, op: F) -> OpenSSLResult<R>
-    where
-        F: FnOnce(Self) -> R,
-    {
-        if self == ptr::null_mut() {
-            Err(OpenSSLError::library())
-        } else {
-            Ok(op(self))
-        }
+    use crate::tests::RND;
+
+    pub fn rand_bytes(buf: &mut [u8]) -> Result<(), ErrorStack> {
+        assert!(buf.len() <= RND.len());
+        buf.clone_from_slice(&RND[..buf.len()]);
+        Ok(())
     }
 }
 
-impl MapResult for c_int {}
-impl<T> MapResultPtr<T> for *mut T {}
+use openssl::error::ErrorStack;
+
+#[cfg(test)]
+pub use test::rand_bytes;
+
+#[cfg(not(test))]
+pub use production::rand_bytes;
+
+pub fn rand_u32() -> Result<u32, ErrorStack> {
+    let mut bytes = [0; 4];
+
+    rand_bytes(&mut bytes)?;
+
+    Ok(u32::from_be_bytes(bytes))
+}

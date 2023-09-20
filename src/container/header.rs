@@ -24,21 +24,21 @@ mod inner;
 mod rev0;
 mod secret;
 
+use nuts_bytes::{Reader, Writer};
+use openssl::error::ErrorStack;
 use std::error;
 use std::fmt::{self, Write as FmtWrite};
 
-use nuts_bytes::{Reader, Writer};
-
 use crate::backend::Backend;
 use crate::container::cipher::Cipher;
+use crate::container::cipher::CipherError;
 use crate::container::header::inner::{Inner, Revision};
+use crate::container::header::secret::PlainSecret;
 use crate::container::kdf::Kdf;
 use crate::container::options::CreateOptions;
-use crate::container::ossl::{rand, OpenSSLError};
+use crate::container::ossl;
 use crate::container::password::{NoPasswordError, PasswordStore};
 use crate::container::svec::SecureVec;
-
-use self::secret::PlainSecret;
 
 #[derive(Debug)]
 pub enum HeaderError {
@@ -46,7 +46,10 @@ pub enum HeaderError {
     Bytes(nuts_bytes::Error),
 
     /// An error in the OpenSSL library occured.
-    OpenSSL(OpenSSLError),
+    OpenSSL(ErrorStack),
+
+    /// An error occured in a cipher operation.
+    Cipher(CipherError),
 
     /// A password is needed by the current cipher.
     NoPassword(NoPasswordError),
@@ -60,6 +63,7 @@ impl fmt::Display for HeaderError {
         match self {
             Self::Bytes(cause) => fmt::Display::fmt(cause, fmt),
             Self::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
+            Self::Cipher(cause) => fmt::Display::fmt(cause, fmt),
             Self::NoPassword(cause) => fmt::Display::fmt(cause, fmt),
             Self::WrongPassword(_) => write!(fmt, "The password is wrong."),
         }
@@ -71,6 +75,7 @@ impl error::Error for HeaderError {
         match self {
             Self::Bytes(cause) => Some(cause),
             Self::OpenSSL(cause) => Some(cause),
+            Self::Cipher(cause) => Some(cause),
             Self::NoPassword(cause) => Some(cause),
             Self::WrongPassword(cause) => Some(cause),
         }
@@ -92,9 +97,15 @@ impl From<nuts_bytes::Error> for HeaderError {
     }
 }
 
-impl From<OpenSSLError> for HeaderError {
-    fn from(cause: OpenSSLError) -> Self {
+impl From<ErrorStack> for HeaderError {
+    fn from(cause: ErrorStack) -> Self {
         HeaderError::OpenSSL(cause)
+    }
+}
+
+impl From<CipherError> for HeaderError {
+    fn from(cause: CipherError) -> Self {
+        HeaderError::Cipher(cause)
     }
 }
 
@@ -118,8 +129,8 @@ impl Header {
         let mut key = vec![0; cipher.key_len()];
         let mut iv = vec![0; cipher.iv_len()];
 
-        rand::rand_bytes(&mut key)?;
-        rand::rand_bytes(&mut iv)?;
+        ossl::rand_bytes(&mut key)?;
+        ossl::rand_bytes(&mut iv)?;
 
         let kdf = options.kdf.build()?;
 
@@ -170,7 +181,7 @@ impl Header {
         )?;
 
         let mut iv = vec![0; self.cipher.iv_len()];
-        rand::rand_bytes(&mut iv)?;
+        ossl::rand_bytes(&mut iv)?;
 
         let secret = plain_secret.encrypt(store, self.cipher, &self.kdf, &iv)?;
 

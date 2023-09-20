@@ -20,11 +20,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use openssl::error::ErrorStack;
 use std::{error, fmt};
 
 use crate::backend::Backend;
+use crate::container::cipher::CipherError;
 use crate::container::header::HeaderError;
-use crate::container::ossl::OpenSSLError;
 
 /// Error type used by this module.
 pub enum Error<B: Backend> {
@@ -32,7 +33,10 @@ pub enum Error<B: Backend> {
     Backend(B::Err),
 
     /// An error in the OpenSSL library occured.
-    OpenSSL(OpenSSLError),
+    OpenSSL(ErrorStack),
+
+    /// An error occured in a cipher operation.
+    Cipher(CipherError),
 
     /// An error occured while evaluating the header of the container.
     Header(HeaderError),
@@ -46,6 +50,7 @@ impl<B: Backend> fmt::Display for Error<B> {
         match self {
             Error::Backend(cause) => fmt::Display::fmt(cause, fmt),
             Error::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
+            Error::Cipher(cause) => fmt::Display::fmt(cause, fmt),
             Error::Header(cause) => fmt::Display::fmt(cause, fmt),
             Error::NullId => write!(fmt, "Try to read or write a null id"),
         }
@@ -57,6 +62,7 @@ impl<B: Backend> fmt::Debug for Error<B> {
         match self {
             Error::Backend(cause) => fmt::Debug::fmt(cause, fmt),
             Error::OpenSSL(cause) => fmt::Debug::fmt(cause, fmt),
+            Error::Cipher(cause) => fmt::Debug::fmt(cause, fmt),
             Error::Header(cause) => fmt::Debug::fmt(cause, fmt),
             Error::NullId => fmt.write_str("NullId"),
         }
@@ -68,15 +74,22 @@ impl<B: Backend + 'static> error::Error for Error<B> {
         match self {
             Error::Backend(cause) => Some(cause),
             Error::OpenSSL(cause) => Some(cause),
+            Error::Cipher(cause) => Some(cause),
             Error::Header(cause) => Some(cause),
             Error::NullId => None,
         }
     }
 }
 
-impl<B: Backend> From<OpenSSLError> for Error<B> {
-    fn from(cause: OpenSSLError) -> Self {
+impl<B: Backend> From<ErrorStack> for Error<B> {
+    fn from(cause: ErrorStack) -> Self {
         Error::OpenSSL(cause)
+    }
+}
+
+impl<B: Backend> From<CipherError> for Error<B> {
+    fn from(cause: CipherError) -> Self {
+        Error::Cipher(cause)
     }
 }
 
