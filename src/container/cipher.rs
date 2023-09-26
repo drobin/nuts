@@ -119,7 +119,7 @@ impl Cipher {
     /// Ciphertext and tag are both stored in a block of the container. Use
     /// this method to get the size of the tag. For a non-AE-cipher the
     /// tag-size is `0`.
-    pub fn tag_size(&self) -> usize {
+    pub fn tag_size(&self) -> u32 {
         match self {
             Cipher::None => 0,
             Cipher::Aes128Ctr => 0,
@@ -172,7 +172,10 @@ impl Cipher {
         let iv = iv.get(..self.iv_len()).ok_or(CipherError::InvalidIv)?;
 
         // number of ciphertext bytes: remove tag from the input.
-        let ctext_bytes = input.len().checked_sub(self.tag_size()).unwrap_or(0);
+        let ctext_bytes = input
+            .len()
+            .checked_sub(self.tag_size() as usize)
+            .unwrap_or(0);
 
         // number of plaintext bytes: equals to ciphertext bytes (for now) because
         // blocksize is 1 for all ciphers.
@@ -244,7 +247,7 @@ impl Cipher {
             ctx.cipher_update(buf, None)?;
         }
 
-        output.resize(ctext_len + self.tag_size(), 0);
+        output.resize(ctext_len + self.tag_size() as usize, 0);
         ctx.cipher_update(&input[..ptext_len], Some(&mut output[..ctext_len]))?;
 
         if self.tag_size() > 0 {

@@ -413,6 +413,8 @@ impl<B: Backend> Container<B> {
             backend,
             cipher: self.header.cipher,
             kdf: self.header.kdf.clone(),
+            bsize_gross: self.backend.block_size(),
+            bsize_net: self.block_size(),
         })
     }
 
@@ -443,6 +445,21 @@ impl<B: Backend> Container<B> {
         self.header = header;
 
         Ok(())
+    }
+
+    /// The (net) block size specifies the number of userdata bytes you can
+    /// store in a block. It can be less than the gross block size specified by
+    /// the [backend](Backend::block_size)!
+    ///
+    /// Depending on the selected cipher, you need to store additional data in
+    /// a block. I.e. an AE-cipher results into a tag, which needs to be stored
+    /// additionally. Such data must be substracted from the gross block size
+    /// and results into the net block size.
+    pub fn block_size(&self) -> u32 {
+        self.backend
+            .block_size()
+            .checked_sub(self.header.cipher.tag_size())
+            .unwrap_or(0)
     }
 
     /// Aquires a new block in the backend.
@@ -537,7 +554,7 @@ impl<B: Backend> Container<B> {
         }
 
         let block_size = self.backend.block_size() as usize;
-        let block_size_net = block_size - self.header.cipher.tag_size();
+        let block_size_net = block_size - self.header.cipher.tag_size() as usize;
 
         let key = &self.header.key;
         let iv = &self.header.iv;

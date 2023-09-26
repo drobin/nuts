@@ -25,7 +25,7 @@ use crate::container::cipher::Cipher;
 use crate::container::kdf::Kdf;
 
 /// Information from the container.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Info<B: Backend> {
     /// Information from the lower backend.
     pub backend: B::Info,
@@ -35,4 +35,23 @@ pub struct Info<B: Backend> {
 
     /// The key derivation function.
     pub kdf: Kdf,
+
+    /// The gross block size is the block size specified by the
+    /// [backend](Backend::block_size).
+    ///
+    /// This is the actual size of a block in the backend. Note that the number
+    /// of userdata bytes per block can be smaller! This is the net block size
+    /// ([`Info::bsize_net`]).
+    pub bsize_gross: u32,
+
+    /// The (net) block size of the container.
+    ///
+    /// The net block size is the number of bytes you can store in a block. It
+    /// can be less than the gross block size ([`Info::bsize_gross`]).
+    ///
+    /// Depending on the selected cipher, you need to store additional data in
+    /// a block. I.e. an AE-cipher results into a tag, which needs to be stored
+    /// additionally. Such data must be substracted from the gross block size
+    /// and results into the net block size.
+    pub bsize_net: u32,
 }
