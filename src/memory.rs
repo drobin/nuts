@@ -185,14 +185,34 @@ impl MemoryBackend {
         }
     }
 
+    /// Receives the content of the block with the given `id`.
+    ///
+    /// Returns [`None`] if the block does not exist.
+    pub fn get(&self, id: &Id) -> Option<&[u8]> {
+        self.blocks.get(&id.0).map(|buf| buf.as_slice())
+    }
+
     /// Inserts a new block.
     ///
     /// The block contains only zeros.
     ///
     /// Returns the id of the new block.
     pub fn insert(&mut self) -> Result<Id, Error> {
+        self.insert_data(&[])
+    }
+
+    /// Inserts a new block with some initial data.
+    ///
+    /// Assigns the first 512 bytes from `data` to the new block. If `data`
+    /// does not have 512 bytes, the new block is padded with zero bytes.
+    ///
+    /// Returns the id of the new block.
+    pub fn insert_data(&mut self, data: &[u8]) -> Result<Id, Error> {
         let id = Id(self.max_id() + 1);
-        let block = [0; BSIZE as usize];
+        let mut block = [0; BSIZE as usize];
+
+        let n = cmp::min(block.len(), data.len());
+        block[..n].copy_from_slice(&data[..n]);
 
         match self.blocks.insert(id.0, block) {
             Some(_) => Err(Error::AlreadAquired(id)),

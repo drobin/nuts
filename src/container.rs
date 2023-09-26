@@ -251,6 +251,8 @@ mod options;
 mod ossl;
 mod password;
 mod svec;
+#[cfg(test)]
+mod tests;
 
 use log::debug;
 use std::borrow::Cow;
@@ -535,15 +537,17 @@ impl<B: Backend> Container<B> {
         }
 
         let block_size = self.backend.block_size() as usize;
+        let block_size_net = block_size - self.header.cipher.tag_size();
+
         let key = &self.header.key;
         let iv = &self.header.iv;
 
         let mut ptext = Cow::from(buf);
-        let ptext_len = cmp::min(ptext.len(), block_size);
+        let ptext_len = cmp::min(ptext.len(), block_size_net);
 
-        if ptext.len() != block_size {
+        if ptext.len() != block_size_net {
             // pad with 0 if not a complete block
-            ptext.to_mut().resize(block_size, 0);
+            ptext.to_mut().resize(block_size_net, 0);
         }
 
         self.header
