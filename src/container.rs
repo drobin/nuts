@@ -266,7 +266,6 @@ use crate::container::svec::SecureVec;
 pub use cipher::{Cipher, CipherError};
 pub use digest::{Digest, DigestError};
 pub use error::{ContainerResult, Error};
-pub use header::HeaderError;
 pub use info::Info;
 pub use kdf::Kdf;
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};

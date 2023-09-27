@@ -25,11 +25,12 @@ use std::rc::Rc;
 use nuts_bytes::{Error as BytesError, Reader, Writer};
 
 use crate::container::cipher::Cipher;
+use crate::container::error::Error;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
 use crate::container::header::secret::Secret;
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
-use crate::container::{Digest, HeaderError};
+use crate::container::Digest;
 use crate::memory::MemoryBackend;
 use crate::tests::into_error;
 
@@ -92,7 +93,7 @@ fn decrypt_none_invalid() {
         .decrypt::<MemoryBackend>(&mut store, Cipher::None, &Kdf::None, &[])
         .unwrap_err();
 
-    let err = into_error!(err, HeaderError::WrongPassword);
+    let err = into_error!(err, Error::WrongPassword);
     let msg = into_error!(err, BytesError::Serde);
     assert_eq!(msg, "secret-magic mismatch");
 }
@@ -123,7 +124,7 @@ fn decrypt_some_invalid() {
         .decrypt::<MemoryBackend>(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
         .unwrap_err();
 
-    let err = into_error!(err, HeaderError::WrongPassword);
+    let err = into_error!(err, Error::WrongPassword);
     let msg = into_error!(err, BytesError::Serde);
     assert_eq!(msg, "secret-magic mismatch");
 }
