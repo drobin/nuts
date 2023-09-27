@@ -26,7 +26,7 @@ mod tests;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-use nuts::backend::{Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
+use nuts_container::backend::{Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 
 use crate::error::{Error, Result};
 use crate::id::Id;

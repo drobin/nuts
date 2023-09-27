@@ -31,7 +31,7 @@ use std::fs::{self, File};
 use std::io::{self, ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 
-use nuts::backend::{Backend, HeaderGet, HeaderSet, HEADER_MAX_SIZE};
+use nuts_container::backend::{Backend, HeaderGet, HeaderSet, HEADER_MAX_SIZE};
 
 pub use error::Error;
 pub use id::Id;
