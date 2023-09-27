@@ -18,6 +18,7 @@ backend.
 
 The following encryption algorithms are supported:
 
+* AES128-GCM
 * AES128-CTR
 * None (which basically disables encryption)
 
