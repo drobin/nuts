@@ -20,7 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::container::cipher::{Cipher, CipherError};
+use crate::container::cipher::Cipher;
+use crate::container::error::Error;
+use crate::memory::MemoryBackend;
 
 use super::{cipher_test, IV, KEY};
 
@@ -47,17 +49,17 @@ fn tag_size() {
 #[test]
 fn decrypt_inval_key() {
     let err = Cipher::Aes128Ctr
-        .decrypt(&[146, 140, 10], &mut Vec::new(), &KEY[..15], &IV)
+        .decrypt::<MemoryBackend>(&[146, 140, 10], &mut Vec::new(), &KEY[..15], &IV)
         .unwrap_err();
-    assert!(matches!(err, CipherError::InvalidKey));
+    assert!(matches!(err, Error::InvalidKey));
 }
 
 #[test]
 fn decrypt_inval_iv() {
     let err = Cipher::Aes128Ctr
-        .decrypt(&[146, 140, 10], &mut Vec::new(), &KEY, &IV[..15])
+        .decrypt::<MemoryBackend>(&[146, 140, 10], &mut Vec::new(), &KEY, &IV[..15])
         .unwrap_err();
-    assert!(matches!(err, CipherError::InvalidIv));
+    assert!(matches!(err, Error::InvalidIv));
 }
 
 cipher_test!(decrypt_1, Aes128Ctr.decrypt, [146, 140, 10], 3, [1, 2, 3]);
@@ -68,17 +70,17 @@ cipher_test!(decrypt_4, Aes128Ctr.decrypt, [], 0, []);
 #[test]
 fn encrypt_inval_key() {
     let err = Cipher::Aes128Ctr
-        .encrypt(&[1, 2, 3], &mut Vec::new(), &KEY[..15], &IV)
+        .encrypt::<MemoryBackend>(&[1, 2, 3], &mut Vec::new(), &KEY[..15], &IV)
         .unwrap_err();
-    assert!(matches!(err, CipherError::InvalidKey));
+    assert!(matches!(err, Error::InvalidKey));
 }
 
 #[test]
 fn encrypt_inval_iv() {
     let err = Cipher::Aes128Ctr
-        .encrypt(&[1, 2, 3], &mut Vec::new(), &KEY, &IV[..15])
+        .encrypt::<MemoryBackend>(&[1, 2, 3], &mut Vec::new(), &KEY, &IV[..15])
         .unwrap_err();
-    assert!(matches!(err, CipherError::InvalidIv));
+    assert!(matches!(err, Error::InvalidIv));
 }
 
 cipher_test!(encrypt_1, Aes128Ctr.encrypt, [1, 2, 3], 3, [146, 140, 10]);

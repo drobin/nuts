@@ -25,51 +25,12 @@ mod tests;
 
 use openssl::cipher as ossl_cipher;
 use openssl::cipher_ctx::CipherCtx;
-use openssl::error::ErrorStack;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::str::FromStr;
-use std::{error, fmt};
 
-/// An error which can be returned when parsing a [`Cipher`].
-///
-/// This error is used as the error type for the [`FromStr`] implementation for
-/// [`Cipher`].
-#[derive(Debug)]
-pub enum CipherError {
-    OpenSSL(ErrorStack),
-    InvalidKey,
-    InvalidIv,
-    InvalidBlockSize,
-
-    /// A cipher-text is not trustworthy.
-    ///
-    /// If an authenticated decryption is performed, and the tag mismatches,
-    /// this error is raised.
-    NotTrustworthy,
-
-    Invalid(String),
-}
-
-impl fmt::Display for CipherError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
-            Self::InvalidKey => write!(fmt, "Invalid key"),
-            Self::InvalidIv => write!(fmt, "Invalid iv"),
-            Self::InvalidBlockSize => write!(fmt, "Invalid block-size"),
-            Self::NotTrustworthy => write!(fmt, "The plaintext is not trustworthy"),
-            Self::Invalid(str) => write!(fmt, "invalid cipher: {}", str),
-        }
-    }
-}
-
-impl error::Error for CipherError {}
-
-impl From<ErrorStack> for CipherError {
-    fn from(cause: ErrorStack) -> Self {
-        CipherError::OpenSSL(cause)
-    }
-}
+use crate::backend::Backend;
+use crate::container::error::{ContainerResult, Error};
 
 /// Supported cipher algorithms.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -127,26 +88,26 @@ impl Cipher {
         }
     }
 
-    pub fn decrypt(
+    pub fn decrypt<B: Backend>(
         &self,
         input: &[u8],
         output: &mut Vec<u8>,
         key: &[u8],
         iv: &[u8],
-    ) -> Result<usize, CipherError> {
+    ) -> ContainerResult<usize, B> {
         match self {
             Self::None => Ok(Self::make_none(input, output)),
             _ => self.decrypt_aad(None, input, output, key, iv),
         }
     }
 
-    pub fn encrypt(
+    pub fn encrypt<B: Backend>(
         &self,
         input: &[u8],
         output: &mut Vec<u8>,
         key: &[u8],
         iv: &[u8],
-    ) -> Result<usize, CipherError> {
+    ) -> ContainerResult<usize, B> {
         match self {
             Self::None => Ok(Self::make_none(input, output)),
             _ => self.encrypt_aad(None, input, output, key, iv),
@@ -160,16 +121,16 @@ impl Cipher {
         input.len()
     }
 
-    fn decrypt_aad(
+    fn decrypt_aad<B: Backend>(
         &self,
         aad: Option<&[u8]>,
         input: &[u8],
         output: &mut Vec<u8>,
         key: &[u8],
         iv: &[u8],
-    ) -> Result<usize, CipherError> {
-        let key = key.get(..self.key_len()).ok_or(CipherError::InvalidKey)?;
-        let iv = iv.get(..self.iv_len()).ok_or(CipherError::InvalidIv)?;
+    ) -> ContainerResult<usize, B> {
+        let key = key.get(..self.key_len()).ok_or(Error::InvalidKey)?;
+        let iv = iv.get(..self.iv_len()).ok_or(Error::InvalidIv)?;
 
         // number of ciphertext bytes: remove tag from the input.
         let ctext_bytes = input
@@ -186,7 +147,7 @@ impl Cipher {
         }
 
         if ctext_bytes % self.block_size() != 0 {
-            return Err(CipherError::InvalidBlockSize);
+            return Err(Error::InvalidBlockSize);
         }
 
         let mut ctx = CipherCtx::new()?;
@@ -204,22 +165,22 @@ impl Cipher {
         if self.tag_size() > 0 {
             ctx.set_tag(&input[ctext_bytes..])?;
             ctx.cipher_final(&mut [])
-                .map_err(|_| CipherError::NotTrustworthy)?;
+                .map_err(|_| Error::NotTrustworthy)?;
         }
 
         Ok(ctext_bytes)
     }
 
-    fn encrypt_aad(
+    fn encrypt_aad<B: Backend>(
         &self,
         aad: Option<&[u8]>,
         input: &[u8],
         output: &mut Vec<u8>,
         key: &[u8],
         iv: &[u8],
-    ) -> Result<usize, CipherError> {
-        let key = key.get(..self.key_len()).ok_or(CipherError::InvalidKey)?;
-        let iv = iv.get(..self.iv_len()).ok_or(CipherError::InvalidIv)?;
+    ) -> ContainerResult<usize, B> {
+        let key = key.get(..self.key_len()).ok_or(Error::InvalidKey)?;
+        let iv = iv.get(..self.iv_len()).ok_or(Error::InvalidIv)?;
 
         // number of plaintext bytes: equals to number of input bytes. There is
         // no need to align at block size because blocksize is 1 for all
@@ -235,7 +196,7 @@ impl Cipher {
         }
 
         if ptext_len % self.block_size() != 0 {
-            return Err(CipherError::InvalidBlockSize);
+            return Err(Error::InvalidBlockSize);
         }
 
         let mut ctx = CipherCtx::new()?;
@@ -280,14 +241,14 @@ impl fmt::Display for Cipher {
 }
 
 impl FromStr for Cipher {
-    type Err = CipherError;
+    type Err = ();
 
-    fn from_str(str: &str) -> Result<Self, CipherError> {
+    fn from_str(str: &str) -> Result<Self, ()> {
         match str {
             "none" => Ok(Cipher::None),
             "aes128-ctr" => Ok(Cipher::Aes128Ctr),
             "aes128-gcm" => Ok(Cipher::Aes128Gcm),
-            _ => Err(CipherError::Invalid(str.to_string())),
+            _ => Err(()),
         }
     }
 }

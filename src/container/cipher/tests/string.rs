@@ -20,8 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::container::cipher::{Cipher, CipherError};
-use crate::tests::into_error;
+use crate::container::cipher::Cipher;
 
 #[test]
 fn from_str_none() {
@@ -41,9 +40,7 @@ fn from_str_aes128_gcm() {
 #[test]
 fn from_str_invalid() {
     let err = "xxx".parse::<Cipher>().unwrap_err();
-    #[allow(unreachable_patterns)]
-    let str = into_error!(err, CipherError::Invalid);
-    assert_eq!(str, "xxx");
+    assert_eq!(err, ());
 }
 
 #[test]

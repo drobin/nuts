@@ -20,7 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::container::cipher::{Cipher, CipherError};
+use crate::container::cipher::Cipher;
+use crate::container::error::Error;
+use crate::memory::MemoryBackend;
 
 use super::{cipher_test, IV, KEY};
 
@@ -47,7 +49,7 @@ fn tag_size() {
 #[test]
 fn decrypt_inval_key() {
     let err = Cipher::Aes128Gcm
-        .decrypt(
+        .decrypt::<MemoryBackend>(
             &[
                 143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91,
             ],
@@ -56,13 +58,13 @@ fn decrypt_inval_key() {
             &IV,
         )
         .unwrap_err();
-    assert!(matches!(err, CipherError::InvalidKey));
+    assert!(matches!(err, Error::InvalidKey));
 }
 
 #[test]
 fn decrypt_inval_iv() {
     let err = Cipher::Aes128Gcm
-        .decrypt(
+        .decrypt::<MemoryBackend>(
             &[
                 143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91,
             ],
@@ -71,13 +73,13 @@ fn decrypt_inval_iv() {
             &IV[..11],
         )
         .unwrap_err();
-    assert!(matches!(err, CipherError::InvalidIv));
+    assert!(matches!(err, Error::InvalidIv));
 }
 
 #[test]
 fn decrypt_not_trustworthy() {
     let err = Cipher::Aes128Gcm
-        .decrypt(
+        .decrypt::<MemoryBackend>(
             &[
                 143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, b'x',
             ],
@@ -86,7 +88,7 @@ fn decrypt_not_trustworthy() {
             &IV,
         )
         .unwrap_err();
-    assert!(matches!(err, CipherError::NotTrustworthy));
+    assert!(matches!(err, Error::NotTrustworthy));
 }
 
 cipher_test!(
@@ -129,17 +131,17 @@ cipher_test!(decrypt_6, Aes128Gcm.decrypt, [], 0, []);
 #[test]
 fn encrypt_inval_key() {
     let err = Cipher::Aes128Gcm
-        .encrypt(&[1, 2, 3], &mut Vec::new(), &KEY[..15], &IV)
+        .encrypt::<MemoryBackend>(&[1, 2, 3], &mut Vec::new(), &KEY[..15], &IV)
         .unwrap_err();
-    assert!(matches!(err, CipherError::InvalidKey));
+    assert!(matches!(err, Error::InvalidKey));
 }
 
 #[test]
 fn encrypt_inval_iv() {
     let err = Cipher::Aes128Gcm
-        .encrypt(&[1, 2, 3], &mut Vec::new(), &KEY, &IV[..11])
+        .encrypt::<MemoryBackend>(&[1, 2, 3], &mut Vec::new(), &KEY, &IV[..11])
         .unwrap_err();
-    assert!(matches!(err, CipherError::InvalidIv));
+    assert!(matches!(err, Error::InvalidIv));
 }
 
 cipher_test!(

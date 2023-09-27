@@ -34,11 +34,12 @@ macro_rules! cipher_test {
         #[test]
         fn $name() {
             use crate::container::cipher::tests::{KEY, IV};
+            use crate::memory::MemoryBackend;
 
             let input = [$($input),*];
             let mut output = Vec::new();
 
-            let n = Cipher::$cipher.$method(&input, &mut output, &KEY, &IV).unwrap();
+            let n = Cipher::$cipher.$method::<MemoryBackend>(&input, &mut output, &KEY, &IV).unwrap();
 
             assert_eq!(n, $num);
             assert_eq!(output, [$($expected),*]);
