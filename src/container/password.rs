@@ -28,19 +28,28 @@ use std::{error, fmt};
 
 use crate::container::svec::SecureVec;
 
-#[derive(Debug)]
-pub struct NoPasswordError(Option<String>);
+/// Error generated when receiving the password.
+#[derive(Debug, PartialEq)]
+pub enum PasswordError {
+    /// No password callback is assigned to the container, thus no password
+    /// is available.
+    NoPassword,
 
-impl fmt::Display for NoPasswordError {
+    /// The password callback generated an error, which is passed to the
+    /// variant.
+    Callback(String),
+}
+
+impl fmt::Display for PasswordError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self.0.as_ref() {
-            Some(msg) => write!(fmt, "A password is needed by the current cipher: {}", msg),
-            None => write!(fmt, "A password is needed by the current cipher"),
+        match self {
+            PasswordError::NoPassword => write!(fmt, "A password is needed by the current cipher"),
+            PasswordError::Callback(msg) => write!(fmt, "Failed to receive the password: {}", msg),
         }
     }
 }
 
-impl error::Error for NoPasswordError {}
+impl error::Error for PasswordError {}
 
 pub struct PasswordStore {
     callback: Option<Rc<dyn Fn() -> Result<Vec<u8>, String>>>,
@@ -63,15 +72,15 @@ impl PasswordStore {
         }
     }
 
-    pub fn value(&mut self) -> Result<&[u8], NoPasswordError> {
+    pub fn value(&mut self) -> Result<&[u8], PasswordError> {
         match self.value {
             Some(ref v) => Ok(v),
             None => {
                 let callback = self
                     .callback
                     .as_ref()
-                    .ok_or_else(|| NoPasswordError(None))?;
-                let value = callback().map_err(|cause| NoPasswordError(Some(cause)))?;
+                    .ok_or_else(|| PasswordError::NoPassword)?;
+                let value = callback().map_err(|cause| PasswordError::Callback(cause))?;
 
                 self.value = Some(value.into());
 

@@ -37,7 +37,7 @@ use crate::container::header::secret::PlainSecret;
 use crate::container::kdf::Kdf;
 use crate::container::options::CreateOptions;
 use crate::container::ossl;
-use crate::container::password::{NoPasswordError, PasswordStore};
+use crate::container::password::{PasswordError, PasswordStore};
 use crate::container::svec::SecureVec;
 
 #[derive(Debug)]
@@ -52,7 +52,7 @@ pub enum HeaderError {
     Cipher(CipherError),
 
     /// A password is needed by the current cipher.
-    NoPassword(NoPasswordError),
+    Password(PasswordError),
 
     /// The password is wrong.
     WrongPassword(nuts_bytes::Error),
@@ -64,7 +64,7 @@ impl fmt::Display for HeaderError {
             Self::Bytes(cause) => fmt::Display::fmt(cause, fmt),
             Self::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
             Self::Cipher(cause) => fmt::Display::fmt(cause, fmt),
-            Self::NoPassword(cause) => fmt::Display::fmt(cause, fmt),
+            Self::Password(cause) => fmt::Display::fmt(cause, fmt),
             Self::WrongPassword(_) => write!(fmt, "The password is wrong."),
         }
     }
@@ -76,7 +76,7 @@ impl error::Error for HeaderError {
             Self::Bytes(cause) => Some(cause),
             Self::OpenSSL(cause) => Some(cause),
             Self::Cipher(cause) => Some(cause),
-            Self::NoPassword(cause) => Some(cause),
+            Self::Password(cause) => Some(cause),
             Self::WrongPassword(cause) => Some(cause),
         }
     }
@@ -109,9 +109,9 @@ impl From<CipherError> for HeaderError {
     }
 }
 
-impl From<NoPasswordError> for HeaderError {
-    fn from(cause: NoPasswordError) -> Self {
-        HeaderError::NoPassword(cause)
+impl From<PasswordError> for HeaderError {
+    fn from(cause: PasswordError) -> Self {
+        HeaderError::Password(cause)
     }
 }
 

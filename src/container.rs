@@ -270,7 +270,7 @@ pub use header::HeaderError;
 pub use info::Info;
 pub use kdf::Kdf;
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
-pub use password::NoPasswordError;
+pub use password::PasswordError;
 
 macro_rules! map_err {
     ($result:expr) => {

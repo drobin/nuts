@@ -22,7 +22,7 @@
 
 use std::rc::Rc;
 
-use crate::container::password::PasswordStore;
+use crate::container::password::{PasswordError, PasswordStore};
 
 #[test]
 fn with_value() {
@@ -34,7 +34,7 @@ fn with_value() {
 fn no_callback() {
     let mut store = PasswordStore::new(None);
     let err = store.value().unwrap_err();
-    assert_eq!(err.0, None);
+    assert_eq!(err, PasswordError::NoPassword);
 }
 
 #[test]
@@ -42,7 +42,7 @@ fn error_from_callback() {
     let mut store = PasswordStore::new(Some(Rc::new(|| Err(String::from("some error")))));
 
     let err = store.value().unwrap_err();
-    assert_eq!(err.0, Some("some error".to_string()));
+    assert_eq!(err, PasswordError::Callback("some error".to_string()));
 }
 
 #[test]
