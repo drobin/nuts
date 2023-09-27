@@ -25,27 +25,8 @@ mod tests;
 
 use openssl::hash::MessageDigest;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::str::FromStr;
-use std::{error, fmt};
-
-/// An error which can be returned when parsing a [`Digest`].
-///
-/// This error is used as the error type for the [`FromStr`] implementation for
-/// [`Digest`].
-#[derive(Debug, PartialEq)]
-pub enum DigestError {
-    Invalid(String),
-}
-
-impl fmt::Display for DigestError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Invalid(str) => write!(fmt, "invalid digest: {}", str),
-        }
-    }
-}
-
-impl error::Error for DigestError {}
 
 /// Supported message digests.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -65,12 +46,12 @@ impl fmt::Display for Digest {
 }
 
 impl FromStr for Digest {
-    type Err = DigestError;
+    type Err = ();
 
-    fn from_str(str: &str) -> Result<Self, DigestError> {
+    fn from_str(str: &str) -> Result<Self, ()> {
         match str {
             "sha1" => Ok(Digest::Sha1),
-            _ => Err(DigestError::Invalid(str.to_string())),
+            _ => Err(()),
         }
     }
 }

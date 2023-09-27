@@ -34,8 +34,6 @@ use crate::container::digest::Digest;
 use crate::container::ossl;
 use crate::container::svec::SecureVec;
 
-use super::DigestError;
-
 #[derive(Debug)]
 pub enum KdfNoneError {
     InvalidNumberOfArguments(usize),
@@ -58,7 +56,7 @@ impl error::Error for KdfNoneError {}
 #[derive(Debug)]
 pub enum KdfPbkdf2Error {
     InvalidNumberOfArguments(usize),
-    InvalidDigest(DigestError),
+    InvalidDigest(String),
     InvalidIterations(ParseIntError),
     InvalidSaltLen(ParseIntError),
     OpenSSL(ErrorStack),
@@ -72,7 +70,7 @@ impl fmt::Display for KdfPbkdf2Error {
                 "invalid number of arguments for PBKDF2, got {} but none or three are expected",
                 num
             ),
-            Self::InvalidDigest(cause) => fmt::Display::fmt(cause, fmt),
+            Self::InvalidDigest(str) => write!(fmt, "invalid digest: {}", str),
             Self::InvalidIterations(cause) => fmt::Display::fmt(cause, fmt),
             Self::InvalidSaltLen(cause) => fmt::Display::fmt(cause, fmt),
             Self::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
@@ -84,17 +82,11 @@ impl error::Error for KdfPbkdf2Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             Self::InvalidNumberOfArguments(_) => None,
-            Self::InvalidDigest(cause) => Some(cause),
+            Self::InvalidDigest(_) => None,
             Self::InvalidIterations(cause) => Some(cause),
             Self::InvalidSaltLen(cause) => Some(cause),
             Self::OpenSSL(cause) => Some(cause),
         }
-    }
-}
-
-impl From<DigestError> for KdfPbkdf2Error {
-    fn from(cause: DigestError) -> Self {
-        KdfPbkdf2Error::InvalidDigest(cause)
     }
 }
 
@@ -324,7 +316,8 @@ fn parse_pbkdf2(v: &[&str]) -> Result<Kdf, KdfPbkdf2Error> {
     let digest = if v.is_empty() || v[0].is_empty() {
         DEFAULT_DIGEST
     } else {
-        v[0].parse::<Digest>()?
+        v[0].parse::<Digest>()
+            .map_err(|()| KdfPbkdf2Error::InvalidDigest(v[0].to_string()))?
     };
 
     let iterations = if v.is_empty() || v[1].is_empty() {

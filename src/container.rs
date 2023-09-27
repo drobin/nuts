@@ -264,7 +264,7 @@ use crate::container::password::PasswordStore;
 use crate::container::svec::SecureVec;
 
 pub use cipher::Cipher;
-pub use digest::{Digest, DigestError};
+pub use digest::Digest;
 pub use error::{ContainerResult, Error};
 pub use info::Info;
 pub use kdf::Kdf;
