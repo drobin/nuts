@@ -22,38 +22,42 @@
 
 use std::rc::Rc;
 
-use crate::container::password::{PasswordError, PasswordStore};
+use crate::container::error::Error;
+use crate::container::password::PasswordStore;
+use crate::memory::MemoryBackend;
+use crate::tests::into_error;
 
 #[test]
 fn with_value() {
     let mut store = PasswordStore::with_value(&[1, 2, 3]);
-    assert_eq!(store.value().unwrap(), [1, 2, 3]);
+    assert_eq!(store.value::<MemoryBackend>().unwrap(), [1, 2, 3]);
 }
 
 #[test]
 fn no_callback() {
     let mut store = PasswordStore::new(None);
-    let err = store.value().unwrap_err();
-    assert_eq!(err, PasswordError::NoPassword);
+    let err = store.value::<MemoryBackend>().unwrap_err();
+    assert!(matches!(err, Error::NoPassword));
 }
 
 #[test]
 fn error_from_callback() {
     let mut store = PasswordStore::new(Some(Rc::new(|| Err(String::from("some error")))));
 
-    let err = store.value().unwrap_err();
-    assert_eq!(err, PasswordError::Callback("some error".to_string()));
+    let err = store.value::<MemoryBackend>().unwrap_err();
+    let msg = into_error!(err, Error::PasswordCallback);
+    assert_eq!(msg, "some error");
 }
 
 #[test]
 fn value_from_callback() {
     let mut store = PasswordStore::new(Some(Rc::new(|| Ok(vec![1, 2, 3]))));
 
-    let value1 = store.value().unwrap();
+    let value1 = store.value::<MemoryBackend>().unwrap();
     assert_eq!(value1, [1, 2, 3]);
 
     {
-        let value2 = store.value().unwrap();
+        let value2 = store.value::<MemoryBackend>().unwrap();
         assert_eq!(value2, [1, 2, 3]);
     }
 }
