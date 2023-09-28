@@ -20,21 +20,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::Result;
-use clap::Parser;
-use nuts_tool::NutsCli;
+pub mod container;
 
-fn main() -> Result<()> {
-    std::process::exit(match run_cli() {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("{}", err);
-            1
-        }
-    })
+use anyhow::Result;
+use clap::{Parser, Subcommand};
+
+use crate::container::ContainerArgs;
+
+#[derive(Debug, Parser)]
+#[clap(name = "nuts")]
+#[clap(bin_name = "nuts")]
+pub struct NutsCli {
+    #[clap(subcommand)]
+    command: Commands,
 }
 
-fn run_cli() -> Result<()> {
-    env_logger::init();
-    NutsCli::parse().run()
+impl NutsCli {
+    pub fn run(&self) -> Result<()> {
+        self.command.run()
+    }
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// General container tasks
+    Container(ContainerArgs),
+}
+
+impl Commands {
+    pub fn run(&self) -> Result<()> {
+        match self {
+            Commands::Container(args) => args.run(),
+        }
+    }
 }
