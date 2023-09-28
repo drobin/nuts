@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 pub mod create;
+pub mod delete;
 
 use anyhow::{anyhow, Result};
 use clap::{Args, PossibleValue, Subcommand, ValueEnum};
@@ -33,6 +34,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use crate::container::create::ContainerCreateArgs;
+use crate::container::delete::ContainerDeleteArgs;
 
 const AES128_GCM: &str = "aes128-gcm";
 const AES128_CTR: &str = "aes128-ctr";
@@ -174,12 +176,16 @@ impl ContainerArgs {
 pub enum ContainerCommand {
     /// Creates a nuts-container
     Create(ContainerCreateArgs),
+
+    /// Removes a container again
+    Delete(ContainerDeleteArgs),
 }
 
 impl ContainerCommand {
     pub fn run(&self) -> Result<()> {
         match self {
             Self::Create(args) => args.run(),
+            Self::Delete(args) => args.run(),
         }
     }
 }
