@@ -35,9 +35,9 @@ use std::ops::Deref;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::container::create::ContainerCreateArgs;
-use crate::container::delete::ContainerDeleteArgs;
-use crate::container::info::ContainerInfoArgs;
+use crate::cli::container::create::ContainerCreateArgs;
+use crate::cli::container::delete::ContainerDeleteArgs;
+use crate::cli::container::info::ContainerInfoArgs;
 
 const AES128_GCM: &str = "aes128-gcm";
 const AES128_CTR: &str = "aes128-ctr";

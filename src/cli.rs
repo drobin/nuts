@@ -20,29 +20,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+pub mod container;
+
 use anyhow::Result;
-use clap::Args;
-use log::debug;
-use std::fs;
+use clap::{Parser, Subcommand};
 
-use crate::container::container_dir_for;
+use crate::cli::container::ContainerArgs;
 
-#[derive(Args, Debug)]
-pub struct ContainerDeleteArgs {
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
+#[derive(Debug, Parser)]
+#[clap(name = "nuts")]
+#[clap(bin_name = "nuts")]
+pub struct NutsCli {
+    #[clap(subcommand)]
+    command: Commands,
 }
 
-impl ContainerDeleteArgs {
+impl NutsCli {
     pub fn run(&self) -> Result<()> {
-        let path = container_dir_for(&self.container)?;
+        self.command.run()
+    }
+}
 
-        debug!("container: {}", self.container);
-        debug!("path: {}", path.display());
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// General container tasks
+    Container(ContainerArgs),
+}
 
-        fs::remove_dir_all(path)?;
-
-        Ok(())
+impl Commands {
+    pub fn run(&self) -> Result<()> {
+        match self {
+            Commands::Container(args) => args.run(),
+        }
     }
 }

@@ -24,7 +24,7 @@ use anyhow::Result;
 use clap::Args;
 use log::debug;
 
-use crate::container::open_container;
+use crate::cli::container::open_container;
 
 #[derive(Args, Debug)]
 pub struct ContainerInfoArgs {

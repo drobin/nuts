@@ -20,37 +20,4 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod container;
-
-use anyhow::Result;
-use clap::{Parser, Subcommand};
-
-use crate::container::ContainerArgs;
-
-#[derive(Debug, Parser)]
-#[clap(name = "nuts")]
-#[clap(bin_name = "nuts")]
-pub struct NutsCli {
-    #[clap(subcommand)]
-    command: Commands,
-}
-
-impl NutsCli {
-    pub fn run(&self) -> Result<()> {
-        self.command.run()
-    }
-}
-
-#[derive(Debug, Subcommand)]
-pub enum Commands {
-    /// General container tasks
-    Container(ContainerArgs),
-}
-
-impl Commands {
-    pub fn run(&self) -> Result<()> {
-        match self {
-            Commands::Container(args) => args.run(),
-        }
-    }
-}
+pub mod cli;

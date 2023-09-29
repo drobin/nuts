@@ -21,20 +21,28 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
-use clap::Parser;
-use nuts_tool::cli::NutsCli;
+use clap::Args;
+use log::debug;
+use std::fs;
 
-fn main() -> Result<()> {
-    std::process::exit(match run_cli() {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("{}", err);
-            1
-        }
-    })
+use crate::cli::container::container_dir_for;
+
+#[derive(Args, Debug)]
+pub struct ContainerDeleteArgs {
+    /// Specifies the name of the container
+    #[clap(short, long, env = "NUTS_CONTAINER")]
+    container: String,
 }
 
-fn run_cli() -> Result<()> {
-    env_logger::init();
-    NutsCli::parse().run()
+impl ContainerDeleteArgs {
+    pub fn run(&self) -> Result<()> {
+        let path = container_dir_for(&self.container)?;
+
+        debug!("container: {}", self.container);
+        debug!("path: {}", path.display());
+
+        fs::remove_dir_all(path)?;
+
+        Ok(())
+    }
 }

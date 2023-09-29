@@ -26,7 +26,7 @@ use log::debug;
 use nuts_container::container::{Cipher, Container, CreateOptionsBuilder};
 use nuts_directory::{CreateOptions, DirectoryBackend};
 
-use crate::container::{ask_for_password, container_dir_for, CliCipher, CliKdf, AES128_GCM};
+use crate::cli::container::{ask_for_password, container_dir_for, CliCipher, CliKdf, AES128_GCM};
 
 #[derive(Args, Debug)]
 pub struct ContainerCreateArgs {
