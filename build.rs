@@ -20,40 +20,43 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod container;
+use std::env;
+use std::io::{self, Write};
+use std::process::Command;
 
-use anyhow::Result;
-use clap::{Parser, Subcommand};
+const SHORT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-use crate::cli::container::ContainerArgs;
+fn nuts_container_version() -> String {
+    let path = env::var("CARGO_MANIFEST_DIR").unwrap();
 
-const SHORT_VERSION: &str = env!("NUTS_TOOL_SHORT_VERSION");
-const LONG_VERSION: &str = env!("NUTS_TOOL_LONG_VERSION");
+    let out = Command::new("cargo")
+        .current_dir(path)
+        .arg("pkgid")
+        .arg("nuts-container")
+        .output()
+        .unwrap();
 
-#[derive(Debug, Parser)]
-#[clap(name = "nuts", bin_name = "nuts")]
-#[clap(version = SHORT_VERSION, long_version = LONG_VERSION)]
-pub struct NutsCli {
-    #[clap(subcommand)]
-    command: Commands,
-}
-
-impl NutsCli {
-    pub fn run(&self) -> Result<()> {
-        self.command.run()
+    if !out.status.success() {
+        io::stderr().write_all(&out.stderr).unwrap();
+        panic!("failed to execute `cargo pkgid`");
     }
-}
 
-#[derive(Debug, Subcommand)]
-pub enum Commands {
-    /// General container tasks
-    Container(ContainerArgs),
-}
+    let pkgid = String::from_utf8(out.stdout).unwrap();
+    let splitted = pkgid.rsplitn(2, '#').collect::<Vec<&str>>();
 
-impl Commands {
-    pub fn run(&self) -> Result<()> {
-        match self {
-            Commands::Container(args) => args.run(),
-        }
+    if splitted.len() != 2 {
+        panic!("invalid pkgid: {}", pkgid.trim())
     }
+
+    splitted[0].trim().to_string()
+}
+
+fn main() {
+    let container_version = nuts_container_version();
+
+    let short_version = format!("{}", SHORT_VERSION);
+    let long_version = format!("{} (container: {})", SHORT_VERSION, container_version);
+
+    println!("cargo:rustc-env=NUTS_TOOL_SHORT_VERSION={}", short_version);
+    println!("cargo:rustc-env=NUTS_TOOL_LONG_VERSION={}", long_version);
 }
