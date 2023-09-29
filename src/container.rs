@@ -22,11 +22,13 @@
 
 pub mod create;
 pub mod delete;
+pub mod info;
 
 use anyhow::{anyhow, Result};
 use clap::{Args, PossibleValue, Subcommand, ValueEnum};
 use log::debug;
-use nuts_container::container::{Cipher, Digest, Kdf};
+use nuts_container::container::{Cipher, Container, Digest, Kdf, OpenOptionsBuilder};
+use nuts_directory::{DirectoryBackend, OpenOptions};
 use rpassword::prompt_password;
 use std::fs;
 use std::ops::Deref;
@@ -35,6 +37,7 @@ use std::str::FromStr;
 
 use crate::container::create::ContainerCreateArgs;
 use crate::container::delete::ContainerDeleteArgs;
+use crate::container::info::ContainerInfoArgs;
 
 const AES128_GCM: &str = "aes128-gcm";
 const AES128_CTR: &str = "aes128-ctr";
@@ -179,6 +182,9 @@ pub enum ContainerCommand {
 
     /// Removes a container again
     Delete(ContainerDeleteArgs),
+
+    /// Prints general information about the container
+    Info(ContainerInfoArgs),
 }
 
 impl ContainerCommand {
@@ -186,6 +192,7 @@ impl ContainerCommand {
         match self {
             Self::Create(args) => args.run(),
             Self::Delete(args) => args.run(),
+            Self::Info(args) => args.run(),
         }
     }
 }
@@ -206,6 +213,16 @@ fn tool_dir() -> Result<PathBuf> {
         }
         None => Err(anyhow!("unable to locate home-directory")),
     }
+}
+
+fn open_container(name: &str) -> Result<Container<DirectoryBackend>> {
+    // let name = container_name(args)?;
+    let path = container_dir_for(name)?;
+
+    let builder = OpenOptionsBuilder::new().with_password_callback(ask_for_password);
+    let options = builder.build::<DirectoryBackend>()?;
+
+    Ok(Container::open(OpenOptions::for_path(path), options)?)
 }
 
 fn container_dir() -> Result<PathBuf> {
