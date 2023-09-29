@@ -25,6 +25,7 @@ pub mod delete;
 pub mod info;
 pub mod list;
 pub mod read;
+pub mod write;
 
 use anyhow::{anyhow, Result};
 use clap::{Args, PossibleValue, Subcommand, ValueEnum};
@@ -42,6 +43,7 @@ use crate::cli::container::delete::ContainerDeleteArgs;
 use crate::cli::container::info::ContainerInfoArgs;
 use crate::cli::container::list::ContainerListArgs;
 use crate::cli::container::read::ContainerReadArgs;
+use crate::cli::container::write::ContainerWriteArgs;
 
 const AES128_GCM: &str = "aes128-gcm";
 const AES128_CTR: &str = "aes128-ctr";
@@ -195,6 +197,9 @@ pub enum ContainerCommand {
 
     /// Reads a block from the container
     Read(ContainerReadArgs),
+
+    /// Writes a block into the container
+    Write(ContainerWriteArgs),
 }
 
 impl ContainerCommand {
@@ -205,6 +210,7 @@ impl ContainerCommand {
             Self::Info(args) => args.run(),
             Self::List(args) => args.run(),
             Self::Read(args) => args.run(),
+            Self::Write(args) => args.run(),
         }
     }
 }
