@@ -21,3 +21,4 @@
 // IN THE SOFTWARE.
 
 pub mod cli;
+pub mod format;

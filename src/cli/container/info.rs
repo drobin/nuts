@@ -23,21 +23,28 @@
 use anyhow::Result;
 use clap::Args;
 use log::debug;
+use nuts_container::container::Container;
+use nuts_directory::DirectoryBackend;
 
-use crate::cli::container::open_container;
+use crate::{cli::container::open_container, format::Format};
 
 #[derive(Args, Debug)]
 pub struct ContainerInfoArgs {
+    /// If set, displays the userdata of the container
+    #[clap(short, long)]
+    userdata: bool,
+
+    /// Specifies the format of the userdata dump
+    #[clap(short, long, value_parser, default_value = "raw")]
+    format: Format,
+
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
 }
 
 impl ContainerInfoArgs {
-    pub fn run(&self) -> Result<()> {
-        debug!("container: {}", self.container);
-
-        let container = open_container(&self.container)?;
+    fn print_info(&self, container: &Container<DirectoryBackend>) -> Result<()> {
         let info = container.info()?;
 
         println!("cipher:             {}", info.cipher);
@@ -46,5 +53,28 @@ impl ContainerInfoArgs {
         println!("block size (net):   {}", info.bsize_net);
 
         Ok(())
+    }
+
+    fn print_userdata(&self, container: &Container<DirectoryBackend>) -> Result<()> {
+        let mut writer = self.format.create_writer();
+
+        writer.print(container.userdata())?;
+        writer.flush()?;
+
+        Ok(())
+    }
+
+    pub fn run(&self) -> Result<()> {
+        debug!("container: {}", self.container);
+        debug!("userdata: {}", self.userdata);
+        debug!("format: {:?}", self.format);
+
+        let container = open_container(&self.container)?;
+
+        if self.userdata {
+            self.print_userdata(&container)
+        } else {
+            self.print_info(&container)
+        }
     }
 }
