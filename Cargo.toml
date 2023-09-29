@@ -14,3 +14,7 @@ log = "0.4.20"
 nuts-container = { path = "../nuts-container" }
 nuts-directory = { path = "../nuts-directory" }
 rpassword = "7.2.0"
+
+[[bin]]
+name = "nuts"
+path = "src/main.rs"
