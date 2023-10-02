@@ -54,6 +54,7 @@ pub struct CreateOptions {
     path: PathBuf,
     bsize: u32,
     overwrite: bool,
+    header:Vec<u8>,
 }
 
 impl CreateOptions {
@@ -68,6 +69,7 @@ impl CreateOptions {
             path: path.as_ref().to_path_buf(),
             bsize: BLOCK_MIN_SIZE,
             overwrite: false,
+            header:vec![]
         }
     }
 
@@ -102,8 +104,14 @@ impl CreateOptions {
 
 impl HeaderSet<DirectoryBackend> for CreateOptions {
     fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
-        self.validate()
-            .and_then(|()| write_header(&self.path, self.bsize, bytes))
+        self.validate()?;
+
+        // The header is written while the backend is created (in Create::build).
+        // Here you simple cache the data for later usage.
+        self.header.clear();
+        self.header.extend_from_slice(bytes);
+
+        Ok(())
     }
 }
 
@@ -122,6 +130,8 @@ impl Create<DirectoryBackend> for CreateOptions {
                 return Err(Error::Exists);
             }
         }
+
+        write_header(&self.path, self.bsize, &self.header)?;
 
         Ok(DirectoryBackend {
             bsize: self.bsize,
