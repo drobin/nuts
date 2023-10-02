@@ -23,10 +23,10 @@
 use anyhow::Result;
 use clap::{value_parser, Args};
 use log::debug;
-use nuts_container::container::{Cipher, Container, CreateOptionsBuilder};
+use nuts_container::container::{Cipher, Container, CreateOptionsBuilder, Kdf};
 use nuts_directory::{CreateOptions, DirectoryBackend};
 
-use crate::cli::container::{ask_for_password, container_dir_for, CliCipher, CliKdf, AES128_GCM};
+use crate::cli::container::{ask_for_password, container_dir_for, CliCipher, AES128_GCM};
 
 #[derive(Args, Debug)]
 pub struct ContainerCreateArgs {
@@ -57,7 +57,7 @@ pub struct ContainerCreateArgs {
     /// the given number of iterations (default: 65536) and salt
     /// length (default: 16).
     #[clap(short, long, value_parser)]
-    kdf: Option<CliKdf>,
+    kdf: Option<Kdf>,
 
     /// If set, overwrites an existing container
     #[clap(short, long, value_parser)]
@@ -81,9 +81,9 @@ impl ContainerCreateArgs {
             CreateOptionsBuilder::new(*self.cipher).with_password_callback(ask_for_password);
 
         if self.cipher != Cipher::None {
-            if let Some(kdf) = self.kdf.as_ref() {
+            if let Some(kdf) = self.kdf.clone() {
                 debug!("kdf: {:?}", kdf);
-                builder = builder.with_kdf(kdf.to_kdf()?);
+                builder = builder.with_kdf(kdf);
             }
         }
 

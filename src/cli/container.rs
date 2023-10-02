@@ -30,13 +30,12 @@ pub mod write;
 use anyhow::{anyhow, Result};
 use clap::{Args, PossibleValue, Subcommand, ValueEnum};
 use log::debug;
-use nuts_container::container::{Cipher, Container, Digest, Kdf, OpenOptionsBuilder};
+use nuts_container::container::{Cipher, Container, OpenOptionsBuilder};
 use nuts_directory::{DirectoryBackend, OpenOptions};
 use rpassword::prompt_password;
 use std::fs;
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use crate::cli::container::create::ContainerCreateArgs;
 use crate::cli::container::delete::ContainerDeleteArgs;
@@ -83,86 +82,6 @@ impl ValueEnum for CliCipher {
         };
 
         Some(PossibleValue::new(value))
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct CliKdf {
-    _algorithm: String,
-    digest: Option<Digest>,
-    iterations: Option<u32>,
-    salt_len: Option<u32>,
-}
-
-impl CliKdf {
-    fn new(algorithm: &str) -> CliKdf {
-        CliKdf {
-            _algorithm: algorithm.to_string(),
-            digest: None,
-            iterations: None,
-            salt_len: None,
-        }
-    }
-
-    fn to_kdf(&self) -> Result<Kdf> {
-        let digest = self.digest.unwrap_or(Digest::Sha1);
-        let iterations = self.iterations.unwrap_or(65536);
-        let salt_len = self.salt_len.unwrap_or(16);
-
-        Ok(Kdf::generate_pbkdf2(digest, iterations, salt_len)?)
-    }
-
-    fn parse_pbkdf2(v: &[&str]) -> Result<CliKdf, String> {
-        if v.len() == 1 {
-            Ok(CliKdf::new(v[0]))
-        } else if v.len() == 4 {
-            let mut kdf = CliKdf::new(v[0]);
-
-            if !v[1].is_empty() {
-                kdf.digest = Some(
-                    v[1].parse()
-                        .map_err(|()| format!("invalid digest: {}", v[1]))?,
-                );
-            }
-
-            if !v[2].is_empty() {
-                kdf.iterations = Some(
-                    v[2].parse()
-                        .map_err(|_| format!("invalid iterations: {}", v[2]))?,
-                );
-            }
-
-            if !v[3].is_empty() {
-                kdf.salt_len = Some(
-                    v[3].parse()
-                        .map_err(|_| format!("invalid salt length: {}", v[3]))?,
-                );
-            }
-
-            Ok(kdf)
-        } else {
-            Err(String::from("invalid KDF specification"))
-        }
-    }
-}
-
-impl FromStr for CliKdf {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, String> {
-        let v: Vec<&str> = s
-            .split(':')
-            .map(|s| s.trim_matches(char::is_whitespace))
-            .collect();
-
-        if v.is_empty() {
-            return Err("empty KDF specification".to_string());
-        }
-
-        match v[0] {
-            "pbkdf2" => Self::parse_pbkdf2(&v),
-            _ => Err("unknown algorithm".to_string()),
-        }
     }
 }
 
