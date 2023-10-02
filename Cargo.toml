@@ -13,8 +13,8 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-getrandom = "0.2.8"
-log = "0.4.14"
-nuts-container = { version = "0.1.0", default-features = false, features = ["backend"] }
-nuts-bytes = "0.1.0"
-serde = { version = "1.0.152", features = ["derive"] }
+getrandom = "0.2.10"
+log = "0.4.20"
+nuts-container = { version = "0.1.1", default-features = false, features = ["backend"] }
+nuts-bytes = "0.1.1"
+serde = { version = "1.0.188", features = ["derive"] }
