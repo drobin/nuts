@@ -205,16 +205,18 @@ checksum = "8f232d6ef707e1956a43342693d2a31e72989554d58299d7a88738cc95b0d35c"
 
 [[package]]
 name = "nuts-bytes"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bc9a5f271e668a3592f6bd39b95bcea58e132cfc3b39f44c4830dc80eef8694"
+checksum = "5c0e5aac324a1810a2206a8f47b33895e9fec4f7ae3d34c977b021d8c4691b1a"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "nuts-container"
-version = "0.1.0"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "535d9be7e582e12053b34c3234cfc121856ca9ddefdbe9659ee7662b9c41a97e"
 dependencies = [
  "log",
  "nuts-bytes",
@@ -225,7 +227,9 @@ dependencies = [
 
 [[package]]
 name = "nuts-directory"
-version = "0.1.0"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32cdb6b34245935f50915ad1901f5ca8c87af50cc27de5e72702862cdfb89860"
 dependencies = [
  "getrandom",
  "log",
