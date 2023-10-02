@@ -2,12 +2,19 @@
 name = "nuts-directory"
 version = "0.1.0"
 edition = "2018"
-
+authors = ["Robin Doer <robin@robind.de>"]
+description = "A backend implementation for nuts"
+categories = ["cryptography"]
+keywords = ["secure", "storage"]
+repository = "https://github.com/drobin/nuts-directory.git"
+documentation = "https://docs.rs/nuts-directory"
+license = "MIT"
+readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 getrandom = "0.2.8"
 log = "0.4.14"
-nuts-container = { path = "../nuts-container", default-features = false, features = ["backend"] }
+nuts-container = { version = "0.1.0", default-features = false, features = ["backend"] }
 nuts-bytes = "0.1.0"
 serde = { version = "1.0.152", features = ["derive"] }
