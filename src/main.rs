@@ -35,6 +35,8 @@ fn main() -> Result<()> {
 }
 
 fn run_cli() -> Result<()> {
-    env_logger::init();
-    NutsCli::parse().run()
+    let cli = NutsCli::parse();
+
+    cli.configure_logging();
+    cli.run()
 }

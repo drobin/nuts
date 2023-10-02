@@ -23,7 +23,9 @@
 pub mod container;
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand};
+use env_logger::Builder;
+use log::LevelFilter;
 
 use crate::cli::container::ContainerArgs;
 
@@ -36,9 +38,23 @@ const LONG_VERSION: &str = env!("NUTS_TOOL_LONG_VERSION");
 pub struct NutsCli {
     #[clap(subcommand)]
     command: Commands,
+
+    /// Enable verbose output. Can be called multiple times
+    #[clap(short, long, action = ArgAction::Count, global = true)]
+    verbose: u8,
 }
 
 impl NutsCli {
+    pub fn configure_logging(&self) {
+        let filter = match self.verbose {
+            0 => LevelFilter::Info,
+            1 => LevelFilter::Debug,
+            _ => LevelFilter::Trace,
+        };
+
+        Builder::new().filter_level(filter).init();
+    }
+
     pub fn run(&self) -> Result<()> {
         self.command.run()
     }
