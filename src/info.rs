@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-/// [Information](nuts::backend::Backend::Info) from the backend.
+/// [Information](nuts_container::backend::Backend::Info) from the backend.
 #[derive(Debug)]
 pub struct Info {
     /// The block size.

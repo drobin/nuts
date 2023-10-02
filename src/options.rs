@@ -34,7 +34,8 @@ use crate::{read_header, write_header, DirectoryBackend};
 
 const BLOCK_MIN_SIZE: u32 = 512;
 
-/// [Options](nuts::backend::Backend::CreateOptions) needed to create the backend.
+/// [Options](nuts_container::backend::Backend::CreateOptions) needed to create
+/// the backend.
 ///
 /// You must pass the path, where the directory tree should be stored, to
 /// [`CreateOptions::for_path()`], if creating a `CreateOptions` instance.
@@ -129,7 +130,8 @@ impl Create<DirectoryBackend> for CreateOptions {
     }
 }
 
-/// [Options](nuts::backend::Backend::OpenOptions) needed to open the backend.
+/// [Options](nuts_container::backend::Backend::OpenOptions) needed to open the
+/// backend.
 ///
 /// You must pass the path, where the directory tree is stored, to
 /// [`OpenOptions::for_path()`], if creating a `OpenOptions` instance.
@@ -164,7 +166,7 @@ impl Open<DirectoryBackend> for OpenOptions {
     }
 }
 
-/// [Settings](nuts::backend::Backend::Settings) used by the backend.
+/// [Settings](nuts_container::backend::Backend::Settings) used by the backend.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Settings {
     bsize: u32,
