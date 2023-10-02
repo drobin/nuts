@@ -1,6 +1,6 @@
 [package]
 name = "nuts-directory"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A backend implementation for nuts"
