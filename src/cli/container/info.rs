@@ -26,7 +26,8 @@ use log::debug;
 use nuts_container::container::Container;
 use nuts_directory::DirectoryBackend;
 
-use crate::{cli::container::open_container, format::Format};
+use crate::cli::open_container;
+use crate::format::Format;
 
 #[derive(Args, Debug)]
 pub struct ContainerInfoArgs {

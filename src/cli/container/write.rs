@@ -26,7 +26,7 @@ use log::{debug, trace};
 use std::cmp;
 use std::io::{self, Read};
 
-use crate::cli::container::open_container;
+use crate::cli::open_container;
 
 fn fill_buf(buf: &mut [u8]) -> Result<usize> {
     let mut nread = 0;

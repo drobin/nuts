@@ -25,7 +25,7 @@ use clap::Args;
 use log::debug;
 use std::fs;
 
-use crate::cli::container::container_dir_for;
+use crate::cli::container_dir_for;
 
 #[derive(Args, Debug)]
 pub struct ContainerDeleteArgs {

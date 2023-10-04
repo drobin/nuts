@@ -27,7 +27,7 @@ use nuts_container::backend::Backend;
 use nuts_directory::DirectoryBackend;
 use std::cmp;
 
-use crate::cli::container::open_container;
+use crate::cli::open_container;
 use crate::format::Format;
 
 #[derive(Args, Debug)]
