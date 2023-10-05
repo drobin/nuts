@@ -20,10 +20,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod error;
-mod magic;
-#[cfg(test)]
-mod tests;
-mod userdata;
+pub(crate) const MAGIC: [u8; 12] = *b"nuts-archive";
 
-pub use error::{ArchiveResult, Error};
+macro_rules! magic_type {
+    ($name:ident, $err:literal) => {
+        #[derive(Debug, serde::Deserialize, serde::Serialize)]
+        #[serde(try_from = "[u8; 12]")]
+        struct $name([u8; 12]);
+
+        impl $name {
+            fn new() -> $name {
+                $name(crate::magic::MAGIC)
+            }
+        }
+
+        impl<T: AsRef<[u8]>> PartialEq<T> for $name {
+            fn eq(&self, other: &T) -> bool {
+                self.0 == other.as_ref()
+            }
+        }
+
+        impl std::convert::TryFrom<[u8; 12]> for $name {
+            type Error = String;
+
+            fn try_from(buf: [u8; 12]) -> Result<Self, String> {
+                if buf == crate::magic::MAGIC {
+                    Ok(Magic(buf))
+                } else {
+                    Err($err.to_string())
+                }
+            }
+        }
+    };
+}
+
+pub(crate) use magic_type;

@@ -20,10 +20,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod error;
-mod magic;
-#[cfg(test)]
-mod tests;
-mod userdata;
+use nuts_container::container::{Cipher, Container, CreateOptionsBuilder};
+use nuts_container::memory::MemoryBackend;
 
-pub use error::{ArchiveResult, Error};
+macro_rules! into_error {
+    ($err:expr, $($path:ident)::+) => {
+        match $err {
+            $($path)::+(cause) => cause,
+            _ => panic!("invalid error"),
+        }
+    };
+}
+
+pub fn setup_container() -> Container<MemoryBackend> {
+    let backend = MemoryBackend::new();
+    let options = CreateOptionsBuilder::new(Cipher::None)
+        .build::<MemoryBackend>()
+        .unwrap();
+
+    Container::create(backend, options).unwrap()
+}
+
+pub(crate) use into_error;

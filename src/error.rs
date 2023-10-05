@@ -30,6 +30,17 @@ pub enum Error<B: Backend> {
 
     /// An error occured in a container operation.
     Container(container::Error<B>),
+
+    /// Tried to overwrite an existing
+    /// [userdata record](container::Container::userdata).
+    OverwriteUserdata,
+
+    /// The [userdata record](container::Container::userdata) of the container
+    /// does not refer to an archive:
+    ///
+    /// * The userdata record is empty, the container has no attached service.
+    /// * Another service is attached to the container.
+    InvalidUserdata(Option<nuts_bytes::Error>),
 }
 
 impl<B: Backend> fmt::Display for Error<B> {
@@ -37,15 +48,24 @@ impl<B: Backend> fmt::Display for Error<B> {
         match self {
             Error::Bytes(cause) => fmt::Display::fmt(cause, fmt),
             Error::Container(cause) => fmt::Display::fmt(cause, fmt),
+            Error::OverwriteUserdata => write!(fmt, "the container is not empty"),
+            Error::InvalidUserdata(None) => write!(fmt, "the container is empty"),
+            Error::InvalidUserdata(Some(_)) => {
+                write!(fmt, "the container does not have an archive")
+            }
         }
     }
 }
 
 impl<B: Backend> fmt::Debug for Error<B> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Bytes(cause) => f.debug_tuple("Bytes").field(cause).finish(),
-            Self::Container(cause) => f.debug_tuple("Container").field(cause).finish(),
+            Self::Bytes(cause) => fmt.debug_tuple("Bytes").field(cause).finish(),
+            Self::Container(cause) => fmt.debug_tuple("Container").field(cause).finish(),
+            Error::OverwriteUserdata => fmt.debug_tuple("OverwriteUserdata").finish(),
+            Self::InvalidUserdata(cause) => {
+                fmt.debug_tuple("InvalidUserdata").field(cause).finish()
+            }
         }
     }
 }
@@ -54,7 +74,16 @@ impl<B: Backend> error::Error for Error<B> {}
 
 impl<B: Backend> From<nuts_bytes::Error> for Error<B> {
     fn from(cause: nuts_bytes::Error) -> Self {
-        Error::Bytes(cause)
+        match cause {
+            nuts_bytes::Error::Serde(ref msg) => {
+                if msg == "invalid userdata-magic" {
+                    Error::InvalidUserdata(Some(cause))
+                } else {
+                    Error::Bytes(cause)
+                }
+            }
+            _ => Error::Bytes(cause),
+        }
     }
 }
 
