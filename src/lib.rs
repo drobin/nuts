@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 mod error;
+mod header;
 mod magic;
 #[cfg(test)]
 mod tests;
