@@ -27,4 +27,99 @@ mod magic;
 mod tests;
 mod userdata;
 
+use log::debug;
+use nuts_container::backend::Backend;
+use nuts_container::container::Container;
+use std::fmt;
+
 pub use error::{ArchiveResult, Error};
+
+use crate::header::Header;
+use crate::userdata::Userdata;
+
+pub struct Archive<B: Backend> {
+    container: Container<B>,
+    header: Header<B>,
+    header_id: B::Id,
+}
+
+impl<B: Backend> Archive<B> {
+    /// Creates a new archive in `container`.
+    ///
+    /// General initial information about the archive is stored in the
+    /// [user data](Container::userdata) of the container. This means the
+    /// archive can be easily opened again the next time it is
+    /// [loaded](Self::open). This means that no user data is currently allowed
+    /// to be stored in the container, otherwise it could be overwritten.
+    ///
+    /// # Errors
+    ///
+    /// If user data of the container could be overwritten, an
+    /// [`Error::OverwriteUserdata`] error will be returned.
+    pub fn create(mut container: Container<B>) -> ArchiveResult<Archive<B>, B> {
+        let userdata = Userdata::create(&mut container)?;
+        let header = Header::<B>::load_or_create(&mut container, &userdata.id)?;
+
+        debug!("header: {:?}", header);
+
+        let archive = Archive {
+            container,
+            header,
+            header_id: userdata.id,
+        };
+
+        debug!("archive created: {:?}", archive);
+
+        Ok(archive)
+    }
+
+    /// Opens an archive from `container`.
+    ///
+    /// The initial information about the archive is loaded from the
+    /// [user data](Container::userdata) of the container.
+    ///
+    /// # Errors
+    ///
+    /// If no user data is stored in the container, an
+    /// [`Error::InvalidUserdata(None)`](Error::InvalidUserdata) error is
+    /// returned; if it does not contain valid archive information, an
+    /// [`Error::InvalidUserdata(Some(...))`](Error::InvalidUserdata) error is
+    /// returned.
+    pub fn open(mut container: Container<B>) -> ArchiveResult<Archive<B>, B> {
+        let userdata = Userdata::load(&mut container)?;
+        let header = Header::load_or_create(&mut container, &userdata.id)?;
+
+        debug!("header: {:?}", header);
+
+        let archive = Archive {
+            container,
+            header,
+            header_id: userdata.id,
+        };
+
+        debug!("archive opened: {:?}", archive);
+
+        Ok(archive)
+    }
+
+    /// Consumes this `Archive`, returning the underlying [`Container`].
+    pub fn into_container(self) -> Container<B> {
+        self.container
+    }
+}
+
+impl<B: Backend> AsRef<Container<B>> for Archive<B> {
+    fn as_ref(&self) -> &Container<B> {
+        &self.container
+    }
+}
+
+impl<B: Backend> fmt::Debug for Archive<B> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("Archive")
+            .field("container", &"...")
+            .field("header", &self.header)
+            .field("header_id", &self.header_id)
+            .finish()
+    }
+}
