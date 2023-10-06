@@ -70,19 +70,40 @@ fn ser_ok() {
 }
 
 #[test]
-fn create_userdata() {
+fn create_userdata_unforced() {
     let mut container = setup_container();
 
     container.update_userdata(&[b'x'; 1]).unwrap();
 
-    let err = Userdata::<MemoryBackend>::create(&mut container).unwrap_err();
+    let err = Userdata::<MemoryBackend>::create(&mut container, false).unwrap_err();
     assert!(matches!(err, Error::OverwriteUserdata));
 }
 
 #[test]
-fn create_no_userdata() {
+fn create_userdata_forced() {
     let mut container = setup_container();
-    let userdata = Userdata::<MemoryBackend>::create(&mut container).unwrap();
+
+    container.update_userdata(&[b'x'; 1]).unwrap();
+
+    let userdata = Userdata::<MemoryBackend>::create(&mut container, true).unwrap();
+
+    assert_eq!(userdata.magic, b"nuts-archive");
+    assert_eq!(userdata.id.to_string(), "1");
+}
+
+#[test]
+fn create_no_userdata_unforced() {
+    let mut container = setup_container();
+    let userdata = Userdata::<MemoryBackend>::create(&mut container, false).unwrap();
+
+    assert_eq!(userdata.magic, b"nuts-archive");
+    assert_eq!(userdata.id.to_string(), "1");
+}
+
+#[test]
+fn create_no_userdata_forced() {
+    let mut container = setup_container();
+    let userdata = Userdata::<MemoryBackend>::create(&mut container, true).unwrap();
 
     assert_eq!(userdata.magic, b"nuts-archive");
     assert_eq!(userdata.id.to_string(), "1");

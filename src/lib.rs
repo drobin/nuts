@@ -51,13 +51,15 @@ impl<B: Backend> Archive<B> {
     /// archive can be easily opened again the next time it is
     /// [loaded](Self::open). This means that no user data is currently allowed
     /// to be stored in the container, otherwise it could be overwritten.
+    /// Existing user data can be overwritten if the `force` flag is set to
+    /// `true`.
     ///
     /// # Errors
     ///
     /// If user data of the container could be overwritten, an
     /// [`Error::OverwriteUserdata`] error will be returned.
-    pub fn create(mut container: Container<B>) -> ArchiveResult<Archive<B>, B> {
-        let userdata = Userdata::create(&mut container)?;
+    pub fn create(mut container: Container<B>, force: bool) -> ArchiveResult<Archive<B>, B> {
+        let userdata = Userdata::create(&mut container, force)?;
         let header = Header::<B>::load_or_create(&mut container, &userdata.id)?;
 
         debug!("header: {:?}", header);

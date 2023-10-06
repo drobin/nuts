@@ -49,8 +49,8 @@ impl<B: Backend> Userdata<B> {
         }
     }
 
-    pub fn create(container: &mut Container<B>) -> ArchiveResult<Userdata<B>, B> {
-        if !container.userdata().is_empty() {
+    pub fn create(container: &mut Container<B>, force: bool) -> ArchiveResult<Userdata<B>, B> {
+        if !force && !container.userdata().is_empty() {
             return Err(Error::OverwriteUserdata);
         }
 

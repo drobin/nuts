@@ -30,7 +30,7 @@ use crate::userdata::Userdata;
 #[test]
 fn load_or_create_blank() {
     let mut container = setup_container();
-    let userdata = Userdata::create(&mut container).unwrap();
+    let userdata = Userdata::create(&mut container, false).unwrap();
     let header = Header::load_or_create(&mut container, &userdata.id).unwrap();
 
     assert_eq!(header.revision, 1);
@@ -41,7 +41,7 @@ fn load_or_create_blank() {
 #[test]
 fn load_or_create_exists() {
     let mut container = setup_container();
-    let userdata = Userdata::create(&mut container).unwrap();
+    let userdata = Userdata::create(&mut container, false).unwrap();
 
     Header::<MemoryBackend> {
         magic: Magic::new(),
@@ -62,7 +62,7 @@ fn load_or_create_exists() {
 #[test]
 fn load_or_create_invalid() {
     let mut container = setup_container();
-    let userdata = Userdata::create(&mut container).unwrap();
+    let userdata = Userdata::create(&mut container, false).unwrap();
 
     Header::<MemoryBackend> {
         magic: Magic([b'x'; 12]),
