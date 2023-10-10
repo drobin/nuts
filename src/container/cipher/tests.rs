@@ -29,22 +29,26 @@ mod string;
 const KEY: [u8; 16] = [b'x'; 16];
 const IV: [u8; 16] = [b'y'; 16];
 
-macro_rules! cipher_test {
-    ($name:ident, $cipher:ident . $method:ident, [ $($input:literal),* ], $num:literal, [ $($expected:literal),* ]) => {
+macro_rules! ctx_test {
+    ($name:ident, $cipher:ident . $method:ident, $num:literal, [ $($input:literal),* ] -> [ $($expected:literal),* ]) => {
         #[test]
         fn $name() {
-            use crate::container::cipher::tests::{KEY, IV};
+            use crate::container::cipher::tests::{IV, KEY};
+            use crate::container::cipher::CipherContext;
             use crate::memory::MemoryBackend;
 
             let input = [$($input),*];
-            let mut output = Vec::new();
+            let expected = [$($expected),*];
 
-            let n = Cipher::$cipher.$method::<MemoryBackend>(&input, &mut output, &KEY, &IV).unwrap();
+            let mut ctx = CipherContext::new(Cipher::$cipher);
 
-            assert_eq!(n, $num);
-            assert_eq!(output, [$($expected),*]);
+            ctx.copy_from_slice($num, &input);
+
+            let output = ctx.$method::<MemoryBackend>(&KEY, &IV).unwrap();
+
+            assert_eq!(output, expected);
         }
     };
 }
 
-pub(crate) use cipher_test;
+pub(crate) use ctx_test;

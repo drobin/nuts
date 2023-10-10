@@ -255,13 +255,12 @@ mod svec;
 mod tests;
 
 use log::debug;
-use std::borrow::Cow;
 use std::{any, cmp};
 
 use crate::backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
+use crate::container::cipher::CipherContext;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;
-use crate::container::svec::SecureVec;
 
 pub use cipher::Cipher;
 pub use digest::Digest;
@@ -289,8 +288,7 @@ pub struct Container<B: Backend> {
     backend: B,
     store: PasswordStore,
     header: Header,
-    buf_in: SecureVec,
-    buf_out: SecureVec,
+    ctx: CipherContext,
 }
 
 impl<B: Backend> Container<B> {
@@ -336,12 +334,13 @@ impl<B: Backend> Container<B> {
             header
         );
 
+        let ctx = CipherContext::new(header.cipher);
+
         Ok(Container {
             backend,
             store,
             header,
-            buf_in: vec![].into(),
-            buf_out: vec![].into(),
+            ctx,
         })
     }
 
@@ -380,12 +379,13 @@ impl<B: Backend> Container<B> {
             header
         );
 
+        let ctx = CipherContext::new(header.cipher);
+
         Ok(Container {
             backend,
             store,
             header,
-            buf_in: vec![].into(),
-            buf_out: vec![].into(),
+            ctx,
         })
     }
 
@@ -511,18 +511,16 @@ impl<B: Backend> Container<B> {
             return Err(Error::NullId);
         }
 
-        self.buf_in.resize(self.backend.block_size() as usize, 0);
-        map_err!(self.backend.read(id, &mut self.buf_in))?;
+        let ctext = self.ctx.inp_mut(self.backend.block_size() as usize);
+        map_err!(self.backend.read(id, ctext))?;
 
         let key = &self.header.key;
         let iv = &self.header.iv;
 
-        self.header
-            .cipher
-            .decrypt(&self.buf_in, &mut self.buf_out, key, iv)?;
+        let ptext = self.ctx.decrypt(key, iv)?;
 
-        let n = cmp::min(self.buf_out.len(), buf.len());
-        buf[..n].copy_from_slice(&self.buf_out[..n]);
+        let n = cmp::min(ptext.len(), buf.len());
+        buf[..n].copy_from_slice(&ptext[..n]);
 
         Ok(n)
     }
@@ -551,33 +549,14 @@ impl<B: Backend> Container<B> {
             return Err(Error::NullId);
         }
 
-        let block_size = self.backend.block_size() as usize;
-        let block_size_net = block_size - self.header.cipher.tag_size() as usize;
+        let len = self.ctx.copy_from_slice(self.block_size() as usize, buf);
 
         let key = &self.header.key;
         let iv = &self.header.iv;
 
-        let mut ptext = Cow::from(buf);
-        let ptext_len = cmp::min(ptext.len(), block_size_net);
+        let ctext = self.ctx.encrypt(key, iv)?;
 
-        if ptext.len() != block_size_net {
-            // pad with 0 if not a complete block
-            ptext.to_mut().resize(block_size_net, 0);
-        }
-
-        self.header
-            .cipher
-            .encrypt(&ptext, &mut self.buf_out, key, iv)?;
-
-        match ptext {
-            Cow::Owned(buf) => {
-                // whiteout owned buffer
-                let _: SecureVec = buf.into();
-            }
-            _ => {}
-        };
-
-        map_err!(self.backend.write(id, &self.buf_out)).map(|_| ptext_len)
+        map_err!(self.backend.write(id, ctext)).map(|_| len)
     }
 
     fn read_header<H: HeaderGet<B>>(

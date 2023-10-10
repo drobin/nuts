@@ -29,7 +29,7 @@ use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
 use crate::backend::Backend;
-use crate::container::cipher::Cipher;
+use crate::container::cipher::{Cipher, CipherContext};
 use crate::container::error::ContainerResult;
 use crate::container::kdf::Kdf;
 use crate::container::ossl;
@@ -87,11 +87,12 @@ impl Secret {
             vec![].into()
         };
 
-        let mut pbuf = Vec::new();
+        let mut ctx = CipherContext::new(cipher);
 
-        cipher.decrypt(&self.0, &mut pbuf, &key, &iv)?;
+        ctx.copy_from_slice(self.0.len(), &self.0);
 
-        let plain_secret = Reader::new(&pbuf[..]).deserialize()?;
+        let pbuf = ctx.decrypt(&key, &iv)?;
+        let plain_secret = Reader::new(pbuf).deserialize()?;
 
         Ok(plain_secret)
     }
@@ -147,9 +148,11 @@ impl<B: Backend> PlainSecret<B> {
             vec![].into()
         };
 
-        let mut cbuf = Vec::new();
-        cipher.encrypt(&pbuf, &mut cbuf, &key, &iv)?;
+        let mut ctx = CipherContext::new(cipher);
 
-        Ok(Secret(cbuf))
+        ctx.copy_from_slice(pbuf.len(), &pbuf);
+        let cbuf = ctx.encrypt(&key, &iv)?;
+
+        Ok(Secret(cbuf.to_vec()))
     }
 }

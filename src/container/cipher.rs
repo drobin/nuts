@@ -26,11 +26,12 @@ mod tests;
 use openssl::cipher as ossl_cipher;
 use openssl::cipher_ctx::CipherCtx;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use std::str::FromStr;
+use std::{cmp, fmt};
 
 use crate::backend::Backend;
 use crate::container::error::{ContainerResult, Error};
+use crate::container::svec::SecureVec;
 
 /// Supported cipher algorithms.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -88,137 +89,6 @@ impl Cipher {
         }
     }
 
-    pub fn decrypt<B: Backend>(
-        &self,
-        input: &[u8],
-        output: &mut Vec<u8>,
-        key: &[u8],
-        iv: &[u8],
-    ) -> ContainerResult<usize, B> {
-        match self {
-            Self::None => Ok(Self::make_none(input, output)),
-            _ => self.decrypt_aad(None, input, output, key, iv),
-        }
-    }
-
-    pub fn encrypt<B: Backend>(
-        &self,
-        input: &[u8],
-        output: &mut Vec<u8>,
-        key: &[u8],
-        iv: &[u8],
-    ) -> ContainerResult<usize, B> {
-        match self {
-            Self::None => Ok(Self::make_none(input, output)),
-            _ => self.encrypt_aad(None, input, output, key, iv),
-        }
-    }
-
-    fn make_none(input: &[u8], output: &mut Vec<u8>) -> usize {
-        output.clear();
-        output.extend_from_slice(input);
-
-        input.len()
-    }
-
-    fn decrypt_aad<B: Backend>(
-        &self,
-        aad: Option<&[u8]>,
-        input: &[u8],
-        output: &mut Vec<u8>,
-        key: &[u8],
-        iv: &[u8],
-    ) -> ContainerResult<usize, B> {
-        let key = key.get(..self.key_len()).ok_or(Error::InvalidKey)?;
-        let iv = iv.get(..self.iv_len()).ok_or(Error::InvalidIv)?;
-
-        // number of ciphertext bytes: remove tag from the input.
-        let ctext_bytes = input
-            .len()
-            .checked_sub(self.tag_size() as usize)
-            .unwrap_or(0);
-
-        // number of plaintext bytes: equals to ciphertext bytes (for now) because
-        // blocksize is 1 for all ciphers.
-        let ptext_bytes = ctext_bytes;
-
-        if ctext_bytes == 0 {
-            return Ok(0);
-        }
-
-        if ctext_bytes % self.block_size() != 0 {
-            return Err(Error::InvalidBlockSize);
-        }
-
-        let mut ctx = CipherCtx::new()?;
-
-        ctx.decrypt_init(self.to_openssl(), Some(key), Some(iv))?;
-        ctx.set_padding(false);
-
-        if let Some(buf) = aad {
-            ctx.cipher_update(buf, None)?;
-        }
-
-        output.resize(ptext_bytes, 0);
-        ctx.cipher_update(&input[..ctext_bytes], Some(&mut output[..ptext_bytes]))?;
-
-        if self.tag_size() > 0 {
-            ctx.set_tag(&input[ctext_bytes..])?;
-            ctx.cipher_final(&mut [])
-                .map_err(|_| Error::NotTrustworthy)?;
-        }
-
-        Ok(ctext_bytes)
-    }
-
-    fn encrypt_aad<B: Backend>(
-        &self,
-        aad: Option<&[u8]>,
-        input: &[u8],
-        output: &mut Vec<u8>,
-        key: &[u8],
-        iv: &[u8],
-    ) -> ContainerResult<usize, B> {
-        let key = key.get(..self.key_len()).ok_or(Error::InvalidKey)?;
-        let iv = iv.get(..self.iv_len()).ok_or(Error::InvalidIv)?;
-
-        // number of plaintext bytes: equals to number of input bytes. There is
-        // no need to align at block size because blocksize is 1 for all
-        // ciphers.
-        let ptext_len = input.len();
-
-        // number of ciphertext bytes: equals to plaintext bytes (for now) because
-        // blocksize is 1 for all ciphers.
-        let ctext_len = ptext_len;
-
-        if ptext_len == 0 {
-            return Ok(0);
-        }
-
-        if ptext_len % self.block_size() != 0 {
-            return Err(Error::InvalidBlockSize);
-        }
-
-        let mut ctx = CipherCtx::new()?;
-
-        ctx.encrypt_init(self.to_openssl(), Some(key), Some(iv))?;
-        ctx.set_padding(false);
-
-        if let Some(buf) = aad {
-            ctx.cipher_update(buf, None)?;
-        }
-
-        output.resize(ctext_len + self.tag_size() as usize, 0);
-        ctx.cipher_update(&input[..ptext_len], Some(&mut output[..ctext_len]))?;
-
-        if self.tag_size() > 0 {
-            ctx.cipher_final(&mut [])?;
-            ctx.tag(&mut output[ctext_len..])?;
-        }
-
-        Ok(ctext_len)
-    }
-
     fn to_openssl(self) -> Option<&'static ossl_cipher::CipherRef> {
         match self {
             Cipher::None => None,
@@ -250,5 +120,159 @@ impl FromStr for Cipher {
             "aes128-gcm" => Ok(Cipher::Aes128Gcm),
             _ => Err(()),
         }
+    }
+}
+
+pub(super) struct CipherContext {
+    cipher: Cipher,
+    inp: SecureVec,
+    outp: SecureVec,
+}
+
+impl CipherContext {
+    pub(super) fn new(cipher: Cipher) -> CipherContext {
+        CipherContext {
+            cipher,
+            inp: vec![].into(),
+            outp: vec![].into(),
+        }
+    }
+
+    pub fn copy_from_slice(&mut self, buf_size: usize, buf: &[u8]) -> usize {
+        let len = cmp::min(buf_size, buf.len());
+
+        self.inp.resize(buf_size, 0);
+        self.inp[..len].copy_from_slice(&buf[..len]);
+        self.inp[len..].iter_mut().for_each(|n| *n = 0);
+
+        len
+    }
+
+    pub fn inp_mut(&mut self, buf_size: usize) -> &mut [u8] {
+        self.copy_from_slice(buf_size, &[]); // whiteout
+
+        &mut self.inp
+    }
+
+    pub fn encrypt<B: Backend>(&mut self, key: &[u8], iv: &[u8]) -> ContainerResult<&[u8], B> {
+        match self.cipher {
+            Cipher::None => self.make_none(),
+            _ => self.encrypt_aad(None, key, iv).map(|_| ())?,
+        };
+
+        Ok(self.outp.as_slice())
+    }
+
+    fn encrypt_aad<B: Backend>(
+        &mut self,
+        aad: Option<&[u8]>,
+        key: &[u8],
+        iv: &[u8],
+    ) -> ContainerResult<usize, B> {
+        let key = key.get(..self.cipher.key_len()).ok_or(Error::InvalidKey)?;
+        let iv = iv.get(..self.cipher.iv_len()).ok_or(Error::InvalidIv)?;
+
+        // number of plaintext bytes: equals to number of input bytes. There is
+        // no need to align at block size because blocksize is 1 for all
+        // ciphers.
+        let ptext_len = self.inp.len();
+
+        // number of ciphertext bytes: equals to plaintext bytes (for now) because
+        // blocksize is 1 for all ciphers.
+        let ctext_len = ptext_len;
+
+        if ptext_len == 0 {
+            return Ok(0);
+        }
+
+        if ptext_len % self.cipher.block_size() != 0 {
+            return Err(Error::InvalidBlockSize);
+        }
+
+        let mut ctx = CipherCtx::new()?;
+
+        ctx.encrypt_init(self.cipher.to_openssl(), Some(key), Some(iv))?;
+        ctx.set_padding(false);
+
+        if let Some(buf) = aad {
+            ctx.cipher_update(buf, None)?;
+        }
+
+        self.outp
+            .resize(ctext_len + self.cipher.tag_size() as usize, 0);
+        ctx.cipher_update(&self.inp[..ptext_len], Some(&mut self.outp[..ctext_len]))?;
+
+        if self.cipher.tag_size() > 0 {
+            ctx.cipher_final(&mut [])?;
+            ctx.tag(&mut self.outp[ctext_len..])?;
+        }
+
+        Ok(ctext_len)
+    }
+
+    pub fn decrypt<B: Backend>(&mut self, key: &[u8], iv: &[u8]) -> ContainerResult<&[u8], B> {
+        match self.cipher {
+            Cipher::None => self.make_none(),
+            _ => self.decrypt_aad(None, key, iv).map(|_| ())?,
+        }
+
+        Ok(self.outp.as_slice())
+    }
+
+    fn decrypt_aad<B: Backend>(
+        &mut self,
+        aad: Option<&[u8]>,
+        key: &[u8],
+        iv: &[u8],
+    ) -> ContainerResult<usize, B> {
+        let key = key.get(..self.cipher.key_len()).ok_or(Error::InvalidKey)?;
+        let iv = iv.get(..self.cipher.iv_len()).ok_or(Error::InvalidIv)?;
+
+        // number of ciphertext bytes: remove tag from the input.
+        let ctext_bytes = self
+            .inp
+            .len()
+            .checked_sub(self.cipher.tag_size() as usize)
+            .unwrap_or(0);
+
+        // number of plaintext bytes: equals to ciphertext bytes (for now) because
+        // blocksize is 1 for all ciphers.
+        let ptext_bytes = ctext_bytes;
+
+        if ctext_bytes == 0 {
+            return Ok(0);
+        }
+
+        if ctext_bytes % self.cipher.block_size() != 0 {
+            return Err(Error::InvalidBlockSize);
+        }
+
+        let mut ctx = CipherCtx::new()?;
+
+        ctx.decrypt_init(self.cipher.to_openssl(), Some(key), Some(iv))?;
+        ctx.set_padding(false);
+
+        if let Some(buf) = aad {
+            ctx.cipher_update(buf, None)?;
+        }
+
+        self.outp.resize(ptext_bytes, 0);
+        ctx.cipher_update(
+            &self.inp[..ctext_bytes],
+            Some(&mut self.outp[..ptext_bytes]),
+        )?;
+
+        if self.cipher.tag_size() > 0 {
+            ctx.set_tag(&self.inp[ctext_bytes..])?;
+            ctx.cipher_final(&mut [])
+                .map_err(|_| Error::NotTrustworthy)?;
+        }
+
+        Ok(ctext_bytes)
+    }
+
+    fn make_none(&mut self) {
+        self.outp.clear();
+        self.outp.extend_from_slice(&self.inp);
     }
 }

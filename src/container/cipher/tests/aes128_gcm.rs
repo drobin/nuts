@@ -20,11 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::container::cipher::Cipher;
+use crate::container::cipher::{Cipher, CipherContext};
 use crate::container::error::Error;
 use crate::memory::MemoryBackend;
 
-use super::{cipher_test, IV, KEY};
+use super::{ctx_test, IV, KEY};
 
 #[test]
 fn block_size() {
@@ -47,122 +47,127 @@ fn tag_size() {
 }
 
 #[test]
-fn decrypt_inval_key() {
-    let err = Cipher::Aes128Gcm
-        .decrypt::<MemoryBackend>(
-            &[
-                143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91,
-            ],
-            &mut Vec::new(),
-            &KEY[..15],
-            &IV,
-        )
-        .unwrap_err();
+fn ctx_decrypt_inval_key() {
+    let mut ctx = CipherContext::new(Cipher::Aes128Gcm);
+
+    ctx.copy_from_slice(
+        19,
+        &[
+            143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91,
+        ],
+    );
+
+    let err = ctx.decrypt::<MemoryBackend>(&KEY[..15], &IV).unwrap_err();
     assert!(matches!(err, Error::InvalidKey));
 }
 
 #[test]
-fn decrypt_inval_iv() {
-    let err = Cipher::Aes128Gcm
-        .decrypt::<MemoryBackend>(
-            &[
-                143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91,
-            ],
-            &mut Vec::new(),
-            &KEY,
-            &IV[..11],
-        )
-        .unwrap_err();
+fn ctx_decrypt_inval_iv() {
+    let mut ctx = CipherContext::new(Cipher::Aes128Gcm);
+
+    ctx.copy_from_slice(
+        19,
+        &[
+            143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91,
+        ],
+    );
+
+    let err = ctx.decrypt::<MemoryBackend>(&KEY, &IV[..11]).unwrap_err();
     assert!(matches!(err, Error::InvalidIv));
 }
 
 #[test]
-fn decrypt_not_trustworthy() {
-    let err = Cipher::Aes128Gcm
-        .decrypt::<MemoryBackend>(
-            &[
-                143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, b'x',
-            ],
-            &mut Vec::new(),
-            &KEY,
-            &IV,
-        )
-        .unwrap_err();
+fn ctx_decrypt_not_trustworthy() {
+    let mut ctx = CipherContext::new(Cipher::Aes128Gcm);
+
+    ctx.copy_from_slice(
+        19,
+        &[
+            143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, b'x',
+        ],
+    );
+
+    let err = ctx.decrypt::<MemoryBackend>(&KEY, &IV).unwrap_err();
     assert!(matches!(err, Error::NotTrustworthy));
 }
 
-cipher_test!(
-    decrypt_1,
-    Aes128Gcm.decrypt,
-    [143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91],
-    3,
-    [1, 2, 3]
+ctx_test!(
+    ctx_decrypt_3, Aes128Gcm.decrypt,
+    19, [143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91] -> [1, 2, 3]
 );
-cipher_test!(
-    decrypt_2,
-    Aes128Gcm.decrypt,
-    [143, 103, 41, 94, 18, 247, 152, 74, 58, 41, 133, 131, 106, 84, 84, 135, 195, 243],
-    2,
-    [1, 2]
+ctx_test!(
+    ctx_decrypt_2, Aes128Gcm.decrypt,
+    18, [143, 103, 41, 94, 18, 247, 152, 74, 58, 41, 133, 131, 106, 84, 84, 135, 195, 243] -> [1, 2]
 );
-cipher_test!(
-    decrypt_3,
-    Aes128Gcm.decrypt,
-    [143, 113, 88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213],
-    1,
-    [1]
+ctx_test!(
+    ctx_decrypt_1, Aes128Gcm.decrypt,
+    17, [143, 113, 88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213] -> [1]
 );
-cipher_test!(
-    decrypt_4,
-    Aes128Gcm.decrypt,
-    [113, 88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213],
-    0,
-    []
+ctx_test!(
+    ctx_decrypt_0_1, Aes128Gcm.decrypt,
+    16, [113, 88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213] -> []
 );
-cipher_test!(
-    decrypt_5,
-    Aes128Gcm.decrypt,
-    [88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213],
-    0,
-    []
+ctx_test!(
+    ctx_decrypt_0_2, Aes128Gcm.decrypt,
+    15, [88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213] -> []
 );
-cipher_test!(decrypt_6, Aes128Gcm.decrypt, [], 0, []);
+ctx_test!(ctx_decrypt_0_3, Aes128Gcm.decrypt, 0, [] -> []);
 
 #[test]
-fn encrypt_inval_key() {
-    let err = Cipher::Aes128Gcm
-        .encrypt::<MemoryBackend>(&[1, 2, 3], &mut Vec::new(), &KEY[..15], &IV)
-        .unwrap_err();
+fn ctx_encrypt_inval_key() {
+    let mut ctx = CipherContext::new(Cipher::Aes128Gcm);
+
+    ctx.copy_from_slice(3, &[1, 2, 3]);
+
+    let err = ctx.encrypt::<MemoryBackend>(&KEY[..15], &IV).unwrap_err();
     assert!(matches!(err, Error::InvalidKey));
 }
 
 #[test]
-fn encrypt_inval_iv() {
-    let err = Cipher::Aes128Gcm
-        .encrypt::<MemoryBackend>(&[1, 2, 3], &mut Vec::new(), &KEY, &IV[..11])
-        .unwrap_err();
+fn ctx_encrypt_inval_iv() {
+    let mut ctx = CipherContext::new(Cipher::Aes128Gcm);
+
+    ctx.copy_from_slice(3, &[1, 2, 3]);
+
+    let err = ctx.encrypt::<MemoryBackend>(&KEY, &IV[..11]).unwrap_err();
     assert!(matches!(err, Error::InvalidIv));
 }
 
-cipher_test!(
-    encrypt_1,
-    Aes128Gcm.encrypt,
-    [1, 2, 3],
-    3,
-    [143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91]
+ctx_test!(
+    ctx_encrypt_3_1, Aes128Gcm.encrypt,
+    3, [1, 2, 3] -> [143, 103, 80, 34, 166, 3, 39, 26, 15, 50, 120, 48, 9, 211, 134, 206, 182, 135, 91]
 );
-cipher_test!(
-    encrypt_2,
-    Aes128Gcm.encrypt,
-    [1, 2],
-    2,
-    [143, 103, 41, 94, 18, 247, 152, 74, 58, 41, 133, 131, 106, 84, 84, 135, 195, 243]
+ctx_test!(
+    ctx_encrypt_3_2, Aes128Gcm.encrypt,
+    2, [1, 2, 3] -> [143, 103, 41, 94, 18, 247, 152, 74, 58, 41, 133, 131, 106, 84, 84, 135, 195, 243]
 );
-cipher_test!(
-    encrypt_3,
-    Aes128Gcm.encrypt,
-    [1],
-    1,
-    [143, 113, 88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213]
+ctx_test!(
+    ctx_encrypt_3_3, Aes128Gcm.encrypt,
+    4, [1, 2, 3] -> [143, 103, 80, 25, 185, 55, 28, 172, 175, 38, 31, 213, 0, 239, 128, 175, 53, 160, 251, 121]
 );
-cipher_test!(encrypt_4, Aes128Gcm.encrypt, [], 0, []);
+ctx_test!(
+    ctx_encrypt_2_1, Aes128Gcm.encrypt,
+    2, [1, 2] -> [143, 103, 41, 94, 18, 247, 152, 74, 58, 41, 133, 131, 106, 84, 84, 135, 195, 243]
+);
+ctx_test!(
+    ctx_encrypt_2_2, Aes128Gcm.encrypt,
+    1, [1, 2] -> [143, 113, 88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213]
+);
+ctx_test!(
+    ctx_encrypt_2_3, Aes128Gcm.encrypt,
+    3, [1, 2] -> [143, 103, 83, 43, 1, 58, 109, 96, 18, 144, 41, 58, 65, 63, 245, 18, 60, 121, 153]
+);
+ctx_test!(
+    ctx_encrypt_1_1, Aes128Gcm.encrypt,
+    1, [1] -> [143, 113, 88, 251, 33, 67, 167, 32, 45, 38, 91, 201, 117, 35, 75, 214, 213]
+);
+ctx_test!(
+    ctx_encrypt_1_2, Aes128Gcm.encrypt,
+    0, [1] -> []
+);
+ctx_test!(
+    ctx_encrypt_1_3, Aes128Gcm.encrypt,
+    2, [1] -> [143, 101, 66, 143, 158, 164, 113, 118, 91, 218, 10, 203, 55, 60, 167, 211, 64, 4]
+);
+ctx_test!(ctx_encrypt_0_1, Aes128Gcm.encrypt, 0, [] -> []);
+ctx_test!(ctx_encrypt_0_2, Aes128Gcm.encrypt, 1, [] -> [142, 77, 158, 210, 213, 221, 151, 217, 234, 130, 117, 125, 12, 137, 10, 45, 127]);
