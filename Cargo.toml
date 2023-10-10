@@ -1,11 +1,11 @@
 [package]
 name = "nuts-directory"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A backend implementation for nuts"
 categories = ["cryptography"]
-keywords = ["secure", "storage"]
+keywords = ["secure", "storage", "nuts"]
 repository = "https://github.com/drobin/nuts-directory.git"
 documentation = "https://docs.rs/nuts-directory"
 license = "MIT"
