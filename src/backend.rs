@@ -230,6 +230,14 @@ where
     /// Once aquired you should be able to [read](Backend::read) and
     /// [write](Backend::write) from/to it.
     ///
+    /// `buf` contains the initial data, which should be copied into the block.
+    ///
+    /// * A `buf` which is not large enough to fill the whole block must be
+    ///   rejected and an error must be returned.
+    /// * If `buf` holds more data than the [block-size](Backend::block_size),
+    ///   then only the first [block-size](Backend::block_size) bytes are
+    ///   copied into the block.
+    ///
     /// By default an aquired block, which is not written yet, should return
     /// an all-zero buffer.
     ///
@@ -238,7 +246,7 @@ where
     /// # Errors
     ///
     /// On any error a self-defined [`Backend::Err`] is returned.
-    fn aquire(&mut self) -> Result<Self::Id, Self::Err>;
+    fn aquire(&mut self, buf: &[u8]) -> Result<Self::Id, Self::Err>;
 
     /// Releases a block again.
     ///
@@ -274,8 +282,8 @@ where
     /// Writes up to `buf.len()` bytes from the unencrypted `buf` buffer into
     /// the block with the given `id`.
     ///
-    /// * If `buf` is not large enough to fill the whole block, the destination
-    ///   block should be padded with all zeros.
+    /// * A `buf` which is not large enough to fill the whole block must be
+    ///   rejected and an error must be returned.
     /// * If `buf` holds more data than the [block-size](Backend::block_size),
     ///   then only the first [block-size](Backend::block_size) bytes are
     ///   copied into the block.

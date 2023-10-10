@@ -474,7 +474,13 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`Error`] type.
     pub fn aquire(&mut self) -> ContainerResult<B::Id, B> {
-        map_err!(self.backend.aquire())
+        let key = &self.header.key;
+        let iv = &self.header.iv;
+
+        self.ctx.copy_from_slice(self.block_size() as usize, &[]);
+        let ctext = self.ctx.encrypt(key, iv)?;
+
+        map_err!(self.backend.aquire(ctext))
     }
 
     /// Releases a block again.

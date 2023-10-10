@@ -300,8 +300,8 @@ impl Backend for MemoryBackend {
         BSIZE
     }
 
-    fn aquire(&mut self) -> Result<Id, Error> {
-        self.insert()
+    fn aquire(&mut self, buf: &[u8]) -> Result<Id, Error> {
+        self.insert_data(buf)
     }
 
     fn release(&mut self, id: Id) -> Result<(), Error> {
