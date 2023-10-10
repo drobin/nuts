@@ -61,7 +61,7 @@ const HEX: [char; SIZE] = [
 /// When storing a block to disks the path to the file is derived from the id:
 /// * The id is converted into a hex string.
 /// * The path then would be: `<first two chars>/<next two chars>/<remaining chars>`
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub struct Id([u8; SIZE]);
 
 impl Id {
@@ -109,6 +109,12 @@ impl Id {
 impl fmt::Display for Id {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_str(&self.as_hex())
+    }
+}
+
+impl fmt::Debug for Id {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_tuple("Id").field(&self.to_string()).finish()
     }
 }
 
