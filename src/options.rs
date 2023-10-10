@@ -54,7 +54,7 @@ pub struct CreateOptions {
     path: PathBuf,
     bsize: u32,
     overwrite: bool,
-    header:Vec<u8>,
+    header: Vec<u8>,
 }
 
 impl CreateOptions {
@@ -69,7 +69,7 @@ impl CreateOptions {
             path: path.as_ref().to_path_buf(),
             bsize: BLOCK_MIN_SIZE,
             overwrite: false,
-            header:vec![]
+            header: vec![],
         }
     }
 
