@@ -22,12 +22,12 @@
 
 [package]
 name = "nuts-container"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A secure storage library"
 categories = ["cryptography"]
-keywords = ["secure", "storage"]
+keywords = ["secure", "storage", "nuts"]
 repository = "https://github.com/drobin/nuts-container.git"
 documentation = "https://docs.rs/nuts-container"
 license = "MIT"
