@@ -110,11 +110,11 @@ fn read_block(path: &Path, id: &Id, bsize: u32, buf: &mut [u8]) -> Result<usize>
     Ok(len)
 }
 
-fn write_block(path: &Path, id: &Id, bsize: u32, buf: &[u8]) -> Result<usize> {
+fn write_block(path: &Path, id: &Id, aquire: bool, bsize: u32, buf: &[u8]) -> Result<usize> {
     let len = cmp::min(buf.len(), bsize as usize);
     let pad_len = bsize as usize - len;
 
-    let mut fh = open_write(path, id, false)?;
+    let mut fh = open_write(path, id, aquire)?;
 
     fh.write_all(&buf[..len])?;
     fh.write_all(&vec![0; pad_len])?;
@@ -128,7 +128,7 @@ fn read_header(path: &Path, buf: &mut [u8]) -> Result<()> {
 }
 
 fn write_header(path: &Path, bsize: u32, buf: &[u8]) -> Result<()> {
-    write_block(path, &Id::min(), bsize, buf).map(|_| ())
+    write_block(path, &Id::min(), false, bsize, buf).map(|_| ())
 }
 
 #[derive(Debug)]
@@ -165,25 +165,23 @@ impl Backend for DirectoryBackend {
         self.bsize
     }
 
-    fn aquire(&mut self) -> Result<Self::Id> {
+    fn aquire(&mut self, buf: &[u8]) -> Result<Self::Id> {
         const MAX: u8 = 3;
 
         for n in 0..MAX {
             let id = Id::generate();
 
-            match open_write(&self.path, &id, true) {
-                Ok(mut fh) => {
-                    fh.flush()?;
-                    return Ok(id);
-                }
-                Err(err) => {
+            match write_block(&self.path, &id, true, self.bsize, buf) {
+                Ok(_) => return Ok(id),
+                Err(Error::Io(err)) => {
                     if err.kind() == ErrorKind::AlreadyExists {
                         warn!("Id {} already exists try again ({}/{})", id, n + 1, MAX);
                     } else {
                         return Err(err.into());
                     }
                 }
-            }
+                Err(err) => return Err(err),
+            };
         }
 
         Err(Error::UniqueId)
@@ -200,6 +198,6 @@ impl Backend for DirectoryBackend {
     }
 
     fn write(&mut self, id: &Id, buf: &[u8]) -> Result<usize> {
-        write_block(&self.path, id, self.bsize, buf)
+        write_block(&self.path, id, false, self.bsize, buf)
     }
 }
