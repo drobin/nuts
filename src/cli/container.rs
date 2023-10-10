@@ -20,11 +20,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+pub mod aquire;
 pub mod create;
 pub mod delete;
 pub mod info;
 pub mod list;
 pub mod read;
+pub mod release;
 pub mod write;
 
 use anyhow::Result;
@@ -32,11 +34,13 @@ use clap::{Args, PossibleValue, Subcommand, ValueEnum};
 use nuts_container::container::Cipher;
 use std::ops::Deref;
 
+use crate::cli::container::aquire::ContainerAquireArgs;
 use crate::cli::container::create::ContainerCreateArgs;
 use crate::cli::container::delete::ContainerDeleteArgs;
 use crate::cli::container::info::ContainerInfoArgs;
 use crate::cli::container::list::ContainerListArgs;
 use crate::cli::container::read::ContainerReadArgs;
+use crate::cli::container::release::ContainerReleaseArgs;
 use crate::cli::container::write::ContainerWriteArgs;
 
 const AES128_GCM: &str = "aes128-gcm";
@@ -97,6 +101,9 @@ impl ContainerArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum ContainerCommand {
+    /// Aquires a new block in a container
+    Aquire(ContainerAquireArgs),
+
     /// Creates a nuts-container
     Create(ContainerCreateArgs),
 
@@ -112,6 +119,9 @@ pub enum ContainerCommand {
     /// Reads a block from the container
     Read(ContainerReadArgs),
 
+    /// Releases a block again
+    Release(ContainerReleaseArgs),
+
     /// Writes a block into the container
     Write(ContainerWriteArgs),
 }
@@ -119,11 +129,13 @@ pub enum ContainerCommand {
 impl ContainerCommand {
     pub fn run(&self) -> Result<()> {
         match self {
+            Self::Aquire(args) => args.run(),
             Self::Create(args) => args.run(),
             Self::Delete(args) => args.run(),
             Self::Info(args) => args.run(),
             Self::List(args) => args.run(),
             Self::Read(args) => args.run(),
+            Self::Release(args) => args.run(),
             Self::Write(args) => args.run(),
         }
     }
