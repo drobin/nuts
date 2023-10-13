@@ -96,8 +96,6 @@ use std::{cmp, error, fmt, mem};
 use crate::backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 use crate::container::{Cipher, Kdf};
 
-const BSIZE: u32 = 512;
-
 /// Error used by the memory backend.
 #[derive(Debug)]
 pub enum Error {
@@ -172,17 +170,32 @@ impl BlockId for Id {
 /// See the [module](crate::memory) documentation for details.
 #[derive(Debug, PartialEq)]
 pub struct MemoryBackend {
-    blocks: HashMap<u32, [u8; BSIZE as usize]>,
+    bsize: u32,
+    blocks: HashMap<u32, Vec<u8>>,
     header: Option<[u8; HEADER_MAX_SIZE]>,
 }
 
 impl MemoryBackend {
     /// Creates a new instance of the `MemoryBackend` type.
+    ///
+    /// The block-size is set to 512 bytes.
     pub fn new() -> MemoryBackend {
+        Self::new_with_bsize(512)
+    }
+
+    /// Creates a new instance of the `MemoryBackend` type with the given
+    /// block-size.
+    pub fn new_with_bsize(bsize: u32) -> MemoryBackend {
         MemoryBackend {
+            bsize,
             blocks: HashMap::new(),
             header: None,
         }
+    }
+
+    /// Returns the block size specified for this backend instance.
+    pub fn block_size(&self) -> u32 {
+        self.bsize
     }
 
     /// Receives the content of the block with the given `id`.
@@ -203,13 +216,14 @@ impl MemoryBackend {
 
     /// Inserts a new block with some initial data.
     ///
-    /// Assigns the first 512 bytes from `data` to the new block. If `data`
-    /// does not have 512 bytes, the new block is padded with zero bytes.
+    /// Assigns the first [`block-size`](Self::block_size) bytes from `data` to
+    /// the new block. If `data` does not have [`block-size`](Self::block_size)
+    /// bytes, the new block is padded with zero bytes.
     ///
     /// Returns the id of the new block.
     pub fn insert_data(&mut self, data: &[u8]) -> Result<Id, Error> {
         let id = Id(self.max_id() + 1);
-        let mut block = [0; BSIZE as usize];
+        let mut block = vec![0; self.bsize as usize];
 
         let n = cmp::min(block.len(), data.len());
         block[..n].copy_from_slice(&data[..n]);
@@ -297,7 +311,7 @@ impl Backend for MemoryBackend {
     }
 
     fn block_size(&self) -> u32 {
-        BSIZE
+        self.bsize
     }
 
     fn aquire(&mut self, buf: &[u8]) -> Result<Id, Error> {
@@ -331,9 +345,9 @@ impl Backend for MemoryBackend {
                 let mut source = Cow::from(buf);
                 let mut len = source.len();
 
-                if len != BSIZE as usize {
-                    len = cmp::min(source.len(), BSIZE as usize);
-                    source.to_mut().resize(BSIZE as usize, 0);
+                if len != self.bsize as usize {
+                    len = cmp::min(source.len(), self.bsize as usize);
+                    source.to_mut().resize(self.bsize as usize, 0);
                 }
 
                 target.copy_from_slice(&source);
