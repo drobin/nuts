@@ -32,17 +32,17 @@ mod userdata;
 use log::debug;
 use nuts_container::backend::Backend;
 use nuts_container::container::Container;
-use std::fmt;
 
 pub use error::{ArchiveResult, Error};
 
-use crate::header::Header;
+use crate::container::BufContainer;
+use crate::tree::Tree;
 use crate::userdata::Userdata;
 
 pub struct Archive<B: Backend> {
-    container: Container<B>,
-    header: Header<B>,
-    header_id: B::Id,
+    container: BufContainer<B>,
+    tree_id: B::Id,
+    _tree: Tree<B>,
 }
 
 impl<B: Backend> Archive<B> {
@@ -60,19 +60,20 @@ impl<B: Backend> Archive<B> {
     ///
     /// If user data of the container could be overwritten, an
     /// [`Error::OverwriteUserdata`] error will be returned.
-    pub fn create(mut container: Container<B>, force: bool) -> ArchiveResult<Archive<B>, B> {
+    pub fn create(container: Container<B>, force: bool) -> ArchiveResult<Archive<B>, B> {
+        let mut container = BufContainer::new(container);
         let userdata = Userdata::create(&mut container, force)?;
-        let header = Header::<B>::load_or_create(&mut container, &userdata.id)?;
+        let tree = Tree::<B>::new();
 
-        debug!("header: {:?}", header);
+        tree.flush(&mut container, &userdata.id)?;
 
         let archive = Archive {
             container,
-            header,
-            header_id: userdata.id,
+            tree_id: userdata.id,
+            _tree: tree,
         };
 
-        debug!("archive created: {:?}", archive);
+        debug!("archive created, tree: {}", archive.tree_id);
 
         Ok(archive)
     }
@@ -89,41 +90,30 @@ impl<B: Backend> Archive<B> {
     /// returned; if it does not contain valid archive information, an
     /// [`Error::InvalidUserdata(Some(...))`](Error::InvalidUserdata) error is
     /// returned.
-    pub fn open(mut container: Container<B>) -> ArchiveResult<Archive<B>, B> {
+    pub fn open(container: Container<B>) -> ArchiveResult<Archive<B>, B> {
+        let mut container = BufContainer::new(container);
         let userdata = Userdata::load(&mut container)?;
-        let header = Header::load_or_create(&mut container, &userdata.id)?;
-
-        debug!("header: {:?}", header);
+        let tree = Tree::load(&mut container, &userdata.id)?;
 
         let archive = Archive {
             container,
-            header,
-            header_id: userdata.id,
+            tree_id: userdata.id,
+            _tree: tree,
         };
 
-        debug!("archive opened: {:?}", archive);
+        debug!("archive opened, tree: {}", archive.tree_id);
 
         Ok(archive)
     }
 
     /// Consumes this `Archive`, returning the underlying [`Container`].
     pub fn into_container(self) -> Container<B> {
-        self.container
+        self.container.into_container()
     }
 }
 
-impl<B: Backend> AsRef<Container<B>> for Archive<B> {
+impl<'a, B: Backend> AsRef<Container<B>> for Archive<B> {
     fn as_ref(&self) -> &Container<B> {
         &self.container
-    }
-}
-
-impl<B: Backend> fmt::Debug for Archive<B> {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("Archive")
-            .field("container", &"...")
-            .field("header", &self.header)
-            .field("header_id", &self.header_id)
-            .finish()
     }
 }
