@@ -20,4 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+mod cache;
 mod node;
+
+fn ids_per_node<B: Backend>(container: &Container<B>) -> usize {
+    container.block_size() as usize / B::Id::size()
+}
