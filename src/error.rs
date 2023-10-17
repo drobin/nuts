@@ -44,19 +44,28 @@ pub enum Error<B: Backend> {
 
     /// Could not parse the header of the archive.
     InvalidHeader(nuts_bytes::Error),
+
+    /// Cannot aquire another block, the archive is full.
+    Full,
+
+    /// The block size of the underlaying [container](container::Container) is
+    /// too small.
+    InvalidBlockSize,
 }
 
 impl<B: Backend> fmt::Display for Error<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::Bytes(cause) => fmt::Display::fmt(cause, fmt),
-            Error::Container(cause) => fmt::Display::fmt(cause, fmt),
-            Error::OverwriteUserdata => write!(fmt, "the container is not empty"),
-            Error::InvalidUserdata(None) => write!(fmt, "the container is empty"),
-            Error::InvalidUserdata(Some(_)) => {
+            Self::Bytes(cause) => fmt::Display::fmt(cause, fmt),
+            Self::Container(cause) => fmt::Display::fmt(cause, fmt),
+            Self::OverwriteUserdata => write!(fmt, "the container is not empty"),
+            Self::InvalidUserdata(None) => write!(fmt, "the container is empty"),
+            Self::InvalidUserdata(Some(_)) => {
                 write!(fmt, "the container does not have an archive")
             }
-            Error::InvalidHeader(_) => write!(fmt, "could not parse the header of the archive"),
+            Self::InvalidHeader(_) => write!(fmt, "could not parse the header of the archive"),
+            Self::Full => write!(fmt, "the archive is full"),
+            Self::InvalidBlockSize => write!(fmt, "the block size is too small"),
         }
     }
 }
@@ -66,11 +75,13 @@ impl<B: Backend> fmt::Debug for Error<B> {
         match self {
             Self::Bytes(cause) => fmt.debug_tuple("Bytes").field(cause).finish(),
             Self::Container(cause) => fmt.debug_tuple("Container").field(cause).finish(),
-            Error::OverwriteUserdata => fmt.debug_tuple("OverwriteUserdata").finish(),
+            Self::OverwriteUserdata => fmt.debug_tuple("OverwriteUserdata").finish(),
             Self::InvalidUserdata(cause) => {
                 fmt.debug_tuple("InvalidUserdata").field(cause).finish()
             }
-            Error::InvalidHeader(cause) => fmt.debug_tuple("InvalidHeader").field(cause).finish(),
+            Self::InvalidHeader(cause) => fmt.debug_tuple("InvalidHeader").field(cause).finish(),
+            Self::Full => fmt.debug_tuple("Full").finish(),
+            Self::InvalidBlockSize => fmt.debug_tuple("InvalidBlockSize").finish(),
         }
     }
 }

@@ -26,6 +26,7 @@ mod header;
 mod magic;
 #[cfg(test)]
 mod tests;
+mod tree;
 mod userdata;
 
 use log::debug;
