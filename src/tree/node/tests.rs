@@ -25,6 +25,7 @@ use nuts_container::backend::BlockId;
 use nuts_container::memory::{Id, MemoryBackend};
 
 use crate::container::BufContainer;
+use crate::error::Error;
 use crate::tests::setup_container_with_bsize;
 use crate::tree::node::Node;
 
@@ -102,7 +103,6 @@ fn flush() {
 }
 
 #[test]
-#[should_panic(expected = "flushing node 1 with 4 elements will cause an underflow")]
 fn flush_underflow() {
     let mut node = Node::<MemoryBackend>::new(4);
 
@@ -114,11 +114,11 @@ fn flush_underflow() {
     let mut container = BufContainer::new(setup_container_with_bsize(20));
     let id = container.aquire().unwrap();
 
-    node.flush(&mut container, &id).unwrap();
+    let err = node.flush(&mut container, &id).unwrap_err();
+    assert!(matches!(err, Error::InvalidBlockSize));
 }
 
 #[test]
-#[should_panic(expected = "flushing node 1 with 4 elements will cause an overflow")]
 fn flush_overflow() {
     let mut node = Node::<MemoryBackend>::new(4);
 
@@ -130,5 +130,6 @@ fn flush_overflow() {
     let mut container = BufContainer::new(setup_container_with_bsize(15));
     let id = container.aquire().unwrap();
 
-    node.flush(&mut container, &id).unwrap();
+    let err = node.flush(&mut container, &id).unwrap_err();
+    assert!(matches!(err, Error::InvalidBlockSize));
 }

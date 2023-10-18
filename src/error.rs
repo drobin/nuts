@@ -100,6 +100,7 @@ impl<B: Backend> From<nuts_bytes::Error> for Error<B> {
                     Error::Bytes(cause)
                 }
             }
+            nuts_bytes::Error::NoSpace(_) | nuts_bytes::Error::Eof(_) => Error::InvalidBlockSize,
             _ => Error::Bytes(cause),
         }
     }

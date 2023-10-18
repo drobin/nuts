@@ -67,7 +67,7 @@ impl<B: Backend> Tree<B> {
             return Err(Error::InvalidBlockSize);
         }
 
-        let mut reader = container.read_reader(id)?;
+        let mut reader = container.read_buf(id)?;
         let mut tree = Self::new();
 
         for i in 0..NUM_DIRECT {
@@ -87,7 +87,7 @@ impl<B: Backend> Tree<B> {
             return Err(Error::InvalidBlockSize);
         }
 
-        let mut writer = container.write_writer();
+        let mut writer = container.create_writer();
 
         for id in self.direct.iter() {
             writer.serialize(id)?;
@@ -98,7 +98,7 @@ impl<B: Backend> Tree<B> {
         writer.serialize(&self.t_indirect)?;
         writer.serialize(&self.nblocks)?;
 
-        writer.flush(id)?;
+        container.write_buf(id)?;
 
         Ok(())
     }

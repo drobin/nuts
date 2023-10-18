@@ -20,82 +20,55 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
 use nuts_bytes::{Reader, Writer};
 use nuts_container::{backend::Backend, container::Container};
 use std::ops::{Deref, DerefMut};
 
 use crate::error::ArchiveResult;
 
-pub struct BufWriter<'a, B: Backend> {
-    container: &'a mut BufContainer<B>,
-    writer: Writer<Vec<u8>>,
-}
-
-impl<'a, B: Backend> BufWriter<'a, B> {
-    fn new(container: &'a mut BufContainer<B>) -> BufWriter<'a, B> {
-        let writer = Writer::new(vec![]);
-
-        BufWriter { container, writer }
-    }
-
-    pub fn flush(&mut self, id: &B::Id) -> ArchiveResult<(), B> {
-        let n = self.container.inner.write(id, &self.writer.as_ref())?;
-
-        assert!(n <= self.container.block_size() as usize);
-
-        Ok(())
-    }
-}
-
-impl<'a, B: Backend> Deref for BufWriter<'a, B> {
-    type Target = Writer<Vec<u8>>;
-
-    fn deref(&self) -> &Writer<Vec<u8>> {
-        &self.writer
-    }
-}
-
-impl<'a, B: Backend> DerefMut for BufWriter<'a, B> {
-    fn deref_mut(&mut self) -> &mut Writer<Vec<u8>> {
-        &mut self.writer
-    }
-}
-
 pub struct BufContainer<B: Backend> {
     inner: Container<B>,
-    read_buf: Vec<u8>,
+    buf: Vec<u8>,
 }
 
 impl<B: Backend> BufContainer<B> {
     pub fn new(container: Container<B>) -> BufContainer<B> {
+        let buf = vec![0; container.block_size() as usize];
+
         BufContainer {
             inner: container,
-            read_buf: vec![],
+            buf,
         }
     }
 
-    pub fn read(&mut self, id: &B::Id) -> ArchiveResult<&[u8], B> {
-        self.read_buf.resize(self.inner.block_size() as usize, 0);
-
-        let n = self.inner.read(id, &mut self.read_buf)?;
-
-        assert_eq!(n, self.read_buf.len());
-
-        Ok(&self.read_buf)
+    pub fn create_reader(&self) -> Reader<&[u8]> {
+        Reader::new(self.buf.as_slice())
     }
 
-    pub fn write(&mut self, id: &B::Id, buf: &[u8]) -> ArchiveResult<(), B> {
-        Ok(self.inner.write(id, buf).map(|_| ())?)
+    pub fn create_writer(&mut self) -> Writer<&mut [u8]> {
+        self.whiteout();
+
+        Writer::new(self.buf.as_mut_slice())
     }
 
-    pub fn read_reader(&mut self, id: &B::Id) -> ArchiveResult<Reader<&[u8]>, B> {
-        self.read(id)?;
+    pub fn read_buf(&mut self, id: &B::Id) -> ArchiveResult<Reader<&[u8]>, B> {
+        let n = self.inner.read(id, &mut self.buf)?;
 
-        Ok(Reader::new(self.read_buf.as_slice()))
+        assert_eq!(n, self.buf.len());
+
+        Ok(self.create_reader())
     }
 
-    pub fn write_writer(&mut self) -> BufWriter<B> {
-        BufWriter::new(self)
+    pub fn write_buf(&mut self, id: &B::Id) -> ArchiveResult<(), B> {
+        self.inner.write(id, &self.buf)?;
+        Ok(())
+    }
+
+    fn whiteout(&mut self) {
+        self.buf.iter_mut().for_each(|n| *n = 0)
     }
 
     pub fn into_container(self) -> Container<B> {

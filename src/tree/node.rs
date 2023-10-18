@@ -28,6 +28,7 @@ use std::ops::{Index, IndexMut};
 
 use crate::container::BufContainer;
 use crate::error::ArchiveResult;
+use crate::error::Error;
 use crate::tree::ids_per_node;
 
 #[derive(Debug, PartialEq)]
@@ -54,7 +55,7 @@ impl<B: Backend> Node<B> {
 
     pub fn fill(&mut self, container: &mut BufContainer<B>, id: &B::Id) -> ArchiveResult<(), B> {
         let ipn = ids_per_node(container);
-        let mut reader = container.read_reader(id)?;
+        let mut reader = container.read_buf(id)?;
 
         self.0.clear();
 
@@ -67,28 +68,17 @@ impl<B: Backend> Node<B> {
 
     pub fn flush(&self, container: &mut BufContainer<B>, id: &B::Id) -> ArchiveResult<(), B> {
         let block_size = container.block_size() as usize;
-        let mut writer = container.write_writer();
+        let mut writer = container.create_writer();
         let mut n = 0;
-
         for id in self.0.iter() {
             n += writer.serialize(id)?;
         }
 
-        assert!(
-            n + B::Id::size() > block_size,
-            "flushing node {} with {} elements will cause an underflow",
-            id,
-            self.0.len()
-        );
+        if n + B::Id::size() <= block_size {
+            return Err(Error::InvalidBlockSize);
+        }
 
-        assert!(
-            n <= block_size,
-            "flushing node {} with {} elements will cause an overflow",
-            id,
-            self.0.len()
-        );
-
-        writer.flush(id)
+        container.write_buf(id)
     }
 }
 
