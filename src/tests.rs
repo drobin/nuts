@@ -20,6 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+mod append;
+
 use nuts_container::container::{Cipher, Container, CreateOptionsBuilder};
 use nuts_container::memory::MemoryBackend;
 

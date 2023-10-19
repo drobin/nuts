@@ -39,6 +39,7 @@ impl<B: Backend> Node<B> {
         Node(vec![B::Id::null(); len])
     }
 
+    #[cfg(test)]
     pub fn len(&self) -> usize {
         self.0.len()
     }

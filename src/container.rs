@@ -55,11 +55,16 @@ impl<B: Backend> BufContainer<B> {
     }
 
     pub fn read_buf(&mut self, id: &B::Id) -> ArchiveResult<Reader<&[u8]>, B> {
+        self.read_buf_raw(id)?;
+        Ok(self.create_reader())
+    }
+
+    pub fn read_buf_raw(&mut self, id: &B::Id) -> ArchiveResult<&[u8], B> {
         let n = self.inner.read(id, &mut self.buf)?;
 
         assert_eq!(n, self.buf.len());
 
-        Ok(self.create_reader())
+        Ok(&self.buf)
     }
 
     pub fn write_buf(&mut self, id: &B::Id) -> ArchiveResult<(), B> {

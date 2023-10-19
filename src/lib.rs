@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 mod container;
+mod entry;
 mod error;
 mod header;
 mod magic;
@@ -33,6 +34,7 @@ use log::debug;
 use nuts_container::backend::Backend;
 use nuts_container::container::Container;
 
+pub use entry::{EntryBuilder, EntryMut};
 pub use error::{ArchiveResult, Error};
 
 use crate::container::BufContainer;
@@ -42,7 +44,7 @@ use crate::userdata::Userdata;
 pub struct Archive<B: Backend> {
     container: BufContainer<B>,
     tree_id: B::Id,
-    _tree: Tree<B>,
+    tree: Tree<B>,
 }
 
 impl<B: Backend> Archive<B> {
@@ -70,7 +72,7 @@ impl<B: Backend> Archive<B> {
         let archive = Archive {
             container,
             tree_id: userdata.id,
-            _tree: tree,
+            tree,
         };
 
         debug!("archive created, tree: {}", archive.tree_id);
@@ -98,12 +100,26 @@ impl<B: Backend> Archive<B> {
         let archive = Archive {
             container,
             tree_id: userdata.id,
-            _tree: tree,
+            tree,
         };
 
         debug!("archive opened, tree: {}", archive.tree_id);
 
         Ok(archive)
+    }
+
+    /// Appends a new entry with the given `name` at the end of the archive.
+    ///
+    /// The method returns an [`EntryBuilder`] instance, where you are able to
+    /// set some more properties for the new entry. Calling
+    /// [`EntryBuilder::build()`] will finally create the entry.
+    pub fn append<'a, N: AsRef<str>>(&'a mut self, name: N) -> EntryBuilder<'a, B> {
+        EntryBuilder::new(
+            &mut self.container,
+            &self.tree_id,
+            &mut self.tree,
+            name.as_ref().to_string(),
+        )
     }
 
     /// Consumes this `Archive`, returning the underlying [`Container`].
@@ -112,7 +128,7 @@ impl<B: Backend> Archive<B> {
     }
 }
 
-impl<'a, B: Backend> AsRef<Container<B>> for Archive<B> {
+impl<B: Backend> AsRef<Container<B>> for Archive<B> {
     fn as_ref(&self) -> &Container<B> {
         &self.container
     }

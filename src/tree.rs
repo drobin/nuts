@@ -51,7 +51,7 @@ pub struct Tree<B: Backend> {
 }
 
 impl<B: Backend> Tree<B> {
-    fn new() -> Tree<B> {
+    pub fn new() -> Tree<B> {
         Tree {
             direct: vec![B::Id::null(); NUM_DIRECT],
             indirect: B::Id::null(),
