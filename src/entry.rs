@@ -106,7 +106,13 @@ impl<'a, B: Backend> EntryBuilder<'a, B> {
         self.entry.flush(self.container, &id)?;
         self.tree.flush(self.container, self.tree_id)?;
 
-        Ok(EntryMut::new(self.entry, id, self.container, self.tree))
+        Ok(EntryMut::new(
+            self.entry,
+            id,
+            self.container,
+            self.tree,
+            self.tree_id,
+        ))
     }
 }
 
@@ -117,6 +123,7 @@ impl<'a, B: Backend> EntryBuilder<'a, B> {
 pub struct EntryMut<'a, B: Backend> {
     container: &'a mut BufContainer<B>,
     tree: &'a mut Tree<B>,
+    tree_id: &'a B::Id,
     cache: Vec<u8>,
     entry: Entry,
     first: B::Id,
@@ -129,10 +136,12 @@ impl<'a, B: Backend> EntryMut<'a, B> {
         id: B::Id,
         container: &'a mut BufContainer<B>,
         tree: &'a mut Tree<B>,
+        tree_id: &'a B::Id,
     ) -> EntryMut<'a, B> {
         EntryMut {
             container,
             tree,
+            tree_id,
             cache: vec![],
             entry,
             first: id.clone(),
@@ -175,6 +184,7 @@ impl<'a, B: Backend> EntryMut<'a, B> {
 
         self.entry.size += nbytes as u64;
         self.entry.flush(self.container, &self.first)?;
+        self.tree.flush(self.container, self.tree_id)?;
 
         Ok(nbytes)
     }

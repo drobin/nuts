@@ -25,7 +25,7 @@ mod node;
 #[cfg(test)]
 mod tests;
 
-use log::debug;
+use log::{debug, warn};
 use nuts_container::backend::{Backend, BlockId};
 use nuts_container::container::Container;
 use std::mem;
@@ -119,9 +119,7 @@ impl<B: Backend> Tree<B> {
         container: &mut BufContainer<B>,
         idx: usize,
     ) -> Option<ArchiveResult<&B::Id, B>> {
-        let ipn = ids_per_node(container); // ids per node
-
-        if idx < NUM_DIRECT + ipn + ipn * ipn + ipn * ipn * ipn {
+        if idx < self.nblocks {
             match self.lookup_cache(container, idx, false) {
                 Ok(id) => {
                     if id.is_null() {
@@ -162,9 +160,13 @@ impl<B: Backend> Tree<B> {
         idx: usize,
         aquire: bool,
     ) -> ArchiveResult<&B::Id, B> {
-        if self.direct[idx].is_null() && aquire {
-            self.direct[idx] = container.aquire()?;
-            self.nblocks += 1;
+        if aquire {
+            if self.direct[idx].is_null() {
+                self.direct[idx] = container.aquire()?;
+                self.nblocks += 1;
+            } else {
+                warn!("lookup_direct: already aquired at {}", idx);
+            }
         }
 
         debug!(
@@ -190,8 +192,12 @@ impl<B: Backend> Tree<B> {
 
         debug!("lookup_indirect: cache={}", self.cache[0].id());
 
-        if aquire && self.cache[0].aquire(container, idx, true)? {
-            self.nblocks += 1;
+        if aquire {
+            if self.cache[0].aquire(container, idx, true)? {
+                self.nblocks += 1;
+            } else {
+                warn!("lookup_indirect: already aquired at {}", idx);
+            }
         }
 
         debug!(
@@ -235,8 +241,12 @@ impl<B: Backend> Tree<B> {
         self.cache[1].refresh(container, &id)?;
         debug!("lookup_d_indirect: cache[1]={}", self.cache[1].id());
 
-        if aquire && self.cache[1].aquire(container, d_idx.1, true)? {
-            self.nblocks += 1;
+        if aquire {
+            if self.cache[1].aquire(container, d_idx.1, true)? {
+                self.nblocks += 1;
+            } else {
+                warn!("lookup_d_indirect: already aquired at {}", d_idx.1);
+            }
         }
 
         debug!(
@@ -292,8 +302,12 @@ impl<B: Backend> Tree<B> {
         self.cache[2].refresh(container, &id)?;
         debug!("lookup_t_indirect: cache[2]={}", self.cache[2].id());
 
-        if aquire && self.cache[2].aquire(container, t_idx.2, true)? {
-            self.nblocks += 1;
+        if aquire {
+            if self.cache[2].aquire(container, t_idx.2, true)? {
+                self.nblocks += 1;
+            } else {
+                warn!("lookup_t_indirect: already aquired at {}", t_idx.2);
+            }
         }
 
         debug!(
