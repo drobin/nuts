@@ -70,11 +70,11 @@ fn load() {
                 &[
                     0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0,
                     0, 7, 0, 0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 10, 0, 0, 0, 11, 0, 0, 0, 12, 0, 0, 0,
-                    13, 0, 0, 0, 14, 0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 16
+                    13, 0, 0, 0, 14, 0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 17
                 ]
             )
             .unwrap(),
-        68
+        76
     );
 
     let tree = Tree::<MemoryBackend>::load(&mut BufContainer::new(container), &id).unwrap();
@@ -96,11 +96,12 @@ fn load() {
     assert_eq!(tree.d_indirect, "14".parse().unwrap());
     assert_eq!(tree.t_indirect, "15".parse().unwrap());
     assert_eq!(tree.nblocks, 16);
+    assert_eq!(tree.nfiles, 17);
 }
 
 #[test]
 fn load_inval_block_size() {
-    let mut container = setup_container_with_bsize(67);
+    let mut container = setup_container_with_bsize(75);
     let id = container.aquire().unwrap();
 
     let err = Tree::<MemoryBackend>::load(&mut BufContainer::new(container), &id).unwrap_err();
@@ -130,28 +131,29 @@ fn flush() {
         d_indirect: "14".parse().unwrap(),
         t_indirect: "15".parse().unwrap(),
         nblocks: 16,
+        nfiles: 17,
         cache: vec![],
     };
 
     tree.flush(&mut container, &id).unwrap();
 
     let mut container = container.into_container();
-    let mut buf = [b'b'; 68];
+    let mut buf = [b'x'; 76];
 
-    assert_eq!(container.read(&id, &mut buf).unwrap(), 68);
+    assert_eq!(container.read(&id, &mut buf).unwrap(), 76);
     assert_eq!(
         buf,
         [
             0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 7, 0,
             0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 10, 0, 0, 0, 11, 0, 0, 0, 12, 0, 0, 0, 13, 0, 0, 0, 14,
-            0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 16
+            0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 17
         ]
     );
 }
 
 #[test]
 fn flush_inval_block_size() {
-    let mut container = BufContainer::new(setup_container_with_bsize(67));
+    let mut container = BufContainer::new(setup_container_with_bsize(75));
     let id = container.aquire().unwrap();
     let tree = Tree::<MemoryBackend> {
         direct: vec![
@@ -172,6 +174,7 @@ fn flush_inval_block_size() {
         d_indirect: "14".parse().unwrap(),
         t_indirect: "15".parse().unwrap(),
         nblocks: 16,
+        nfiles: 17,
         cache: vec![],
     };
 

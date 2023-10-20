@@ -48,6 +48,7 @@ pub struct Tree<B: Backend> {
     d_indirect: B::Id,
     t_indirect: B::Id,
     nblocks: u64,
+    nfiles: u64,
     cache: Vec<Cache<B>>,
 }
 
@@ -59,6 +60,7 @@ impl<B: Backend> Tree<B> {
             d_indirect: B::Id::null(),
             t_indirect: B::Id::null(),
             nblocks: 0,
+            nfiles: 0,
             cache: vec![],
         }
     }
@@ -67,8 +69,15 @@ impl<B: Backend> Tree<B> {
         self.nblocks
     }
 
+    pub fn nfiles(&self) -> u64 {
+        self.nfiles
+    }
+
     pub fn load(container: &mut BufContainer<B>, id: &B::Id) -> ArchiveResult<Tree<B>, B> {
-        if (container.block_size() as usize) < (15 * B::Id::size() + mem::size_of::<u64>()) {
+        let min_size = 15 * B::Id::size() + // 12 * direct + 1 * indirect + 1 * d_indirect + 1 * t_indirect
+                2 * mem::size_of::<u64>(); // nblocks + nfiles
+
+        if (container.block_size() as usize) < min_size {
             return Err(Error::InvalidBlockSize);
         }
 
@@ -83,6 +92,7 @@ impl<B: Backend> Tree<B> {
         tree.d_indirect = reader.deserialize()?;
         tree.t_indirect = reader.deserialize()?;
         tree.nblocks = reader.deserialize()?;
+        tree.nfiles = reader.deserialize()?;
 
         Ok(tree)
     }
@@ -102,6 +112,7 @@ impl<B: Backend> Tree<B> {
         writer.serialize(&self.d_indirect)?;
         writer.serialize(&self.t_indirect)?;
         writer.serialize(&self.nblocks)?;
+        writer.serialize(&self.nfiles)?;
 
         container.write_buf(id)?;
 

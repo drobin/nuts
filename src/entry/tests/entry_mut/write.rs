@@ -27,7 +27,7 @@ use crate::Archive;
 
 #[test]
 fn no_content() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
 
     archive.append("foo").build().unwrap();
@@ -44,11 +44,11 @@ fn no_content() {
 
 #[test]
 fn one_block() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
 
     let mut entry = archive.append("foo").build().unwrap();
-    assert_eq!(entry.write(&(0..68).collect::<Vec<u8>>()).unwrap(), 68);
+    assert_eq!(entry.write(&(0..76).collect::<Vec<u8>>()).unwrap(), 76);
 
     let id0 = lookup(&mut archive, 0).unwrap().clone();
     let id1 = lookup(&mut archive, 1).unwrap().clone();
@@ -58,19 +58,19 @@ fn one_block() {
     let entry = reader.deserialize::<Entry>().unwrap();
 
     assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 68);
+    assert_eq!(entry.size(), 76);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..68).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..76).collect::<Vec<u8>>());
 }
 
 #[test]
 fn one_byte_one_block() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
     let mut entry = archive.append("foo").build().unwrap();
 
-    for i in 0..68 {
+    for i in 0..76 {
         assert_eq!(entry.write(&[i]).unwrap(), 1);
     }
 
@@ -82,19 +82,19 @@ fn one_byte_one_block() {
     let entry = reader.deserialize::<Entry>().unwrap();
 
     assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 68);
+    assert_eq!(entry.size(), 76);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..68).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..76).collect::<Vec<u8>>());
 }
 
 #[test]
 fn one_byte_one_half_blocks() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
     let mut entry = archive.append("foo").build().unwrap();
 
-    for i in 0..102 {
+    for i in 0..114 {
         assert_eq!(entry.write(&[i]).unwrap(), 1);
     }
 
@@ -107,23 +107,23 @@ fn one_byte_one_half_blocks() {
     let entry = reader.deserialize::<Entry>().unwrap();
 
     assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 102);
+    assert_eq!(entry.size(), 114);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..68).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..76).collect::<Vec<u8>>());
 
     let buf = archive.container.read_buf_raw(&id2).unwrap();
-    assert_eq!(buf[..34], (68..102).collect::<Vec<u8>>());
-    assert_eq!(buf[34..], [0; 34]);
+    assert_eq!(buf[..38], (76..114).collect::<Vec<u8>>());
+    assert_eq!(buf[38..], [0; 38]);
 }
 
 #[test]
 fn one_byte_two_blocks() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
     let mut entry = archive.append("foo").build().unwrap();
 
-    for i in 0..136 {
+    for i in 0..152 {
         assert_eq!(entry.write(&[i]).unwrap(), 1);
     }
 
@@ -136,22 +136,22 @@ fn one_byte_two_blocks() {
     let entry = reader.deserialize::<Entry>().unwrap();
 
     assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 136);
+    assert_eq!(entry.size(), 152);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..68).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..76).collect::<Vec<u8>>());
 
     let buf = archive.container.read_buf_raw(&id2).unwrap();
-    assert_eq!(buf, (68..136).collect::<Vec<u8>>());
+    assert_eq!(buf, (76..152).collect::<Vec<u8>>());
 }
 
 #[test]
 fn two_bytes_one_block() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
     let mut entry = archive.append("foo").build().unwrap();
 
-    for buf in (0..68).collect::<Vec<u8>>().chunks(2) {
+    for buf in (0..76).collect::<Vec<u8>>().chunks(2) {
         assert_eq!(buf.len(), 2);
         assert_eq!(entry.write(buf).unwrap(), 2);
     }
@@ -164,19 +164,19 @@ fn two_bytes_one_block() {
     let entry = reader.deserialize::<Entry>().unwrap();
 
     assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 68);
+    assert_eq!(entry.size(), 76);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..68).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..76).collect::<Vec<u8>>());
 }
 
 #[test]
 fn two_bytes_one_half_blocks() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
     let mut entry = archive.append("foo").build().unwrap();
 
-    for buf in (0..102).collect::<Vec<u8>>().chunks(2) {
+    for buf in (0..114).collect::<Vec<u8>>().chunks(2) {
         assert_eq!(buf.len(), 2);
         assert_eq!(entry.write(buf).unwrap(), 2);
     }
@@ -190,23 +190,23 @@ fn two_bytes_one_half_blocks() {
     let entry = reader.deserialize::<Entry>().unwrap();
 
     assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 102);
+    assert_eq!(entry.size(), 114);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..68).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..76).collect::<Vec<u8>>());
 
     let buf = archive.container.read_buf_raw(&id2).unwrap();
-    assert_eq!(buf[..34], (68..102).collect::<Vec<u8>>());
-    assert_eq!(buf[34..], [0; 34]);
+    assert_eq!(buf[..38], (76..114).collect::<Vec<u8>>());
+    assert_eq!(buf[38..], [0; 38]);
 }
 
 #[test]
 fn two_bytes_two_blocks() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
     let mut entry = archive.append("foo").build().unwrap();
 
-    for buf in (0..136).collect::<Vec<u8>>().chunks(2) {
+    for buf in (0..152).collect::<Vec<u8>>().chunks(2) {
         assert_eq!(buf.len(), 2);
         assert_eq!(entry.write(buf).unwrap(), 2);
     }
@@ -220,27 +220,27 @@ fn two_bytes_two_blocks() {
     let entry = reader.deserialize::<Entry>().unwrap();
 
     assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 136);
+    assert_eq!(entry.size(), 152);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..68).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..76).collect::<Vec<u8>>());
 
     let buf = archive.container.read_buf_raw(&id2).unwrap();
-    assert_eq!(buf, (68..136).collect::<Vec<u8>>());
+    assert_eq!(buf, (76..152).collect::<Vec<u8>>());
 }
 
 #[test]
 fn three_bytes_one_block() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
     let mut entry = archive.append("foo").build().unwrap();
 
-    for buf in (0..66).collect::<Vec<u8>>().chunks(3) {
+    for buf in (0..75).collect::<Vec<u8>>().chunks(3) {
         assert_eq!(buf.len(), 3);
         assert_eq!(entry.write(buf).unwrap(), 3);
     }
 
-    assert_eq!(entry.write(&[66, 67, 68]).unwrap(), 2);
+    assert_eq!(entry.write(&[75, 76, 77]).unwrap(), 1);
 
     let id0 = lookup(&mut archive, 0).unwrap().clone();
     let id1 = lookup(&mut archive, 1).unwrap().clone();
@@ -250,26 +250,26 @@ fn three_bytes_one_block() {
     let entry = reader.deserialize::<Entry>().unwrap();
 
     assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 68);
+    assert_eq!(entry.size(), 76);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..68).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..76).collect::<Vec<u8>>());
 }
 
 #[test]
 fn three_bytes_one_half_blocks() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
     let mut entry = archive.append("foo").build().unwrap();
 
-    for buf in (0..66).collect::<Vec<u8>>().chunks(3) {
+    for buf in (0..75).collect::<Vec<u8>>().chunks(3) {
         assert_eq!(buf.len(), 3);
         assert_eq!(entry.write(buf).unwrap(), 3);
     }
 
-    assert_eq!(entry.write(&[66, 67, 68]).unwrap(), 2);
+    assert_eq!(entry.write(&[75, 76, 77]).unwrap(), 1);
 
-    for buf in (68..104).collect::<Vec<u8>>().chunks(3) {
+    for buf in (76..112).collect::<Vec<u8>>().chunks(3) {
         assert_eq!(buf.len(), 3);
         assert_eq!(entry.write(buf).unwrap(), 3);
     }
@@ -283,35 +283,35 @@ fn three_bytes_one_half_blocks() {
     let entry = reader.deserialize::<Entry>().unwrap();
 
     assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 104);
+    assert_eq!(entry.size(), 112);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..68).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..76).collect::<Vec<u8>>());
 
     let buf = archive.container.read_buf_raw(&id2).unwrap();
-    assert_eq!(buf[..36], (68..104).collect::<Vec<u8>>());
-    assert_eq!(buf[36..], [0; 32]);
+    assert_eq!(buf[..36], (76..112).collect::<Vec<u8>>());
+    assert_eq!(buf[36..], [0; 40]);
 }
 
 #[test]
 fn three_bytes_two_blocks() {
-    let container = setup_container_with_bsize(68);
+    let container = setup_container_with_bsize(76);
     let mut archive = Archive::create(container, false).unwrap();
     let mut entry = archive.append("foo").build().unwrap();
 
-    for buf in (0..66).collect::<Vec<u8>>().chunks(3) {
+    for buf in (0..75).collect::<Vec<u8>>().chunks(3) {
         assert_eq!(buf.len(), 3);
         assert_eq!(entry.write(buf).unwrap(), 3);
     }
 
-    assert_eq!(entry.write(&[66, 67, 68]).unwrap(), 2);
+    assert_eq!(entry.write(&[75, 76, 77]).unwrap(), 1);
 
-    for buf in (68..134).collect::<Vec<u8>>().chunks(3) {
+    for buf in (76..151).collect::<Vec<u8>>().chunks(3) {
         assert_eq!(buf.len(), 3);
         assert_eq!(entry.write(buf).unwrap(), 3);
     }
 
-    assert_eq!(entry.write(&[134, 135, 136]).unwrap(), 2);
+    assert_eq!(entry.write(&[151, 152, 153]).unwrap(), 1);
 
     let id0 = lookup(&mut archive, 0).unwrap().clone();
     let id1 = lookup(&mut archive, 1).unwrap().clone();
@@ -322,11 +322,11 @@ fn three_bytes_two_blocks() {
     let entry = reader.deserialize::<Entry>().unwrap();
 
     assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 136);
+    assert_eq!(entry.size(), 152);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..68).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..76).collect::<Vec<u8>>());
 
     let buf = archive.container.read_buf_raw(&id2).unwrap();
-    assert_eq!(buf, (68..136).collect::<Vec<u8>>());
+    assert_eq!(buf, (76..152).collect::<Vec<u8>>());
 }
