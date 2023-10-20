@@ -20,18 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_container::memory::{Id, MemoryBackend};
-
+use crate::entry::tests::entry_mut::lookup;
 use crate::entry::Entry;
 use crate::tests::setup_container_with_bsize;
 use crate::Archive;
-
-fn lookup(archive: &mut Archive<MemoryBackend>, idx: usize) -> Option<&Id> {
-    match archive.tree.lookup(&mut archive.container, idx) {
-        Some(result) => Some(result.unwrap()),
-        None => None,
-    }
-}
 
 #[test]
 fn no_content() {

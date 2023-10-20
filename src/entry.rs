@@ -20,6 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
+use log::debug;
 use nuts_bytes::Writer;
 use nuts_container::backend::Backend;
 use serde::{Deserialize, Serialize};
@@ -147,6 +151,8 @@ impl<'a, B: Backend> EntryMut<'a, B> {
         let available = if pos == 0 {
             self.last = self.tree.aquire(self.container)?.clone();
 
+            debug!("block aquired: {}", self.last);
+
             self.cache.clear();
             self.cache.resize(block_size as usize, 0);
 
@@ -159,6 +165,11 @@ impl<'a, B: Backend> EntryMut<'a, B> {
 
         let nbytes = cmp::min(buf.len(), available as usize);
 
+        debug!(
+            "bsize={}, pos={}, available={}, nbytes={}",
+            block_size, pos, available, nbytes
+        );
+
         self.cache[pos..pos + nbytes].copy_from_slice(&buf[..nbytes]);
         self.container.write(&self.last, &self.cache)?;
 
@@ -166,5 +177,15 @@ impl<'a, B: Backend> EntryMut<'a, B> {
         self.entry.flush(self.container, &self.first)?;
 
         Ok(nbytes)
+    }
+
+    pub fn write_all(&mut self, mut buf: &[u8]) -> ArchiveResult<(), B> {
+        while !buf.is_empty() {
+            let n = self.write(buf)?;
+
+            buf = &buf[n..]
+        }
+
+        Ok(())
     }
 }
