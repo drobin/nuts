@@ -104,6 +104,8 @@ impl<'a, B: Backend> EntryBuilder<'a, B> {
         let id = self.tree.aquire(self.container)?.clone();
 
         self.entry.flush(self.container, &id)?;
+
+        self.tree.inc_nfiles();
         self.tree.flush(self.container, self.tree_id)?;
 
         Ok(EntryMut::new(

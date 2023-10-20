@@ -73,6 +73,10 @@ impl<B: Backend> Tree<B> {
         self.nfiles
     }
 
+    pub fn inc_nfiles(&mut self) {
+        self.nfiles += 1;
+    }
+
     pub fn load(container: &mut BufContainer<B>, id: &B::Id) -> ArchiveResult<Tree<B>, B> {
         let min_size = 15 * B::Id::size() + // 12 * direct + 1 * indirect + 1 * d_indirect + 1 * t_indirect
                 2 * mem::size_of::<u64>(); // nblocks + nfiles

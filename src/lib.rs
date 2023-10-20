@@ -41,6 +41,16 @@ use crate::container::BufContainer;
 use crate::tree::Tree;
 use crate::userdata::Userdata;
 
+/// Information/statistics from the archive.
+#[derive(Debug)]
+pub struct Info {
+    /// Number of blocks allocated for the archive
+    pub blocks: u64,
+
+    /// Number of files stored in the archive
+    pub files: u64,
+}
+
 pub struct Archive<B: Backend> {
     container: BufContainer<B>,
     tree_id: B::Id,
@@ -106,6 +116,14 @@ impl<B: Backend> Archive<B> {
         debug!("archive opened, tree: {}", archive.tree_id);
 
         Ok(archive)
+    }
+
+    /// Fetches statistics/information from the archive.
+    pub fn info(&self) -> Info {
+        Info {
+            blocks: self.tree.nblocks(),
+            files: self.tree.nfiles(),
+        }
     }
 
     /// Appends a new entry with the given `name` at the end of the archive.
