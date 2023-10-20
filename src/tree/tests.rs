@@ -190,7 +190,7 @@ fn aquire() {
 
     for i in 0..12 {
         direct[i] = tree.aquire(&mut container).unwrap().clone();
-        assert_direct!(tree, i + 1, direct);
+        assert_direct!(tree, i as u64 + 1, direct);
         assert!(tree.indirect.is_null());
         assert!(tree.d_indirect.is_null());
         assert!(tree.t_indirect.is_null());
@@ -203,7 +203,7 @@ fn aquire() {
     for i in 0..2 {
         indirect[i] = tree.aquire(&mut container).unwrap().clone();
 
-        assert_direct!(tree, 12 + i + 1, direct);
+        assert_direct!(tree, 12 + i as u64 + 1, direct);
         assert_eq!(&indirect[..], read_node(&mut container, &tree.indirect));
         assert!(tree.d_indirect.is_null());
         assert!(tree.t_indirect.is_null());
@@ -216,7 +216,7 @@ fn aquire() {
     for i in 0..4 {
         d_indirect[i] = tree.aquire(&mut container).unwrap().clone();
 
-        assert_direct!(tree, 12 + 2 + i + 1, direct);
+        assert_direct!(tree, 12 + 2 + i as u64 + 1, direct);
         assert_eq!(&indirect[..], read_node(&mut container, &tree.indirect));
         assert!(tree.t_indirect.is_null());
 
@@ -238,7 +238,7 @@ fn aquire() {
     for i in 0..8 {
         t_indirect[i] = tree.aquire(&mut container).unwrap().clone();
 
-        assert_direct!(tree, 12 + 2 + 4 + i + 1, direct);
+        assert_direct!(tree, 12 + 2 + 4 + i as u64 + 1, direct);
         assert_eq!(&indirect[..], read_node(&mut container, &tree.indirect));
 
         let d_node = read_node(&mut container, &tree.d_indirect);

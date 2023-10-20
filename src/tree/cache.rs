@@ -39,7 +39,7 @@ pub struct Cache<B: Backend> {
 
 impl<'a, B: Backend> Cache<B> {
     pub fn new(container: &BufContainer<B>) -> Cache<B> {
-        let ipn = ids_per_node(container);
+        let ipn = ids_per_node(container) as usize;
 
         Cache {
             id: B::Id::null(),

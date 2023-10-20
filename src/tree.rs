@@ -35,11 +35,11 @@ use crate::error::{ArchiveResult, Error};
 use crate::tree::cache::Cache;
 use crate::tree::node::Node;
 
-fn ids_per_node<B: Backend>(container: &Container<B>) -> usize {
-    container.block_size() as usize / B::Id::size()
+fn ids_per_node<B: Backend>(container: &Container<B>) -> u32 {
+    container.block_size() / B::Id::size() as u32
 }
 
-const NUM_DIRECT: usize = 12;
+const NUM_DIRECT: u32 = 12;
 
 #[derive(Debug)]
 pub struct Tree<B: Backend> {
@@ -47,20 +47,24 @@ pub struct Tree<B: Backend> {
     indirect: B::Id,
     d_indirect: B::Id,
     t_indirect: B::Id,
-    nblocks: usize,
+    nblocks: u64,
     cache: Vec<Cache<B>>,
 }
 
 impl<B: Backend> Tree<B> {
     pub fn new() -> Tree<B> {
         Tree {
-            direct: vec![B::Id::null(); NUM_DIRECT],
+            direct: vec![B::Id::null(); NUM_DIRECT as usize],
             indirect: B::Id::null(),
             d_indirect: B::Id::null(),
             t_indirect: B::Id::null(),
             nblocks: 0,
             cache: vec![],
         }
+    }
+
+    pub fn nblocks(&self) -> u64 {
+        self.nblocks
     }
 
     pub fn load(container: &mut BufContainer<B>, id: &B::Id) -> ArchiveResult<Tree<B>, B> {
@@ -71,7 +75,7 @@ impl<B: Backend> Tree<B> {
         let mut reader = container.read_buf(id)?;
         let mut tree = Self::new();
 
-        for i in 0..NUM_DIRECT {
+        for i in 0..NUM_DIRECT as usize {
             tree.direct[i] = reader.deserialize()?;
         }
 
@@ -105,10 +109,10 @@ impl<B: Backend> Tree<B> {
     }
 
     pub fn aquire(&mut self, container: &mut BufContainer<B>) -> ArchiveResult<&B::Id, B> {
-        let ipn = ids_per_node(container); // ids per node
+        let ipn = ids_per_node(container) as u64; // ids per node
 
-        if self.nblocks < NUM_DIRECT + ipn + ipn * ipn + ipn * ipn * ipn {
-            self.lookup_cache(container, self.nblocks, true)
+        if self.nblocks < NUM_DIRECT as u64 + ipn + ipn * ipn + ipn * ipn * ipn {
+            self.lookup_cache(container, self.nblocks as usize, true)
         } else {
             Err(Error::Full)
         }
@@ -119,7 +123,7 @@ impl<B: Backend> Tree<B> {
         container: &mut BufContainer<B>,
         idx: usize,
     ) -> Option<ArchiveResult<&B::Id, B>> {
-        if idx < self.nblocks {
+        if idx < self.nblocks as usize {
             match self.lookup_cache(container, idx, false) {
                 Ok(id) => {
                     if id.is_null() {
@@ -141,16 +145,20 @@ impl<B: Backend> Tree<B> {
         idx: usize,
         aquire: bool,
     ) -> ArchiveResult<&B::Id, B> {
-        let ipn = ids_per_node(container); // ids per node
+        let ipn = ids_per_node(container) as usize; // ids per node
 
-        if idx < NUM_DIRECT {
+        if idx < NUM_DIRECT as usize {
             self.lookup_direct(container, idx, aquire)
-        } else if idx < NUM_DIRECT + ipn {
-            self.lookup_indirect(container, idx - NUM_DIRECT, aquire)
-        } else if idx < NUM_DIRECT + ipn + ipn * ipn {
-            self.lookup_d_indirect(container, idx - NUM_DIRECT - ipn, aquire)
+        } else if idx < NUM_DIRECT as usize + ipn {
+            self.lookup_indirect(container, idx - NUM_DIRECT as usize, aquire)
+        } else if idx < NUM_DIRECT as usize + ipn + ipn * ipn {
+            self.lookup_d_indirect(container, idx - NUM_DIRECT as usize - ipn, aquire)
         } else {
-            self.lookup_t_indirect(container, idx - NUM_DIRECT - ipn - ipn * ipn, aquire)
+            self.lookup_t_indirect(
+                container,
+                idx - NUM_DIRECT as usize - ipn - ipn * ipn,
+                aquire,
+            )
         }
     }
 
@@ -214,7 +222,7 @@ impl<B: Backend> Tree<B> {
         idx: usize,
         aquire: bool,
     ) -> ArchiveResult<&B::Id, B> {
-        let ipn = ids_per_node(container); // ids per node
+        let ipn = ids_per_node(container) as usize; // ids per node
 
         if self.d_indirect.is_null() {
             self.d_indirect = Node::aquire(container)?;
@@ -263,7 +271,7 @@ impl<B: Backend> Tree<B> {
         idx: usize,
         aquire: bool,
     ) -> ArchiveResult<&B::Id, B> {
-        let ipn = ids_per_node(container); // ids per node
+        let ipn = ids_per_node(container) as usize; // ids per node
 
         if self.t_indirect.is_null() {
             self.t_indirect = Node::aquire(container)?;

@@ -45,7 +45,7 @@ impl<B: Backend> Node<B> {
     }
 
     pub fn aquire(container: &mut BufContainer<B>) -> ArchiveResult<B::Id, B> {
-        let ipn = ids_per_node(container);
+        let ipn = ids_per_node(container) as usize;
         let id = container.aquire()?;
 
         let mut node = Node::new(ipn);
