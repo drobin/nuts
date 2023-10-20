@@ -47,6 +47,10 @@ impl<'a, B: Backend> Cache<B> {
         }
     }
 
+    pub fn id(&self) -> &B::Id {
+        &self.id
+    }
+
     pub fn refresh(
         &mut self,
         container: &mut BufContainer<B>,

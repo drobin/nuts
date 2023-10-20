@@ -25,6 +25,7 @@ mod node;
 #[cfg(test)]
 mod tests;
 
+use log::debug;
 use nuts_container::backend::{Backend, BlockId};
 use nuts_container::container::Container;
 use std::mem;
@@ -166,6 +167,11 @@ impl<B: Backend> Tree<B> {
             self.nblocks += 1;
         }
 
+        debug!(
+            "lookup_direct: idx={}, aquire={}, nblocks={}, id={}",
+            idx, aquire, self.nblocks, self.direct[idx]
+        );
+
         Ok(&self.direct[idx])
     }
 
@@ -180,12 +186,18 @@ impl<B: Backend> Tree<B> {
         }
 
         self.cache.resize_with(1, || Cache::new(container));
-
         self.cache[0].refresh(container, &self.indirect)?;
+
+        debug!("lookup_indirect: cache={}", self.cache[0].id());
 
         if aquire && self.cache[0].aquire(container, idx, true)? {
             self.nblocks += 1;
         }
+
+        debug!(
+            "loopup_indirect: idx={}, aquire={}, nblocks={}, id={}",
+            idx, aquire, self.nblocks, self.cache[0][idx]
+        );
 
         Ok(&self.cache[0][idx])
     }
@@ -204,28 +216,35 @@ impl<B: Backend> Tree<B> {
 
         self.cache.resize_with(2, || Cache::new(container));
 
-        let idx = ((idx / ipn) % ipn, idx % ipn);
+        let d_idx = ((idx / ipn) % ipn, idx % ipn);
 
         // level 0
 
         self.cache[0].refresh(container, &self.d_indirect)?;
+        debug!("lookup_d_indirect: cache[0]={}", self.cache[0].id());
 
         if aquire {
-            self.cache[0].aquire(container, idx.0, false)?;
-        } else if self.cache[0][idx.0].is_null() {
-            return Ok(&self.cache[0][idx.0]);
+            self.cache[0].aquire(container, d_idx.0, false)?;
+        } else if self.cache[0][d_idx.0].is_null() {
+            return Ok(&self.cache[0][d_idx.0]);
         }
 
         // level 1
 
-        let id = self.cache[0][idx.0].clone();
+        let id = self.cache[0][d_idx.0].clone();
         self.cache[1].refresh(container, &id)?;
+        debug!("lookup_d_indirect: cache[1]={}", self.cache[1].id());
 
-        if aquire && self.cache[1].aquire(container, idx.1, true)? {
+        if aquire && self.cache[1].aquire(container, d_idx.1, true)? {
             self.nblocks += 1;
         }
 
-        Ok(&self.cache[1][idx.1])
+        debug!(
+            "loopup_d_indirect: idx={} => ({}, {}), aquire={}, nblocks={}, id={}",
+            idx, d_idx.0, d_idx.1, aquire, self.nblocks, self.cache[1][d_idx.1]
+        );
+
+        Ok(&self.cache[1][d_idx.1])
     }
 
     fn lookup_t_indirect(
@@ -242,38 +261,46 @@ impl<B: Backend> Tree<B> {
 
         self.cache.resize_with(3, || Cache::new(container));
 
-        let idx = ((idx / (ipn * ipn)) % ipn, (idx / ipn) % ipn, idx % ipn);
+        let t_idx = ((idx / (ipn * ipn)) % ipn, (idx / ipn) % ipn, idx % ipn);
 
         // level 0
 
         self.cache[0].refresh(container, &self.t_indirect)?;
+        debug!("lookup_t_indirect: cache[0]={}", self.cache[0].id());
 
         if aquire {
-            self.cache[0].aquire(container, idx.0, false)?;
-        } else if self.cache[0][idx.0].is_null() {
-            return Ok(&self.cache[0][idx.0]);
+            self.cache[0].aquire(container, t_idx.0, false)?;
+        } else if self.cache[0][t_idx.0].is_null() {
+            return Ok(&self.cache[0][t_idx.0]);
         }
 
         // level 1
 
-        let id = self.cache[0][idx.0].clone();
+        let id = self.cache[0][t_idx.0].clone();
         self.cache[1].refresh(container, &id)?;
+        debug!("lookup_t_indirect: cache[1]={}", self.cache[1].id());
 
         if aquire {
-            self.cache[1].aquire(container, idx.1, false)?;
-        } else if self.cache[1][idx.1].is_null() {
-            return Ok(&self.cache[1][idx.1]);
+            self.cache[1].aquire(container, t_idx.1, false)?;
+        } else if self.cache[1][t_idx.1].is_null() {
+            return Ok(&self.cache[1][t_idx.1]);
         }
 
         // level 2
 
-        let id = self.cache[1][idx.1].clone();
+        let id = self.cache[1][t_idx.1].clone();
         self.cache[2].refresh(container, &id)?;
+        debug!("lookup_t_indirect: cache[2]={}", self.cache[2].id());
 
-        if aquire && self.cache[2].aquire(container, idx.2, true)? {
+        if aquire && self.cache[2].aquire(container, t_idx.2, true)? {
             self.nblocks += 1;
         }
 
-        Ok(&self.cache[2][idx.2])
+        debug!(
+            "loopup_t_indirect: idx={} => ({}, {}, {}), aquire={}, nblocks={}, id={}",
+            idx, t_idx.0, t_idx.1, t_idx.2, aquire, self.nblocks, self.cache[2][t_idx.2]
+        );
+
+        Ok(&self.cache[2][t_idx.2])
     }
 }
