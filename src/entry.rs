@@ -30,18 +30,18 @@ use serde::{Deserialize, Serialize};
 use std::cmp;
 
 use crate::container::BufContainer;
+use crate::error::ArchiveResult;
 use crate::tree::Tree;
-use crate::ArchiveResult;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct Entry {
+struct Inner {
     name: String,
     size: u64,
 }
 
-impl Entry {
-    pub fn name(&self) -> &str {
-        &self.name
+impl Inner {
+    fn new(name: String) -> Inner {
+        Inner { name, size: 0 }
     }
 
     pub fn size(&self) -> u64 {
@@ -76,7 +76,7 @@ pub struct EntryBuilder<'a, B: Backend> {
     container: &'a mut BufContainer<B>,
     tree_id: &'a B::Id,
     tree: &'a mut Tree<B>,
-    entry: Entry,
+    entry: Inner,
 }
 
 impl<'a, B: Backend> EntryBuilder<'a, B> {
@@ -86,13 +86,11 @@ impl<'a, B: Backend> EntryBuilder<'a, B> {
         tree: &'a mut Tree<B>,
         name: String,
     ) -> EntryBuilder<'a, B> {
-        let entry = Entry { name, size: 0 };
-
         EntryBuilder {
             container,
             tree_id,
             tree,
-            entry,
+            entry: Inner::new(name),
         }
     }
 
@@ -127,14 +125,14 @@ pub struct EntryMut<'a, B: Backend> {
     tree: &'a mut Tree<B>,
     tree_id: &'a B::Id,
     cache: Vec<u8>,
-    entry: Entry,
+    entry: Inner,
     first: B::Id,
     last: B::Id,
 }
 
 impl<'a, B: Backend> EntryMut<'a, B> {
     fn new(
-        entry: Entry,
+        entry: Inner,
         id: B::Id,
         container: &'a mut BufContainer<B>,
         tree: &'a mut Tree<B>,

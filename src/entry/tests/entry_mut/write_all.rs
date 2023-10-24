@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use crate::entry::tests::entry_mut::lookup;
-use crate::entry::Entry;
+use crate::entry::Inner;
 use crate::tests::setup_container_with_bsize;
 use crate::Archive;
 
@@ -37,10 +37,10 @@ fn no_content() {
     assert!(lookup(&mut archive, 1).is_none());
 
     let mut reader = archive.container.read_buf(&id).unwrap();
-    let entry = reader.deserialize::<Entry>().unwrap();
+    let entry = reader.deserialize::<Inner>().unwrap();
 
-    assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 0);
+    assert_eq!(entry.name, "foo");
+    assert_eq!(entry.size, 0);
 }
 
 #[test]
@@ -56,10 +56,10 @@ fn half_block() {
     assert!(lookup(&mut archive, 2).is_none());
 
     let mut reader = archive.container.read_buf(&id0).unwrap();
-    let entry = reader.deserialize::<Entry>().unwrap();
+    let entry = reader.deserialize::<Inner>().unwrap();
 
-    assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 38);
+    assert_eq!(entry.name, "foo");
+    assert_eq!(entry.size, 38);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
     assert_eq!(buf[..38], (0..38).collect::<Vec<u8>>());
@@ -79,10 +79,10 @@ fn one_block() {
     assert!(lookup(&mut archive, 2).is_none());
 
     let mut reader = archive.container.read_buf(&id0).unwrap();
-    let entry = reader.deserialize::<Entry>().unwrap();
+    let entry = reader.deserialize::<Inner>().unwrap();
 
-    assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 76);
+    assert_eq!(entry.name, "foo");
+    assert_eq!(entry.size, 76);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
     assert_eq!(buf, (0..76).collect::<Vec<u8>>());
@@ -102,10 +102,10 @@ fn one_half_blocks() {
     assert!(lookup(&mut archive, 3).is_none());
 
     let mut reader = archive.container.read_buf(&id0).unwrap();
-    let entry = reader.deserialize::<Entry>().unwrap();
+    let entry = reader.deserialize::<Inner>().unwrap();
 
-    assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 114);
+    assert_eq!(entry.name, "foo");
+    assert_eq!(entry.size, 114);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
     assert_eq!(buf, (0..76).collect::<Vec<u8>>());
@@ -129,10 +129,10 @@ fn two_blocks() {
     assert!(lookup(&mut archive, 3).is_none());
 
     let mut reader = archive.container.read_buf(&id0).unwrap();
-    let entry = reader.deserialize::<Entry>().unwrap();
+    let entry = reader.deserialize::<Inner>().unwrap();
 
-    assert_eq!(entry.name(), "foo");
-    assert_eq!(entry.size(), 152);
+    assert_eq!(entry.name, "foo");
+    assert_eq!(entry.size, 152);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
     assert_eq!(buf, (0..76).collect::<Vec<u8>>());
