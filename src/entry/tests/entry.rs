@@ -20,5 +20,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod entry;
-mod entry_mut;
+mod next;
+mod read;
+mod read_all;
+mod read_vec;
+
+use nuts_container::memory::MemoryBackend;
+
+use crate::tests::setup_container_with_bsize;
+use crate::Archive;
+
+fn setup_archive(num: u8) -> Archive<MemoryBackend> {
+    let container = setup_container_with_bsize(76);
+    let mut archive = Archive::create(container, false).unwrap();
+
+    let mut entry = archive.append("f1").build().unwrap();
+
+    if num > 0 {
+        entry.write_all(&(0..num).collect::<Vec<u8>>()).unwrap();
+    }
+
+    archive
+}

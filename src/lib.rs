@@ -23,7 +23,6 @@
 mod container;
 mod entry;
 mod error;
-mod header;
 mod magic;
 #[cfg(test)]
 mod tests;
@@ -34,7 +33,7 @@ use log::debug;
 use nuts_container::backend::Backend;
 use nuts_container::container::Container;
 
-pub use entry::{EntryBuilder, EntryMut};
+pub use entry::{Entry, EntryBuilder, EntryMut};
 pub use error::{ArchiveResult, Error};
 
 use crate::container::BufContainer;
@@ -124,6 +123,15 @@ impl<B: Backend> Archive<B> {
             blocks: self.tree.nblocks(),
             files: self.tree.nfiles(),
         }
+    }
+
+    /// Returns the first entry in the archive.
+    ///
+    /// Next, you can use [`Entry::next()`] to traverse through the archive.
+    ///
+    /// If the archive is empty, [`None`] is returned.
+    pub fn first<'a>(&'a mut self) -> Option<ArchiveResult<Entry<'a, B>, B>> {
+        Entry::first(&mut self.container, &mut self.tree)
     }
 
     /// Appends a new entry with the given `name` at the end of the archive.

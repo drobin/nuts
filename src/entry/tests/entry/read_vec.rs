@@ -20,5 +20,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod entry;
-mod entry_mut;
+use crate::entry::tests::entry::setup_archive;
+
+#[test]
+fn empty() {
+    let mut archive = setup_archive(0);
+    let mut entry = archive.first().unwrap().unwrap();
+    assert_eq!(entry.read_vec().unwrap(), []);
+}
+
+#[test]
+fn half() {
+    let mut archive = setup_archive(38);
+    let mut entry = archive.first().unwrap().unwrap();
+    assert_eq!(entry.read_vec().unwrap(), (0..38).collect::<Vec<u8>>());
+}
+
+#[test]
+fn full() {
+    let mut archive = setup_archive(76);
+    let mut entry = archive.first().unwrap().unwrap();
+    assert_eq!(entry.read_vec().unwrap(), (0..76).collect::<Vec<u8>>());
+}
+
+#[test]
+fn full_half() {
+    let mut archive = setup_archive(114);
+    let mut entry = archive.first().unwrap().unwrap();
+    assert_eq!(entry.read_vec().unwrap(), (0..114).collect::<Vec<u8>>());
+}

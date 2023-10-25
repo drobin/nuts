@@ -24,6 +24,7 @@ use nuts_container::backend::Backend;
 use nuts_container::container;
 use std::{error, fmt};
 
+/// Error type of this library.
 pub enum Error<B: Backend> {
     /// Error while (de-) serializing binary data.
     Bytes(nuts_bytes::Error),
@@ -51,6 +52,11 @@ pub enum Error<B: Backend> {
     /// The block size of the underlaying [container](container::Container) is
     /// too small.
     InvalidBlockSize,
+
+    /// An error returned by [`Entry::read_all()`](crate::Entry::read_all) when
+    /// the operation could not be completed because an “end of file” was
+    /// reached prematurely.
+    UnexpectedEof,
 }
 
 impl<B: Backend> fmt::Display for Error<B> {
@@ -66,6 +72,7 @@ impl<B: Backend> fmt::Display for Error<B> {
             Self::InvalidHeader(_) => write!(fmt, "could not parse the header of the archive"),
             Self::Full => write!(fmt, "the archive is full"),
             Self::InvalidBlockSize => write!(fmt, "the block size is too small"),
+            Self::UnexpectedEof => write!(fmt, "could not fill the whole buffer"),
         }
     }
 }
@@ -82,6 +89,7 @@ impl<B: Backend> fmt::Debug for Error<B> {
             Self::InvalidHeader(cause) => fmt.debug_tuple("InvalidHeader").field(cause).finish(),
             Self::Full => fmt.debug_tuple("Full").finish(),
             Self::InvalidBlockSize => fmt.debug_tuple("InvalidBlockSize").finish(),
+            Self::UnexpectedEof => fmt.debug_tuple("UnexpectedEof").finish(),
         }
     }
 }
