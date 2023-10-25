@@ -25,6 +25,7 @@ use clap::Args;
 use log::debug;
 use nuts_container::container::Container;
 use nuts_directory::DirectoryBackend;
+use std::path::PathBuf;
 
 use crate::cli::open_container;
 use crate::format::Format;
@@ -45,7 +46,7 @@ pub struct ContainerInfoArgs {
 }
 
 impl ContainerInfoArgs {
-    fn print_info(&self, container: &Container<DirectoryBackend>) -> Result<()> {
+    fn print_info(&self, container: &Container<DirectoryBackend<PathBuf>>) -> Result<()> {
         let info = container.info()?;
 
         println!("cipher:             {}", info.cipher);
@@ -56,7 +57,7 @@ impl ContainerInfoArgs {
         Ok(())
     }
 
-    fn print_userdata(&self, container: &Container<DirectoryBackend>) -> Result<()> {
+    fn print_userdata(&self, container: &Container<DirectoryBackend<PathBuf>>) -> Result<()> {
         let mut writer = self.format.create_writer();
 
         writer.print(container.userdata())?;

@@ -98,12 +98,11 @@ fn tool_dir() -> Result<PathBuf> {
     }
 }
 
-fn open_container(name: &str) -> Result<Container<DirectoryBackend>> {
-    // let name = container_name(args)?;
+fn open_container(name: &str) -> Result<Container<DirectoryBackend<PathBuf>>> {
     let path = container_dir_for(name)?;
 
     let builder = OpenOptionsBuilder::new().with_password_callback(ask_for_password);
-    let options = builder.build::<DirectoryBackend>()?;
+    let options = builder.build::<DirectoryBackend<PathBuf>>()?;
 
     Ok(Container::open(OpenOptions::for_path(path), options)?)
 }

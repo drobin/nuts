@@ -23,8 +23,7 @@
 use anyhow::Result;
 use clap::Args;
 use log::debug;
-use nuts_container::backend::Backend;
-use nuts_directory::DirectoryBackend;
+use nuts_directory::Id;
 use std::cmp;
 
 use crate::cli::open_container;
@@ -56,7 +55,7 @@ impl ContainerReadArgs {
         debug!("container: {}", self.container);
 
         let mut container = open_container(&self.container)?;
-        let id: <DirectoryBackend as Backend>::Id = self.id.parse()?;
+        let id: Id = self.id.parse()?;
 
         let max_bytes = self.max_bytes.unwrap_or(u64::MAX);
         let block_size = container.block_size();

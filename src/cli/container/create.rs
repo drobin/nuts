@@ -25,6 +25,7 @@ use clap::{value_parser, Args};
 use log::debug;
 use nuts_container::container::{Cipher, Container, CreateOptionsBuilder, Kdf};
 use nuts_directory::{CreateOptions, DirectoryBackend};
+use std::path::PathBuf;
 
 use crate::cli::container::{CliCipher, AES128_GCM};
 use crate::cli::{ask_for_password, container_dir_for};
@@ -88,8 +89,8 @@ impl ContainerCreateArgs {
             }
         }
 
-        let options = builder.build::<DirectoryBackend>()?;
-        Container::<DirectoryBackend>::create(backend_options, options)?;
+        let options = builder.build::<DirectoryBackend<PathBuf>>()?;
+        Container::<DirectoryBackend<PathBuf>>::create(backend_options, options)?;
 
         Ok(())
     }
