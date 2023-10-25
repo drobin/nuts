@@ -24,7 +24,7 @@
 mod tests;
 
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use nuts_container::backend::{Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 
@@ -50,23 +50,23 @@ const BLOCK_MIN_SIZE: u32 = 512;
 ///   This is the number of bytes, which can  be stored in an individual block.
 ///   The minimum block size is 512 bytes. The default is `512`.
 #[derive(Clone, Debug)]
-pub struct CreateOptions {
-    path: PathBuf,
+pub struct CreateOptions<P: AsRef<Path>> {
+    path: P,
     bsize: u32,
     overwrite: bool,
     header: Vec<u8>,
 }
 
-impl CreateOptions {
+impl<P: AsRef<Path>> CreateOptions<P> {
     /// Creates a new `CreateOptions` instance.
     ///
     /// You must pass the `path`, where the directory tree should be stored, to
     /// the function.
     ///
     /// For further options default values are applied.
-    pub fn for_path<P: AsRef<Path>>(path: P) -> Self {
+    pub fn for_path(path: P) -> Self {
         CreateOptions {
-            path: path.as_ref().to_path_buf(),
+            path,
             bsize: BLOCK_MIN_SIZE,
             overwrite: false,
             header: vec![],
@@ -102,7 +102,7 @@ impl CreateOptions {
     }
 }
 
-impl HeaderSet<DirectoryBackend> for CreateOptions {
+impl<P: AsRef<Path>> HeaderSet<DirectoryBackend<P>> for CreateOptions<P> {
     fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
         self.validate()?;
 
@@ -115,23 +115,23 @@ impl HeaderSet<DirectoryBackend> for CreateOptions {
     }
 }
 
-impl Create<DirectoryBackend> for CreateOptions {
+impl<P: AsRef<Path>> Create<DirectoryBackend<P>> for CreateOptions<P> {
     fn settings(&self) -> Settings {
-        self.clone().into()
+        Settings { bsize: self.bsize }
     }
 
-    fn build(self) -> Result<DirectoryBackend> {
+    fn build(self) -> Result<DirectoryBackend<P>> {
         self.validate()?;
 
         if !self.overwrite {
-            let header_path = Id::min().to_pathbuf(&self.path);
+            let header_path = Id::min().to_pathbuf(self.path.as_ref());
 
             if header_path.exists() {
                 return Err(Error::Exists);
             }
         }
 
-        write_header(&self.path, self.bsize, &self.header)?;
+        write_header(self.path.as_ref(), self.bsize, &self.header)?;
 
         Ok(DirectoryBackend {
             bsize: self.bsize,
@@ -145,30 +145,28 @@ impl Create<DirectoryBackend> for CreateOptions {
 ///
 /// You must pass the path, where the directory tree is stored, to
 /// [`OpenOptions::for_path()`], if creating a `OpenOptions` instance.
-pub struct OpenOptions {
-    path: PathBuf,
+pub struct OpenOptions<P: AsRef<Path>> {
+    path: P,
 }
 
-impl OpenOptions {
+impl<P: AsRef<Path>> OpenOptions<P> {
     /// Creates a new `OpenOptions` instance.
     ///
     /// You must pass the `path`, where the directory tree should is stored, to
     /// the function.
-    pub fn for_path<P: AsRef<Path>>(path: P) -> OpenOptions {
-        OpenOptions {
-            path: path.as_ref().to_path_buf(),
-        }
+    pub fn for_path(path: P) -> OpenOptions<P> {
+        OpenOptions { path }
     }
 }
 
-impl HeaderGet<DirectoryBackend> for OpenOptions {
+impl<P: AsRef<Path>> HeaderGet<DirectoryBackend<P>> for OpenOptions<P> {
     fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<()> {
-        read_header(&self.path, bytes)
+        read_header(self.path.as_ref(), bytes)
     }
 }
 
-impl Open<DirectoryBackend> for OpenOptions {
-    fn build(self, settings: Settings) -> Result<DirectoryBackend> {
+impl<P: AsRef<Path>> Open<DirectoryBackend<P>> for OpenOptions<P> {
+    fn build(self, settings: Settings) -> Result<DirectoryBackend<P>> {
         Ok(DirectoryBackend {
             bsize: settings.bsize,
             path: self.path,
@@ -180,12 +178,4 @@ impl Open<DirectoryBackend> for OpenOptions {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Settings {
     bsize: u32,
-}
-
-impl From<CreateOptions> for Settings {
-    fn from(options: CreateOptions) -> Self {
-        Settings {
-            bsize: options.bsize,
-        }
-    }
 }

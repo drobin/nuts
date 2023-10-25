@@ -29,7 +29,7 @@ fn valid_default() {
 
     options.validate().unwrap();
 
-    assert_eq!(options.path.to_str().unwrap(), "foo");
+    assert_eq!(options.path, "foo");
     assert_eq!(options.bsize, 512);
 }
 
@@ -49,7 +49,7 @@ fn valid_bsize() {
 
         options.validate().unwrap();
 
-        assert_eq!(options.path.to_str().unwrap(), "foo");
+        assert_eq!(options.path, "foo");
         assert_eq!(options.bsize, n);
     }
 }

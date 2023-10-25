@@ -64,7 +64,7 @@ use log::warn;
 use std::cmp;
 use std::fs::{self, File};
 use std::io::{self, ErrorKind, Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use nuts_container::backend::{Backend, HeaderGet, HeaderSet, HEADER_MAX_SIZE};
 
@@ -132,26 +132,26 @@ fn write_header(path: &Path, bsize: u32, buf: &[u8]) -> Result<()> {
 }
 
 #[derive(Debug)]
-pub struct DirectoryBackend {
+pub struct DirectoryBackend<P: AsRef<Path>> {
     bsize: u32,
-    path: PathBuf,
+    path: P,
 }
 
-impl HeaderGet<Self> for DirectoryBackend {
+impl<P: AsRef<Path>> HeaderGet<Self> for DirectoryBackend<P> {
     fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<()> {
-        read_header(&self.path, bytes)
+        read_header(self.path.as_ref(), bytes)
     }
 }
 
-impl HeaderSet<Self> for DirectoryBackend {
+impl<P: AsRef<Path>> HeaderSet<Self> for DirectoryBackend<P> {
     fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
-        write_header(&self.path, self.bsize, bytes)
+        write_header(self.path.as_ref(), self.bsize, bytes)
     }
 }
 
-impl Backend for DirectoryBackend {
-    type CreateOptions = CreateOptions;
-    type OpenOptions = OpenOptions;
+impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
+    type CreateOptions = CreateOptions<P>;
+    type OpenOptions = OpenOptions<P>;
     type Settings = Settings;
     type Err = Error;
     type Id = Id;
@@ -171,7 +171,7 @@ impl Backend for DirectoryBackend {
         for n in 0..MAX {
             let id = Id::generate();
 
-            match write_block(&self.path, &id, true, self.bsize, buf) {
+            match write_block(self.path.as_ref(), &id, true, self.bsize, buf) {
                 Ok(_) => return Ok(id),
                 Err(Error::Io(err)) => {
                     if err.kind() == ErrorKind::AlreadyExists {
@@ -188,16 +188,16 @@ impl Backend for DirectoryBackend {
     }
 
     fn release(&mut self, id: Self::Id) -> Result<()> {
-        let path = id.to_pathbuf(&self.path);
+        let path = id.to_pathbuf(self.path.as_ref());
 
         Ok(fs::remove_file(&path)?)
     }
 
     fn read(&mut self, id: &Id, buf: &mut [u8]) -> Result<usize> {
-        read_block(&self.path, id, self.bsize, buf)
+        read_block(self.path.as_ref(), id, self.bsize, buf)
     }
 
     fn write(&mut self, id: &Id, buf: &[u8]) -> Result<usize> {
-        write_block(&self.path, id, false, self.bsize, buf)
+        write_block(self.path.as_ref(), id, false, self.bsize, buf)
     }
 }

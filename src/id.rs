@@ -88,7 +88,7 @@ impl Id {
         target
     }
 
-    pub(crate) fn to_pathbuf<P: AsRef<Path> + ?Sized>(&self, parent: &P) -> PathBuf {
+    pub(crate) fn to_pathbuf(&self, parent: &Path) -> PathBuf {
         let hex = self.as_hex();
         let mut path = PathBuf::new();
         let mut pos = 0;

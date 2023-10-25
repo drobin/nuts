@@ -26,5 +26,5 @@ use crate::options::OpenOptions;
 fn for_path() {
     let options = OpenOptions::for_path("foo");
 
-    assert_eq!(options.path.to_str().unwrap(), "foo");
+    assert_eq!(options.path, "foo");
 }

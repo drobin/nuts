@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Reader, Writer};
+use std::path::Path;
 
 use crate::id::Id;
 
@@ -62,7 +63,7 @@ fn as_hex() {
 #[test]
 fn to_pathbuf() {
     let id = Id::generate();
-    let path = id.to_pathbuf("foo");
+    let path = id.to_pathbuf(&Path::new("foo"));
 
     assert_eq!(
         format!("{}", path.display()),
