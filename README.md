@@ -102,6 +102,18 @@ assert_eq!(info.cipher, Cipher::Aes128Ctr);
 assert_eq!(info.kdf, kdf);
 ```
 
+## Related repositories
+
+* [nuts-directory](https://github.com/drobin/nuts-directory)
+  A sample implementation of a backend where all the data are stored in a
+  directory hierarchy.
+* [nuts-archive](https://github.com/drobin/nuts-archive)
+  An application on top of _nuts-container_ where files are stored in a `tar`
+  like archive.
+* [nuts-tool](https://github.com/drobin/nuts-tool)
+  A commandline applicatin used to maintain a _nuts-container_ and its
+  application.
+
 ## License
 
 > You can check out the full license
