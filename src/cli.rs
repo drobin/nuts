@@ -20,6 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+pub mod archive;
 pub mod container;
 
 use anyhow::{anyhow, Result};
@@ -33,6 +34,7 @@ use rpassword::prompt_password;
 use std::fs;
 use std::path::PathBuf;
 
+use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
 
 const SHORT_VERSION: &str = env!("NUTS_TOOL_SHORT_VERSION");
@@ -70,12 +72,16 @@ impl NutsCli {
 pub enum Commands {
     /// General container tasks
     Container(ContainerArgs),
+
+    /// An archive on top of the container
+    Archive(ArchiveArgs),
 }
 
 impl Commands {
     pub fn run(&self) -> Result<()> {
         match self {
             Self::Container(args) => args.run(),
+            Self::Archive(args) => args.run(),
         }
     }
 }
