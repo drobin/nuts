@@ -44,19 +44,19 @@ fn empty_more() {
 
 #[test]
 fn half() {
-    let mut archive = setup_archive(38);
+    let mut archive = setup_archive(46);
     let mut entry = archive.first().unwrap().unwrap();
-    let mut buf = [0; 38];
+    let mut buf = [0; 46];
 
     entry.read_all(&mut buf).unwrap();
-    assert_eq!(buf, (0..38).collect::<Vec<u8>>().as_slice());
+    assert_eq!(buf, (0..46).collect::<Vec<u8>>().as_slice());
 }
 
 #[test]
 fn half_more() {
-    let mut archive = setup_archive(38);
+    let mut archive = setup_archive(46);
     let mut entry = archive.first().unwrap().unwrap();
-    let mut buf = [0; 39];
+    let mut buf = [0; 47];
 
     let err = entry.read_all(&mut buf).unwrap_err();
     assert!(matches!(err, Error::UnexpectedEof));
@@ -64,19 +64,19 @@ fn half_more() {
 
 #[test]
 fn full() {
-    let mut archive = setup_archive(76);
+    let mut archive = setup_archive(92);
     let mut entry = archive.first().unwrap().unwrap();
-    let mut buf = [0; 76];
+    let mut buf = [0; 92];
 
     entry.read_all(&mut buf).unwrap();
-    assert_eq!(buf, (0..76).collect::<Vec<u8>>().as_slice());
+    assert_eq!(buf, (0..92).collect::<Vec<u8>>().as_slice());
 }
 
 #[test]
 fn full_more() {
-    let mut archive = setup_archive(76);
+    let mut archive = setup_archive(92);
     let mut entry = archive.first().unwrap().unwrap();
-    let mut buf = [0; 77];
+    let mut buf = [0; 93];
 
     let err = entry.read_all(&mut buf).unwrap_err();
     assert!(matches!(err, Error::UnexpectedEof));
@@ -84,19 +84,19 @@ fn full_more() {
 
 #[test]
 fn full_half() {
-    let mut archive = setup_archive(114);
+    let mut archive = setup_archive(138);
     let mut entry = archive.first().unwrap().unwrap();
-    let mut buf = [0; 114];
+    let mut buf = [0; 138];
 
     entry.read_all(&mut buf).unwrap();
-    assert_eq!(buf, (0..114).collect::<Vec<u8>>().as_slice());
+    assert_eq!(buf, (0..138).collect::<Vec<u8>>().as_slice());
 }
 
 #[test]
 fn full_half_more() {
-    let mut archive = setup_archive(114);
+    let mut archive = setup_archive(138);
     let mut entry = archive.first().unwrap().unwrap();
-    let mut buf = [0; 115];
+    let mut buf = [0; 139];
 
     let err = entry.read_all(&mut buf).unwrap_err();
     assert!(matches!(err, Error::UnexpectedEof));

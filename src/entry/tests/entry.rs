@@ -31,7 +31,7 @@ use crate::tests::setup_container_with_bsize;
 use crate::Archive;
 
 fn setup_archive(num: u8) -> Archive<MemoryBackend> {
-    let container = setup_container_with_bsize(76);
+    let container = setup_container_with_bsize(92);
     let mut archive = Archive::create(container, false).unwrap();
 
     let mut entry = archive.append("f1").build().unwrap();

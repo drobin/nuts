@@ -206,6 +206,7 @@ mod tests;
 mod tree;
 mod userdata;
 
+use chrono::{DateTime, Utc};
 use log::debug;
 use nuts_container::backend::Backend;
 use nuts_container::container::Container;
@@ -220,6 +221,12 @@ use crate::userdata::Userdata;
 /// Information/statistics from the archive.
 #[derive(Debug)]
 pub struct Info {
+    /// Time when the archive was created
+    pub created: DateTime<Utc>,
+
+    /// Time when the last entry was appended
+    pub modified: DateTime<Utc>,
+
     /// Number of blocks allocated for the archive
     pub blocks: u64,
 
@@ -298,6 +305,8 @@ impl<B: Backend> Archive<B> {
     /// Fetches statistics/information from the archive.
     pub fn info(&self) -> Info {
         Info {
+            created: self.tree.created(),
+            modified: self.tree.modified(),
             blocks: self.tree.nblocks(),
             files: self.tree.nfiles(),
         }

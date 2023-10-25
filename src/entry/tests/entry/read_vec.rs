@@ -31,21 +31,21 @@ fn empty() {
 
 #[test]
 fn half() {
-    let mut archive = setup_archive(38);
+    let mut archive = setup_archive(46);
     let mut entry = archive.first().unwrap().unwrap();
-    assert_eq!(entry.read_vec().unwrap(), (0..38).collect::<Vec<u8>>());
+    assert_eq!(entry.read_vec().unwrap(), (0..46).collect::<Vec<u8>>());
 }
 
 #[test]
 fn full() {
-    let mut archive = setup_archive(76);
+    let mut archive = setup_archive(92);
     let mut entry = archive.first().unwrap().unwrap();
-    assert_eq!(entry.read_vec().unwrap(), (0..76).collect::<Vec<u8>>());
+    assert_eq!(entry.read_vec().unwrap(), (0..92).collect::<Vec<u8>>());
 }
 
 #[test]
 fn full_half() {
-    let mut archive = setup_archive(114);
+    let mut archive = setup_archive(138);
     let mut entry = archive.first().unwrap().unwrap();
-    assert_eq!(entry.read_vec().unwrap(), (0..114).collect::<Vec<u8>>());
+    assert_eq!(entry.read_vec().unwrap(), (0..138).collect::<Vec<u8>>());
 }

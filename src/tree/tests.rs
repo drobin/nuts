@@ -28,7 +28,7 @@ use nuts_container::memory::{Id, MemoryBackend};
 use crate::container::BufContainer;
 use crate::error::Error;
 use crate::tests::{setup_container, setup_container_with_bsize};
-use crate::tree::Tree;
+use crate::tree::{into_datetime, Tree};
 
 const BSIZE: u32 = 8;
 
@@ -132,6 +132,8 @@ fn flush() {
         t_indirect: "15".parse().unwrap(),
         nblocks: 16,
         nfiles: 17,
+        created: into_datetime(18),
+        modified: into_datetime(19),
         cache: vec![],
     };
 
@@ -175,6 +177,8 @@ fn flush_inval_block_size() {
         t_indirect: "15".parse().unwrap(),
         nblocks: 16,
         nfiles: 17,
+        created: into_datetime(18),
+        modified: into_datetime(19),
         cache: vec![],
     };
 

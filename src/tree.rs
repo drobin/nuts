@@ -25,6 +25,7 @@ mod node;
 #[cfg(test)]
 mod tests;
 
+use chrono::{DateTime, TimeZone, Utc};
 use log::{debug, warn};
 use nuts_container::backend::{Backend, BlockId};
 use nuts_container::container::Container;
@@ -41,6 +42,14 @@ fn ids_per_node<B: Backend>(container: &Container<B>) -> u32 {
 
 const NUM_DIRECT: u32 = 12;
 
+fn into_datetime(millis: i64) -> DateTime<Utc> {
+    Utc.timestamp_millis_opt(millis).unwrap()
+}
+
+fn from_datetime(dt: &DateTime<Utc>) -> i64 {
+    dt.timestamp_millis()
+}
+
 #[derive(Debug)]
 pub struct Tree<B: Backend> {
     direct: Vec<B::Id>,
@@ -49,11 +58,15 @@ pub struct Tree<B: Backend> {
     t_indirect: B::Id,
     nblocks: u64,
     nfiles: u64,
+    created: DateTime<Utc>,
+    modified: DateTime<Utc>,
     cache: Vec<Cache<B>>,
 }
 
 impl<B: Backend> Tree<B> {
     pub fn new() -> Tree<B> {
+        let now = Utc::now();
+
         Tree {
             direct: vec![B::Id::null(); NUM_DIRECT as usize],
             indirect: B::Id::null(),
@@ -61,6 +74,8 @@ impl<B: Backend> Tree<B> {
             t_indirect: B::Id::null(),
             nblocks: 0,
             nfiles: 0,
+            created: now,
+            modified: now,
             cache: vec![],
         }
     }
@@ -73,8 +88,17 @@ impl<B: Backend> Tree<B> {
         self.nfiles
     }
 
+    pub fn created(&self) -> DateTime<Utc> {
+        self.created
+    }
+
+    pub fn modified(&self) -> DateTime<Utc> {
+        self.modified
+    }
+
     pub fn inc_nfiles(&mut self) {
         self.nfiles += 1;
+        self.modified = Utc::now();
     }
 
     pub fn load(container: &mut BufContainer<B>, id: &B::Id) -> ArchiveResult<Tree<B>, B> {
@@ -97,6 +121,8 @@ impl<B: Backend> Tree<B> {
         tree.t_indirect = reader.deserialize()?;
         tree.nblocks = reader.deserialize()?;
         tree.nfiles = reader.deserialize()?;
+        tree.created = into_datetime(reader.deserialize()?);
+        tree.modified = into_datetime(reader.deserialize()?);
 
         Ok(tree)
     }
@@ -117,6 +143,8 @@ impl<B: Backend> Tree<B> {
         writer.serialize(&self.t_indirect)?;
         writer.serialize(&self.nblocks)?;
         writer.serialize(&self.nfiles)?;
+        writer.serialize(&from_datetime(&self.created))?;
+        writer.serialize(&from_datetime(&self.modified))?;
 
         container.write_buf(id)?;
 
