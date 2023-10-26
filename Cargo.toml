@@ -36,7 +36,7 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4.31"
+chrono = { version="0.4.31", features = ["serde"] }
 log = "0.4.20"
 nuts-bytes = "0.1.1"
 nuts-container = "0.2.1"

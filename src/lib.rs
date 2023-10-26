@@ -200,6 +200,7 @@
 mod container;
 mod entry;
 mod error;
+mod header;
 mod magic;
 #[cfg(test)]
 mod tests;
