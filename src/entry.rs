@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 pub mod immut;
+pub mod mode;
 pub mod r#mut;
 
 use nuts_bytes::Writer;

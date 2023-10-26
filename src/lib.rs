@@ -213,6 +213,7 @@ use nuts_container::backend::Backend;
 use nuts_container::container::Container;
 
 pub use entry::immut::Entry;
+pub use entry::mode::{Group, Mode};
 pub use entry::r#mut::{EntryBuilder, EntryMut};
 pub use error::{ArchiveResult, Error};
 
