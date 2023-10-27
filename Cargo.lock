@@ -92,6 +92,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-targets",
 ]
@@ -287,9 +288,9 @@ dependencies = [
 
 [[package]]
 name = "nuts-archive"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ee29e9f5f1258915b542e6ff820f728b0934baa914d2593528911f2da621cc3"
+checksum = "d538fa1375a76bdfc061a3749e6ad260fae6217383f6be417d1e2cfba9a45d60"
 dependencies = [
  "chrono",
  "log",
@@ -335,7 +336,7 @@ dependencies = [
 
 [[package]]
 name = "nuts-tool"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "clap",
