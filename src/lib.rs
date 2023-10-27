@@ -216,8 +216,28 @@ pub use entry::{Entry, EntryBuilder, EntryMut};
 pub use error::{ArchiveResult, Error};
 
 use crate::container::BufContainer;
+use crate::header::Header;
 use crate::tree::Tree;
 use crate::userdata::Userdata;
+
+fn flush_header<B: Backend>(
+    container: &mut BufContainer<B>,
+    id: &B::Id,
+    header: &Header,
+    tree: &Tree<B>,
+) -> ArchiveResult<(), B> {
+    let mut writer = container.create_writer();
+    let mut n = 0;
+
+    n += writer.serialize(header)?;
+    n += writer.serialize(tree)?;
+
+    container.write_buf(id)?;
+
+    debug!("{} bytes written into header at {}", n, id);
+
+    Ok(())
+}
 
 /// Information/statistics from the archive.
 #[derive(Debug)]
@@ -238,7 +258,8 @@ pub struct Info {
 /// The archive.
 pub struct Archive<B: Backend> {
     container: BufContainer<B>,
-    tree_id: B::Id,
+    header_id: B::Id,
+    header: Header,
     tree: Tree<B>,
 }
 
@@ -260,17 +281,20 @@ impl<B: Backend> Archive<B> {
     pub fn create(container: Container<B>, force: bool) -> ArchiveResult<Archive<B>, B> {
         let mut container = BufContainer::new(container);
         let userdata = Userdata::create(&mut container, force)?;
+
+        let header = Header::create();
         let tree = Tree::<B>::new();
 
-        tree.flush(&mut container, &userdata.id)?;
+        flush_header(&mut container, &userdata.id, &header, &tree)?;
 
         let archive = Archive {
             container,
-            tree_id: userdata.id,
+            header_id: userdata.id,
+            header,
             tree,
         };
 
-        debug!("archive created, tree: {}", archive.tree_id);
+        debug!("archive created, header: {}", archive.header_id);
 
         Ok(archive)
     }
@@ -290,15 +314,20 @@ impl<B: Backend> Archive<B> {
     pub fn open(container: Container<B>) -> ArchiveResult<Archive<B>, B> {
         let mut container = BufContainer::new(container);
         let userdata = Userdata::load(&mut container)?;
-        let tree = Tree::load(&mut container, &userdata.id)?;
+
+        let mut reader = container.read_buf(&userdata.id)?;
+
+        let header = reader.deserialize::<Header>()?;
+        let tree = reader.deserialize::<Tree<B>>()?;
 
         let archive = Archive {
             container,
-            tree_id: userdata.id,
+            header_id: userdata.id,
+            header,
             tree,
         };
 
-        debug!("archive opened, tree: {}", archive.tree_id);
+        debug!("archive opened, header: {}", archive.header_id);
 
         Ok(archive)
     }
@@ -306,10 +335,10 @@ impl<B: Backend> Archive<B> {
     /// Fetches statistics/information from the archive.
     pub fn info(&self) -> Info {
         Info {
-            created: self.tree.created(),
-            modified: self.tree.modified(),
+            created: self.header.created,
+            modified: self.header.modified,
             blocks: self.tree.nblocks(),
-            files: self.tree.nfiles(),
+            files: self.header.nfiles,
         }
     }
 
@@ -330,7 +359,8 @@ impl<B: Backend> Archive<B> {
     pub fn append<'a, N: AsRef<str>>(&'a mut self, name: N) -> EntryBuilder<'a, B> {
         EntryBuilder::new(
             &mut self.container,
-            &self.tree_id,
+            &self.header_id,
+            &mut self.header,
             &mut self.tree,
             name.as_ref().to_string(),
         )

@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 use crate::entry::tests::entry::setup_archive;
+use crate::entry::tests::{FULL, HALF};
 
 #[test]
 fn empty() {
@@ -31,21 +32,24 @@ fn empty() {
 
 #[test]
 fn half() {
-    let mut archive = setup_archive(46);
+    let mut archive = setup_archive(HALF);
     let mut entry = archive.first().unwrap().unwrap();
-    assert_eq!(entry.read_vec().unwrap(), (0..46).collect::<Vec<u8>>());
+    assert_eq!(entry.read_vec().unwrap(), (0..HALF).collect::<Vec<u8>>());
 }
 
 #[test]
 fn full() {
-    let mut archive = setup_archive(92);
+    let mut archive = setup_archive(FULL);
     let mut entry = archive.first().unwrap().unwrap();
-    assert_eq!(entry.read_vec().unwrap(), (0..92).collect::<Vec<u8>>());
+    assert_eq!(entry.read_vec().unwrap(), (0..FULL).collect::<Vec<u8>>());
 }
 
 #[test]
 fn full_half() {
-    let mut archive = setup_archive(138);
+    let mut archive = setup_archive(FULL + HALF);
     let mut entry = archive.first().unwrap().unwrap();
-    assert_eq!(entry.read_vec().unwrap(), (0..138).collect::<Vec<u8>>());
+    assert_eq!(
+        entry.read_vec().unwrap(),
+        (0..FULL + HALF).collect::<Vec<u8>>()
+    );
 }

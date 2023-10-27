@@ -31,6 +31,8 @@ use std::cmp;
 
 use crate::container::BufContainer;
 use crate::error::{ArchiveResult, Error};
+use crate::flush_header;
+use crate::header::Header;
 use crate::tree::Tree;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -281,7 +283,8 @@ impl<'a, B: Backend> Entry<'a, B> {
 /// [`EntryBuilder::build()`] will create the entry at the end of the archive.
 pub struct EntryBuilder<'a, B: Backend> {
     container: &'a mut BufContainer<B>,
-    tree_id: &'a B::Id,
+    header_id: &'a B::Id,
+    header: &'a mut Header,
     tree: &'a mut Tree<B>,
     entry: Inner,
 }
@@ -289,13 +292,15 @@ pub struct EntryBuilder<'a, B: Backend> {
 impl<'a, B: Backend> EntryBuilder<'a, B> {
     pub(crate) fn new(
         container: &'a mut BufContainer<B>,
-        tree_id: &'a B::Id,
+        header_id: &'a B::Id,
+        header: &'a mut Header,
         tree: &'a mut Tree<B>,
         name: String,
     ) -> EntryBuilder<'a, B> {
         EntryBuilder {
             container,
-            tree_id,
+            header_id,
+            header,
             tree,
             entry: Inner::new(name),
         }
@@ -310,15 +315,16 @@ impl<'a, B: Backend> EntryBuilder<'a, B> {
 
         self.entry.flush(self.container, &id)?;
 
-        self.tree.inc_nfiles();
-        self.tree.flush(self.container, self.tree_id)?;
+        self.header.inc_files();
+        flush_header(self.container, self.header_id, self.header, self.tree)?;
 
         Ok(EntryMut::new(
+            self.container,
+            self.header_id,
+            self.header,
+            self.tree,
             self.entry,
             id,
-            self.container,
-            self.tree,
-            self.tree_id,
         ))
     }
 }
@@ -329,30 +335,33 @@ impl<'a, B: Backend> EntryBuilder<'a, B> {
 /// you the possibility to add content to the entry.
 pub struct EntryMut<'a, B: Backend> {
     container: &'a mut BufContainer<B>,
+    header_id: &'a B::Id,
+    header: &'a mut Header,
     tree: &'a mut Tree<B>,
-    tree_id: &'a B::Id,
-    cache: Vec<u8>,
     entry: Inner,
     first: B::Id,
     last: B::Id,
+    cache: Vec<u8>,
 }
 
 impl<'a, B: Backend> EntryMut<'a, B> {
     fn new(
+        container: &'a mut BufContainer<B>,
+        header_id: &'a B::Id,
+        header: &'a mut Header,
+        tree: &'a mut Tree<B>,
         entry: Inner,
         id: B::Id,
-        container: &'a mut BufContainer<B>,
-        tree: &'a mut Tree<B>,
-        tree_id: &'a B::Id,
     ) -> EntryMut<'a, B> {
         EntryMut {
             container,
+            header_id,
+            header,
             tree,
-            tree_id,
-            cache: vec![],
             entry,
             first: id.clone(),
             last: id,
+            cache: vec![],
         }
     }
 
@@ -391,7 +400,7 @@ impl<'a, B: Backend> EntryMut<'a, B> {
 
         self.entry.size += nbytes as u64;
         self.entry.flush(self.container, &self.first)?;
-        self.tree.flush(self.container, self.tree_id)?;
+        flush_header(self.container, self.header_id, self.header, self.tree)?;
 
         Ok(nbytes)
     }

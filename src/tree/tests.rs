@@ -20,15 +20,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::Reader;
+use nuts_bytes::{Reader, Writer};
 use nuts_container::backend::BlockId;
 use nuts_container::container::Container;
 use nuts_container::memory::{Id, MemoryBackend};
 
 use crate::container::BufContainer;
 use crate::error::Error;
-use crate::tests::{setup_container, setup_container_with_bsize};
-use crate::tree::{into_datetime, Tree};
+use crate::tests::setup_container_with_bsize;
+use crate::tree::Tree;
 
 const BSIZE: u32 = 8;
 
@@ -59,27 +59,53 @@ fn read_node(container: &mut Container<MemoryBackend>, id: &Id) -> Vec<Id> {
 }
 
 #[test]
-fn load() {
-    let mut container = setup_container();
-    let id = container.aquire().unwrap();
+fn ser() {
+    let tree = Tree::<MemoryBackend> {
+        direct: [
+            "1".parse().unwrap(),
+            "2".parse().unwrap(),
+            "3".parse().unwrap(),
+            "4".parse().unwrap(),
+            "5".parse().unwrap(),
+            "6".parse().unwrap(),
+            "7".parse().unwrap(),
+            "8".parse().unwrap(),
+            "9".parse().unwrap(),
+            "10".parse().unwrap(),
+            "11".parse().unwrap(),
+            "12".parse().unwrap(),
+        ],
+        indirect: "13".parse().unwrap(),
+        d_indirect: "14".parse().unwrap(),
+        t_indirect: "15".parse().unwrap(),
+        nblocks: 16,
+        cache: vec![],
+    };
+    let mut writer = Writer::new(vec![]);
 
+    assert_eq!(writer.serialize(&tree).unwrap(), 68);
     assert_eq!(
-        container
-            .write(
-                &id,
-                &[
-                    0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0,
-                    0, 7, 0, 0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 10, 0, 0, 0, 11, 0, 0, 0, 12, 0, 0, 0,
-                    13, 0, 0, 0, 14, 0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 17
-                ]
-            )
-            .unwrap(),
-        76
+        writer.into_target(),
+        [
+            0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 7, 0,
+            0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 10, 0, 0, 0, 11, 0, 0, 0, 12, 0, 0, 0, 13, 0, 0, 0, 14,
+            0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 16
+        ]
     );
+}
 
-    let tree = Tree::<MemoryBackend>::load(&mut BufContainer::new(container), &id).unwrap();
+#[test]
+fn de() {
+    let mut reader = Reader::new(
+        [
+            0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 7, 0,
+            0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 10, 0, 0, 0, 11, 0, 0, 0, 12, 0, 0, 0, 13, 0, 0, 0, 14,
+            0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 16,
+        ]
+        .as_slice(),
+    );
+    let tree = reader.deserialize::<Tree<MemoryBackend>>().unwrap();
 
-    assert_eq!(tree.direct.len(), 12);
     assert_eq!(tree.direct[0], "1".parse().unwrap());
     assert_eq!(tree.direct[1], "2".parse().unwrap());
     assert_eq!(tree.direct[2], "3".parse().unwrap());
@@ -96,94 +122,6 @@ fn load() {
     assert_eq!(tree.d_indirect, "14".parse().unwrap());
     assert_eq!(tree.t_indirect, "15".parse().unwrap());
     assert_eq!(tree.nblocks, 16);
-    assert_eq!(tree.nfiles, 17);
-}
-
-#[test]
-fn load_inval_block_size() {
-    let mut container = setup_container_with_bsize(75);
-    let id = container.aquire().unwrap();
-
-    let err = Tree::<MemoryBackend>::load(&mut BufContainer::new(container), &id).unwrap_err();
-    assert!(matches!(err, Error::InvalidBlockSize));
-}
-
-#[test]
-fn flush() {
-    let mut container = BufContainer::new(setup_container());
-    let id = container.aquire().unwrap();
-    let tree = Tree::<MemoryBackend> {
-        direct: vec![
-            "1".parse().unwrap(),
-            "2".parse().unwrap(),
-            "3".parse().unwrap(),
-            "4".parse().unwrap(),
-            "5".parse().unwrap(),
-            "6".parse().unwrap(),
-            "7".parse().unwrap(),
-            "8".parse().unwrap(),
-            "9".parse().unwrap(),
-            "10".parse().unwrap(),
-            "11".parse().unwrap(),
-            "12".parse().unwrap(),
-        ],
-        indirect: "13".parse().unwrap(),
-        d_indirect: "14".parse().unwrap(),
-        t_indirect: "15".parse().unwrap(),
-        nblocks: 16,
-        nfiles: 17,
-        created: into_datetime(18),
-        modified: into_datetime(19),
-        cache: vec![],
-    };
-
-    tree.flush(&mut container, &id).unwrap();
-
-    let mut container = container.into_container();
-    let mut buf = [b'x'; 76];
-
-    assert_eq!(container.read(&id, &mut buf).unwrap(), 76);
-    assert_eq!(
-        buf,
-        [
-            0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 7, 0,
-            0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 10, 0, 0, 0, 11, 0, 0, 0, 12, 0, 0, 0, 13, 0, 0, 0, 14,
-            0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 17
-        ]
-    );
-}
-
-#[test]
-fn flush_inval_block_size() {
-    let mut container = BufContainer::new(setup_container_with_bsize(75));
-    let id = container.aquire().unwrap();
-    let tree = Tree::<MemoryBackend> {
-        direct: vec![
-            "1".parse().unwrap(),
-            "2".parse().unwrap(),
-            "3".parse().unwrap(),
-            "4".parse().unwrap(),
-            "5".parse().unwrap(),
-            "6".parse().unwrap(),
-            "7".parse().unwrap(),
-            "8".parse().unwrap(),
-            "9".parse().unwrap(),
-            "10".parse().unwrap(),
-            "11".parse().unwrap(),
-            "12".parse().unwrap(),
-        ],
-        indirect: "13".parse().unwrap(),
-        d_indirect: "14".parse().unwrap(),
-        t_indirect: "15".parse().unwrap(),
-        nblocks: 16,
-        nfiles: 17,
-        created: into_datetime(18),
-        modified: into_datetime(19),
-        cache: vec![],
-    };
-
-    let err = tree.flush(&mut container, &id).unwrap_err();
-    assert!(matches!(err, Error::InvalidBlockSize));
 }
 
 #[test]

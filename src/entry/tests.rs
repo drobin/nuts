@@ -22,3 +22,6 @@
 
 mod entry;
 mod entry_mut;
+
+const HALF: u8 = 53;
+const FULL: u8 = 106;

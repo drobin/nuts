@@ -25,11 +25,10 @@ mod node;
 #[cfg(test)]
 mod tests;
 
-use chrono::{DateTime, TimeZone, Utc};
 use log::{debug, warn};
 use nuts_container::backend::{Backend, BlockId};
 use nuts_container::container::Container;
-use std::mem;
+use serde::{Deserialize, Serialize};
 
 use crate::container::BufContainer;
 use crate::error::{ArchiveResult, Error};
@@ -42,113 +41,48 @@ fn ids_per_node<B: Backend>(container: &Container<B>) -> u32 {
 
 const NUM_DIRECT: u32 = 12;
 
-fn into_datetime(millis: i64) -> DateTime<Utc> {
-    Utc.timestamp_millis_opt(millis).unwrap()
+fn make_cache<B: Backend>() -> Vec<Cache<B>> {
+    vec![]
 }
 
-fn from_datetime(dt: &DateTime<Utc>) -> i64 {
-    dt.timestamp_millis()
-}
-
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Tree<B: Backend> {
-    direct: Vec<B::Id>,
+    direct: [B::Id; NUM_DIRECT as usize],
     indirect: B::Id,
     d_indirect: B::Id,
     t_indirect: B::Id,
     nblocks: u64,
-    nfiles: u64,
-    created: DateTime<Utc>,
-    modified: DateTime<Utc>,
+    #[serde(skip, default = "make_cache")]
     cache: Vec<Cache<B>>,
 }
 
 impl<B: Backend> Tree<B> {
     pub fn new() -> Tree<B> {
-        let now = Utc::now();
-
         Tree {
-            direct: vec![B::Id::null(); NUM_DIRECT as usize],
+            direct: [
+                B::Id::null(),
+                B::Id::null(),
+                B::Id::null(),
+                B::Id::null(),
+                B::Id::null(),
+                B::Id::null(),
+                B::Id::null(),
+                B::Id::null(),
+                B::Id::null(),
+                B::Id::null(),
+                B::Id::null(),
+                B::Id::null(),
+            ],
             indirect: B::Id::null(),
             d_indirect: B::Id::null(),
             t_indirect: B::Id::null(),
             nblocks: 0,
-            nfiles: 0,
-            created: now,
-            modified: now,
             cache: vec![],
         }
     }
 
     pub fn nblocks(&self) -> u64 {
         self.nblocks
-    }
-
-    pub fn nfiles(&self) -> u64 {
-        self.nfiles
-    }
-
-    pub fn created(&self) -> DateTime<Utc> {
-        self.created
-    }
-
-    pub fn modified(&self) -> DateTime<Utc> {
-        self.modified
-    }
-
-    pub fn inc_nfiles(&mut self) {
-        self.nfiles += 1;
-        self.modified = Utc::now();
-    }
-
-    pub fn load(container: &mut BufContainer<B>, id: &B::Id) -> ArchiveResult<Tree<B>, B> {
-        let min_size = 15 * B::Id::size() + // 12 * direct + 1 * indirect + 1 * d_indirect + 1 * t_indirect
-                2 * mem::size_of::<u64>(); // nblocks + nfiles
-
-        if (container.block_size() as usize) < min_size {
-            return Err(Error::InvalidBlockSize);
-        }
-
-        let mut reader = container.read_buf(id)?;
-        let mut tree = Self::new();
-
-        for i in 0..NUM_DIRECT as usize {
-            tree.direct[i] = reader.deserialize()?;
-        }
-
-        tree.indirect = reader.deserialize()?;
-        tree.d_indirect = reader.deserialize()?;
-        tree.t_indirect = reader.deserialize()?;
-        tree.nblocks = reader.deserialize()?;
-        tree.nfiles = reader.deserialize()?;
-        tree.created = into_datetime(reader.deserialize()?);
-        tree.modified = into_datetime(reader.deserialize()?);
-
-        Ok(tree)
-    }
-
-    pub fn flush(&self, container: &mut BufContainer<B>, id: &B::Id) -> ArchiveResult<(), B> {
-        if (container.block_size() as usize) < (15 * B::Id::size() + mem::size_of::<u64>()) {
-            return Err(Error::InvalidBlockSize);
-        }
-
-        let mut writer = container.create_writer();
-
-        for id in self.direct.iter() {
-            writer.serialize(id)?;
-        }
-
-        writer.serialize(&self.indirect)?;
-        writer.serialize(&self.d_indirect)?;
-        writer.serialize(&self.t_indirect)?;
-        writer.serialize(&self.nblocks)?;
-        writer.serialize(&self.nfiles)?;
-        writer.serialize(&from_datetime(&self.created))?;
-        writer.serialize(&from_datetime(&self.modified))?;
-
-        container.write_buf(id)?;
-
-        Ok(())
     }
 
     pub fn aquire(&mut self, container: &mut BufContainer<B>) -> ArchiveResult<&B::Id, B> {

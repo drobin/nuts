@@ -21,13 +21,14 @@
 // IN THE SOFTWARE.
 
 use crate::entry::tests::entry_mut::lookup;
+use crate::entry::tests::{FULL, HALF};
 use crate::entry::Inner;
 use crate::tests::setup_container_with_bsize;
 use crate::Archive;
 
 #[test]
 fn no_content() {
-    let container = setup_container_with_bsize(92);
+    let container = setup_container_with_bsize(FULL as u32);
     let mut archive = Archive::create(container, false).unwrap();
 
     let mut entry = archive.append("foo").build().unwrap();
@@ -45,11 +46,11 @@ fn no_content() {
 
 #[test]
 fn half_block() {
-    let container = setup_container_with_bsize(92);
+    let container = setup_container_with_bsize(FULL as u32);
     let mut archive = Archive::create(container, false).unwrap();
 
     let mut entry = archive.append("foo").build().unwrap();
-    entry.write_all(&(0..46).collect::<Vec<u8>>()).unwrap();
+    entry.write_all(&(0..HALF).collect::<Vec<u8>>()).unwrap();
 
     let id0 = lookup(&mut archive, 0).unwrap().clone();
     let id1 = lookup(&mut archive, 1).unwrap().clone();
@@ -59,20 +60,20 @@ fn half_block() {
     let entry = reader.deserialize::<Inner>().unwrap();
 
     assert_eq!(entry.name, "foo");
-    assert_eq!(entry.size, 46);
+    assert_eq!(entry.size, HALF as u64);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf[..46], (0..46).collect::<Vec<u8>>());
-    assert_eq!(buf[46..], [0; 46]);
+    assert_eq!(buf[..HALF as usize], (0..HALF).collect::<Vec<u8>>());
+    assert_eq!(buf[HALF as usize..], [0; HALF as usize]);
 }
 
 #[test]
 fn one_block() {
-    let container = setup_container_with_bsize(92);
+    let container = setup_container_with_bsize(FULL as u32);
     let mut archive = Archive::create(container, false).unwrap();
 
     let mut entry = archive.append("foo").build().unwrap();
-    entry.write_all(&(0..92).collect::<Vec<u8>>()).unwrap();
+    entry.write_all(&(0..FULL).collect::<Vec<u8>>()).unwrap();
 
     let id0 = lookup(&mut archive, 0).unwrap().clone();
     let id1 = lookup(&mut archive, 1).unwrap().clone();
@@ -82,19 +83,21 @@ fn one_block() {
     let entry = reader.deserialize::<Inner>().unwrap();
 
     assert_eq!(entry.name, "foo");
-    assert_eq!(entry.size, 92);
+    assert_eq!(entry.size, FULL as u64);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..92).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
 }
 
 #[test]
 fn one_half_blocks() {
-    let container = setup_container_with_bsize(92);
+    let container = setup_container_with_bsize(FULL as u32);
     let mut archive = Archive::create(container, false).unwrap();
 
     let mut entry = archive.append("foo").build().unwrap();
-    entry.write_all(&(0..138).collect::<Vec<u8>>()).unwrap();
+    entry
+        .write_all(&(0..FULL + HALF).collect::<Vec<u8>>())
+        .unwrap();
 
     let id0 = lookup(&mut archive, 0).unwrap().clone();
     let id1 = lookup(&mut archive, 1).unwrap().clone();
@@ -105,23 +108,28 @@ fn one_half_blocks() {
     let entry = reader.deserialize::<Inner>().unwrap();
 
     assert_eq!(entry.name, "foo");
-    assert_eq!(entry.size, 138);
+    assert_eq!(entry.size, FULL as u64 + HALF as u64);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..92).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
 
     let buf = archive.container.read_buf_raw(&id2).unwrap();
-    assert_eq!(buf[..46], (92..138).collect::<Vec<u8>>());
-    assert_eq!(buf[46..], [0; 46]);
+    assert_eq!(
+        buf[..HALF as usize],
+        (FULL..FULL + HALF).collect::<Vec<u8>>()
+    );
+    assert_eq!(buf[HALF as usize..], [0; HALF as usize]);
 }
 
 #[test]
 fn two_blocks() {
-    let container = setup_container_with_bsize(92);
+    let container = setup_container_with_bsize(FULL as u32);
     let mut archive = Archive::create(container, false).unwrap();
 
     let mut entry = archive.append("foo").build().unwrap();
-    entry.write_all(&(0..184).collect::<Vec<u8>>()).unwrap();
+    entry
+        .write_all(&(0..2 * FULL).collect::<Vec<u8>>())
+        .unwrap();
 
     let id0 = lookup(&mut archive, 0).unwrap().clone();
     let id1 = lookup(&mut archive, 1).unwrap().clone();
@@ -132,11 +140,11 @@ fn two_blocks() {
     let entry = reader.deserialize::<Inner>().unwrap();
 
     assert_eq!(entry.name, "foo");
-    assert_eq!(entry.size, 184);
+    assert_eq!(entry.size, 2 * FULL as u64);
 
     let buf = archive.container.read_buf_raw(&id1).unwrap();
-    assert_eq!(buf, (0..92).collect::<Vec<u8>>());
+    assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
 
     let buf = archive.container.read_buf_raw(&id2).unwrap();
-    assert_eq!(buf, (92..184).collect::<Vec<u8>>());
+    assert_eq!(buf, (FULL..2 * FULL).collect::<Vec<u8>>());
 }
