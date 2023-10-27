@@ -23,6 +23,9 @@ nuts-container = "0.2.1"
 nuts-directory = "0.3.0"
 rpassword = "7.2.0"
 
+[build-dependencies]
+cargo_metadata = "0.18.1"
+
 [[bin]]
 name = "nuts"
 path = "src/main.rs"

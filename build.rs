@@ -20,42 +20,47 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use cargo_metadata::Metadata;
 use std::env;
-use std::io::{self, Write};
-use std::process::Command;
+use std::path::PathBuf;
 
 const SHORT_VERSION: &str = env!("CARGO_PKG_VERSION");
+const PACKAGES: [&str; 3] = ["nuts-archive", "nuts-container", "nuts-directory"];
 
-fn nuts_container_version() -> String {
-    let path = env::var("CARGO_MANIFEST_DIR").unwrap();
+fn cargo_metadata() -> Metadata {
+    let cargo = env::var("CARGO").unwrap();
+    let manifest_path: PathBuf = [
+        env::var("CARGO_MANIFEST_DIR").unwrap(),
+        "Cargo.toml".to_string(),
+    ]
+    .iter()
+    .collect();
 
-    let out = Command::new("cargo")
-        .current_dir(path)
-        .arg("pkgid")
-        .arg("nuts-container")
-        .output()
-        .unwrap();
+    println!("CARGO: {}", cargo);
+    println!("CARGO_MANIFEST_DIR: {}", manifest_path.display());
 
-    if !out.status.success() {
-        io::stderr().write_all(&out.stderr).unwrap();
-        panic!("failed to execute `cargo pkgid`");
-    }
+    let mut cmd = cargo_metadata::MetadataCommand::new();
 
-    let pkgid = String::from_utf8(out.stdout).unwrap();
-    let splitted = pkgid.rsplitn(2, '#').collect::<Vec<&str>>();
+    cmd.cargo_path(cargo);
+    cmd.manifest_path(manifest_path);
 
-    if splitted.len() != 2 {
-        panic!("invalid pkgid: {}", pkgid.trim())
-    }
-
-    splitted[0].trim().to_string()
+    cmd.exec().unwrap()
 }
 
 fn main() {
-    let container_version = nuts_container_version();
+    let metadata = cargo_metadata();
+
+    let packages = metadata
+        .packages
+        .iter()
+        .filter(|pkg| PACKAGES.iter().position(|name| name == &pkg.name).is_some());
+    let version_str = packages
+        .map(|pkg| format!("{}: {}", pkg.name, pkg.version))
+        .collect::<Vec<String>>()
+        .join(", ");
 
     let short_version = format!("{}", SHORT_VERSION);
-    let long_version = format!("{} (container: {})", SHORT_VERSION, container_version);
+    let long_version = format!("{} ({})", SHORT_VERSION, version_str);
 
     println!("cargo:rustc-env=NUTS_TOOL_SHORT_VERSION={}", short_version);
     println!("cargo:rustc-env=NUTS_TOOL_LONG_VERSION={}", long_version);
