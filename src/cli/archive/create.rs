@@ -24,11 +24,18 @@ use anyhow::Result;
 use clap::{ArgAction, Args};
 use log::debug;
 use nuts_archive::Archive;
+use std::path::PathBuf;
 
+use crate::archive::append_recursive;
 use crate::cli::open_container;
 
 #[derive(Args, Debug)]
 pub struct ArchiveCreateArgs {
+    /// Path to files/directories to be added to the archive. If PATHS contains
+    /// a directory all entries in the directory are also appended. If no PATHS
+    /// are specified an empty archive is created.
+    paths: Vec<PathBuf>,
+
     /// Force to create the archive even if another service is running in the
     /// container
     #[clap(short, long, action = ArgAction::SetTrue)]
@@ -45,8 +52,11 @@ impl ArchiveCreateArgs {
         debug!("force: {}", self.force);
 
         let container = open_container(&self.container)?;
+        let mut archive = Archive::create(container, self.force)?;
 
-        Archive::create(container, self.force)?;
+        for path in self.paths.iter() {
+            append_recursive(&mut archive, path)?;
+        }
 
         Ok(())
     }
