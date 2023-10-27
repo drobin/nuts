@@ -55,8 +55,9 @@ pub struct NutsCli {
 impl NutsCli {
     pub fn configure_logging(&self) {
         let filter = match self.verbose {
-            0 => LevelFilter::Info,
-            1 => LevelFilter::Debug,
+            0 => LevelFilter::Off,
+            1 => LevelFilter::Info,
+            2 => LevelFilter::Debug,
             _ => LevelFilter::Trace,
         };
 
