@@ -20,9 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::entry::tests::entry_mut::lookup;
-use crate::entry::tests::{FULL, HALF};
+use crate::entry::r#mut::tests::lookup;
 use crate::entry::Inner;
+use crate::entry::{FULL, HALF};
 use crate::tests::setup_container_with_bsize;
 use crate::Archive;
 

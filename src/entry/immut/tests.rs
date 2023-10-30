@@ -20,36 +20,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::entry::tests::entry::setup_archive;
-use crate::entry::tests::{FULL, HALF};
+mod next;
+mod read;
+mod read_all;
+mod read_vec;
 
-#[test]
-fn empty() {
-    let mut archive = setup_archive(0);
-    let mut entry = archive.first().unwrap().unwrap();
-    assert_eq!(entry.read_vec().unwrap(), []);
-}
+use nuts_container::memory::MemoryBackend;
 
-#[test]
-fn half() {
-    let mut archive = setup_archive(HALF);
-    let mut entry = archive.first().unwrap().unwrap();
-    assert_eq!(entry.read_vec().unwrap(), (0..HALF).collect::<Vec<u8>>());
-}
+use crate::entry::FULL;
+use crate::tests::setup_container_with_bsize;
+use crate::Archive;
 
-#[test]
-fn full() {
-    let mut archive = setup_archive(FULL);
-    let mut entry = archive.first().unwrap().unwrap();
-    assert_eq!(entry.read_vec().unwrap(), (0..FULL).collect::<Vec<u8>>());
-}
+fn setup_archive(num: u8) -> Archive<MemoryBackend> {
+    let container = setup_container_with_bsize(FULL as u32);
+    let mut archive = Archive::create(container, false).unwrap();
 
-#[test]
-fn full_half() {
-    let mut archive = setup_archive(FULL + HALF);
-    let mut entry = archive.first().unwrap().unwrap();
-    assert_eq!(
-        entry.read_vec().unwrap(),
-        (0..FULL + HALF).collect::<Vec<u8>>()
-    );
+    let mut entry = archive.append("f1").build().unwrap();
+
+    if num > 0 {
+        entry.write_all(&(0..num).collect::<Vec<u8>>()).unwrap();
+    }
+
+    archive
 }

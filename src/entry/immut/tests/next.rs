@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::entry::tests::FULL;
+use crate::entry::FULL;
 use crate::tests::{setup_container, setup_container_with_bsize};
 use crate::Archive;
 

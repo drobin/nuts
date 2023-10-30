@@ -20,8 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::entry::tests::entry::setup_archive;
-use crate::entry::tests::{FULL, HALF};
+use crate::entry::immut::tests::setup_archive;
+use crate::entry::{FULL, HALF};
 
 #[test]
 fn empty() {
