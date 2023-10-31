@@ -20,30 +20,27 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::{anyhow, Result};
-use clap::{ArgGroup, Args};
+use anyhow::Result;
+use clap::{Args, Subcommand};
 use log::debug;
 use nuts_archive::Archive;
-use std::borrow::Cow;
-use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
 
+use crate::archive::append_recursive;
 use crate::cli::open_container;
 
 #[derive(Args, Debug)]
-#[clap(group(ArgGroup::new("input").required(true).multiple(false)))]
+// #[clap(group(ArgGroup::new("input").required(true).multiple(false)))]
+#[clap(args_conflicts_with_subcommands = true)]
 pub struct ArchiveAddArgs {
-    /// The name of the entry.
-    ///
-    /// If specified reads the content from stdin.
-    /// If not specified, the --path option is required.
-    #[clap(group = "input")]
-    name: Option<String>,
+    #[clap(subcommand)]
+    command: Option<ArchiveAddCommand>,
 
-    /// File to be appended to the archive
-    #[clap(short, long, group = "input")]
-    path: Option<PathBuf>,
+    /// Path to files/directories to be added to the archive. If PATHS contains
+    /// a directory all entries in the directory are also appended. If no PATHS
+    /// are specified an empty archive is created.
+    paths: Vec<PathBuf>,
 
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
@@ -51,47 +48,71 @@ pub struct ArchiveAddArgs {
 }
 
 impl ArchiveAddArgs {
-    fn entry_name<'a>(&'a self) -> Result<Cow<'a, str>> {
-        if let Some(name) = self.name.as_deref() {
-            Ok(Cow::Borrowed(name))
-        } else if let Some(path) = self.path.as_deref() {
-            if path.is_file() {
-                Ok(path.to_string_lossy())
-            } else {
-                Err(anyhow!("Not a regular file: {}", path.display()))
-            }
-        } else {
-            panic!("should never be reached")
-        }
-    }
-
-    fn open_stream(&self) -> Result<Box<dyn Read>> {
-        if self.name.is_some() {
-            Ok(Box::new(io::stdin()))
-        } else if let Some(path) = self.path.as_deref() {
-            Ok(Box::new(File::open(path)?))
-        } else {
-            panic!("should never be reached")
-        }
-    }
-
     pub fn run(&self) -> Result<()> {
+        if let Some(command) = self.command.as_ref() {
+            return command.run();
+        }
+
+        debug!("container: {}", self.container);
+
         let container = open_container(&self.container)?;
         let mut archive = Archive::open(container)?;
+
+        for path in self.paths.iter() {
+            append_recursive(&mut archive, path)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ArchiveAddCommand {
+    /// Appends a custom file to the archive.
+    File(ArchiveAddFileArgs),
+
+    /// Appends a custom directory to the archive.
+    Directory(ArchiveAddDirectoryArgs),
+
+    /// Appends a custom symlink to the archive.
+    Symlink(ArchiveAddSymlinkArgs),
+}
+
+impl ArchiveAddCommand {
+    pub fn run(&self) -> Result<()> {
+        match self {
+            Self::File(args) => args.run(),
+            Self::Directory(args) => args.run(),
+            Self::Symlink(args) => args.run(),
+        }
+    }
+}
+
+#[derive(Args, Debug)]
+pub struct ArchiveAddFileArgs {
+    /// Name of the file.
+    name: String,
+
+    /// Specifies the name of the container
+    #[clap(short, long, env = "NUTS_CONTAINER")]
+    container: String,
+}
+
+impl ArchiveAddFileArgs {
+    pub fn run(&self) -> Result<()> {
+        debug!("container: {}", self.container);
+        debug!("name: {}", self.name);
+
+        let container = open_container(&self.container)?;
+        let mut archive = Archive::open(container)?;
+
         let block_size = archive.as_ref().block_size() as usize;
-
-        let name = self.entry_name()?;
-
-        debug!("block size: {}", block_size);
-        debug!("entry name: {}", name);
-
-        let mut s = self.open_stream()?;
-        let mut entry = archive.append(name).build()?;
+        let mut entry = archive.append_file(&self.name).build()?;
         let mut buf = vec![0; block_size];
 
         loop {
-            let n = s.read(&mut buf)?;
-            debug!("read from input stream: {}", n);
+            let n = io::stdin().read(&mut buf)?;
+            debug!("{} bytes read from stdin", n);
 
             if n > 0 {
                 entry.write_all(&buf[..n])?;
@@ -99,6 +120,58 @@ impl ArchiveAddArgs {
                 break;
             }
         }
+
+        Ok(())
+    }
+}
+
+#[derive(Args, Debug)]
+pub struct ArchiveAddDirectoryArgs {
+    /// Name of the directory.
+    name: String,
+
+    /// Specifies the name of the container
+    #[clap(short, long, env = "NUTS_CONTAINER")]
+    container: String,
+}
+
+impl ArchiveAddDirectoryArgs {
+    pub fn run(&self) -> Result<()> {
+        debug!("container: {}", self.container);
+        debug!("name: {}", self.name);
+
+        let container = open_container(&self.container)?;
+        let mut archive = Archive::open(container)?;
+
+        archive.append_directory(&self.name).build()?;
+
+        Ok(())
+    }
+}
+
+#[derive(Args, Debug)]
+pub struct ArchiveAddSymlinkArgs {
+    /// Name of the symlink.
+    name: String,
+
+    /// Target of the symlink.
+    target: String,
+
+    /// Specifies the name of the container
+    #[clap(short, long, env = "NUTS_CONTAINER")]
+    container: String,
+}
+
+impl ArchiveAddSymlinkArgs {
+    pub fn run(&self) -> Result<()> {
+        debug!("container: {}", self.container);
+        debug!("name: {}", self.name);
+        debug!("target: {}", self.target);
+
+        let container = open_container(&self.container)?;
+        let mut archive = Archive::open(container)?;
+
+        archive.append_symlink(&self.name, &self.target).build()?;
 
         Ok(())
     }

@@ -42,7 +42,17 @@ impl ArchiveListArgs {
         loop {
             match entry_opt {
                 Some(Ok(entry)) => {
-                    println!("{} ({})", entry.name(), entry.size());
+                    let type_char = if entry.is_file() {
+                        '-'
+                    } else if entry.is_directory() {
+                        'd'
+                    } else if entry.is_symlink() {
+                        'l'
+                    } else {
+                        '?'
+                    };
+
+                    println!("{} {} ({})", type_char, entry.name(), entry.size());
 
                     entry_opt = entry.next();
                 }

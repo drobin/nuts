@@ -25,21 +25,31 @@ use colored::*;
 use log::{debug, error, trace};
 use nuts_archive::Archive;
 use nuts_directory::DirectoryBackend;
-use std::fs::{File, Metadata};
+use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-fn append_recursive_metadata(
+pub fn append_recursive(
     archive: &mut Archive<DirectoryBackend<PathBuf>>,
     path: &Path,
-    metadata: &Metadata,
 ) -> Result<()> {
-    let block_size = archive.as_ref().block_size() as usize;
-    let mut entry = archive.append(path.to_string_lossy()).build()?;
+    debug!("append {}", path.display());
+
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(md) => md,
+        Err(err) => {
+            error!("{}", err);
+            println!("{}", format!("! {}", path.display()).red());
+            return Ok(());
+        }
+    };
 
     if metadata.is_file() {
+        let block_size = archive.as_ref().block_size() as usize;
+
         let mut fh = File::open(path)?;
         let mut buf = vec![0; block_size];
+        let mut entry = archive.append_file(path.to_string_lossy()).build()?;
 
         loop {
             let n = fh.read(&mut buf)?;
@@ -51,6 +61,14 @@ fn append_recursive_metadata(
                 break;
             }
         }
+    } else if metadata.is_dir() {
+        archive.append_directory(path.to_string_lossy()).build()?;
+    } else if metadata.is_symlink() {
+        let target = path.read_link()?;
+
+        archive
+            .append_symlink(path.to_string_lossy(), target.to_string_lossy())
+            .build()?;
     }
 
     println!("a {}", path.display());
@@ -64,20 +82,4 @@ fn append_recursive_metadata(
     }
 
     Ok(())
-}
-
-pub fn append_recursive(
-    archive: &mut Archive<DirectoryBackend<PathBuf>>,
-    path: &Path,
-) -> Result<()> {
-    debug!("append {}", path.display());
-
-    match path.metadata() {
-        Ok(metadata) => append_recursive_metadata(archive, path, &metadata),
-        Err(err) => {
-            error!("{}", err);
-            println!("{}", format!("! {}", path.display()).red());
-            Ok(())
-        }
-    }
 }
