@@ -20,11 +20,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+mod directory;
+mod symlink;
 mod write;
 mod write_all;
 
 use nuts_container::memory::{Id, MemoryBackend};
 
+use crate::entry::mode::Mode;
+use crate::entry::r#mut::{DirectoryBuilder, FileBuilder, InnerBuilder, SymlinkBuilder};
 use crate::Archive;
 
 fn lookup(archive: &mut Archive<MemoryBackend>, idx: usize) -> Option<&Id> {
@@ -32,4 +36,54 @@ fn lookup(archive: &mut Archive<MemoryBackend>, idx: usize) -> Option<&Id> {
         Some(result) => Some(result.unwrap()),
         None => None,
     }
+}
+
+fn setup_inner_builder<'a>(
+    archive: &'a mut Archive<MemoryBackend>,
+) -> InnerBuilder<'a, MemoryBackend> {
+    InnerBuilder::new(
+        &mut archive.container,
+        &archive.header_id,
+        &mut archive.header,
+        &mut archive.tree,
+        "foo".to_string(),
+        Mode::file(),
+    )
+}
+
+fn setup_file_builder<'a>(
+    archive: &'a mut Archive<MemoryBackend>,
+) -> FileBuilder<'a, MemoryBackend> {
+    FileBuilder::new(
+        &mut archive.container,
+        &archive.header_id,
+        &mut archive.header,
+        &mut archive.tree,
+        "foo".to_string(),
+    )
+}
+
+fn setup_directory_builder<'a>(
+    archive: &'a mut Archive<MemoryBackend>,
+) -> DirectoryBuilder<'a, MemoryBackend> {
+    DirectoryBuilder::new(
+        &mut archive.container,
+        &archive.header_id,
+        &mut archive.header,
+        &mut archive.tree,
+        "foo".to_string(),
+    )
+}
+
+fn setup_symlink_builder<'a>(
+    archive: &'a mut Archive<MemoryBackend>,
+) -> SymlinkBuilder<'a, MemoryBackend> {
+    SymlinkBuilder::new(
+        &mut archive.container,
+        &archive.header_id,
+        &mut archive.header,
+        &mut archive.tree,
+        "foo".to_string(),
+        "bar".to_string(),
+    )
 }

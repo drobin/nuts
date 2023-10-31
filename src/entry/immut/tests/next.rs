@@ -59,12 +59,12 @@ macro_rules! mk_test {
             let mut archive = Archive::create(setup_container_with_bsize(FULL as u32), false).unwrap();
 
             $(
-                let mut entry = archive.append($fname).build().unwrap();
+                let mut entry = archive.append_file($fname).build().unwrap();
                 entry.write_all(&BYTES[..$nbytes]).unwrap();
             )*
 
             $(
-                let mut entry = archive.append($last_fname).build().unwrap();
+                let mut entry = archive.append_file($last_fname).build().unwrap();
                 entry.write_all(&BYTES[..$last_nbytes]).unwrap();
             )*
 

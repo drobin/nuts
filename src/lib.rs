@@ -139,9 +139,21 @@
 //! // Open the archive
 //! let mut archive = Archive::open(container).unwrap();
 //!
-//! // Append a new entry
-//! let mut entry = archive.append("sample").build().unwrap();
+//! // Append a new file entry
+//! let mut entry = archive.append_file("sample file").build().unwrap();
 //! entry.write_all("some sample data".as_bytes()).unwrap();
+//!
+//! // Append a new directory entry
+//! archive
+//!     .append_directory("sample directory")
+//!     .build()
+//!     .unwrap();
+//!
+//! // Append a new symlink entry
+//! archive
+//!     .append_symlink("sample symlink", "target")
+//!     .build()
+//!     .unwrap();
 //! ```
 //!
 //! ## Loop through all entries in the archive
@@ -179,18 +191,25 @@
 //! let container =
 //!     Container::<DirectoryBackend<TempDir>>::open(backend_options, container_options).unwrap();
 //!
-//! // Open the archive and append two entries
+//! // Open the archive and append some entries
 //! let mut archive = Archive::open(container).unwrap();
 //!
-//! archive.append("f1").build().unwrap();
-//! archive.append("f2").build().unwrap();
+//! archive.append_file("f1").build().unwrap();
+//! archive.append_directory("f2").build().unwrap();
+//! archive.append_symlink("f3", "target").build().unwrap();
 //!
 //! // Go through the archive
 //! let entry = archive.first().unwrap().unwrap();
+//! assert!(entry.is_file());
 //! assert_eq!(entry.name(), "f1");
 //!
 //! let entry = entry.next().unwrap().unwrap();
+//! assert!(entry.is_directory());
 //! assert_eq!(entry.name(), "f2");
+//!
+//! let entry = entry.next().unwrap().unwrap();
+//! assert!(entry.is_symlink());
+//! assert_eq!(entry.name(), "f3");
 //!
 //! assert!(entry.next().is_none());
 //! ```
@@ -214,7 +233,7 @@ use nuts_container::container::Container;
 
 pub use entry::immut::Entry;
 pub use entry::mode::{Group, Mode};
-pub use entry::r#mut::{EntryBuilder, EntryMut};
+pub use entry::r#mut::{DirectoryBuilder, EntryMut, FileBuilder, SymlinkBuilder};
 pub use error::{ArchiveResult, Error};
 
 use crate::container::BufContainer;
@@ -353,18 +372,58 @@ impl<B: Backend> Archive<B> {
         Entry::first(&mut self.container, &mut self.tree)
     }
 
-    /// Appends a new entry with the given `name` at the end of the archive.
+    /// Appends a new file entry with the given `name` at the end of the
+    /// archive.
     ///
-    /// The method returns an [`EntryBuilder`] instance, where you are able to
+    /// The method returns a [`FileBuilder`] instance, where you are able to
     /// set some more properties for the new entry. Calling
-    /// [`EntryBuilder::build()`] will finally create the entry.
-    pub fn append<'a, N: AsRef<str>>(&'a mut self, name: N) -> EntryBuilder<'a, B> {
-        EntryBuilder::new(
+    /// [`FileBuilder::build()`] will finally create the entry.
+    pub fn append_file<'a, N: AsRef<str>>(&'a mut self, name: N) -> FileBuilder<'a, B> {
+        FileBuilder::new(
             &mut self.container,
             &self.header_id,
             &mut self.header,
             &mut self.tree,
             name.as_ref().to_string(),
+        )
+    }
+
+    /// Appends a new directory entry with the given `name` at the end of the
+    /// archive.
+    ///
+    /// The method returns a [`DirectoryBuilder`] instance, where you are able
+    /// to set some more properties for the new entry. Calling
+    /// [`DirectoryBuilder::build()`] will finally create the entry.
+    pub fn append_directory<'a, N: AsRef<str>>(&'a mut self, name: N) -> DirectoryBuilder<'a, B> {
+        DirectoryBuilder::new(
+            &mut self.container,
+            &self.header_id,
+            &mut self.header,
+            &mut self.tree,
+            name.as_ref().to_string(),
+        )
+    }
+
+    /// Appends a new symlink entry with the given `name` at the end of the
+    /// archive.
+    ///
+    /// The symlink points to the given `target` name.
+    ///
+    /// The method returns a [`SymlinkBuilder`] instance, where you are able to
+    /// set some more properties for the new entry. Calling
+    /// [`SymlinkBuilder::build()`] will finally create the entry.
+    pub fn append_symlink<'a, N: AsRef<str>, T: AsRef<str>>(
+        &'a mut self,
+        name: N,
+        target: T,
+    ) -> SymlinkBuilder<'a, B> {
+        SymlinkBuilder::new(
+            &mut self.container,
+            &self.header_id,
+            &mut self.header,
+            &mut self.tree,
+            name.as_ref().to_string(),
+            target.as_ref().to_string(),
         )
     }
 

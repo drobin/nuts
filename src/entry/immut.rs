@@ -26,8 +26,10 @@ mod tests;
 use log::{debug, error, warn};
 use nuts_container::backend::Backend;
 use std::cmp;
+use std::ops::Deref;
 
 use crate::container::BufContainer;
+use crate::entry::mode::Mode;
 use crate::entry::Inner;
 use crate::error::{ArchiveResult, Error};
 use crate::tree::Tree;
@@ -233,5 +235,13 @@ impl<'a, B: Backend> Entry<'a, B> {
         } else {
             self.size() / block_size + 1
         }
+    }
+}
+
+impl<'a, B: Backend> Deref for Entry<'a, B> {
+    type Target = Mode;
+
+    fn deref(&self) -> &Mode {
+        &self.inner.mode
     }
 }

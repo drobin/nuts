@@ -20,26 +20,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod next;
-mod read;
-mod read_all;
-mod read_vec;
-
-use nuts_container::memory::MemoryBackend;
-
-use crate::entry::FULL;
+use crate::entry::r#mut::tests::{lookup, setup_directory_builder};
+use crate::entry::{Inner, FULL};
 use crate::tests::setup_container_with_bsize;
 use crate::Archive;
 
-fn setup_archive(num: u8) -> Archive<MemoryBackend> {
+#[test]
+fn ok() {
     let container = setup_container_with_bsize(FULL as u32);
     let mut archive = Archive::create(container, false).unwrap();
 
-    let mut entry = archive.append_file("f1").build().unwrap();
+    let tuple = setup_directory_builder(&mut archive).build().unwrap();
+    assert_eq!(tuple, ());
 
-    if num > 0 {
-        entry.write_all(&(0..num).collect::<Vec<u8>>()).unwrap();
-    }
+    let id = lookup(&mut archive, 0).unwrap().clone();
+    assert!(lookup(&mut archive, 1).is_none());
 
-    archive
+    let mut reader = archive.container.read_buf(&id).unwrap();
+    let entry = reader.deserialize::<Inner>().unwrap();
+
+    assert_eq!(entry.name, "foo");
+    assert_eq!(entry.size, 0);
+    assert!(entry.mode.is_directory());
 }

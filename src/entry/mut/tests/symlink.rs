@@ -20,26 +20,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod next;
-mod read;
-mod read_all;
-mod read_vec;
-
-use nuts_container::memory::MemoryBackend;
-
-use crate::entry::FULL;
+use crate::entry::r#mut::tests::{lookup, setup_symlink_builder};
+use crate::entry::{Inner, FULL};
 use crate::tests::setup_container_with_bsize;
 use crate::Archive;
 
-fn setup_archive(num: u8) -> Archive<MemoryBackend> {
+#[test]
+fn ok() {
     let container = setup_container_with_bsize(FULL as u32);
     let mut archive = Archive::create(container, false).unwrap();
 
-    let mut entry = archive.append_file("f1").build().unwrap();
+    let tuple = setup_symlink_builder(&mut archive).build().unwrap();
+    assert_eq!(tuple, ());
 
-    if num > 0 {
-        entry.write_all(&(0..num).collect::<Vec<u8>>()).unwrap();
-    }
+    let id0 = lookup(&mut archive, 0).unwrap().clone();
+    let id1 = lookup(&mut archive, 1).unwrap().clone();
+    assert!(lookup(&mut archive, 2).is_none());
 
-    archive
+    let mut reader = archive.container.read_buf(&id0).unwrap();
+    let entry = reader.deserialize::<Inner>().unwrap();
+
+    assert_eq!(entry.name, "foo");
+    assert_eq!(entry.size, 3);
+    assert!(entry.mode.is_symlink());
+
+    let buf = archive.container.read_buf_raw(&id1).unwrap();
+    assert_eq!(buf[..3], *b"bar");
+    assert_eq!(buf[3..], [0; FULL as usize - 3]);
 }

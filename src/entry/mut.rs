@@ -26,20 +26,145 @@ mod tests;
 use log::debug;
 use nuts_container::backend::Backend;
 use std::cmp;
+use std::ops::{Deref, DerefMut};
 
 use crate::container::BufContainer;
+use crate::entry::mode::Mode;
 use crate::entry::Inner;
 use crate::error::ArchiveResult;
 use crate::flush_header;
 use crate::header::Header;
 use crate::tree::Tree;
 
-/// Builder for an new entry.
+macro_rules! impl_deref_mut_for {
+    ($type:ty) => {
+        impl<'a, B: Backend> Deref for $type {
+            type Target = Mode;
+
+            fn deref(&self) -> &Mode {
+                &self.0.entry.mode
+            }
+        }
+
+        impl<'a, B: Backend> DerefMut for $type {
+            fn deref_mut(&mut self) -> &mut Mode {
+                &mut self.0.entry.mode
+            }
+        }
+    };
+}
+
+macro_rules! impl_new {
+    ($type:ident, $mode:ident) => {
+        pub(crate) fn new(
+            container: &'a mut BufContainer<B>,
+            header_id: &'a B::Id,
+            header: &'a mut Header,
+            tree: &'a mut Tree<B>,
+            name: String,
+        ) -> $type<'a, B> {
+            $type(InnerBuilder::new(
+                container,
+                header_id,
+                header,
+                tree,
+                name,
+                Mode::$mode(),
+            ))
+        }
+    };
+}
+
+/// Builder for an new file entry.
 ///
-/// An `EntryBuilder` instance is returned by
-/// [`Archive::append()`](crate::Archive::append). Calling
-/// [`EntryBuilder::build()`] will create the entry at the end of the archive.
-pub struct EntryBuilder<'a, B: Backend> {
+/// A `FileBuilder` instance is returned by
+/// [`Archive::append_file()`](crate::Archive::append_file). Calling
+/// [`FileBuilder::build()`] will create the entry at the end of the archive.
+pub struct FileBuilder<'a, B: Backend>(InnerBuilder<'a, B>);
+
+impl<'a, B: Backend> FileBuilder<'a, B> {
+    impl_new!(FileBuilder, file);
+
+    /// Finally, creates the new file entry at the end of the archive.
+    ///
+    /// It returns an [`EntryMut`] instance, where you are able to add content
+    /// to the entry.
+    pub fn build(self) -> ArchiveResult<EntryMut<'a, B>, B> {
+        self.0.build()
+    }
+}
+
+impl_deref_mut_for!(FileBuilder<'a, B>);
+
+/// Builder for an new directory entry.
+///
+/// A `DirectoryBuilder` instance is returned by
+/// [`Archive::append_directory()`](crate::Archive::append_directory). Calling
+/// [`DirectoryBuilder::build()`] will create the entry at the end of the
+/// archive.
+pub struct DirectoryBuilder<'a, B: Backend>(InnerBuilder<'a, B>);
+
+impl<'a, B: Backend> DirectoryBuilder<'a, B> {
+    impl_new!(DirectoryBuilder, directory);
+
+    /// Finally, creates the new directory entry at the end of the archive.
+    pub fn build(self) -> ArchiveResult<(), B> {
+        self.0.build().map(|_| ())
+    }
+}
+
+impl_deref_mut_for!(DirectoryBuilder<'a, B>);
+
+/// Builder for an new symlink entry.
+///
+/// A `SymlinkBuilder` instance is returned by
+/// [`Archive::append_symlink()`](crate::Archive::append_symlink). Calling
+/// [`SymlinkBuilder::build()`] will create the entry at the end of the
+/// archive.
+pub struct SymlinkBuilder<'a, B: Backend> {
+    builder: InnerBuilder<'a, B>,
+    target: String,
+}
+
+impl<'a, B: Backend> SymlinkBuilder<'a, B> {
+    pub(crate) fn new(
+        container: &'a mut BufContainer<B>,
+        header_id: &'a B::Id,
+        header: &'a mut Header,
+        tree: &'a mut Tree<B>,
+        name: String,
+        target: String,
+    ) -> SymlinkBuilder<'a, B> {
+        let builder = InnerBuilder::new(container, header_id, header, tree, name, Mode::symlink());
+
+        SymlinkBuilder { builder, target }
+    }
+
+    /// Finally, creates the new symlink entry at the end of the archive.
+    pub fn build(self) -> ArchiveResult<(), B> {
+        let mut entry = self.builder.build()?;
+
+        entry.write_all(self.target.as_bytes())?;
+
+        Ok(())
+    }
+}
+
+impl<'a, B: Backend> Deref for SymlinkBuilder<'a, B> {
+    type Target = Mode;
+
+    fn deref(&self) -> &Mode {
+        &self.builder.entry.mode
+    }
+}
+
+impl<'a, B: Backend> DerefMut for SymlinkBuilder<'a, B> {
+    fn deref_mut(&mut self) -> &mut Mode {
+        &mut self.builder.entry.mode
+    }
+}
+
+struct InnerBuilder<'a, B: Backend> {
     container: &'a mut BufContainer<B>,
     header_id: &'a B::Id,
     header: &'a mut Header,
@@ -47,28 +172,25 @@ pub struct EntryBuilder<'a, B: Backend> {
     entry: Inner,
 }
 
-impl<'a, B: Backend> EntryBuilder<'a, B> {
-    pub(crate) fn new(
+impl<'a, B: Backend> InnerBuilder<'a, B> {
+    fn new(
         container: &'a mut BufContainer<B>,
         header_id: &'a B::Id,
         header: &'a mut Header,
         tree: &'a mut Tree<B>,
         name: String,
-    ) -> EntryBuilder<'a, B> {
-        EntryBuilder {
+        mode: Mode,
+    ) -> InnerBuilder<'a, B> {
+        InnerBuilder {
             container,
             header_id,
             header,
             tree,
-            entry: Inner::new(name),
+            entry: Inner::new(name, mode),
         }
     }
 
-    /// Finally, creates the new entry at the end of the archive.
-    ///
-    /// It returns an [`EntryMut`] instance, where you are able to add content
-    /// to the entry.
-    pub fn build(self) -> ArchiveResult<EntryMut<'a, B>, B> {
+    fn build(self) -> ArchiveResult<EntryMut<'a, B>, B> {
         let id = self.tree.aquire(self.container)?.clone();
 
         self.entry.flush(self.container, &id)?;
@@ -89,7 +211,7 @@ impl<'a, B: Backend> EntryBuilder<'a, B> {
 
 /// A mutable entry of the archive.
 ///
-/// An `EntryMut` instance is returned by [`EntryBuilder::build()`] and gives
+/// An `EntryMut` instance is returned by [`FileBuilder::build()`] and gives
 /// you the possibility to add content to the entry.
 pub struct EntryMut<'a, B: Backend> {
     container: &'a mut BufContainer<B>,

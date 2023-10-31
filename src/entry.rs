@@ -29,6 +29,7 @@ use nuts_container::backend::Backend;
 use serde::{Deserialize, Serialize};
 
 use crate::container::BufContainer;
+use crate::entry::mode::Mode;
 use crate::error::ArchiveResult;
 
 #[cfg(test)]
@@ -39,12 +40,17 @@ const FULL: u8 = 106;
 #[derive(Debug, Deserialize, Serialize)]
 struct Inner {
     name: String,
+    mode: Mode,
     size: u64,
 }
 
 impl Inner {
-    fn new(name: String) -> Inner {
-        Inner { name, size: 0 }
+    fn new(name: String, mode: Mode) -> Inner {
+        Inner {
+            name,
+            mode,
+            size: 0,
+        }
     }
 
     fn load<B: Backend>(container: &mut BufContainer<B>, id: &B::Id) -> ArchiveResult<Inner, B> {

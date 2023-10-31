@@ -126,9 +126,21 @@ fn append() {
     // Open the archive
     let mut archive = Archive::open(container).unwrap();
 
-    // Append a new entry
-    let mut entry = archive.append("sample").build().unwrap();
+    // Append a new file entry
+    let mut entry = archive.append_file("sample file").build().unwrap();
     entry.write_all("some sample data".as_bytes()).unwrap();
+
+    // Append a new directory entry
+    archive
+        .append_directory("sample directory")
+        .build()
+        .unwrap();
+
+    // Append a new symlink entry
+    archive
+        .append_symlink("sample symlink", "target")
+        .build()
+        .unwrap();
 }
 
 #[test]
@@ -165,18 +177,25 @@ fn scan() {
     let container =
         Container::<DirectoryBackend<TempDir>>::open(backend_options, container_options).unwrap();
 
-    // Open the archive and append two entries
+    // Open the archive and append some entries
     let mut archive = Archive::open(container).unwrap();
 
-    archive.append("f1").build().unwrap();
-    archive.append("f2").build().unwrap();
+    archive.append_file("f1").build().unwrap();
+    archive.append_directory("f2").build().unwrap();
+    archive.append_symlink("f3", "target").build().unwrap();
 
     // Go through the archive
     let entry = archive.first().unwrap().unwrap();
+    assert!(entry.is_file());
     assert_eq!(entry.name(), "f1");
 
     let entry = entry.next().unwrap().unwrap();
+    assert!(entry.is_directory());
     assert_eq!(entry.name(), "f2");
+
+    let entry = entry.next().unwrap().unwrap();
+    assert!(entry.is_symlink());
+    assert_eq!(entry.name(), "f3");
 
     assert!(entry.next().is_none());
 }
