@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2023-11-03
+
+## Added
+
+- The `Mode` type encodes the type and access rights and of an entry.
+
+## Changed
+
+- Refactoring of `Entry` & `EntryMut` which now includes the `Mode`.
+
 ## [0.1.1] - 2023-10-27
 
 ## Changed
@@ -15,3 +25,4 @@ Initial public release.
 
 [0.1.0]: https://github.com/drobin/nuts-archive/tree/v0.1.0
 [0.1.1]: https://github.com/drobin/nuts-archive/tree/v0.1.1
+[0.2.0]: https://github.com/drobin/nuts-archive/tree/v0.2.0
