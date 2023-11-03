@@ -104,7 +104,22 @@ impl<'a, B: Backend> TryFrom<InnerEntry<'a, B>> for Entry<'a, B> {
         } else if src.inner.mode.is_symlink() {
             Ok(Self::Symlink(SymlinkEntry::new(src)?))
         } else {
-            Err(Error::InvalidType)
+            error!(
+                "could not detect entry type at {} from mode {:?}",
+                src.idx, src.inner.mode
+            );
+
+            match src.tree.lookup(src.pager, src.idx) {
+                Some(Ok(id)) => Err(Error::InvalidType(Some(id.clone()))),
+                Some(Err(err)) => {
+                    error!("id lookup failed for idx {}", src.idx);
+                    Err(err)
+                }
+                None => {
+                    warn!("no id found at idx {}", src.idx);
+                    Err(Error::InvalidType(None))
+                }
+            }
         }
     }
 }

@@ -59,8 +59,9 @@ pub enum Error<B: Backend> {
     /// prematurely.
     UnexpectedEof,
 
-    /// Could not decode the type of an [`Entry`](crate::Entry).
-    InvalidType,
+    /// Could not decode the type of an [`Entry`](crate::Entry) stored at the
+    /// give block.
+    InvalidType(Option<B::Id>),
 }
 
 impl<B: Backend> fmt::Display for Error<B> {
@@ -77,7 +78,17 @@ impl<B: Backend> fmt::Display for Error<B> {
             Self::Full => write!(fmt, "the archive is full"),
             Self::InvalidBlockSize => write!(fmt, "the block size is too small"),
             Self::UnexpectedEof => write!(fmt, "could not fill the whole buffer"),
-            Self::InvalidType => write!(fmt, "could not detect the type of the entry"),
+            Self::InvalidType(Some(id)) => write!(
+                fmt,
+                "could not detect the type of the entry stored in {}",
+                id
+            ),
+            Self::InvalidType(None) => {
+                write!(
+                    fmt,
+                    "could not detect the type of the entry in unknown block",
+                )
+            }
         }
     }
 }
@@ -95,7 +106,7 @@ impl<B: Backend> fmt::Debug for Error<B> {
             Self::Full => fmt.debug_tuple("Full").finish(),
             Self::InvalidBlockSize => fmt.debug_tuple("InvalidBlockSize").finish(),
             Self::UnexpectedEof => fmt.debug_tuple("UnexpectedEof").finish(),
-            Self::InvalidType => fmt.debug_tuple("InvalidType").finish(),
+            Self::InvalidType(id) => fmt.debug_tuple("InvalidType").field(id).finish(),
         }
     }
 }
