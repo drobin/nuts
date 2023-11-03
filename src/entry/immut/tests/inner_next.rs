@@ -65,7 +65,7 @@ macro_rules! mk_test {
                 entry.write_all(&BYTES[..$last_nbytes]).unwrap();
             )*
 
-            let entry = InnerEntry::first(&mut archive.container, &mut archive.tree).unwrap().unwrap();
+            let entry = InnerEntry::first(&mut archive.pager, &mut archive.tree).unwrap().unwrap();
 
             $(
                 assert_entry!(entry, $fname, $nbytes);

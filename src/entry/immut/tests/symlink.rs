@@ -30,7 +30,7 @@ use crate::Archive;
 const DIGITS: [u8; 10] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 fn load_first<'a>(archive: &'a mut Archive<MemoryBackend>) -> SymlinkEntry<'a, MemoryBackend> {
-    let inner = InnerEntry::first(&mut archive.container, &mut archive.tree)
+    let inner = InnerEntry::first(&mut archive.pager, &mut archive.tree)
         .unwrap()
         .unwrap();
 

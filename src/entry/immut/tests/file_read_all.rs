@@ -29,7 +29,7 @@ use crate::error::Error;
 use crate::Archive;
 
 fn load_first<'a>(archive: &'a mut Archive<MemoryBackend>) -> FileEntry<'a, MemoryBackend> {
-    let inner = InnerEntry::first(&mut archive.container, &mut archive.tree)
+    let inner = InnerEntry::first(&mut archive.pager, &mut archive.tree)
         .unwrap()
         .unwrap();
 

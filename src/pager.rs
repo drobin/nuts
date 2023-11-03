@@ -29,19 +29,16 @@ use std::ops::{Deref, DerefMut};
 
 use crate::error::ArchiveResult;
 
-pub struct BufContainer<B: Backend> {
-    inner: Container<B>,
+pub struct Pager<B: Backend> {
+    container: Container<B>,
     buf: Vec<u8>,
 }
 
-impl<B: Backend> BufContainer<B> {
-    pub fn new(container: Container<B>) -> BufContainer<B> {
+impl<B: Backend> Pager<B> {
+    pub fn new(container: Container<B>) -> Pager<B> {
         let buf = vec![0; container.block_size() as usize];
 
-        BufContainer {
-            inner: container,
-            buf,
-        }
+        Pager { container, buf }
     }
 
     pub fn create_reader(&self) -> Reader<&[u8]> {
@@ -60,7 +57,7 @@ impl<B: Backend> BufContainer<B> {
     }
 
     pub fn read_buf_raw(&mut self, id: &B::Id) -> ArchiveResult<&[u8], B> {
-        let n = self.inner.read(id, &mut self.buf)?;
+        let n = self.container.read(id, &mut self.buf)?;
 
         assert_eq!(n, self.buf.len());
 
@@ -68,7 +65,7 @@ impl<B: Backend> BufContainer<B> {
     }
 
     pub fn write_buf(&mut self, id: &B::Id) -> ArchiveResult<(), B> {
-        self.inner.write(id, &self.buf)?;
+        self.container.write(id, &self.buf)?;
         Ok(())
     }
 
@@ -77,20 +74,20 @@ impl<B: Backend> BufContainer<B> {
     }
 
     pub fn into_container(self) -> Container<B> {
-        self.inner
+        self.container
     }
 }
 
-impl<B: Backend> Deref for BufContainer<B> {
+impl<B: Backend> Deref for Pager<B> {
     type Target = Container<B>;
 
     fn deref(&self) -> &Container<B> {
-        &self.inner
+        &self.container
     }
 }
 
-impl<B: Backend> DerefMut for BufContainer<B> {
+impl<B: Backend> DerefMut for Pager<B> {
     fn deref_mut(&mut self) -> &mut Container<B> {
-        &mut self.inner
+        &mut self.container
     }
 }

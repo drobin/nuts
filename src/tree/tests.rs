@@ -26,7 +26,7 @@ use nuts_container::container::Container;
 use nuts_container::memory::{Id, MemoryBackend};
 
 use crate::error::Error;
-use crate::pager::BufContainer;
+use crate::pager::Pager;
 use crate::tests::setup_container_with_bsize;
 use crate::tree::Tree;
 
@@ -126,7 +126,7 @@ fn de() {
 
 #[test]
 fn aquire() {
-    let mut container = BufContainer::new(setup_container_with_bsize(BSIZE));
+    let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = Tree::<MemoryBackend>::new();
 
     // direct
@@ -134,7 +134,7 @@ fn aquire() {
     let mut direct = [Id::null(); 12];
 
     for i in 0..12 {
-        direct[i] = tree.aquire(&mut container).unwrap().clone();
+        direct[i] = tree.aquire(&mut pager).unwrap().clone();
         assert_direct!(tree, i as u64 + 1, direct);
         assert!(tree.indirect.is_null());
         assert!(tree.d_indirect.is_null());
@@ -146,10 +146,10 @@ fn aquire() {
     let mut indirect = [Id::null(); 2];
 
     for i in 0..2 {
-        indirect[i] = tree.aquire(&mut container).unwrap().clone();
+        indirect[i] = tree.aquire(&mut pager).unwrap().clone();
 
         assert_direct!(tree, 12 + i as u64 + 1, direct);
-        assert_eq!(&indirect[..], read_node(&mut container, &tree.indirect));
+        assert_eq!(&indirect[..], read_node(&mut pager, &tree.indirect));
         assert!(tree.d_indirect.is_null());
         assert!(tree.t_indirect.is_null());
     }
@@ -159,20 +159,20 @@ fn aquire() {
     let mut d_indirect = [Id::null(); 4];
 
     for i in 0..4 {
-        d_indirect[i] = tree.aquire(&mut container).unwrap().clone();
+        d_indirect[i] = tree.aquire(&mut pager).unwrap().clone();
 
         assert_direct!(tree, 12 + 2 + i as u64 + 1, direct);
-        assert_eq!(&indirect[..], read_node(&mut container, &tree.indirect));
+        assert_eq!(&indirect[..], read_node(&mut pager, &tree.indirect));
         assert!(tree.t_indirect.is_null());
 
-        let d_node = read_node(&mut container, &tree.d_indirect);
+        let d_node = read_node(&mut pager, &tree.d_indirect);
 
-        assert_eq!(d_indirect[..2], read_node(&mut container, &d_node[0]));
+        assert_eq!(d_indirect[..2], read_node(&mut pager, &d_node[0]));
 
         if d_node[1].is_null() {
             assert_eq!(d_indirect[2..], [Id::null(); 2]);
         } else {
-            assert_eq!(d_indirect[2..], read_node(&mut container, &d_node[1]));
+            assert_eq!(d_indirect[2..], read_node(&mut pager, &d_node[1]));
         }
     }
 
@@ -181,12 +181,12 @@ fn aquire() {
     let mut t_indirect = [Id::null(); 8];
 
     for i in 0..8 {
-        t_indirect[i] = tree.aquire(&mut container).unwrap().clone();
+        t_indirect[i] = tree.aquire(&mut pager).unwrap().clone();
 
         assert_direct!(tree, 12 + 2 + 4 + i as u64 + 1, direct);
-        assert_eq!(&indirect[..], read_node(&mut container, &tree.indirect));
+        assert_eq!(&indirect[..], read_node(&mut pager, &tree.indirect));
 
-        let d_node = read_node(&mut container, &tree.d_indirect);
+        let d_node = read_node(&mut pager, &tree.d_indirect);
 
         let d_leafs: Vec<Id> = d_node
             .iter()
@@ -194,7 +194,7 @@ fn aquire() {
                 if id.is_null() {
                     vec![Id::null(); 2]
                 } else {
-                    read_node(&mut container, id)
+                    read_node(&mut pager, id)
                 }
             })
             .flatten()
@@ -202,14 +202,14 @@ fn aquire() {
 
         assert_eq!(d_leafs, d_indirect);
 
-        let t_node = read_node(&mut container, &tree.t_indirect);
+        let t_node = read_node(&mut pager, &tree.t_indirect);
         let t_leafs: Vec<Id> = t_node
             .iter()
             .map(|id| {
                 if id.is_null() {
                     vec![Id::null(); 2]
                 } else {
-                    read_node(&mut container, id)
+                    read_node(&mut pager, id)
                 }
             })
             .flatten()
@@ -219,7 +219,7 @@ fn aquire() {
                 if id.is_null() {
                     vec![Id::null(); 2]
                 } else {
-                    read_node(&mut container, id)
+                    read_node(&mut pager, id)
                 }
             })
             .flatten()
@@ -228,25 +228,25 @@ fn aquire() {
         assert_eq!(t_leafs, t_indirect);
     }
 
-    let err = tree.aquire(&mut container).unwrap_err();
+    let err = tree.aquire(&mut pager).unwrap_err();
     assert!(matches!(err, Error::Full));
 }
 
 #[test]
 fn lookup() {
-    let mut container = BufContainer::new(setup_container_with_bsize(BSIZE));
+    let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = Tree::<MemoryBackend>::new();
     let mut id_vec = vec![];
 
     for _ in 0..26 {
-        let id = tree.aquire(&mut container).unwrap().clone();
+        let id = tree.aquire(&mut pager).unwrap().clone();
         id_vec.push(id);
     }
 
     for i in 0..26 {
-        let id = tree.lookup(&mut container, i).unwrap().unwrap();
+        let id = tree.lookup(&mut pager, i).unwrap().unwrap();
         assert_eq!(&id_vec[i], id);
     }
 
-    assert!(tree.lookup(&mut container, 26).is_none());
+    assert!(tree.lookup(&mut pager, 26).is_none());
 }

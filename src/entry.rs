@@ -30,7 +30,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entry::mode::Mode;
 use crate::error::ArchiveResult;
-use crate::pager::BufContainer;
+use crate::pager::Pager;
 
 #[cfg(test)]
 const HALF: u8 = 53;
@@ -53,18 +53,14 @@ impl Inner {
         }
     }
 
-    fn load<B: Backend>(container: &mut BufContainer<B>, id: &B::Id) -> ArchiveResult<Inner, B> {
-        let mut reader = container.read_buf(id)?;
+    fn load<B: Backend>(pager: &mut Pager<B>, id: &B::Id) -> ArchiveResult<Inner, B> {
+        let mut reader = pager.read_buf(id)?;
         let inner = reader.deserialize()?;
 
         Ok(inner)
     }
 
-    fn flush<B: Backend>(
-        &self,
-        container: &mut BufContainer<B>,
-        id: &B::Id,
-    ) -> ArchiveResult<(), B> {
+    fn flush<B: Backend>(&self, pager: &mut Pager<B>, id: &B::Id) -> ArchiveResult<(), B> {
         let buf = {
             let mut writer = Writer::new(vec![]);
 
@@ -73,7 +69,7 @@ impl Inner {
             writer.into_target()
         };
 
-        container.write(id, &buf)?;
+        pager.write(id, &buf)?;
 
         Ok(())
     }

@@ -32,7 +32,7 @@ use std::ops::Deref;
 use crate::entry::mode::Mode;
 use crate::entry::Inner;
 use crate::error::{ArchiveResult, Error};
-use crate::pager::BufContainer;
+use crate::pager::Pager;
 use crate::tree::Tree;
 
 /// An entry of the archive.
@@ -273,7 +273,7 @@ impl<'a, B: Backend> Deref for SymlinkEntry<'a, B> {
 }
 
 pub struct InnerEntry<'a, B: Backend> {
-    container: &'a mut BufContainer<B>,
+    pager: &'a mut Pager<B>,
     tree: &'a mut Tree<B>,
     inner: Inner,
     idx: usize,
@@ -283,15 +283,15 @@ pub struct InnerEntry<'a, B: Backend> {
 
 impl<'a, B: Backend> InnerEntry<'a, B> {
     pub fn load(
-        container: &'a mut BufContainer<B>,
+        pager: &'a mut Pager<B>,
         tree: &'a mut Tree<B>,
         idx: usize,
         id: &B::Id,
     ) -> ArchiveResult<InnerEntry<'a, B>, B> {
-        let inner = Inner::load(container, id)?;
+        let inner = Inner::load(pager, id)?;
 
         Ok(InnerEntry {
-            container,
+            pager,
             tree,
             inner,
             idx,
@@ -301,14 +301,14 @@ impl<'a, B: Backend> InnerEntry<'a, B> {
     }
 
     pub fn first(
-        container: &'a mut BufContainer<B>,
+        pager: &'a mut Pager<B>,
         tree: &'a mut Tree<B>,
     ) -> Option<ArchiveResult<InnerEntry<'a, B>, B>> {
-        match tree.lookup(container, 0) {
+        match tree.lookup(pager, 0) {
             Some(Ok(id)) => {
                 debug!("lookup first at {}: {}", 0, id);
                 let id = id.clone();
-                Some(Self::load(container, tree, 0, &id))
+                Some(Self::load(pager, tree, 0, &id))
             }
             Some(Err(err)) => {
                 error!("lookup first at {}: {}", 0, err);
@@ -330,12 +330,12 @@ impl<'a, B: Backend> InnerEntry<'a, B> {
             next_idx, self.idx, self.inner.size, content_blocks
         );
 
-        match self.tree.lookup(self.container, next_idx) {
+        match self.tree.lookup(self.pager, next_idx) {
             Some(Ok(id)) => {
                 debug!("lookup next at {}: {}", next_idx, id);
 
                 let id = id.clone();
-                Some(Self::load(self.container, self.tree, next_idx, &id))
+                Some(Self::load(self.pager, self.tree, next_idx, &id))
             }
             Some(Err(err)) => {
                 error!("lookup next at {}: {}", next_idx, err);
@@ -358,7 +358,7 @@ impl<'a, B: Backend> InnerEntry<'a, B> {
                 return Ok(0);
             }
 
-            let block_size = self.container.block_size() as usize;
+            let block_size = self.pager.block_size() as usize;
             let remaining = self.inner.size as usize - self.ridx * block_size;
             let cache_size = cmp::min(remaining, block_size);
 
@@ -371,9 +371,9 @@ impl<'a, B: Backend> InnerEntry<'a, B> {
 
             let idx = self.idx + self.ridx + 1;
 
-            match self.tree.lookup(self.container, idx) {
+            match self.tree.lookup(self.pager, idx) {
                 Some(Ok(id)) => {
-                    let n = self.container.read(id, self.rcache.as_mut_slice())?;
+                    let n = self.pager.read(id, self.rcache.as_mut_slice())?;
 
                     assert_eq!(n, cache_size);
 
@@ -398,7 +398,7 @@ impl<'a, B: Backend> InnerEntry<'a, B> {
     }
 
     fn content_blocks(&self) -> u64 {
-        let block_size = self.container.block_size() as u64;
+        let block_size = self.pager.block_size() as u64;
 
         if self.inner.size % block_size == 0 {
             self.inner.size / block_size

@@ -27,7 +27,7 @@ use nuts_container::backend::{Backend, BlockId};
 use std::ops::Deref;
 
 use crate::error::ArchiveResult;
-use crate::pager::BufContainer;
+use crate::pager::Pager;
 use crate::tree::ids_per_node;
 use crate::tree::node::Node;
 
@@ -38,8 +38,8 @@ pub struct Cache<B: Backend> {
 }
 
 impl<'a, B: Backend> Cache<B> {
-    pub fn new(container: &BufContainer<B>) -> Cache<B> {
-        let ipn = ids_per_node(container) as usize;
+    pub fn new(pager: &Pager<B>) -> Cache<B> {
+        let ipn = ids_per_node(pager) as usize;
 
         Cache {
             id: B::Id::null(),
@@ -51,14 +51,10 @@ impl<'a, B: Backend> Cache<B> {
         &self.id
     }
 
-    pub fn refresh(
-        &mut self,
-        container: &mut BufContainer<B>,
-        id: &B::Id,
-    ) -> ArchiveResult<bool, B> {
+    pub fn refresh(&mut self, pager: &mut Pager<B>, id: &B::Id) -> ArchiveResult<bool, B> {
         if &self.id != id {
             self.id = id.clone();
-            self.node.fill(container, id)?;
+            self.node.fill(pager, id)?;
 
             Ok(true)
         } else {
@@ -68,18 +64,18 @@ impl<'a, B: Backend> Cache<B> {
 
     pub fn aquire(
         &mut self,
-        container: &mut BufContainer<B>,
+        pager: &mut Pager<B>,
         idx: usize,
         leaf: bool,
     ) -> ArchiveResult<bool, B> {
         if self.node[idx].is_null() {
             self.node[idx] = if leaf {
-                container.aquire()?
+                pager.aquire()?
             } else {
-                Node::aquire(container)?
+                Node::aquire(pager)?
             };
 
-            self.node.flush(container, &self.id)?;
+            self.node.flush(pager, &self.id)?;
 
             Ok(true)
         } else {

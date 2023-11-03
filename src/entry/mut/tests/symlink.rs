@@ -37,14 +37,14 @@ fn ok() {
     let id1 = lookup(&mut archive, 1).unwrap().clone();
     assert!(lookup(&mut archive, 2).is_none());
 
-    let mut reader = archive.container.read_buf(&id0).unwrap();
+    let mut reader = archive.pager.read_buf(&id0).unwrap();
     let entry = reader.deserialize::<Inner>().unwrap();
 
     assert_eq!(entry.name, "foo");
     assert_eq!(entry.size, 3);
     assert!(entry.mode.is_symlink());
 
-    let buf = archive.container.read_buf_raw(&id1).unwrap();
+    let buf = archive.pager.read_buf_raw(&id1).unwrap();
     assert_eq!(buf[..3], *b"bar");
     assert_eq!(buf[3..], [0; FULL as usize - 3]);
 }

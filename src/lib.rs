@@ -239,23 +239,23 @@ pub use error::{ArchiveResult, Error};
 
 use crate::entry::immut::InnerEntry;
 use crate::header::Header;
-use crate::pager::BufContainer;
+use crate::pager::Pager;
 use crate::tree::Tree;
 use crate::userdata::Userdata;
 
 fn flush_header<B: Backend>(
-    container: &mut BufContainer<B>,
+    pager: &mut Pager<B>,
     id: &B::Id,
     header: &Header,
     tree: &Tree<B>,
 ) -> ArchiveResult<(), B> {
-    let mut writer = container.create_writer();
+    let mut writer = pager.create_writer();
     let mut n = 0;
 
     n += writer.serialize(header)?;
     n += writer.serialize(tree)?;
 
-    container.write_buf(id)?;
+    pager.write_buf(id)?;
 
     debug!("{} bytes written into header at {}", n, id);
 
@@ -280,7 +280,7 @@ pub struct Info {
 
 /// The archive.
 pub struct Archive<B: Backend> {
-    container: BufContainer<B>,
+    pager: Pager<B>,
     header_id: B::Id,
     header: Header,
     tree: Tree<B>,
@@ -302,16 +302,16 @@ impl<B: Backend> Archive<B> {
     /// If user data of the container could be overwritten, an
     /// [`Error::OverwriteUserdata`] error will be returned.
     pub fn create(container: Container<B>, force: bool) -> ArchiveResult<Archive<B>, B> {
-        let mut container = BufContainer::new(container);
-        let userdata = Userdata::create(&mut container, force)?;
+        let mut pager = Pager::new(container);
+        let userdata = Userdata::create(&mut pager, force)?;
 
         let header = Header::create();
         let tree = Tree::<B>::new();
 
-        flush_header(&mut container, &userdata.id, &header, &tree)?;
+        flush_header(&mut pager, &userdata.id, &header, &tree)?;
 
         let archive = Archive {
-            container,
+            pager,
             header_id: userdata.id,
             header,
             tree,
@@ -335,16 +335,16 @@ impl<B: Backend> Archive<B> {
     /// [`Error::InvalidUserdata(Some(...))`](Error::InvalidUserdata) error is
     /// returned.
     pub fn open(container: Container<B>) -> ArchiveResult<Archive<B>, B> {
-        let mut container = BufContainer::new(container);
-        let userdata = Userdata::load(&mut container)?;
+        let mut pager = Pager::new(container);
+        let userdata = Userdata::load(&mut pager)?;
 
-        let mut reader = container.read_buf(&userdata.id)?;
+        let mut reader = pager.read_buf(&userdata.id)?;
 
         let header = reader.deserialize::<Header>()?;
         let tree = reader.deserialize::<Tree<B>>()?;
 
         let archive = Archive {
-            container,
+            pager,
             header_id: userdata.id,
             header,
             tree,
@@ -371,7 +371,7 @@ impl<B: Backend> Archive<B> {
     ///
     /// If the archive is empty, [`None`] is returned.
     pub fn first<'a>(&'a mut self) -> Option<ArchiveResult<Entry<'a, B>, B>> {
-        match InnerEntry::first(&mut self.container, &mut self.tree) {
+        match InnerEntry::first(&mut self.pager, &mut self.tree) {
             Some(Ok(inner)) => Some(inner.try_into()),
             Some(Err(err)) => Some(Err(err)),
             None => None,
@@ -386,7 +386,7 @@ impl<B: Backend> Archive<B> {
     /// [`FileBuilder::build()`] will finally create the entry.
     pub fn append_file<'a, N: AsRef<str>>(&'a mut self, name: N) -> FileBuilder<'a, B> {
         FileBuilder::new(
-            &mut self.container,
+            &mut self.pager,
             &self.header_id,
             &mut self.header,
             &mut self.tree,
@@ -402,7 +402,7 @@ impl<B: Backend> Archive<B> {
     /// [`DirectoryBuilder::build()`] will finally create the entry.
     pub fn append_directory<'a, N: AsRef<str>>(&'a mut self, name: N) -> DirectoryBuilder<'a, B> {
         DirectoryBuilder::new(
-            &mut self.container,
+            &mut self.pager,
             &self.header_id,
             &mut self.header,
             &mut self.tree,
@@ -424,7 +424,7 @@ impl<B: Backend> Archive<B> {
         target: T,
     ) -> SymlinkBuilder<'a, B> {
         SymlinkBuilder::new(
-            &mut self.container,
+            &mut self.pager,
             &self.header_id,
             &mut self.header,
             &mut self.tree,
@@ -435,12 +435,12 @@ impl<B: Backend> Archive<B> {
 
     /// Consumes this `Archive`, returning the underlying [`Container`].
     pub fn into_container(self) -> Container<B> {
-        self.container.into_container()
+        self.pager.into_container()
     }
 }
 
 impl<B: Backend> AsRef<Container<B>> for Archive<B> {
     fn as_ref(&self) -> &Container<B> {
-        &self.container
+        &self.pager
     }
 }

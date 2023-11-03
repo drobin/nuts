@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::pager::BufContainer;
+use crate::pager::Pager;
 use crate::tests::{into_error, setup_container_with_bsize};
 
 #[test]
@@ -35,8 +35,8 @@ fn read() {
         12
     );
 
-    let mut container = BufContainer::new(container);
-    let mut reader = container.read_buf(&id).unwrap();
+    let mut pager = Pager::new(container);
+    let mut reader = pager.read_buf(&id).unwrap();
 
     assert_eq!(reader.deserialize::<u32>().unwrap(), 1);
     assert_eq!(reader.deserialize::<u32>().unwrap(), 2);
@@ -48,11 +48,11 @@ fn read() {
 
 #[test]
 fn write() {
-    let mut container = BufContainer::new(setup_container_with_bsize(12));
-    let id = container.aquire().unwrap();
+    let mut pager = Pager::new(setup_container_with_bsize(12));
+    let id = pager.aquire().unwrap();
     let mut buf = [0; 12];
 
-    let mut writer = container.create_writer();
+    let mut writer = pager.create_writer();
 
     assert_eq!(writer.serialize(&1u32).unwrap(), 4);
     assert_eq!(writer.serialize(&2u32).unwrap(), 4);
@@ -61,8 +61,8 @@ fn write() {
     let err = writer.serialize(&4u32).unwrap_err();
     into_error!(err, nuts_bytes::Error::NoSpace);
 
-    container.write_buf(&id).unwrap();
+    pager.write_buf(&id).unwrap();
 
-    assert_eq!(container.read(&id, &mut buf).unwrap(), 12);
+    assert_eq!(pager.read(&id, &mut buf).unwrap(), 12);
     assert_eq!(buf, [0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3]);
 }

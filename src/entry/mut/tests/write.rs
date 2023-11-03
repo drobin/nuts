@@ -32,7 +32,7 @@ macro_rules! make_tests {
             let id = lookup(&mut archive, 0).unwrap().clone();
             assert!(lookup(&mut archive, 1).is_none());
 
-            let mut reader = archive.container.read_buf(&id).unwrap();
+            let mut reader = archive.pager.read_buf(&id).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
@@ -54,13 +54,13 @@ macro_rules! make_tests {
             let id1 = lookup(&mut archive, 1).unwrap().clone();
             assert!(lookup(&mut archive, 2).is_none());
 
-            let mut reader = archive.container.read_buf(&id0).unwrap();
+            let mut reader = archive.pager.read_buf(&id0).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, FULL as u64);
 
-            let buf = archive.container.read_buf_raw(&id1).unwrap();
+            let buf = archive.pager.read_buf_raw(&id1).unwrap();
             assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
         }
 
@@ -78,13 +78,13 @@ macro_rules! make_tests {
             let id1 = lookup(&mut archive, 1).unwrap().clone();
             assert!(lookup(&mut archive, 2).is_none());
 
-            let mut reader = archive.container.read_buf(&id0).unwrap();
+            let mut reader = archive.pager.read_buf(&id0).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, FULL as u64);
 
-            let buf = archive.container.read_buf_raw(&id1).unwrap();
+            let buf = archive.pager.read_buf_raw(&id1).unwrap();
             assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
         }
 
@@ -103,16 +103,16 @@ macro_rules! make_tests {
             let id2 = lookup(&mut archive, 2).unwrap().clone();
             assert!(lookup(&mut archive, 3).is_none());
 
-            let mut reader = archive.container.read_buf(&id0).unwrap();
+            let mut reader = archive.pager.read_buf(&id0).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, FULL as u64 + HALF as u64);
 
-            let buf = archive.container.read_buf_raw(&id1).unwrap();
+            let buf = archive.pager.read_buf_raw(&id1).unwrap();
             assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
 
-            let buf = archive.container.read_buf_raw(&id2).unwrap();
+            let buf = archive.pager.read_buf_raw(&id2).unwrap();
             assert_eq!(
                 buf[..HALF as usize],
                 (FULL..FULL + HALF).collect::<Vec<u8>>()
@@ -135,16 +135,16 @@ macro_rules! make_tests {
             let id2 = lookup(&mut archive, 2).unwrap().clone();
             assert!(lookup(&mut archive, 3).is_none());
 
-            let mut reader = archive.container.read_buf(&id0).unwrap();
+            let mut reader = archive.pager.read_buf(&id0).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, 2 * FULL as u64);
 
-            let buf = archive.container.read_buf_raw(&id1).unwrap();
+            let buf = archive.pager.read_buf_raw(&id1).unwrap();
             assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
 
-            let buf = archive.container.read_buf_raw(&id2).unwrap();
+            let buf = archive.pager.read_buf_raw(&id2).unwrap();
             assert_eq!(buf, (FULL..2 * FULL).collect::<Vec<u8>>());
         }
 
@@ -163,13 +163,13 @@ macro_rules! make_tests {
             let id1 = lookup(&mut archive, 1).unwrap().clone();
             assert!(lookup(&mut archive, 2).is_none());
 
-            let mut reader = archive.container.read_buf(&id0).unwrap();
+            let mut reader = archive.pager.read_buf(&id0).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, FULL as u64);
 
-            let buf = archive.container.read_buf_raw(&id1).unwrap();
+            let buf = archive.pager.read_buf_raw(&id1).unwrap();
             assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
         }
 
@@ -189,16 +189,16 @@ macro_rules! make_tests {
             let id2 = lookup(&mut archive, 2).unwrap().clone();
             assert!(lookup(&mut archive, 3).is_none());
 
-            let mut reader = archive.container.read_buf(&id0).unwrap();
+            let mut reader = archive.pager.read_buf(&id0).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, FULL as u64 + HALF as u64 + 1);
 
-            let buf = archive.container.read_buf_raw(&id1).unwrap();
+            let buf = archive.pager.read_buf_raw(&id1).unwrap();
             assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
 
-            let buf = archive.container.read_buf_raw(&id2).unwrap();
+            let buf = archive.pager.read_buf_raw(&id2).unwrap();
             assert_eq!(
                 buf[..HALF as usize + 1],
                 (FULL..FULL + HALF + 1).collect::<Vec<u8>>()
@@ -222,16 +222,16 @@ macro_rules! make_tests {
             let id2 = lookup(&mut archive, 2).unwrap().clone();
             assert!(lookup(&mut archive, 3).is_none());
 
-            let mut reader = archive.container.read_buf(&id0).unwrap();
+            let mut reader = archive.pager.read_buf(&id0).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, 2 * FULL as u64);
 
-            let buf = archive.container.read_buf_raw(&id1).unwrap();
+            let buf = archive.pager.read_buf_raw(&id1).unwrap();
             assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
 
-            let buf = archive.container.read_buf_raw(&id2).unwrap();
+            let buf = archive.pager.read_buf_raw(&id2).unwrap();
             assert_eq!(buf, (FULL..2 * FULL).collect::<Vec<u8>>());
         }
 
@@ -252,13 +252,13 @@ macro_rules! make_tests {
             let id1 = lookup(&mut archive, 1).unwrap().clone();
             assert!(lookup(&mut archive, 2).is_none());
 
-            let mut reader = archive.container.read_buf(&id0).unwrap();
+            let mut reader = archive.pager.read_buf(&id0).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, FULL as u64);
 
-            let buf = archive.container.read_buf_raw(&id1).unwrap();
+            let buf = archive.pager.read_buf_raw(&id1).unwrap();
             assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
         }
 
@@ -285,16 +285,16 @@ macro_rules! make_tests {
             let id2 = lookup(&mut archive, 2).unwrap().clone();
             assert!(lookup(&mut archive, 3).is_none());
 
-            let mut reader = archive.container.read_buf(&id0).unwrap();
+            let mut reader = archive.pager.read_buf(&id0).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, FULL as u64 + HALF as u64 - 2);
 
-            let buf = archive.container.read_buf_raw(&id1).unwrap();
+            let buf = archive.pager.read_buf_raw(&id1).unwrap();
             assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
 
-            let buf = archive.container.read_buf_raw(&id2).unwrap();
+            let buf = archive.pager.read_buf_raw(&id2).unwrap();
             assert_eq!(
                 buf[..HALF as usize - 2],
                 (FULL..FULL + HALF - 2).collect::<Vec<u8>>()
@@ -332,16 +332,16 @@ macro_rules! make_tests {
             let id2 = lookup(&mut archive, 2).unwrap().clone();
             assert!(lookup(&mut archive, 3).is_none());
 
-            let mut reader = archive.container.read_buf(&id0).unwrap();
+            let mut reader = archive.pager.read_buf(&id0).unwrap();
             let entry = reader.deserialize::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, 2 * FULL as u64);
 
-            let buf = archive.container.read_buf_raw(&id1).unwrap();
+            let buf = archive.pager.read_buf_raw(&id1).unwrap();
             assert_eq!(buf, (0..FULL).collect::<Vec<u8>>());
 
-            let buf = archive.container.read_buf_raw(&id2).unwrap();
+            let buf = archive.pager.read_buf_raw(&id2).unwrap();
             assert_eq!(buf, (FULL..2 * FULL).collect::<Vec<u8>>());
         }
     };

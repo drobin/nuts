@@ -29,7 +29,7 @@ fn empty() {
     let container = setup_container();
     let mut archive = Archive::create(container, false).unwrap();
 
-    assert!(InnerEntry::first(&mut archive.container, &mut archive.tree).is_none());
+    assert!(InnerEntry::first(&mut archive.pager, &mut archive.tree).is_none());
 }
 
 #[test]
@@ -39,7 +39,7 @@ fn one_entry() {
 
     archive.append_file("f1").build().unwrap();
 
-    let entry = InnerEntry::first(&mut archive.container, &mut archive.tree)
+    let entry = InnerEntry::first(&mut archive.pager, &mut archive.tree)
         .unwrap()
         .unwrap();
 
@@ -54,7 +54,7 @@ fn two_entries() {
     archive.append_file("f1").build().unwrap();
     archive.append_file("f2").build().unwrap();
 
-    let entry = InnerEntry::first(&mut archive.container, &mut archive.tree)
+    let entry = InnerEntry::first(&mut archive.pager, &mut archive.tree)
         .unwrap()
         .unwrap();
 

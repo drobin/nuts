@@ -32,7 +32,7 @@ use crate::entry::r#mut::{DirectoryBuilder, FileBuilder, InnerBuilder, SymlinkBu
 use crate::Archive;
 
 fn lookup(archive: &mut Archive<MemoryBackend>, idx: usize) -> Option<&Id> {
-    match archive.tree.lookup(&mut archive.container, idx) {
+    match archive.tree.lookup(&mut archive.pager, idx) {
         Some(result) => Some(result.unwrap()),
         None => None,
     }
@@ -42,7 +42,7 @@ fn setup_inner_builder<'a>(
     archive: &'a mut Archive<MemoryBackend>,
 ) -> InnerBuilder<'a, MemoryBackend> {
     InnerBuilder::new(
-        &mut archive.container,
+        &mut archive.pager,
         &archive.header_id,
         &mut archive.header,
         &mut archive.tree,
@@ -55,7 +55,7 @@ fn setup_file_builder<'a>(
     archive: &'a mut Archive<MemoryBackend>,
 ) -> FileBuilder<'a, MemoryBackend> {
     FileBuilder::new(
-        &mut archive.container,
+        &mut archive.pager,
         &archive.header_id,
         &mut archive.header,
         &mut archive.tree,
@@ -67,7 +67,7 @@ fn setup_directory_builder<'a>(
     archive: &'a mut Archive<MemoryBackend>,
 ) -> DirectoryBuilder<'a, MemoryBackend> {
     DirectoryBuilder::new(
-        &mut archive.container,
+        &mut archive.pager,
         &archive.header_id,
         &mut archive.header,
         &mut archive.tree,
@@ -79,7 +79,7 @@ fn setup_symlink_builder<'a>(
     archive: &'a mut Archive<MemoryBackend>,
 ) -> SymlinkBuilder<'a, MemoryBackend> {
     SymlinkBuilder::new(
-        &mut archive.container,
+        &mut archive.pager,
         &archive.header_id,
         &mut archive.header,
         &mut archive.tree,

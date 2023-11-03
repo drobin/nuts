@@ -28,7 +28,7 @@ use crate::entry::{FULL, HALF};
 use crate::Archive;
 
 fn load_first(archive: &mut Archive<MemoryBackend>) -> InnerEntry<MemoryBackend> {
-    InnerEntry::first(&mut archive.container, &mut archive.tree)
+    InnerEntry::first(&mut archive.pager, &mut archive.tree)
         .unwrap()
         .unwrap()
 }

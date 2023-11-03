@@ -36,7 +36,7 @@ fn ok() {
     let id = lookup(&mut archive, 0).unwrap().clone();
     assert!(lookup(&mut archive, 1).is_none());
 
-    let mut reader = archive.container.read_buf(&id).unwrap();
+    let mut reader = archive.pager.read_buf(&id).unwrap();
     let entry = reader.deserialize::<Inner>().unwrap();
 
     assert_eq!(entry.name, "foo");

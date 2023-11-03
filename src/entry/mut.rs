@@ -33,7 +33,7 @@ use crate::entry::Inner;
 use crate::error::ArchiveResult;
 use crate::flush_header;
 use crate::header::Header;
-use crate::pager::BufContainer;
+use crate::pager::Pager;
 use crate::tree::Tree;
 
 macro_rules! impl_deref_mut_for {
@@ -57,14 +57,14 @@ macro_rules! impl_deref_mut_for {
 macro_rules! impl_new {
     ($type:ident, $mode:ident) => {
         pub(crate) fn new(
-            container: &'a mut BufContainer<B>,
+            pager: &'a mut Pager<B>,
             header_id: &'a B::Id,
             header: &'a mut Header,
             tree: &'a mut Tree<B>,
             name: String,
         ) -> $type<'a, B> {
             $type(InnerBuilder::new(
-                container,
+                pager,
                 header_id,
                 header,
                 tree,
@@ -128,14 +128,14 @@ pub struct SymlinkBuilder<'a, B: Backend> {
 
 impl<'a, B: Backend> SymlinkBuilder<'a, B> {
     pub(crate) fn new(
-        container: &'a mut BufContainer<B>,
+        pager: &'a mut Pager<B>,
         header_id: &'a B::Id,
         header: &'a mut Header,
         tree: &'a mut Tree<B>,
         name: String,
         target: String,
     ) -> SymlinkBuilder<'a, B> {
-        let builder = InnerBuilder::new(container, header_id, header, tree, name, Mode::symlink());
+        let builder = InnerBuilder::new(pager, header_id, header, tree, name, Mode::symlink());
 
         SymlinkBuilder { builder, target }
     }
@@ -165,7 +165,7 @@ impl<'a, B: Backend> DerefMut for SymlinkBuilder<'a, B> {
 }
 
 struct InnerBuilder<'a, B: Backend> {
-    container: &'a mut BufContainer<B>,
+    pager: &'a mut Pager<B>,
     header_id: &'a B::Id,
     header: &'a mut Header,
     tree: &'a mut Tree<B>,
@@ -174,7 +174,7 @@ struct InnerBuilder<'a, B: Backend> {
 
 impl<'a, B: Backend> InnerBuilder<'a, B> {
     fn new(
-        container: &'a mut BufContainer<B>,
+        pager: &'a mut Pager<B>,
         header_id: &'a B::Id,
         header: &'a mut Header,
         tree: &'a mut Tree<B>,
@@ -182,7 +182,7 @@ impl<'a, B: Backend> InnerBuilder<'a, B> {
         mode: Mode,
     ) -> InnerBuilder<'a, B> {
         InnerBuilder {
-            container,
+            pager,
             header_id,
             header,
             tree,
@@ -191,15 +191,15 @@ impl<'a, B: Backend> InnerBuilder<'a, B> {
     }
 
     fn build(self) -> ArchiveResult<EntryMut<'a, B>, B> {
-        let id = self.tree.aquire(self.container)?.clone();
+        let id = self.tree.aquire(self.pager)?.clone();
 
-        self.entry.flush(self.container, &id)?;
+        self.entry.flush(self.pager, &id)?;
 
         self.header.inc_files();
-        flush_header(self.container, self.header_id, self.header, self.tree)?;
+        flush_header(self.pager, self.header_id, self.header, self.tree)?;
 
         Ok(EntryMut::new(
-            self.container,
+            self.pager,
             self.header_id,
             self.header,
             self.tree,
@@ -214,7 +214,7 @@ impl<'a, B: Backend> InnerBuilder<'a, B> {
 /// An `EntryMut` instance is returned by [`FileBuilder::build()`] and gives
 /// you the possibility to add content to the entry.
 pub struct EntryMut<'a, B: Backend> {
-    container: &'a mut BufContainer<B>,
+    pager: &'a mut Pager<B>,
     header_id: &'a B::Id,
     header: &'a mut Header,
     tree: &'a mut Tree<B>,
@@ -226,7 +226,7 @@ pub struct EntryMut<'a, B: Backend> {
 
 impl<'a, B: Backend> EntryMut<'a, B> {
     fn new(
-        container: &'a mut BufContainer<B>,
+        pager: &'a mut Pager<B>,
         header_id: &'a B::Id,
         header: &'a mut Header,
         tree: &'a mut Tree<B>,
@@ -234,7 +234,7 @@ impl<'a, B: Backend> EntryMut<'a, B> {
         id: B::Id,
     ) -> EntryMut<'a, B> {
         EntryMut {
-            container,
+            pager,
             header_id,
             header,
             tree,
@@ -250,11 +250,11 @@ impl<'a, B: Backend> EntryMut<'a, B> {
     /// Note that the entire buffer is not necessarily written. The method
     /// returns the number of bytes that were actually written.
     pub fn write(&mut self, buf: &[u8]) -> ArchiveResult<usize, B> {
-        let block_size = self.container.block_size() as u64;
+        let block_size = self.pager.block_size() as u64;
         let pos = (self.entry.size % block_size) as usize;
 
         let available = if pos == 0 {
-            self.last = self.tree.aquire(self.container)?.clone();
+            self.last = self.tree.aquire(self.pager)?.clone();
 
             debug!("block aquired: {}", self.last);
 
@@ -276,11 +276,11 @@ impl<'a, B: Backend> EntryMut<'a, B> {
         );
 
         self.cache[pos..pos + nbytes].copy_from_slice(&buf[..nbytes]);
-        self.container.write(&self.last, &self.cache)?;
+        self.pager.write(&self.last, &self.cache)?;
 
         self.entry.size += nbytes as u64;
-        self.entry.flush(self.container, &self.first)?;
-        flush_header(self.container, self.header_id, self.header, self.tree)?;
+        self.entry.flush(self.pager, &self.first)?;
+        flush_header(self.pager, self.header_id, self.header, self.tree)?;
 
         Ok(nbytes)
     }

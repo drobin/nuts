@@ -23,14 +23,14 @@
 use nuts_container::backend::BlockId;
 use nuts_container::memory::MemoryBackend;
 
-use crate::pager::BufContainer;
+use crate::pager::Pager;
 use crate::tests::setup_container_with_bsize;
 use crate::tree::cache::Cache;
 
 #[test]
 fn new() {
-    let container = BufContainer::new(setup_container_with_bsize(12));
-    let cache = Cache::<MemoryBackend>::new(&container);
+    let pager = Pager::new(setup_container_with_bsize(12));
+    let cache = Cache::<MemoryBackend>::new(&pager);
 
     assert!(cache.id.is_null());
     assert_eq!(cache.node.len(), 3);
@@ -51,10 +51,10 @@ fn refresh() {
         12
     );
 
-    let mut container = BufContainer::new(container);
+    let mut pager = Pager::new(container);
 
-    let mut cache = Cache::<MemoryBackend>::new(&container);
-    assert!(cache.refresh(&mut container, &id).unwrap());
+    let mut cache = Cache::<MemoryBackend>::new(&pager);
+    assert!(cache.refresh(&mut pager, &id).unwrap());
 
     assert_eq!(cache.id, id);
     assert_eq!(cache.node.len(), 3);
@@ -62,7 +62,7 @@ fn refresh() {
     assert_eq!(cache.node[1], "2".parse().unwrap());
     assert_eq!(cache.node[2], "3".parse().unwrap());
 
-    assert!(!cache.refresh(&mut container, &id).unwrap());
+    assert!(!cache.refresh(&mut pager, &id).unwrap());
 
     assert_eq!(cache.id, id);
     assert_eq!(cache.node.len(), 3);
@@ -83,15 +83,15 @@ fn aquire_null_no_leaf() {
         12
     );
 
-    let mut container = BufContainer::new(container);
+    let mut pager = Pager::new(container);
 
-    let mut cache = Cache::<MemoryBackend>::new(&container);
+    let mut cache = Cache::<MemoryBackend>::new(&pager);
 
-    assert!(cache.refresh(&mut container, &id).unwrap());
-    assert!(cache.aquire(&mut container, 0, false).unwrap());
+    assert!(cache.refresh(&mut pager, &id).unwrap());
+    assert!(cache.aquire(&mut pager, 0, false).unwrap());
 
     let mut buf = [0; 12];
-    let mut container = container.into_container();
+    let mut container = pager.into_container();
 
     assert_eq!(container.read(&id, &mut buf).unwrap(), 12);
     assert_eq!(buf, [0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 3]);
@@ -112,15 +112,15 @@ fn aquire_not_null_no_leaf() {
         12
     );
 
-    let mut container = BufContainer::new(container);
+    let mut pager = Pager::new(container);
 
-    let mut cache = Cache::<MemoryBackend>::new(&container);
+    let mut cache = Cache::<MemoryBackend>::new(&pager);
 
-    assert!(cache.refresh(&mut container, &id).unwrap());
-    assert!(!cache.aquire(&mut container, 1, false).unwrap());
+    assert!(cache.refresh(&mut pager, &id).unwrap());
+    assert!(!cache.aquire(&mut pager, 1, false).unwrap());
 
     let mut buf = [0; 12];
-    let mut container = container.into_container();
+    let mut container = pager.into_container();
 
     assert_eq!(container.read(&id, &mut buf).unwrap(), 12);
     assert_eq!(buf, [0xff, 0xff, 0xff, 0xff, 0, 0, 0, 2, 0, 0, 0, 3]);
@@ -138,15 +138,15 @@ fn aquire_null_leaf() {
         12
     );
 
-    let mut container = BufContainer::new(container);
+    let mut pager = Pager::new(container);
 
-    let mut cache = Cache::<MemoryBackend>::new(&container);
+    let mut cache = Cache::<MemoryBackend>::new(&pager);
 
-    assert!(cache.refresh(&mut container, &id).unwrap());
-    assert!(cache.aquire(&mut container, 0, true).unwrap());
+    assert!(cache.refresh(&mut pager, &id).unwrap());
+    assert!(cache.aquire(&mut pager, 0, true).unwrap());
 
     let mut buf = [0; 12];
-    let mut container = container.into_container();
+    let mut container = pager.into_container();
 
     assert_eq!(container.read(&id, &mut buf).unwrap(), 12);
     assert_eq!(buf, [0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 3]);
@@ -167,15 +167,15 @@ fn aquire_not_null_leaf() {
         12
     );
 
-    let mut container = BufContainer::new(container);
+    let mut pager = Pager::new(container);
 
-    let mut cache = Cache::<MemoryBackend>::new(&container);
+    let mut cache = Cache::<MemoryBackend>::new(&pager);
 
-    assert!(cache.refresh(&mut container, &id).unwrap());
-    assert!(!cache.aquire(&mut container, 1, true).unwrap());
+    assert!(cache.refresh(&mut pager, &id).unwrap());
+    assert!(!cache.aquire(&mut pager, 1, true).unwrap());
 
     let mut buf = [0; 12];
-    let mut container = container.into_container();
+    let mut container = pager.into_container();
 
     assert_eq!(container.read(&id, &mut buf).unwrap(), 12);
     assert_eq!(buf, [0xff, 0xff, 0xff, 0xff, 0, 0, 0, 2, 0, 0, 0, 3]);

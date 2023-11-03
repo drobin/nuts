@@ -25,7 +25,7 @@ use nuts_container::backend::BlockId;
 use nuts_container::memory::{Id, MemoryBackend};
 
 use crate::error::Error;
-use crate::pager::BufContainer;
+use crate::pager::Pager;
 use crate::tests::setup_container_with_bsize;
 use crate::tree::node::Node;
 
@@ -41,11 +41,11 @@ fn new() {
 
 #[test]
 fn aquire() {
-    let mut container = BufContainer::new(setup_container_with_bsize(16));
-    let id = Node::aquire(&mut container).unwrap();
+    let mut pager = Pager::new(setup_container_with_bsize(16));
+    let id = Node::aquire(&mut pager).unwrap();
 
     let mut buf = vec![0; 32];
-    assert_eq!(container.into_container().read(&id, &mut buf).unwrap(), 16);
+    assert_eq!(pager.into_container().read(&id, &mut buf).unwrap(), 16);
 
     let mut reader = Reader::new(&buf[..16]);
 
@@ -71,7 +71,7 @@ fn fill() {
 
     let mut node = Node::new(4);
 
-    node.fill(&mut BufContainer::new(container), &id).unwrap();
+    node.fill(&mut Pager::new(container), &id).unwrap();
     assert_eq!(
         node,
         [
@@ -92,13 +92,13 @@ fn flush() {
     node[2] = "3".parse().unwrap();
     node[3] = "4".parse().unwrap();
 
-    let mut container = BufContainer::new(setup_container_with_bsize(16));
-    let id = container.aquire().unwrap();
+    let mut pager = Pager::new(setup_container_with_bsize(16));
+    let id = pager.aquire().unwrap();
 
-    node.flush(&mut container, &id).unwrap();
+    node.flush(&mut pager, &id).unwrap();
 
     let mut buf = [0; 16];
-    assert_eq!(container.into_container().read(&id, &mut buf).unwrap(), 16);
+    assert_eq!(pager.into_container().read(&id, &mut buf).unwrap(), 16);
     assert_eq!(buf, [0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4]);
 }
 
@@ -111,10 +111,10 @@ fn flush_underflow() {
     node[2] = "3".parse().unwrap();
     node[3] = "4".parse().unwrap();
 
-    let mut container = BufContainer::new(setup_container_with_bsize(20));
-    let id = container.aquire().unwrap();
+    let mut pager = Pager::new(setup_container_with_bsize(20));
+    let id = pager.aquire().unwrap();
 
-    let err = node.flush(&mut container, &id).unwrap_err();
+    let err = node.flush(&mut pager, &id).unwrap_err();
     assert!(matches!(err, Error::InvalidBlockSize));
 }
 
@@ -127,9 +127,9 @@ fn flush_overflow() {
     node[2] = "3".parse().unwrap();
     node[3] = "4".parse().unwrap();
 
-    let mut container = BufContainer::new(setup_container_with_bsize(15));
-    let id = container.aquire().unwrap();
+    let mut pager = Pager::new(setup_container_with_bsize(15));
+    let id = pager.aquire().unwrap();
 
-    let err = node.flush(&mut container, &id).unwrap_err();
+    let err = node.flush(&mut pager, &id).unwrap_err();
     assert!(matches!(err, Error::InvalidBlockSize));
 }
