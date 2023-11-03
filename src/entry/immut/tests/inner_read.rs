@@ -20,13 +20,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use nuts_container::memory::MemoryBackend;
+
 use crate::entry::immut::tests::setup_archive;
+use crate::entry::immut::InnerEntry;
 use crate::entry::{FULL, HALF};
+use crate::Archive;
+
+fn load_first(archive: &mut Archive<MemoryBackend>) -> InnerEntry<MemoryBackend> {
+    InnerEntry::first(&mut archive.container, &mut archive.tree)
+        .unwrap()
+        .unwrap()
+}
 
 #[test]
 fn empty() {
     let mut archive = setup_archive(0);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     let mut buf = [b'x'; 8];
 
     assert_eq!(entry.read(&mut buf).unwrap(), 0);
@@ -36,7 +46,7 @@ fn empty() {
 #[test]
 fn half_part_aligned() {
     let mut archive = setup_archive(HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; 26];
     assert_eq!(entry.read(&mut buf).unwrap(), 26);
@@ -50,7 +60,7 @@ fn half_part_aligned() {
 #[test]
 fn half_part_unaligned() {
     let mut archive = setup_archive(HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; 30];
     assert_eq!(entry.read(&mut buf).unwrap(), 30);
@@ -65,7 +75,7 @@ fn half_part_unaligned() {
 #[test]
 fn half_all() {
     let mut archive = setup_archive(HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; HALF as usize];
     assert_eq!(entry.read(&mut buf).unwrap(), HALF as usize);
@@ -79,7 +89,7 @@ fn half_all() {
 #[test]
 fn half_more() {
     let mut archive = setup_archive(HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; HALF as usize + 1];
     assert_eq!(entry.read(&mut buf).unwrap(), HALF as usize);
@@ -93,7 +103,7 @@ fn half_more() {
 #[test]
 fn full_part_aligned() {
     let mut archive = setup_archive(FULL);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; 53];
     assert_eq!(entry.read(&mut buf).unwrap(), 53);
@@ -107,7 +117,7 @@ fn full_part_aligned() {
 #[test]
 fn full_part_unaligned() {
     let mut archive = setup_archive(FULL);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; 55];
     assert_eq!(entry.read(&mut buf).unwrap(), 55);
@@ -122,7 +132,7 @@ fn full_part_unaligned() {
 #[test]
 fn full_all() {
     let mut archive = setup_archive(FULL);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; FULL as usize];
     assert_eq!(entry.read(&mut buf).unwrap(), FULL as usize);
@@ -136,7 +146,7 @@ fn full_all() {
 #[test]
 fn full_more() {
     let mut archive = setup_archive(FULL);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; FULL as usize + 1];
     assert_eq!(entry.read(&mut buf).unwrap(), FULL as usize);
@@ -150,7 +160,7 @@ fn full_more() {
 #[test]
 fn full_half_part_aligned() {
     let mut archive = setup_archive(FULL + HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; 53];
     assert_eq!(entry.read(&mut buf).unwrap(), 53);
@@ -172,7 +182,7 @@ fn full_half_part_aligned() {
 #[test]
 fn full_half_part_unaligned() {
     let mut archive = setup_archive(FULL + HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; 55];
     assert_eq!(entry.read(&mut buf).unwrap(), 55);
@@ -200,7 +210,7 @@ fn full_half_part_unaligned() {
 #[test]
 fn full_half_all() {
     let mut archive = setup_archive(FULL + HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; FULL as usize];
     assert_eq!(entry.read(&mut buf).unwrap(), FULL as usize);
@@ -218,7 +228,7 @@ fn full_half_all() {
 #[test]
 fn full_half_more() {
     let mut archive = setup_archive(FULL + HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
 
     let mut buf = [b'x'; FULL as usize + 1];
     assert_eq!(entry.read(&mut buf).unwrap(), FULL as usize);

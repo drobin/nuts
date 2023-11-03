@@ -20,34 +20,46 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use nuts_container::memory::MemoryBackend;
+
 use crate::entry::immut::tests::setup_archive;
+use crate::entry::immut::{FileEntry, InnerEntry};
 use crate::entry::{FULL, HALF};
+use crate::Archive;
+
+fn load_first<'a>(archive: &'a mut Archive<MemoryBackend>) -> FileEntry<'a, MemoryBackend> {
+    let inner = InnerEntry::first(&mut archive.container, &mut archive.tree)
+        .unwrap()
+        .unwrap();
+
+    FileEntry(inner)
+}
 
 #[test]
 fn empty() {
     let mut archive = setup_archive(0);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     assert_eq!(entry.read_vec().unwrap(), []);
 }
 
 #[test]
 fn half() {
     let mut archive = setup_archive(HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     assert_eq!(entry.read_vec().unwrap(), (0..HALF).collect::<Vec<u8>>());
 }
 
 #[test]
 fn full() {
     let mut archive = setup_archive(FULL);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     assert_eq!(entry.read_vec().unwrap(), (0..FULL).collect::<Vec<u8>>());
 }
 
 #[test]
 fn full_half() {
     let mut archive = setup_archive(FULL + HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     assert_eq!(
         entry.read_vec().unwrap(),
         (0..FULL + HALF).collect::<Vec<u8>>()

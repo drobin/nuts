@@ -20,14 +20,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use nuts_container::memory::MemoryBackend;
+
 use crate::entry::immut::tests::setup_archive;
+use crate::entry::immut::{FileEntry, InnerEntry};
 use crate::entry::{FULL, HALF};
 use crate::error::Error;
+use crate::Archive;
+
+fn load_first<'a>(archive: &'a mut Archive<MemoryBackend>) -> FileEntry<'a, MemoryBackend> {
+    let inner = InnerEntry::first(&mut archive.container, &mut archive.tree)
+        .unwrap()
+        .unwrap();
+
+    FileEntry(inner)
+}
 
 #[test]
 fn empty() {
     let mut archive = setup_archive(0);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     let mut buf = [];
 
     entry.read_all(&mut buf).unwrap();
@@ -36,7 +48,7 @@ fn empty() {
 #[test]
 fn empty_more() {
     let mut archive = setup_archive(0);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     let mut buf = [b'x'; 1];
 
     let err = entry.read_all(&mut buf).unwrap_err();
@@ -46,7 +58,7 @@ fn empty_more() {
 #[test]
 fn half() {
     let mut archive = setup_archive(HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     let mut buf = [0; HALF as usize];
 
     entry.read_all(&mut buf).unwrap();
@@ -56,7 +68,7 @@ fn half() {
 #[test]
 fn half_more() {
     let mut archive = setup_archive(HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     let mut buf = [0; HALF as usize + 1];
 
     let err = entry.read_all(&mut buf).unwrap_err();
@@ -66,7 +78,7 @@ fn half_more() {
 #[test]
 fn full() {
     let mut archive = setup_archive(FULL);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     let mut buf = [0; FULL as usize];
 
     entry.read_all(&mut buf).unwrap();
@@ -76,7 +88,7 @@ fn full() {
 #[test]
 fn full_more() {
     let mut archive = setup_archive(FULL);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     let mut buf = [0; FULL as usize + 1];
 
     let err = entry.read_all(&mut buf).unwrap_err();
@@ -86,7 +98,7 @@ fn full_more() {
 #[test]
 fn full_half() {
     let mut archive = setup_archive(FULL + HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     let mut buf = [0; FULL as usize + HALF as usize];
 
     entry.read_all(&mut buf).unwrap();
@@ -96,7 +108,7 @@ fn full_half() {
 #[test]
 fn full_half_more() {
     let mut archive = setup_archive(FULL + HALF);
-    let mut entry = archive.first().unwrap().unwrap();
+    let mut entry = load_first(&mut archive);
     let mut buf = [0; FULL as usize + HALF as usize + 1];
 
     let err = entry.read_all(&mut buf).unwrap_err();

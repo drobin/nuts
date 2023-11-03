@@ -53,10 +53,14 @@ pub enum Error<B: Backend> {
     /// too small.
     InvalidBlockSize,
 
-    /// An error returned by [`Entry::read_all()`](crate::Entry::read_all) when
-    /// the operation could not be completed because an “end of file” was
-    /// reached prematurely.
+    /// An error returned by
+    /// [`FileEntry::read_all()`](crate::FileEntry::read_all) when the
+    /// operation could not be completed because an “end of file” was reached
+    /// prematurely.
     UnexpectedEof,
+
+    /// Could not decode the type of an [`Entry`](crate::Entry).
+    InvalidType,
 }
 
 impl<B: Backend> fmt::Display for Error<B> {
@@ -73,6 +77,7 @@ impl<B: Backend> fmt::Display for Error<B> {
             Self::Full => write!(fmt, "the archive is full"),
             Self::InvalidBlockSize => write!(fmt, "the block size is too small"),
             Self::UnexpectedEof => write!(fmt, "could not fill the whole buffer"),
+            Self::InvalidType => write!(fmt, "could not detect the type of the entry"),
         }
     }
 }
@@ -90,6 +95,7 @@ impl<B: Backend> fmt::Debug for Error<B> {
             Self::Full => fmt.debug_tuple("Full").finish(),
             Self::InvalidBlockSize => fmt.debug_tuple("InvalidBlockSize").finish(),
             Self::UnexpectedEof => fmt.debug_tuple("UnexpectedEof").finish(),
+            Self::InvalidType => fmt.debug_tuple("InvalidType").finish(),
         }
     }
 }

@@ -230,13 +230,15 @@ use chrono::{DateTime, Utc};
 use log::debug;
 use nuts_container::backend::Backend;
 use nuts_container::container::Container;
+use std::convert::TryInto;
 
-pub use entry::immut::Entry;
+pub use entry::immut::{DirectoryEntry, Entry, FileEntry, SymlinkEntry};
 pub use entry::mode::{Group, Mode};
 pub use entry::r#mut::{DirectoryBuilder, EntryMut, FileBuilder, SymlinkBuilder};
 pub use error::{ArchiveResult, Error};
 
 use crate::container::BufContainer;
+use crate::entry::immut::InnerEntry;
 use crate::header::Header;
 use crate::tree::Tree;
 use crate::userdata::Userdata;
@@ -369,7 +371,11 @@ impl<B: Backend> Archive<B> {
     ///
     /// If the archive is empty, [`None`] is returned.
     pub fn first<'a>(&'a mut self) -> Option<ArchiveResult<Entry<'a, B>, B>> {
-        Entry::first(&mut self.container, &mut self.tree)
+        match InnerEntry::first(&mut self.container, &mut self.tree) {
+            Some(Ok(inner)) => Some(inner.try_into()),
+            Some(Err(err)) => Some(Err(err)),
+            None => None,
+        }
     }
 
     /// Appends a new file entry with the given `name` at the end of the

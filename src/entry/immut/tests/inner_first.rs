@@ -20,28 +20,43 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod file_read_all;
-mod file_read_vec;
-mod inner_first;
-mod inner_next;
-mod inner_read;
-mod symlink;
-
-use nuts_container::memory::MemoryBackend;
-
-use crate::entry::FULL;
-use crate::tests::setup_container_with_bsize;
+use crate::entry::immut::InnerEntry;
+use crate::tests::setup_container;
 use crate::Archive;
 
-fn setup_archive(num: u8) -> Archive<MemoryBackend> {
-    let container = setup_container_with_bsize(FULL as u32);
+#[test]
+fn empty() {
+    let container = setup_container();
     let mut archive = Archive::create(container, false).unwrap();
 
-    let mut entry = archive.append_file("f1").build().unwrap();
+    assert!(InnerEntry::first(&mut archive.container, &mut archive.tree).is_none());
+}
 
-    if num > 0 {
-        entry.write_all(&(0..num).collect::<Vec<u8>>()).unwrap();
-    }
+#[test]
+fn one_entry() {
+    let container = setup_container();
+    let mut archive = Archive::create(container, false).unwrap();
 
-    archive
+    archive.append_file("f1").build().unwrap();
+
+    let entry = InnerEntry::first(&mut archive.container, &mut archive.tree)
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(entry.inner.name, "f1");
+}
+
+#[test]
+fn two_entries() {
+    let container = setup_container();
+    let mut archive = Archive::create(container, false).unwrap();
+
+    archive.append_file("f1").build().unwrap();
+    archive.append_file("f2").build().unwrap();
+
+    let entry = InnerEntry::first(&mut archive.container, &mut archive.tree)
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(entry.inner.name, "f1");
 }

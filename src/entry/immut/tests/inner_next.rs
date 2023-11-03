@@ -20,8 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use crate::entry::immut::InnerEntry;
 use crate::entry::FULL;
-use crate::tests::{setup_container, setup_container_with_bsize};
+use crate::tests::setup_container_with_bsize;
 use crate::Archive;
 
 const BYTES: [u8; 224] = [
@@ -43,12 +44,8 @@ const BYTES: [u8; 224] = [
 
 macro_rules! assert_entry {
     ($entry:expr, $name:literal, $size:literal) => {{
-        assert_eq!($entry.name(), $name);
-        assert_eq!($entry.size(), $size);
-
-        let data = $entry.read_vec().unwrap();
-        assert_eq!(data.len(), $size);
-        assert_eq!(data, BYTES[..$size]);
+        assert_eq!($entry.inner.name, $name);
+        assert_eq!($entry.inner.size, $size);
     }};
 }
 
@@ -68,11 +65,11 @@ macro_rules! mk_test {
                 entry.write_all(&BYTES[..$last_nbytes]).unwrap();
             )*
 
-            let mut entry = archive.first().unwrap().unwrap();
+            let entry = InnerEntry::first(&mut archive.container, &mut archive.tree).unwrap().unwrap();
 
             $(
                 assert_entry!(entry, $fname, $nbytes);
-                let mut entry = entry.next().unwrap().unwrap();
+                let entry = entry.next().unwrap().unwrap();
             )*
 
             $(
@@ -81,12 +78,6 @@ macro_rules! mk_test {
             )*
         }
     };
-}
-
-#[test]
-fn t0() {
-    let mut archive = Archive::create(setup_container(), false).unwrap();
-    assert!(archive.first().is_none());
 }
 
 mk_test!(t1_0 -> ("f1", 0));
