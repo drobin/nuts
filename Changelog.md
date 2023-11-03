@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2023-11-03
+
+## Changed
+
+- Move `container::BufContainer` to `pager::Pager`
+- Correct handling of `Error::InvalidBlockSize` error
+- Put id into `Error::InvalidType` error
+
 ## [0.2.0] - 2023-11-03
 
 ## Added
@@ -26,3 +34,4 @@ Initial public release.
 [0.1.0]: https://github.com/drobin/nuts-archive/tree/v0.1.0
 [0.1.1]: https://github.com/drobin/nuts-archive/tree/v0.1.1
 [0.2.0]: https://github.com/drobin/nuts-archive/tree/v0.2.0
+[0.2.1]: https://github.com/drobin/nuts-archive/tree/v0.2.1
