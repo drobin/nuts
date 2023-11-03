@@ -1,6 +1,6 @@
 [package]
 name = "nuts-tool"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A cmdline utility for the nuts container"
@@ -19,7 +19,7 @@ colored = "2.0.4"
 env_logger = "0.9.3"
 home = "0.5.5"
 log = "0.4.20"
-nuts-archive = "0.1.1"
+nuts-archive = "0.2.0"
 nuts-container = "0.2.1"
 nuts-directory = "0.3.0"
 rpassword = "7.2.0"

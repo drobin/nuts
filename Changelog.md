@@ -2,11 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.3] - 2023-11-03
+
+## Changed
+
+- Update dependencies:
+  * `nuts-archive` 0.1.1 -> 0.2.0
+- `archive add` command can directly append filesystem entries
+- `--long` option for `archive list`
+
+## Added
+
+- `archive add file|directory|symlink` commands can archive entries manually.
+
 ## [0.3.2] - 2023-10-30
 
 ### Added
 
-- `container create` command can directly append filesystem entries
+- `archive create` command can directly append filesystem entries
 
 ### Changed
 
@@ -50,3 +63,4 @@ Initial public release.
 [0.3.0]: https://github.com/drobin/nuts-tool/tree/v0.3.0
 [0.3.1]: https://github.com/drobin/nuts-tool/tree/v0.3.1
 [0.3.2]: https://github.com/drobin/nuts-tool/tree/v0.3.2
+[0.3.3]: https://github.com/drobin/nuts-tool/tree/v0.3.3
