@@ -29,6 +29,7 @@ use log::{debug, warn};
 use nuts_container::backend::{Backend, BlockId};
 use nuts_container::container::Container;
 use serde::{Deserialize, Serialize};
+use std::mem;
 
 use crate::error::{ArchiveResult, Error};
 use crate::pager::Pager;
@@ -57,6 +58,16 @@ pub struct Tree<B: Backend> {
 }
 
 impl<B: Backend> Tree<B> {
+    pub fn size() -> usize {
+        let id_size = B::Id::size() as usize;
+
+        let direct = NUM_DIRECT as usize * id_size;
+        let indirect = 3 * id_size;
+        let nblocks = mem::size_of::<u64>();
+
+        direct + indirect + nblocks
+    }
+
     pub fn new() -> Tree<B> {
         Tree {
             direct: [

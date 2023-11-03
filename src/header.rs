@@ -26,10 +26,11 @@ mod tests;
 use chrono::serde::ts_milliseconds;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::mem;
 
 use crate::magic::magic_type;
 
-magic_type!(Magic, "invalid header-magic");
+magic_type!(Magic, "invalid header-magic", size);
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Header {
@@ -43,6 +44,15 @@ pub struct Header {
 }
 
 impl Header {
+    pub fn size() -> usize {
+        let magic = Magic::size();
+        let revision = mem::size_of::<u16>();
+        let tstamps = 2 * mem::size_of::<i64>();
+        let nfiles = mem::size_of::<u64>();
+
+        magic + revision + tstamps + nfiles
+    }
+
     pub fn create() -> Header {
         let now = Utc::now();
 

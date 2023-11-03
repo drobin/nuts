@@ -23,6 +23,16 @@
 pub(crate) const MAGIC: [u8; 12] = *b"nuts-archive";
 
 macro_rules! magic_type {
+    ($name:ident, $err:literal, size) => {
+        impl $name {
+            fn size() -> usize {
+                std::mem::size_of::<[u8; 12]>()
+            }
+        }
+
+        magic_type!($name, $err);
+    };
+
     ($name:ident, $err:literal) => {
         #[derive(Debug, serde::Deserialize, serde::Serialize)]
         #[serde(try_from = "[u8; 12]")]

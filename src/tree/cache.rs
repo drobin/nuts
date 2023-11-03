@@ -28,7 +28,6 @@ use std::ops::Deref;
 
 use crate::error::ArchiveResult;
 use crate::pager::Pager;
-use crate::tree::ids_per_node;
 use crate::tree::node::Node;
 
 #[derive(Debug)]
@@ -39,11 +38,9 @@ pub struct Cache<B: Backend> {
 
 impl<'a, B: Backend> Cache<B> {
     pub fn new(pager: &Pager<B>) -> Cache<B> {
-        let ipn = ids_per_node(pager) as usize;
-
         Cache {
             id: B::Id::null(),
-            node: Node::new(ipn),
+            node: Node::new(pager),
         }
     }
 

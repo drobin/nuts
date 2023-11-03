@@ -27,7 +27,6 @@ use nuts_container::backend::{Backend, BlockId};
 use std::ops::{Index, IndexMut};
 
 use crate::error::ArchiveResult;
-use crate::error::Error;
 use crate::pager::Pager;
 use crate::tree::ids_per_node;
 
@@ -35,8 +34,10 @@ use crate::tree::ids_per_node;
 pub struct Node<B: Backend>(Vec<B::Id>);
 
 impl<B: Backend> Node<B> {
-    pub fn new(len: usize) -> Node<B> {
-        Node(vec![B::Id::null(); len])
+    pub fn new(pager: &Pager<B>) -> Node<B> {
+        let ipn = ids_per_node(pager) as usize;
+
+        Node(vec![B::Id::null(); ipn])
     }
 
     #[cfg(test)]
@@ -45,13 +46,8 @@ impl<B: Backend> Node<B> {
     }
 
     pub fn aquire(pager: &mut Pager<B>) -> ArchiveResult<B::Id, B> {
-        let ipn = ids_per_node(pager) as usize;
         let id = pager.aquire()?;
-
-        let mut node = Node::new(ipn);
-
-        node.0.resize(ipn, B::Id::null());
-        node.flush(pager, &id).map(|()| id)
+        Node::new(pager).flush(pager, &id).map(|()| id)
     }
 
     pub fn fill(&mut self, pager: &mut Pager<B>, id: &B::Id) -> ArchiveResult<(), B> {
@@ -69,14 +65,30 @@ impl<B: Backend> Node<B> {
 
     pub fn flush(&self, pager: &mut Pager<B>, id: &B::Id) -> ArchiveResult<(), B> {
         let block_size = pager.block_size() as usize;
-        let mut writer = pager.create_writer();
-        let mut n = 0;
-        for id in self.0.iter() {
-            n += writer.serialize(id)?;
+        let expected_size = self.0.len() * B::Id::size();
+
+        if expected_size > block_size {
+            panic!(
+                "node overflow detected, about to write {} ids ({} bytes each) into {} bytes",
+                self.0.len(),
+                B::Id::size(),
+                block_size
+            );
         }
 
-        if n + B::Id::size() <= block_size {
-            return Err(Error::InvalidBlockSize);
+        if expected_size + B::Id::size() <= block_size {
+            panic!(
+                "node underflow detected, about to write {} ids ({} bytes each) into {} bytes",
+                self.0.len(),
+                B::Id::size(),
+                block_size
+            );
+        }
+
+        let mut writer = pager.create_writer();
+
+        for id in self.0.iter() {
+            writer.serialize(id)?;
         }
 
         pager.write_buf(id)

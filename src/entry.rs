@@ -27,6 +27,7 @@ pub mod r#mut;
 use nuts_bytes::Writer;
 use nuts_container::backend::Backend;
 use serde::{Deserialize, Serialize};
+use std::mem;
 
 use crate::entry::mode::Mode;
 use crate::error::ArchiveResult;
@@ -36,6 +37,14 @@ use crate::pager::Pager;
 const HALF: u8 = 53;
 #[cfg(test)]
 const FULL: u8 = 106;
+
+pub(crate) fn min_entry_size() -> usize {
+    let name = mem::size_of::<u64>() + 1;
+    let mode = mem::size_of::<Mode>();
+    let size = mem::size_of::<u64>();
+
+    name + mode + size
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Inner {

@@ -24,14 +24,14 @@ use nuts_bytes::{Reader, Writer};
 use nuts_container::backend::BlockId;
 use nuts_container::memory::{Id, MemoryBackend};
 
-use crate::error::Error;
 use crate::pager::Pager;
 use crate::tests::setup_container_with_bsize;
 use crate::tree::node::Node;
 
 #[test]
 fn new() {
-    let node = Node::<MemoryBackend>::new(3);
+    let pager = Pager::new(setup_container_with_bsize(12));
+    let node = Node::<MemoryBackend>::new(&pager);
 
     assert_eq!(node.len(), 3);
     assert!(node[0].is_null());
@@ -58,7 +58,7 @@ fn aquire() {
 
 #[test]
 fn fill() {
-    let mut container = setup_container_with_bsize(16);
+    let mut pager = Pager::new(setup_container_with_bsize(16));
     let mut writer = Writer::new(vec![]);
 
     writer.serialize(&1u32).unwrap();
@@ -66,12 +66,12 @@ fn fill() {
     writer.serialize(&3u32).unwrap();
     writer.serialize(&4u32).unwrap();
 
-    let id = container.aquire().unwrap();
-    assert_eq!(container.write(&id, &writer.into_target()).unwrap(), 16);
+    let id = pager.aquire().unwrap();
+    assert_eq!(pager.write(&id, &writer.into_target()).unwrap(), 16);
 
-    let mut node = Node::new(4);
+    let mut node = Node::new(&pager);
 
-    node.fill(&mut Pager::new(container), &id).unwrap();
+    node.fill(&mut pager, &id).unwrap();
     assert_eq!(
         node,
         [
@@ -85,16 +85,15 @@ fn fill() {
 
 #[test]
 fn flush() {
-    let mut node = Node::<MemoryBackend>::new(4);
+    let mut pager = Pager::new(setup_container_with_bsize(16));
+    let id = pager.aquire().unwrap();
+
+    let mut node = Node::<MemoryBackend>::new(&pager);
 
     node[0] = "1".parse().unwrap();
     node[1] = "2".parse().unwrap();
     node[2] = "3".parse().unwrap();
     node[3] = "4".parse().unwrap();
-
-    let mut pager = Pager::new(setup_container_with_bsize(16));
-    let id = pager.aquire().unwrap();
-
     node.flush(&mut pager, &id).unwrap();
 
     let mut buf = [0; 16];
@@ -103,33 +102,31 @@ fn flush() {
 }
 
 #[test]
+#[should_panic(
+    expected = "node underflow detected, about to write 4 ids (4 bytes each) into 20 bytes"
+)]
 fn flush_underflow() {
-    let mut node = Node::<MemoryBackend>::new(4);
-
-    node[0] = "1".parse().unwrap();
-    node[1] = "2".parse().unwrap();
-    node[2] = "3".parse().unwrap();
-    node[3] = "4".parse().unwrap();
+    let vec = (1..=4)
+        .map(|i| i.to_string().parse().unwrap())
+        .collect::<Vec<Id>>();
 
     let mut pager = Pager::new(setup_container_with_bsize(20));
     let id = pager.aquire().unwrap();
 
-    let err = node.flush(&mut pager, &id).unwrap_err();
-    assert!(matches!(err, Error::InvalidBlockSize));
+    let _ = Node(vec).flush(&mut pager, &id);
 }
 
 #[test]
+#[should_panic(
+    expected = "node overflow detected, about to write 4 ids (4 bytes each) into 15 bytes"
+)]
 fn flush_overflow() {
-    let mut node = Node::<MemoryBackend>::new(4);
-
-    node[0] = "1".parse().unwrap();
-    node[1] = "2".parse().unwrap();
-    node[2] = "3".parse().unwrap();
-    node[3] = "4".parse().unwrap();
+    let vec = (1..=4)
+        .map(|i| i.to_string().parse().unwrap())
+        .collect::<Vec<Id>>();
 
     let mut pager = Pager::new(setup_container_with_bsize(15));
     let id = pager.aquire().unwrap();
 
-    let err = node.flush(&mut pager, &id).unwrap_err();
-    assert!(matches!(err, Error::InvalidBlockSize));
+    let _ = Node(vec).flush(&mut pager, &id);
 }
