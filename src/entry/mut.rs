@@ -28,12 +28,12 @@ use nuts_container::backend::Backend;
 use std::cmp;
 use std::ops::{Deref, DerefMut};
 
-use crate::container::BufContainer;
 use crate::entry::mode::Mode;
 use crate::entry::Inner;
 use crate::error::ArchiveResult;
 use crate::flush_header;
 use crate::header::Header;
+use crate::pager::BufContainer;
 use crate::tree::Tree;
 
 macro_rules! impl_deref_mut_for {

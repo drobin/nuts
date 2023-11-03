@@ -25,8 +25,8 @@ use nuts_container::backend::BlockId;
 use nuts_container::container::Container;
 use nuts_container::memory::{Id, MemoryBackend};
 
-use crate::container::BufContainer;
 use crate::error::Error;
+use crate::pager::BufContainer;
 use crate::tests::setup_container_with_bsize;
 use crate::tree::Tree;
 

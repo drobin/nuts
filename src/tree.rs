@@ -30,8 +30,8 @@ use nuts_container::backend::{Backend, BlockId};
 use nuts_container::container::Container;
 use serde::{Deserialize, Serialize};
 
-use crate::container::BufContainer;
 use crate::error::{ArchiveResult, Error};
+use crate::pager::BufContainer;
 use crate::tree::cache::Cache;
 use crate::tree::node::Node;
 

@@ -28,9 +28,9 @@ use nuts_bytes::Writer;
 use nuts_container::backend::Backend;
 use serde::{Deserialize, Serialize};
 
-use crate::container::BufContainer;
 use crate::entry::mode::Mode;
 use crate::error::ArchiveResult;
+use crate::pager::BufContainer;
 
 #[cfg(test)]
 const HALF: u8 = 53;

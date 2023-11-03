@@ -26,8 +26,8 @@ mod tests;
 use nuts_container::backend::{Backend, BlockId};
 use std::ops::Deref;
 
-use crate::container::BufContainer;
 use crate::error::ArchiveResult;
+use crate::pager::BufContainer;
 use crate::tree::ids_per_node;
 use crate::tree::node::Node;
 

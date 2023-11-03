@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::container::BufContainer;
+use crate::pager::BufContainer;
 use crate::tests::{into_error, setup_container_with_bsize};
 
 #[test]

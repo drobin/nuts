@@ -29,10 +29,10 @@ use std::cmp;
 use std::convert::{TryFrom, TryInto};
 use std::ops::Deref;
 
-use crate::container::BufContainer;
 use crate::entry::mode::Mode;
 use crate::entry::Inner;
 use crate::error::{ArchiveResult, Error};
+use crate::pager::BufContainer;
 use crate::tree::Tree;
 
 /// An entry of the archive.

@@ -26,9 +26,9 @@ mod tests;
 use nuts_container::backend::{Backend, BlockId};
 use std::ops::{Index, IndexMut};
 
-use crate::container::BufContainer;
 use crate::error::ArchiveResult;
 use crate::error::Error;
+use crate::pager::BufContainer;
 use crate::tree::ids_per_node;
 
 #[derive(Debug, PartialEq)]

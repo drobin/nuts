@@ -23,7 +23,7 @@
 use nuts_container::backend::BlockId;
 use nuts_container::memory::MemoryBackend;
 
-use crate::container::BufContainer;
+use crate::pager::BufContainer;
 use crate::tests::setup_container_with_bsize;
 use crate::tree::cache::Cache;
 

@@ -216,11 +216,11 @@
 //!
 //! [nuts container]: nuts_container
 
-mod container;
 mod entry;
 mod error;
 mod header;
 mod magic;
+mod pager;
 #[cfg(test)]
 mod tests;
 mod tree;
@@ -237,9 +237,9 @@ pub use entry::mode::{Group, Mode};
 pub use entry::r#mut::{DirectoryBuilder, EntryMut, FileBuilder, SymlinkBuilder};
 pub use error::{ArchiveResult, Error};
 
-use crate::container::BufContainer;
 use crate::entry::immut::InnerEntry;
 use crate::header::Header;
+use crate::pager::BufContainer;
 use crate::tree::Tree;
 use crate::userdata::Userdata;
 
