@@ -26,33 +26,14 @@ mod tests;
 use log::debug;
 use nuts_container::backend::Backend;
 use std::cmp;
-use std::ops::{Deref, DerefMut};
 
 use crate::entry::mode::Mode;
-use crate::entry::Inner;
+use crate::entry::{populate_mode_api, Inner};
 use crate::error::ArchiveResult;
 use crate::flush_header;
 use crate::header::Header;
 use crate::pager::Pager;
 use crate::tree::Tree;
-
-macro_rules! impl_deref_mut_for {
-    ($type:ty) => {
-        impl<'a, B: Backend> Deref for $type {
-            type Target = Mode;
-
-            fn deref(&self) -> &Mode {
-                &self.0.entry.mode
-            }
-        }
-
-        impl<'a, B: Backend> DerefMut for $type {
-            fn deref_mut(&mut self) -> &mut Mode {
-                &mut self.0.entry.mode
-            }
-        }
-    };
-}
 
 macro_rules! impl_new {
     ($type:ident, $mode:ident) => {
@@ -85,6 +66,8 @@ pub struct FileBuilder<'a, B: Backend>(InnerBuilder<'a, B>);
 impl<'a, B: Backend> FileBuilder<'a, B> {
     impl_new!(FileBuilder, file);
 
+    populate_mode_api!(mut);
+
     /// Finally, creates the new file entry at the end of the archive.
     ///
     /// It returns an [`EntryMut`] instance, where you are able to add content
@@ -92,9 +75,15 @@ impl<'a, B: Backend> FileBuilder<'a, B> {
     pub fn build(self) -> ArchiveResult<EntryMut<'a, B>, B> {
         self.0.build()
     }
-}
 
-impl_deref_mut_for!(FileBuilder<'a, B>);
+    fn inner(&self) -> &Inner {
+        &self.0.entry
+    }
+
+    fn inner_mut(&mut self) -> &mut Inner {
+        &mut self.0.entry
+    }
+}
 
 /// Builder for an new directory entry.
 ///
@@ -107,13 +96,21 @@ pub struct DirectoryBuilder<'a, B: Backend>(InnerBuilder<'a, B>);
 impl<'a, B: Backend> DirectoryBuilder<'a, B> {
     impl_new!(DirectoryBuilder, directory);
 
+    populate_mode_api!(mut);
+
     /// Finally, creates the new directory entry at the end of the archive.
     pub fn build(self) -> ArchiveResult<(), B> {
         self.0.build().map(|_| ())
     }
-}
 
-impl_deref_mut_for!(DirectoryBuilder<'a, B>);
+    fn inner(&self) -> &Inner {
+        &self.0.entry
+    }
+
+    fn inner_mut(&mut self) -> &mut Inner {
+        &mut self.0.entry
+    }
+}
 
 /// Builder for an new symlink entry.
 ///
@@ -140,6 +137,8 @@ impl<'a, B: Backend> SymlinkBuilder<'a, B> {
         SymlinkBuilder { builder, target }
     }
 
+    populate_mode_api!(mut);
+
     /// Finally, creates the new symlink entry at the end of the archive.
     pub fn build(self) -> ArchiveResult<(), B> {
         let mut entry = self.builder.build()?;
@@ -148,19 +147,13 @@ impl<'a, B: Backend> SymlinkBuilder<'a, B> {
 
         Ok(())
     }
-}
 
-impl<'a, B: Backend> Deref for SymlinkBuilder<'a, B> {
-    type Target = Mode;
-
-    fn deref(&self) -> &Mode {
-        &self.builder.entry.mode
+    fn inner(&self) -> &Inner {
+        &self.builder.entry
     }
-}
 
-impl<'a, B: Backend> DerefMut for SymlinkBuilder<'a, B> {
-    fn deref_mut(&mut self) -> &mut Mode {
-        &mut self.builder.entry.mode
+    fn inner_mut(&mut self) -> &mut Inner {
+        &mut self.builder.entry
     }
 }
 

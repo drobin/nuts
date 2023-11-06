@@ -83,3 +83,50 @@ impl Inner {
         Ok(())
     }
 }
+
+macro_rules! populate_mode_api {
+    () => {
+        /// Tests whether a member of the given `group` has read access.
+        pub fn can_read(&self, group: crate::Group) -> bool {
+            self.inner().mode.can_read(group)
+        }
+
+        /// Tests whether a member of the given `group` has write access.
+        pub fn can_write(&self, group: crate::Group) -> bool {
+            self.inner().mode.can_write(group)
+        }
+
+        /// Tests whether a member of the given `group` has execute access.
+        pub fn can_execute(&self, group: crate::Group) -> bool {
+            self.inner().mode.can_execute(group)
+        }
+    };
+
+    (mut) => {
+        /// Updates the read access attribute.
+        ///
+        /// If `readable` is set to `true`, a member of the given `group` becomes
+        /// read access. If set to `false`, the read access is revoked.
+        pub fn set_readable(&mut self, group: crate::Group, readable: bool) {
+            self.inner_mut().mode.set_readable(group, readable)
+        }
+
+        /// Updates the write access attribute.
+        ///
+        /// If `writable` is set to `true`, a member of the given `group` becomes
+        /// write access. If set to `false`, the write access is revoked.
+        pub fn set_writable(&mut self, group: crate::Group, writable: bool) {
+            self.inner_mut().mode.set_writable(group, writable)
+        }
+
+        /// Updates the execute access attribute.
+        ///
+        /// If `executable` is set to `true`, a member of the given `group` becomes
+        /// execute access. If set to `false`, the execute access is revoked.
+        pub fn set_executable(&mut self, group: crate::Group, executable: bool) {
+            self.inner_mut().mode.set_executable(group, executable)
+        }
+    };
+}
+
+use populate_mode_api;

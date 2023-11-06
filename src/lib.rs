@@ -234,7 +234,7 @@ use std::cmp;
 use std::convert::TryInto;
 
 pub use entry::immut::{DirectoryEntry, Entry, FileEntry, SymlinkEntry};
-pub use entry::mode::{Group, Mode};
+pub use entry::mode::Group;
 pub use entry::r#mut::{DirectoryBuilder, EntryMut, FileBuilder, SymlinkBuilder};
 pub use error::{ArchiveResult, Error};
 

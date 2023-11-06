@@ -27,10 +27,8 @@ use log::{debug, error, warn};
 use nuts_container::backend::Backend;
 use std::cmp;
 use std::convert::{TryFrom, TryInto};
-use std::ops::Deref;
 
-use crate::entry::mode::Mode;
-use crate::entry::Inner;
+use crate::entry::{populate_mode_api, Inner};
 use crate::error::{ArchiveResult, Error};
 use crate::pager::Pager;
 use crate::tree::Tree;
@@ -76,6 +74,117 @@ impl<'a, B: Backend> Entry<'a, B> {
         self.inner_entry().inner.size
     }
 
+    populate_mode_api!();
+
+    /// Tests whether this entry represents a file.
+    pub fn is_file(&self) -> bool {
+        match self {
+            Self::File(_) => true,
+            Self::Directory(_) => false,
+            Self::Symlink(_) => false,
+        }
+    }
+
+    /// Returns a reference to the inner [`FileEntry`] instance if this entry
+    /// represents a file.
+    ///
+    /// If this entry is a file then a reference to the inner [`FileEntry`]
+    /// wrapped into a [`Some`] is returned. If this is not a file [`None`] is
+    /// returned.
+    pub fn as_file(&self) -> Option<&FileEntry<'a, B>> {
+        match self {
+            Self::File(value) => Some(value),
+            Self::Directory(_) => None,
+            Self::Symlink(_) => None,
+        }
+    }
+
+    /// Returns the inner [`FileEntry`] instance if this entry represents a
+    /// file.
+    ///
+    /// If this entry is a file then the inner [`FileEntry`] wrapped into a
+    /// [`Some`] is returned. If this is not a file [`None`] is returned.
+    pub fn into_file(self) -> Option<FileEntry<'a, B>> {
+        match self {
+            Self::File(value) => Some(value),
+            Self::Directory(_) => None,
+            Self::Symlink(_) => None,
+        }
+    }
+
+    /// Tests whether this entry represents a directory.
+    pub fn is_directory(&self) -> bool {
+        match self {
+            Self::File(_) => false,
+            Self::Directory(_) => true,
+            Self::Symlink(_) => false,
+        }
+    }
+
+    /// Returns a reference to the inner [`DirectoryEntry`] instance if this
+    /// entry represents a directory.
+    ///
+    /// If this entry is a directory then a reference to the inner
+    /// [`DirectoryEntry`] wrapped into a [`Some`] is returned. If this is not
+    /// a directory [`None`] is returned.
+    pub fn as_directory(&self) -> Option<&DirectoryEntry<'a, B>> {
+        match self {
+            Self::File(_) => None,
+            Self::Directory(value) => Some(value),
+            Self::Symlink(_) => None,
+        }
+    }
+
+    /// Returns the inner [`DirectoryEntry`] instance if this entry represents
+    /// a directory.
+    ///
+    /// If this entry is a directory then the inner [`DirectoryEntry`] wrapped
+    /// into a [`Some`] is returned. If this is not a directory [`None`] is
+    /// returned.
+    pub fn into_directory(self) -> Option<DirectoryEntry<'a, B>> {
+        match self {
+            Self::File(_) => None,
+            Self::Directory(value) => Some(value),
+            Self::Symlink(_) => None,
+        }
+    }
+
+    /// Tests whether this entry represents a symlink.
+    pub fn is_symlink(&self) -> bool {
+        match self {
+            Self::File(_) => false,
+            Self::Directory(_) => false,
+            Self::Symlink(_) => true,
+        }
+    }
+
+    /// Returns a reference to the inner [`SymlinkEntry`] instance if this
+    /// entry represents a symlink.
+    ///
+    /// If this entry is a symlink then a reference to the inner
+    /// [`SymlinkEntry`] wrapped into a [`Some`] is returned. If this is not a
+    /// symlink [`None`] is returned.
+    pub fn as_symlink(&self) -> Option<&SymlinkEntry<'a, B>> {
+        match self {
+            Self::File(_) => None,
+            Self::Directory(_) => None,
+            Self::Symlink(value) => Some(value),
+        }
+    }
+
+    /// Returns the inner [`SymlinkEntry`] instance if this entry represents a
+    /// symlink.
+    ///
+    /// If this entry is a symlink then the inner [`SymlinkEntry`] wrapped into
+    /// a [`Some`] is returned. If this is not a symlink [`None`] is returned.
+    pub fn into_symlink(self) -> Option<SymlinkEntry<'a, B>> {
+        match self {
+            Self::File(_) => None,
+            Self::Directory(_) => None,
+            Self::Symlink(value) => Some(value),
+        }
+    }
+
     fn inner_entry(&'a self) -> &InnerEntry<'a, B> {
         match self {
             Self::File(inner) => &inner.0,
@@ -90,6 +199,10 @@ impl<'a, B: Backend> Entry<'a, B> {
             Self::Directory(inner) => inner.0,
             Self::Symlink(inner) => inner.shared,
         }
+    }
+
+    fn inner(&self) -> &Inner {
+        &self.inner_entry().inner
     }
 }
 
@@ -124,14 +237,6 @@ impl<'a, B: Backend> TryFrom<InnerEntry<'a, B>> for Entry<'a, B> {
     }
 }
 
-impl<'a, B: Backend> Deref for Entry<'a, B> {
-    type Target = Mode;
-
-    fn deref(&self) -> &Mode {
-        &self.inner_entry().inner.mode
-    }
-}
-
 /// A file entry of the archive.
 ///
 /// An instance of this type is attached to the [`Entry::File`] variant and
@@ -150,6 +255,8 @@ impl<'a, B: Backend> FileEntry<'a, B> {
     pub fn size(&self) -> u64 {
         self.0.inner.size
     }
+
+    populate_mode_api!();
 
     /// Reads data from the entry.
     ///
@@ -198,13 +305,9 @@ impl<'a, B: Backend> FileEntry<'a, B> {
         let mut vec = vec![0; self.0.inner.size as usize];
         self.read_all(&mut vec).map(|()| vec)
     }
-}
 
-impl<'a, B: Backend> Deref for FileEntry<'a, B> {
-    type Target = Mode;
-
-    fn deref(&self) -> &Mode {
-        &self.0.inner.mode
+    fn inner(&self) -> &Inner {
+        &self.0.inner
     }
 }
 
@@ -219,13 +322,11 @@ impl<'a, B: Backend> DirectoryEntry<'a, B> {
     pub fn name(&self) -> &str {
         &self.0.inner.name
     }
-}
 
-impl<'a, B: Backend> Deref for DirectoryEntry<'a, B> {
-    type Target = Mode;
+    populate_mode_api!();
 
-    fn deref(&self) -> &Mode {
-        &self.0.inner.mode
+    fn inner(&self) -> &Inner {
+        &self.0.inner
     }
 }
 
@@ -257,6 +358,8 @@ impl<'a, B: Backend> SymlinkEntry<'a, B> {
         &self.target
     }
 
+    populate_mode_api!();
+
     fn read_target(shared: &mut InnerEntry<'a, B>) -> ArchiveResult<String, B> {
         const CHUNK: usize = 64;
         let mut vec = vec![];
@@ -277,13 +380,9 @@ impl<'a, B: Backend> SymlinkEntry<'a, B> {
 
         Ok(String::from_utf8_lossy(&vec).to_string())
     }
-}
 
-impl<'a, B: Backend> Deref for SymlinkEntry<'a, B> {
-    type Target = Mode;
-
-    fn deref(&self) -> &Mode {
-        &self.shared.inner.mode
+    fn inner(&self) -> &Inner {
+        &self.shared.inner
     }
 }
 

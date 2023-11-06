@@ -52,18 +52,18 @@ pub enum Group {
 
 /// Bitmask encoding entry type & access rights.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub struct Mode(u16);
+pub(crate) struct Mode(u16);
 
 impl Mode {
-    pub(crate) fn file() -> Mode {
+    pub fn file() -> Mode {
         Mode(TYPE_FILE | DEFAULT_ACCESS_RIGHTS)
     }
 
-    pub(crate) fn directory() -> Mode {
+    pub fn directory() -> Mode {
         Mode(TYPE_DIR | DEFAULT_ACCESS_RIGHTS)
     }
 
-    pub(crate) fn symlink() -> Mode {
+    pub fn symlink() -> Mode {
         Mode(TYPE_SYMLINK | DEFAULT_ACCESS_RIGHTS)
     }
 
