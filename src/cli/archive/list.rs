@@ -23,17 +23,43 @@
 use anyhow::Result;
 use clap::{ArgAction, Args};
 use log::debug;
-use nuts_archive::{Archive, Entry, Mode};
+use nuts_archive::{Archive, Entry};
 use nuts_directory::DirectoryBackend;
-use std::ops::Deref;
+use std::fmt::{self, Write};
 use std::path::PathBuf;
 
 use crate::cli::open_container;
 
+enum Type {
+    File,
+    Directory,
+    Symlink,
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Type::File => fmt.write_char('-'),
+            Type::Directory => fmt.write_char('d'),
+            Type::Symlink => fmt.write_char('l'),
+        }
+    }
+}
+
+impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for Type {
+    fn from(entry: &'a Entry<'a, DirectoryBackend<PathBuf>>) -> Self {
+        match entry {
+            Entry::File(_) => Type::File,
+            Entry::Directory(_) => Type::Directory,
+            Entry::Symlink(_) => Type::Symlink,
+        }
+    }
+}
+
 struct ListEntry {
     name: String,
     size: u64,
-    mode: Mode,
+    r#type: Type,
 }
 
 impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for ListEntry {
@@ -41,7 +67,7 @@ impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for ListEntry {
         ListEntry {
             name: entry.name().to_string(),
             size: entry.size(),
-            mode: *entry.deref(),
+            r#type: entry.into(),
         }
     }
 }
@@ -77,17 +103,7 @@ fn print_long(entries: Vec<ListEntry>) {
     let max_n = max_size.checked_ilog10().unwrap_or(0) as usize + 1;
 
     for entry in entries {
-        let type_char = if entry.mode.is_file() {
-            '-'
-        } else if entry.mode.is_directory() {
-            'd'
-        } else if entry.mode.is_symlink() {
-            'l'
-        } else {
-            '?'
-        };
-
-        println!("{} {:>max_n$} {}", type_char, entry.size, entry.name);
+        println!("{} {:>max_n$} {}", entry.r#type, entry.size, entry.name);
     }
 }
 
