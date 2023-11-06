@@ -28,7 +28,7 @@ use nuts_container::backend::Backend;
 use std::cmp;
 
 use crate::entry::mode::Mode;
-use crate::entry::{populate_mode_api, Inner};
+use crate::entry::{populate_mode_api, populate_tstamp_api, Inner};
 use crate::error::ArchiveResult;
 use crate::flush_header;
 use crate::header::Header;
@@ -67,6 +67,7 @@ impl<'a, B: Backend> FileBuilder<'a, B> {
     impl_new!(FileBuilder, file);
 
     populate_mode_api!(mut);
+    populate_tstamp_api!(mut);
 
     /// Finally, creates the new file entry at the end of the archive.
     ///
@@ -97,6 +98,7 @@ impl<'a, B: Backend> DirectoryBuilder<'a, B> {
     impl_new!(DirectoryBuilder, directory);
 
     populate_mode_api!(mut);
+    populate_tstamp_api!(mut);
 
     /// Finally, creates the new directory entry at the end of the archive.
     pub fn build(self) -> ArchiveResult<(), B> {
@@ -138,6 +140,7 @@ impl<'a, B: Backend> SymlinkBuilder<'a, B> {
     }
 
     populate_mode_api!(mut);
+    populate_tstamp_api!(mut);
 
     /// Finally, creates the new symlink entry at the end of the archive.
     pub fn build(self) -> ArchiveResult<(), B> {

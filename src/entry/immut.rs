@@ -28,7 +28,7 @@ use nuts_container::backend::Backend;
 use std::cmp;
 use std::convert::{TryFrom, TryInto};
 
-use crate::entry::{populate_mode_api, Inner};
+use crate::entry::{populate_mode_api, Inner, populate_tstamp_api};
 use crate::error::{ArchiveResult, Error};
 use crate::pager::Pager;
 use crate::tree::Tree;
@@ -75,6 +75,7 @@ impl<'a, B: Backend> Entry<'a, B> {
     }
 
     populate_mode_api!();
+    populate_tstamp_api!();
 
     /// Tests whether this entry represents a file.
     pub fn is_file(&self) -> bool {
@@ -257,6 +258,7 @@ impl<'a, B: Backend> FileEntry<'a, B> {
     }
 
     populate_mode_api!();
+    populate_tstamp_api!();
 
     /// Reads data from the entry.
     ///
@@ -324,6 +326,7 @@ impl<'a, B: Backend> DirectoryEntry<'a, B> {
     }
 
     populate_mode_api!();
+    populate_tstamp_api!();
 
     fn inner(&self) -> &Inner {
         &self.0.inner
@@ -359,6 +362,7 @@ impl<'a, B: Backend> SymlinkEntry<'a, B> {
     }
 
     populate_mode_api!();
+    populate_tstamp_api!();
 
     fn read_target(shared: &mut InnerEntry<'a, B>) -> ArchiveResult<String, B> {
         const CHUNK: usize = 64;

@@ -23,6 +23,7 @@
 pub mod immut;
 pub mod mode;
 pub mod r#mut;
+pub(crate) mod tstamp;
 
 use nuts_bytes::Writer;
 use nuts_container::backend::Backend;
@@ -30,6 +31,7 @@ use serde::{Deserialize, Serialize};
 use std::mem;
 
 use crate::entry::mode::Mode;
+use crate::entry::tstamp::Timestamps;
 use crate::error::ArchiveResult;
 use crate::pager::Pager;
 
@@ -41,15 +43,17 @@ const FULL: u8 = 106;
 pub(crate) fn min_entry_size() -> usize {
     let name = mem::size_of::<u64>() + 1;
     let mode = mem::size_of::<Mode>();
+    let tstamps = Timestamps::size();
     let size = mem::size_of::<u64>();
 
-    name + mode + size
+    name + mode + tstamps + size
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Inner {
     name: String,
     mode: Mode,
+    tstamps: Timestamps,
     size: u64,
 }
 
@@ -58,6 +62,7 @@ impl Inner {
         Inner {
             name,
             mode,
+            tstamps: Timestamps::new(),
             size: 0,
         }
     }
@@ -129,4 +134,49 @@ macro_rules! populate_mode_api {
     };
 }
 
-use populate_mode_api;
+macro_rules! populate_tstamp_api {
+    () => {
+        /// Returns the time when the entry was appened to the archive.
+        pub fn appended(&self) -> &chrono::DateTime<chrono::Utc> {
+            self.inner().tstamps.appended()
+        }
+
+        /// Returns the time when the originating filesystem entry was created.
+        pub fn created(&self) -> &chrono::DateTime<chrono::Utc> {
+            self.inner().tstamps.created()
+        }
+
+        /// Returns the time when the originating filesystem entry was changed
+        /// the last time.
+        pub fn changed(&self) -> &chrono::DateTime<chrono::Utc> {
+            self.inner().tstamps.changed()
+        }
+
+        /// Returns the time when the originating filesystem entry was modified
+        /// the last time.
+        pub fn modified(&self) -> &chrono::DateTime<chrono::Utc> {
+            self.inner().tstamps.modified()
+        }
+    };
+
+    (mut) => {
+        populate_tstamp_api!();
+
+        /// Updates the creation time of the archive entry.
+        pub fn set_created(&mut self, created: chrono::DateTime<chrono::Utc>) {
+            self.inner_mut().tstamps.set_created(created)
+        }
+
+        /// Updates the changed time of the archive entry.
+        pub fn set_changed(&mut self, changed: chrono::DateTime<chrono::Utc>) {
+            self.inner_mut().tstamps.set_changed(changed)
+        }
+
+        /// Updates the modification time of the archive entry.
+        pub fn set_modified(&mut self, modified: chrono::DateTime<chrono::Utc>) {
+            self.inner_mut().tstamps.set_modified(modified)
+        }
+    };
+}
+
+use {populate_mode_api, populate_tstamp_api};
