@@ -25,9 +25,20 @@ use clap::Args;
 use nuts_archive::Archive;
 
 use crate::cli::open_container;
+use crate::time::TimeFormat;
 
 #[derive(Args, Debug)]
 pub struct ArchiveInfoArgs {
+    /// Specifies the format used for timestamps
+    #[clap(
+        short,
+        long,
+        value_parser,
+        value_name = "FORMAT",
+        default_value = "local"
+    )]
+    time_format: TimeFormat,
+
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
@@ -39,8 +50,11 @@ impl ArchiveInfoArgs {
         let archive = Archive::open(container)?;
         let info = archive.info();
 
-        println!("created:  {}", info.created);
-        println!("modified: {}", info.modified);
+        let created = self.time_format.format(&info.created, "%c");
+        let modified = self.time_format.format(&info.modified, "%c");
+
+        println!("created:  {}", created);
+        println!("modified: {}", modified);
         println!("blocks:   {}", info.blocks);
         println!("files:    {}", info.files);
 
