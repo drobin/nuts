@@ -20,7 +20,21 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod archive;
-pub mod cli;
-pub mod format;
-pub mod time;
+use chrono::format::{DelayedFormat, StrftimeItems};
+use chrono::{DateTime, Local, Utc};
+use clap::ValueEnum;
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub enum TimeFormat {
+    Local,
+    Utc,
+}
+
+impl TimeFormat {
+    pub fn format<'a>(&self, dt: &DateTime<Utc>, fmt: &'a str) -> DelayedFormat<StrftimeItems<'a>> {
+        match self {
+            Self::Local => Into::<DateTime<Local>>::into(*dt).format(fmt),
+            Self::Utc => dt.format(fmt),
+        }
+    }
+}

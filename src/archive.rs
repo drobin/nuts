@@ -21,13 +21,49 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use colored::*;
-use log::{debug, error, trace};
+use log::{debug, error, trace, warn};
 use nuts_archive::Archive;
 use nuts_directory::DirectoryBackend;
-use std::fs::{self, File};
+use std::fs::{self, File, Metadata};
 use std::io::Read;
 use std::path::{Path, PathBuf};
+
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
+
+macro_rules! into_utc {
+    ($metadata:ident . $type:ident ()) => {
+        if let Ok(time) = $metadata.$type() {
+            time.into()
+        } else {
+            warn!(
+                "the {} time is not available on your platform",
+                stringify!($type)
+            );
+            Utc::now()
+        }
+    };
+}
+
+fn changed(metadata: &Metadata) -> DateTime<Utc> {
+    if cfg!(unix) {
+        match NaiveDateTime::from_timestamp_opt(metadata.ctime(), 0) {
+            Some(naive) => TimeZone::from_utc_datetime(&Utc, &naive),
+            None => {
+                warn!(
+                    "could not convert epoch ctime {} into naive datetime",
+                    metadata.ctime()
+                );
+
+                Utc::now()
+            }
+        }
+    } else {
+        panic!("platform currently not supported");
+    }
+}
 
 pub fn append_recursive(
     archive: &mut Archive<DirectoryBackend<PathBuf>>,
@@ -49,7 +85,14 @@ pub fn append_recursive(
 
         let mut fh = File::open(path)?;
         let mut buf = vec![0; block_size];
-        let mut entry = archive.append_file(path.to_string_lossy()).build()?;
+
+        let mut builder = archive.append_file(path.to_string_lossy());
+
+        builder.set_created(into_utc!(metadata.created()));
+        builder.set_changed(changed(&metadata));
+        builder.set_modified(into_utc!(metadata.modified()));
+
+        let mut entry = builder.build()?;
 
         loop {
             let n = fh.read(&mut buf)?;
@@ -62,13 +105,23 @@ pub fn append_recursive(
             }
         }
     } else if metadata.is_dir() {
-        archive.append_directory(path.to_string_lossy()).build()?;
+        let mut builder = archive.append_directory(path.to_string_lossy());
+
+        builder.set_created(into_utc!(metadata.created()));
+        builder.set_changed(changed(&metadata));
+        builder.set_modified(into_utc!(metadata.modified()));
+
+        builder.build()?;
     } else if metadata.is_symlink() {
         let target = path.read_link()?;
 
-        archive
-            .append_symlink(path.to_string_lossy(), target.to_string_lossy())
-            .build()?;
+        let mut builder = archive.append_symlink(path.to_string_lossy(), target.to_string_lossy());
+
+        builder.set_created(into_utc!(metadata.created()));
+        builder.set_changed(changed(&metadata));
+        builder.set_modified(into_utc!(metadata.modified()));
+
+        builder.build()?;
     }
 
     println!("a {}", path.display());

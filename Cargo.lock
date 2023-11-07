@@ -428,6 +428,7 @@ version = "0.3.3"
 dependencies = [
  "anyhow",
  "cargo_metadata",
+ "chrono",
  "clap",
  "colored",
  "env_logger",

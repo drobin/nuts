@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use clap::{ArgAction, Args};
 use log::debug;
 use nuts_archive::{Archive, Entry};
@@ -29,6 +30,7 @@ use std::fmt::{self, Write};
 use std::path::PathBuf;
 
 use crate::cli::open_container;
+use crate::time::TimeFormat;
 
 enum Type {
     File,
@@ -60,6 +62,10 @@ struct ListEntry {
     name: String,
     size: u64,
     r#type: Type,
+    appended: DateTime<Utc>,
+    created: DateTime<Utc>,
+    changed: DateTime<Utc>,
+    modified: DateTime<Utc>,
 }
 
 impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for ListEntry {
@@ -68,6 +74,10 @@ impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for ListEntry {
             name: entry.name().to_string(),
             size: entry.size(),
             r#type: entry.into(),
+            appended: *entry.appended(),
+            created: *entry.created(),
+            changed: *entry.changed(),
+            modified: *entry.modified(),
         }
     }
 }
@@ -92,26 +102,33 @@ fn collect_entries<'a>(
     Ok(vec)
 }
 
-fn print_short(entries: Vec<ListEntry>) {
-    for entry in entries {
-        println!("{}", entry.name);
-    }
-}
-
-fn print_long(entries: Vec<ListEntry>) {
-    let max_size = entries.iter().max_by_key(|e| e.size).map_or(0, |e| e.size);
-    let max_n = max_size.checked_ilog10().unwrap_or(0) as usize + 1;
-
-    for entry in entries {
-        println!("{} {:>max_n$} {}", entry.r#type, entry.size, entry.name);
-    }
-}
-
 #[derive(Args, Debug)]
 pub struct ArchiveListArgs {
     /// Lists the content in the long format
     #[clap(short, long, action = ArgAction::SetTrue)]
     long: bool,
+
+    /// Use appended time instead of last modification for long printing
+    #[clap(short, long, action = ArgAction::SetTrue)]
+    appended: bool,
+
+    /// Use creation time instead of last modification for long printing
+    #[clap(short = 'r', long, action = ArgAction::SetTrue)]
+    created: bool,
+
+    /// Use change time instead of last modification for long printing
+    #[clap(short = 'n', long, action = ArgAction::SetTrue)]
+    changed: bool,
+
+    /// Specifies the format used for timestamps
+    #[clap(
+        short,
+        long,
+        value_parser,
+        value_name = "FORMAT",
+        default_value = "local"
+    )]
+    time_format: TimeFormat,
 
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
@@ -119,6 +136,37 @@ pub struct ArchiveListArgs {
 }
 
 impl ArchiveListArgs {
+    fn print_short(&self, entries: Vec<ListEntry>) {
+        for entry in entries {
+            println!("{}", entry.name);
+        }
+    }
+
+    fn print_long(&self, entries: Vec<ListEntry>) {
+        let max_size = entries.iter().max_by_key(|e| e.size).map_or(0, |e| e.size);
+        let max_n = max_size.checked_ilog10().unwrap_or(0) as usize + 1;
+
+        for entry in entries {
+            let tstamp = if self.appended {
+                entry.appended
+            } else if self.created {
+                entry.created
+            } else if self.changed {
+                entry.changed
+            } else {
+                entry.modified
+            };
+
+            println!(
+                "{} {:>max_n$} {} {}",
+                entry.r#type,
+                entry.size,
+                self.time_format.format(&tstamp, "%d %b %H:%M"),
+                entry.name
+            );
+        }
+    }
+
     pub fn run(&self) -> Result<()> {
         debug!("container: {}", self.container);
         debug!("long: {}", self.long);
@@ -129,9 +177,9 @@ impl ArchiveListArgs {
         let entries = collect_entries(&mut archive)?;
 
         if self.long {
-            print_long(entries);
+            self.print_long(entries);
         } else {
-            print_short(entries);
+            self.print_short(entries);
         }
 
         Ok(())
