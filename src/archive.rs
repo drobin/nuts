@@ -24,14 +24,27 @@ use anyhow::Result;
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use colored::*;
 use log::{debug, error, trace, warn};
-use nuts_archive::Archive;
+use nuts_archive::{Archive, Group};
 use nuts_directory::DirectoryBackend;
 use std::fs::{self, File, Metadata};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
 #[cfg(unix)]
-use std::os::unix::fs::MetadataExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+#[cfg(unix)]
+mod unix {
+    pub const S_IRUSR: u32 = 0o0000400; // Read permission, owner.
+    pub const S_IWUSR: u32 = 0o0000200; // Write permission, owner.
+    pub const S_IXUSR: u32 = 0o0000100; // Execute/search permission, owner.
+    pub const S_IRGRP: u32 = 0o0000040; // Read permission, group.
+    pub const S_IWGRP: u32 = 0o0000020; // Write permission, group.
+    pub const S_IXGRP: u32 = 0o0000010; // Execute/search permission, group.
+    pub const S_IROTH: u32 = 0o0000004; // Read permission, others.
+    pub const S_IWOTH: u32 = 0o0000002; // Write permission, others.
+    pub const S_IXOTH: u32 = 0o0000001; // Execute/search permission, others.
+}
 
 macro_rules! into_utc {
     ($metadata:ident . $type:ident ()) => {
@@ -65,6 +78,56 @@ fn changed(metadata: &Metadata) -> DateTime<Utc> {
     }
 }
 
+fn can_read(metadata: &Metadata, group: Group) -> bool {
+    if cfg!(unix) {
+        let mask = match group {
+            Group::User => unix::S_IRUSR,
+            Group::Group => unix::S_IRGRP,
+            Group::Other => unix::S_IROTH,
+        };
+
+        metadata.permissions().mode() & mask > 0
+    } else {
+        match group {
+            Group::User => true,
+            Group::Group => false,
+            Group::Other => false,
+        }
+    }
+}
+
+fn can_write(metadata: &Metadata, group: Group) -> bool {
+    if cfg!(unix) {
+        let mask = match group {
+            Group::User => unix::S_IWUSR,
+            Group::Group => unix::S_IWGRP,
+            Group::Other => unix::S_IWOTH,
+        };
+
+        metadata.permissions().mode() & mask > 0
+    } else {
+        match group {
+            Group::User => !metadata.permissions().readonly(),
+            Group::Group => false,
+            Group::Other => false,
+        }
+    }
+}
+
+fn can_execute(metadata: &Metadata, group: Group) -> bool {
+    if cfg!(unix) {
+        let mask = match group {
+            Group::User => unix::S_IXUSR,
+            Group::Group => unix::S_IXGRP,
+            Group::Other => unix::S_IXOTH,
+        };
+
+        metadata.permissions().mode() & mask > 0
+    } else {
+        false
+    }
+}
+
 pub fn append_recursive(
     archive: &mut Archive<DirectoryBackend<PathBuf>>,
     path: &Path,
@@ -92,6 +155,12 @@ pub fn append_recursive(
         builder.set_changed(changed(&metadata));
         builder.set_modified(into_utc!(metadata.modified()));
 
+        for group in [Group::User, Group::Group, Group::Other] {
+            builder.set_readable(group, can_read(&metadata, group));
+            builder.set_writable(group, can_write(&metadata, group));
+            builder.set_executable(group, can_execute(&metadata, group));
+        }
+
         let mut entry = builder.build()?;
 
         loop {
@@ -111,6 +180,12 @@ pub fn append_recursive(
         builder.set_changed(changed(&metadata));
         builder.set_modified(into_utc!(metadata.modified()));
 
+        for group in [Group::User, Group::Group, Group::Other] {
+            builder.set_readable(group, can_read(&metadata, group));
+            builder.set_writable(group, can_write(&metadata, group));
+            builder.set_executable(group, can_execute(&metadata, group));
+        }
+
         builder.build()?;
     } else if metadata.is_symlink() {
         let target = path.read_link()?;
@@ -120,6 +195,12 @@ pub fn append_recursive(
         builder.set_created(into_utc!(metadata.created()));
         builder.set_changed(changed(&metadata));
         builder.set_modified(into_utc!(metadata.modified()));
+
+        for group in [Group::User, Group::Group, Group::Other] {
+            builder.set_readable(group, can_read(&metadata, group));
+            builder.set_writable(group, can_write(&metadata, group));
+            builder.set_executable(group, can_execute(&metadata, group));
+        }
 
         builder.build()?;
     }

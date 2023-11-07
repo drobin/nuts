@@ -24,7 +24,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use clap::{ArgAction, Args};
 use log::debug;
-use nuts_archive::{Archive, Entry};
+use nuts_archive::{Archive, Entry, Group};
 use nuts_directory::DirectoryBackend;
 use std::fmt::{self, Write};
 use std::path::PathBuf;
@@ -48,6 +48,42 @@ impl fmt::Display for Type {
     }
 }
 
+struct Permissions(bool, bool, bool);
+
+impl Permissions {
+    fn from_entry(entry: &Entry<DirectoryBackend<PathBuf>>, group: Group) -> Permissions {
+        Permissions(
+            entry.can_read(group),
+            entry.can_write(group),
+            entry.can_execute(group),
+        )
+    }
+}
+
+impl fmt::Display for Permissions {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.0 {
+            fmt.write_char('r')?;
+        } else {
+            fmt.write_char('-')?;
+        }
+
+        if self.1 {
+            fmt.write_char('w')?;
+        } else {
+            fmt.write_char('-')?;
+        }
+
+        if self.2 {
+            fmt.write_char('x')?;
+        } else {
+            fmt.write_char('-')?;
+        }
+
+        Ok(())
+    }
+}
+
 impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for Type {
     fn from(entry: &'a Entry<'a, DirectoryBackend<PathBuf>>) -> Self {
         match entry {
@@ -66,6 +102,9 @@ struct ListEntry {
     created: DateTime<Utc>,
     changed: DateTime<Utc>,
     modified: DateTime<Utc>,
+    user_perms: Permissions,
+    group_perms: Permissions,
+    other_perms: Permissions,
 }
 
 impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for ListEntry {
@@ -78,6 +117,9 @@ impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for ListEntry {
             created: *entry.created(),
             changed: *entry.changed(),
             modified: *entry.modified(),
+            user_perms: Permissions::from_entry(entry, Group::User),
+            group_perms: Permissions::from_entry(entry, Group::Group),
+            other_perms: Permissions::from_entry(entry, Group::Other),
         }
     }
 }
@@ -158,8 +200,11 @@ impl ArchiveListArgs {
             };
 
             println!(
-                "{} {:>max_n$} {} {}",
+                "{}{}{}{} {:>max_n$} {} {}",
                 entry.r#type,
+                entry.user_perms,
+                entry.group_perms,
+                entry.other_perms,
                 entry.size,
                 self.time_format.format(&tstamp, "%d %b %H:%M"),
                 entry.name
