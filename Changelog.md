@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2023-11-07
+
+## Added
+
+- Put timestamps into entries
+
+## Changed
+
+- Remove `Mode` from public interface
+
 ## [0.2.1] - 2023-11-03
 
 ## Changed
@@ -35,3 +45,4 @@ Initial public release.
 [0.1.1]: https://github.com/drobin/nuts-archive/tree/v0.1.1
 [0.2.0]: https://github.com/drobin/nuts-archive/tree/v0.2.0
 [0.2.1]: https://github.com/drobin/nuts-archive/tree/v0.2.1
+[0.2.2]: https://github.com/drobin/nuts-archive/tree/v0.2.2
