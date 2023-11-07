@@ -2,6 +2,7 @@
 name = "nuts-tool"
 version = "0.3.4"
 edition = "2018"
+rust-version = "1.66"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A cmdline utility for the nuts container"
 categories = ["cryptography", "command-line-utilities"]

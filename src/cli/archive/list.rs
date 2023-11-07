@@ -186,7 +186,7 @@ impl ArchiveListArgs {
 
     fn print_long(&self, entries: Vec<ListEntry>) {
         let max_size = entries.iter().max_by_key(|e| e.size).map_or(0, |e| e.size);
-        let max_n = max_size.checked_ilog10().unwrap_or(0) as usize + 1;
+        let max_n = max_size.to_string().len();
 
         for entry in entries {
             let tstamp = if self.appended {
