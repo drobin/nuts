@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.5] - 2023-11-07
+
+### Fixed
+
+- Fix build on Ubuntu 22.04
+
 ## [0.3.4] - 2023-11-07
 
 ## Added
@@ -77,3 +83,4 @@ Initial public release.
 [0.3.2]: https://github.com/drobin/nuts-tool/tree/v0.3.2
 [0.3.3]: https://github.com/drobin/nuts-tool/tree/v0.3.3
 [0.3.4]: https://github.com/drobin/nuts-tool/tree/v0.3.4
+[0.3.5]: https://github.com/drobin/nuts-tool/tree/v0.3.5
