@@ -376,9 +376,9 @@ dependencies = [
 
 [[package]]
 name = "nuts-archive"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f9b5e0d6c0bffd5c4853bca936293c198bd28ba276d6b9b70cf97bdd85dd7d7"
+checksum = "c9b62f31a39f5a5794415be2baca7e54fe379dc95f9d6b4a7e0d88cacf6200a4"
 dependencies = [
  "chrono",
  "log",
@@ -424,7 +424,7 @@ dependencies = [
 
 [[package]]
 name = "nuts-tool"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "cargo_metadata",
