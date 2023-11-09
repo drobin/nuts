@@ -23,4 +23,5 @@
 pub mod archive;
 pub mod cli;
 pub mod format;
+pub mod say;
 pub mod time;

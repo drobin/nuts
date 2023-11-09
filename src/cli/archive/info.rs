@@ -25,6 +25,7 @@ use clap::Args;
 use nuts_archive::Archive;
 
 use crate::cli::open_container;
+use crate::say::say;
 use crate::time::TimeFormat;
 
 #[derive(Args, Debug)]
@@ -53,10 +54,10 @@ impl ArchiveInfoArgs {
         let created = self.time_format.format(&info.created, "%c");
         let modified = self.time_format.format(&info.modified, "%c");
 
-        println!("created:  {}", created);
-        println!("modified: {}", modified);
-        println!("blocks:   {}", info.blocks);
-        println!("files:    {}", info.files);
+        say!("created:  {}", created);
+        say!("modified: {}", modified);
+        say!("blocks:   {}", info.blocks);
+        say!("files:    {}", info.files);
 
         Ok(())
     }

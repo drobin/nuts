@@ -23,6 +23,7 @@
 use anyhow::Result;
 use clap::Parser;
 use nuts_tool::cli::NutsCli;
+use nuts_tool::say;
 
 fn main() -> Result<()> {
     std::process::exit(match run_cli() {
@@ -36,6 +37,8 @@ fn main() -> Result<()> {
 
 fn run_cli() -> Result<()> {
     let cli = NutsCli::parse();
+
+    say::set_quiet(cli.quiet);
 
     cli.configure_logging();
     cli.run()

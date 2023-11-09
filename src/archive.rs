@@ -22,7 +22,6 @@
 
 use anyhow::Result;
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
-use colored::*;
 use log::{debug, error, trace, warn};
 use nuts_archive::{Archive, Group};
 use nuts_directory::DirectoryBackend;
@@ -32,6 +31,8 @@ use std::path::{Path, PathBuf};
 
 #[cfg(unix)]
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+use crate::say::{say, say_err};
 
 #[cfg(unix)]
 mod unix {
@@ -138,7 +139,7 @@ pub fn append_recursive(
         Ok(md) => md,
         Err(err) => {
             error!("{}", err);
-            println!("{}", format!("! {}", path.display()).red());
+            say_err!("! {}", path.display());
             return Ok(());
         }
     };
@@ -205,7 +206,7 @@ pub fn append_recursive(
         builder.build()?;
     }
 
-    println!("a {}", path.display());
+    say!("a {}", path.display());
 
     if path.is_dir() {
         for entry in path.read_dir()? {

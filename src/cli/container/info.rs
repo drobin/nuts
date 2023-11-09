@@ -29,6 +29,7 @@ use std::path::PathBuf;
 
 use crate::cli::open_container;
 use crate::format::Format;
+use crate::say::say;
 
 #[derive(Args, Debug)]
 pub struct ContainerInfoArgs {
@@ -49,10 +50,10 @@ impl ContainerInfoArgs {
     fn print_info(&self, container: &Container<DirectoryBackend<PathBuf>>) -> Result<()> {
         let info = container.info()?;
 
-        println!("cipher:             {}", info.cipher);
-        println!("kdf:                {}", info.kdf.to_string());
-        println!("block size (gross): {}", info.bsize_gross);
-        println!("block size (net):   {}", info.bsize_net);
+        say!("cipher:             {}", info.cipher);
+        say!("kdf:                {}", info.kdf.to_string());
+        say!("block size (gross): {}", info.bsize_gross);
+        say!("block size (net):   {}", info.bsize_net);
 
         Ok(())
     }

@@ -25,6 +25,7 @@ use clap::Args;
 use log::debug;
 
 use crate::cli::open_container;
+use crate::say::say;
 
 #[derive(Args, Debug)]
 pub struct ContainerAquireArgs {
@@ -40,7 +41,7 @@ impl ContainerAquireArgs {
         let mut container = open_container(&self.container)?;
         let id = container.aquire()?;
 
-        println!("aquired: {}", id);
+        say!("aquired: {}", id);
 
         Ok(())
     }

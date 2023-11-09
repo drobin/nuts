@@ -30,6 +30,7 @@ use std::fmt::{self, Write};
 use std::path::PathBuf;
 
 use crate::cli::open_container;
+use crate::say::say;
 use crate::time::TimeFormat;
 
 enum Type {
@@ -180,7 +181,7 @@ pub struct ArchiveListArgs {
 impl ArchiveListArgs {
     fn print_short(&self, entries: Vec<ListEntry>) {
         for entry in entries {
-            println!("{}", entry.name);
+            say!("{}", entry.name);
         }
     }
 
@@ -199,7 +200,7 @@ impl ArchiveListArgs {
                 entry.modified
             };
 
-            println!(
+            say!(
                 "{}{}{}{} {:>max_n$} {} {}",
                 entry.r#type,
                 entry.user_perms,

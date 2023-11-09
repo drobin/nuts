@@ -50,6 +50,10 @@ pub struct NutsCli {
     /// Enable verbose output. Can be called multiple times
     #[clap(short, long, action = ArgAction::Count, global = true)]
     verbose: u8,
+
+    /// Be quiet. Don't produce any output
+    #[clap(short, long, action = ArgAction::SetTrue, global = true)]
+    pub quiet: bool,
 }
 
 impl NutsCli {
