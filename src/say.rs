@@ -27,6 +27,10 @@ thread_local! {
     pub static SAY: RefCell<Say> = RefCell::new(Say::new());
 }
 
+pub fn is_quiet() -> bool {
+    SAY.with(|say| say.borrow().quiet)
+}
+
 pub fn set_quiet(quiet: bool) {
     SAY.with(|say| say.borrow_mut().quiet = quiet)
 }

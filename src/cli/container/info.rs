@@ -29,7 +29,7 @@ use std::path::PathBuf;
 
 use crate::cli::open_container;
 use crate::format::Format;
-use crate::say::say;
+use crate::say::{is_quiet, say};
 
 #[derive(Args, Debug)]
 pub struct ContainerInfoArgs {
@@ -59,10 +59,12 @@ impl ContainerInfoArgs {
     }
 
     fn print_userdata(&self, container: &Container<DirectoryBackend<PathBuf>>) -> Result<()> {
-        let mut writer = self.format.create_writer();
+        if !is_quiet() {
+            let mut writer = self.format.create_writer();
 
-        writer.print(container.userdata())?;
-        writer.flush()?;
+            writer.print(container.userdata())?;
+            writer.flush()?;
+        }
 
         Ok(())
     }

@@ -28,6 +28,7 @@ use std::cmp;
 
 use crate::cli::open_container;
 use crate::format::Format;
+use crate::say::is_quiet;
 
 #[derive(Args, Debug)]
 pub struct ContainerReadArgs {
@@ -68,8 +69,10 @@ impl ContainerReadArgs {
 
         let n = container.read(&id, &mut buf)?;
 
-        writer.print(&buf[..n])?;
-        writer.flush()?;
+        if !is_quiet() {
+            writer.print(&buf[..n])?;
+            writer.flush()?;
+        }
 
         Ok(())
     }
