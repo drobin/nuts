@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.7] - 2023-11-10
+
+## Changed
+
+- Update dependencies:
+  * `nuts-directory` 0.3.0 -> 0.3.1
+
 ## [0.3.6] - 2023-11-10
 
 ### Added
@@ -97,3 +104,4 @@ Initial public release.
 [0.3.4]: https://github.com/drobin/nuts-tool/tree/v0.3.4
 [0.3.5]: https://github.com/drobin/nuts-tool/tree/v0.3.5
 [0.3.6]: https://github.com/drobin/nuts-tool/tree/v0.3.6
+[0.3.7]: https://github.com/drobin/nuts-tool/tree/v0.3.7

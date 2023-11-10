@@ -1,6 +1,6 @@
 [package]
 name = "nuts-tool"
-version = "0.3.6"
+version = "0.3.7"
 edition = "2018"
 rust-version = "1.66"
 authors = ["Robin Doer <robin@robind.de>"]
@@ -23,7 +23,7 @@ home = "0.5.5"
 log = "0.4.20"
 nuts-archive = "0.2.3"
 nuts-container = "0.2.1"
-nuts-directory = "0.3.0"
+nuts-directory = "0.3.1"
 rpassword = "7.2.0"
 
 [build-dependencies]
