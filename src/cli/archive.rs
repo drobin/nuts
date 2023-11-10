@@ -22,6 +22,7 @@
 
 pub mod add;
 pub mod create;
+pub mod get;
 pub mod info;
 pub mod list;
 
@@ -30,6 +31,7 @@ use clap::{Args, Subcommand};
 
 use crate::cli::archive::add::ArchiveAddArgs;
 use crate::cli::archive::create::ArchiveCreateArgs;
+use crate::cli::archive::get::ArchiveGetArgs;
 use crate::cli::archive::info::ArchiveInfoArgs;
 use crate::cli::archive::list::ArchiveListArgs;
 
@@ -56,6 +58,9 @@ pub enum ArchiveCommand {
     /// Creates a new archive
     Create(ArchiveCreateArgs),
 
+    /// Retrieve the content of an entry
+    Get(ArchiveGetArgs),
+
     /// Prints information about the archive
     Info(ArchiveInfoArgs),
 
@@ -68,6 +73,7 @@ impl ArchiveCommand {
         match self {
             Self::Add(args) => args.run(),
             Self::Create(args) => args.run(),
+            Self::Get(args) => args.run(),
             Self::Info(args) => args.run(),
             Self::List(args) => args.run(),
         }
