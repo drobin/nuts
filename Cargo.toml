@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-archive"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A tar like archive on top of the nuts-container"
