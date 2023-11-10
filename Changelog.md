@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.6] - 2023-11-10
+
+### Added
+
+- Global `--quiet` option to suppress all output
+- New command `archive get` to retrieve the content of an entry
+
+## Changed
+
+- Update dependencies:
+  * `nuts-archive` 0.2.2 -> 0.2.3
+
 ## [0.3.5] - 2023-11-07
 
 ### Fixed
@@ -84,3 +96,4 @@ Initial public release.
 [0.3.3]: https://github.com/drobin/nuts-tool/tree/v0.3.3
 [0.3.4]: https://github.com/drobin/nuts-tool/tree/v0.3.4
 [0.3.5]: https://github.com/drobin/nuts-tool/tree/v0.3.5
+[0.3.6]: https://github.com/drobin/nuts-tool/tree/v0.3.6
