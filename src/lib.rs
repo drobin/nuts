@@ -61,10 +61,9 @@ mod info;
 mod options;
 
 use log::warn;
-use std::cmp;
-use std::fs::{self, File};
 use std::io::{self, ErrorKind, Read, Write};
 use std::path::Path;
+use std::{cmp, fs};
 
 use nuts_container::backend::{Backend, HeaderGet, HeaderSet, HEADER_MAX_SIZE};
 
@@ -75,50 +74,69 @@ pub use options::{CreateOptions, OpenOptions, Settings};
 
 use crate::error::Result;
 
-fn open_read(path: &Path, id: &Id) -> io::Result<File> {
-    let path = id.to_pathbuf(path);
-    fs::OpenOptions::new().read(true).open(path)
-}
-
-fn open_write(path: &Path, id: &Id, aquire: bool) -> io::Result<File> {
-    let path = id.to_pathbuf(path);
-
-    if let Some(dir) = path.parent() {
-        fs::create_dir_all(dir)?;
-    }
-
-    let fh = if aquire {
-        fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(path)?
-    } else {
-        fs::OpenOptions::new().write(true).create(true).open(path)?
-    };
-
-    Ok(fh)
-}
-
 fn read_block(path: &Path, id: &Id, bsize: u32, buf: &mut [u8]) -> Result<usize> {
+    let path = id.to_pathbuf(path);
+    let mut fh = fs::OpenOptions::new().read(true).open(path)?;
+
     let len = cmp::min(buf.len(), bsize as usize);
     let target = &mut buf[..len];
-
-    let mut fh = open_read(path, id)?;
 
     fh.read_exact(target)?;
 
     Ok(len)
 }
 
-fn write_block(path: &Path, id: &Id, aquire: bool, bsize: u32, buf: &[u8]) -> Result<usize> {
+fn write_block(
+    path: &Path,
+    id: &Id,
+    aquire: bool,
+    header: bool,
+    bsize: u32,
+    buf: &[u8],
+) -> Result<usize> {
+    let path = id.to_pathbuf(path);
+
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir)?;
+    }
+
+    if aquire {
+        // A block is aquired. Allow only to create non-existing files.
+        if path.exists() {
+            return Err(io::Error::new(
+                ErrorKind::Other,
+                format!("cannot aquire {}, already stored in {}", id, path.display()),
+            )
+            .into());
+        }
+    } else {
+        // * The header block can be created even if it does not exist.
+        // * Any other block must be aquired before, thus open should fail if the
+        //   file does not exist.
+        if !header && !path.is_file() {
+            return Err(io::Error::new(
+                ErrorKind::Other,
+                format!("cannot open {}, no related file {}", id, path.display()),
+            )
+            .into());
+        }
+    }
+
+    let tmp_path = path.with_extension("tmp");
+
+    let mut fh = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&tmp_path)?;
+
     let len = cmp::min(buf.len(), bsize as usize);
     let pad_len = bsize as usize - len;
-
-    let mut fh = open_write(path, id, aquire)?;
 
     fh.write_all(&buf[..len])?;
     fh.write_all(&vec![0; pad_len])?;
     fh.flush()?;
+
+    fs::rename(tmp_path, path)?;
 
     Ok(len)
 }
@@ -128,7 +146,7 @@ fn read_header(path: &Path, buf: &mut [u8]) -> Result<()> {
 }
 
 fn write_header(path: &Path, bsize: u32, buf: &[u8]) -> Result<()> {
-    write_block(path, &Id::min(), false, bsize, buf).map(|_| ())
+    write_block(path, &Id::min(), false, true, bsize, buf).map(|_| ())
 }
 
 #[derive(Debug)]
@@ -171,7 +189,7 @@ impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
         for n in 0..MAX {
             let id = Id::generate();
 
-            match write_block(self.path.as_ref(), &id, true, self.bsize, buf) {
+            match write_block(self.path.as_ref(), &id, true, false, self.bsize, buf) {
                 Ok(_) => return Ok(id),
                 Err(Error::Io(err)) => {
                     if err.kind() == ErrorKind::AlreadyExists {
@@ -198,6 +216,6 @@ impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
     }
 
     fn write(&mut self, id: &Id, buf: &[u8]) -> Result<usize> {
-        write_block(self.path.as_ref(), id, false, self.bsize, buf)
+        write_block(self.path.as_ref(), id, false, false, self.bsize, buf)
     }
 }
