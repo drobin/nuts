@@ -43,5 +43,5 @@ nuts-container = "0.2.1"
 serde = { version = "1.0.188", features = ["derive"] }
 
 [dev-dependencies]
-nuts-directory = "0.3.0"
+nuts-directory = "0.3.1"
 tempdir = "0.3.7"
