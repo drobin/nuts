@@ -403,6 +403,34 @@ impl<B: Backend> Archive<B> {
         }
     }
 
+    /// Searches for an entry with the given `name`.
+    ///
+    /// It scans the whole archive and returns the first entry which has the
+    /// given name wrapped into a [`Some`]. If no such entry exists, [`None`]
+    /// is returned.
+    pub fn lookup<'a, N: AsRef<str>>(
+        &'a mut self,
+        name: N,
+    ) -> Option<ArchiveResult<Entry<'a, B>, B>> {
+        let mut entry_opt = self.first();
+
+        loop {
+            match entry_opt {
+                Some(Ok(entry)) => {
+                    if entry.name() == name.as_ref() {
+                        return Some(Ok(entry));
+                    }
+
+                    entry_opt = entry.next();
+                }
+                Some(Err(err)) => return Some(Err(err)),
+                None => break,
+            }
+        }
+
+        None
+    }
+
     /// Appends a new file entry with the given `name` at the end of the
     /// archive.
     ///

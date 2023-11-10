@@ -28,7 +28,7 @@ use nuts_container::backend::Backend;
 use std::cmp;
 use std::convert::{TryFrom, TryInto};
 
-use crate::entry::{populate_mode_api, Inner, populate_tstamp_api};
+use crate::entry::{populate_mode_api, populate_tstamp_api, Inner};
 use crate::error::{ArchiveResult, Error};
 use crate::pager::Pager;
 use crate::tree::Tree;
