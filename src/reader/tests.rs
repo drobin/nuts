@@ -20,5 +20,222 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod de;
-mod reader;
+use crate::reader::{Reader, ReaderError};
+
+#[test]
+fn u8() {
+    let mut reader = Reader::<&[u8]>::new([1].as_slice());
+
+    assert_eq!(reader.read::<u8>().unwrap(), 1);
+}
+
+#[test]
+fn u8_eof() {
+    let mut reader = Reader::new([].as_slice());
+
+    let err = reader.read::<u8>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[]);
+}
+
+#[test]
+fn u16() {
+    let mut reader = Reader::<&[u8]>::new([1, 2].as_slice());
+
+    assert_eq!(reader.read::<u16>().unwrap(), 0x0102);
+}
+
+#[test]
+fn u16_eof() {
+    let mut reader = Reader::new([1].as_slice());
+
+    let err = reader.read::<u16>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[1]);
+}
+
+#[test]
+fn u32() {
+    let mut reader = Reader::<&[u8]>::new([1, 2, 3, 4].as_slice());
+
+    assert_eq!(reader.read::<u32>().unwrap(), 0x01020304);
+}
+
+#[test]
+fn u32_eof() {
+    let mut reader = Reader::new([1, 2, 3].as_slice());
+
+    let err = reader.read::<u32>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[1, 2, 3]);
+}
+
+#[test]
+fn u64() {
+    let mut reader = Reader::<&[u8]>::new([1, 2, 3, 4, 5, 6, 7, 8].as_slice());
+
+    assert_eq!(reader.read::<u64>().unwrap(), 0x0102030405060708);
+}
+
+#[test]
+fn u64_eof() {
+    let mut reader = Reader::<&[u8]>::new([1, 2, 3, 4, 5, 6, 7].as_slice());
+
+    let err = reader.read::<u64>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[1, 2, 3, 4, 5, 6, 7]);
+}
+
+#[test]
+fn usize() {
+    let mut reader = Reader::<&[u8]>::new([1, 2, 3, 4, 5, 6, 7, 8].as_slice());
+
+    assert_eq!(reader.read::<usize>().unwrap(), 0x0102030405060708);
+}
+
+#[test]
+fn usize_eof() {
+    let mut reader = Reader::new([1, 2, 3, 4, 5, 6, 7].as_slice());
+
+    let err = reader.read::<usize>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[1, 2, 3, 4, 5, 6, 7]);
+}
+
+#[test]
+fn array_zero() {
+    let mut reader = Reader::<&[u8]>::new([].as_slice());
+
+    assert_eq!(reader.read::<[u16; 0]>().unwrap(), []);
+    assert_eq!(reader.read::<[u16; 0]>().unwrap(), []);
+}
+
+#[test]
+fn array_one() {
+    let mut reader = Reader::new([1, 2, 3, 4, 5].as_slice());
+
+    assert_eq!(reader.read::<[u16; 1]>().unwrap(), [0x0102]);
+    assert_eq!(reader.read::<[u16; 1]>().unwrap(), [0x0304]);
+
+    let err = reader.read::<[u16; 1]>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[5]);
+}
+
+#[test]
+fn array_two() {
+    let vec = (1..12).collect::<Vec<u8>>();
+    let mut reader = Reader::new(vec.as_slice());
+
+    assert_eq!(reader.read::<[u16; 2]>().unwrap(), [0x0102, 0x0304]);
+    assert_eq!(reader.read::<[u16; 2]>().unwrap(), [0x0506, 0x0708]);
+
+    let err = reader.read::<[u16; 2]>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[11]); // 9 & 10 missing because already consumed
+}
+
+#[test]
+fn array_three() {
+    let vec = (1..18).collect::<Vec<u8>>();
+    let mut reader = Reader::new(vec.as_slice());
+
+    assert_eq!(reader.read::<[u16; 3]>().unwrap(), [0x0102, 0x0304, 0x0506]);
+    assert_eq!(reader.read::<[u16; 3]>().unwrap(), [0x0708, 0x090a, 0x0b0c]);
+
+    let err = reader.read::<[u16; 3]>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[17]); // 12..=16 missing because already consumed
+}
+
+#[test]
+fn vec_zero() {
+    let mut reader = Reader::<&[u8]>::new([0; 8].as_slice());
+
+    assert_eq!(reader.read::<Vec<u16>>().unwrap(), []);
+}
+
+#[test]
+fn vec_one() {
+    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 1, 0, 1].as_slice());
+
+    assert_eq!(reader.read::<Vec<u16>>().unwrap(), [1]);
+}
+
+#[test]
+fn vec_two() {
+    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 0, 2].as_slice());
+
+    assert_eq!(reader.read::<Vec<u16>>().unwrap(), [1, 2]);
+}
+
+#[test]
+fn vec_three() {
+    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 2, 0, 3].as_slice());
+
+    assert_eq!(reader.read::<Vec<u16>>().unwrap(), [1, 2, 3]);
+}
+
+#[test]
+fn vec_eof_len() {
+    let mut reader = Reader::<&[u8]>::new([0; 7].as_slice());
+
+    let err = reader.read::<Vec<u16>>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[0, 0, 0, 0, 0, 0, 0,]);
+}
+
+#[test]
+fn vec_eof_payload() {
+    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 1, 9].as_slice());
+
+    let err = reader.read::<Vec<u16>>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[9]);
+}
+
+#[test]
+fn string_zero() {
+    let mut reader = Reader::<&[u8]>::new([0; 8].as_slice());
+
+    assert_eq!(reader.read::<String>().unwrap(), "");
+}
+
+#[test]
+fn string_one() {
+    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 1, b'a'].as_slice());
+
+    assert_eq!(reader.read::<String>().unwrap(), "a");
+}
+
+#[test]
+fn string_two() {
+    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 2, b'a', b'b'].as_slice());
+
+    assert_eq!(reader.read::<String>().unwrap(), "ab");
+}
+
+#[test]
+fn string_three() {
+    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 3, b'a', b'b', b'c'].as_slice());
+
+    assert_eq!(reader.read::<String>().unwrap(), "abc");
+}
+
+#[test]
+fn string_eof_len() {
+    let mut reader = Reader::<&[u8]>::new([0; 7].as_slice());
+
+    let err = reader.read::<String>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[0, 0, 0, 0, 0, 0, 0,]);
+}
+
+#[test]
+fn string_eof_payload() {
+    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 2, b'a'].as_slice());
+
+    let err = reader.read::<String>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[b'a']);
+}

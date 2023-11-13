@@ -23,425 +23,61 @@
 #[cfg(test)]
 mod tests;
 
-use serde::{ser, Serialize};
+use std::marker::PhantomData;
+use thiserror::Error;
 
-use crate::error::{Error, Result};
-use crate::target::PutBytes;
+use crate::to_bytes::ToBytes;
+use crate::{put_bytes::PutBytes, PutBytesError};
+
+#[derive(Debug, Error)]
+pub enum WriterError {
+    /// No more space available when writing into a byte slice.
+    #[error("no more space available for writing")]
+    NoSpace,
+}
+
+impl PutBytesError for WriterError {
+    fn no_space() -> Self {
+        Self::NoSpace
+    }
+}
 
 /// A cursor like utility that writes structured data into an arbitrary target.
 ///
 /// The target must implement the [`PutBytes`] trait which supports writing
 /// binary data into it.
 #[derive(Debug)]
-pub struct Writer<T> {
+pub struct Writer<T, E = WriterError> {
     target: T,
+    data: PhantomData<E>,
 }
 
-macro_rules! write_primitive {
-    ($(#[$outer:meta])* $name:ident -> $ty:ty) => {
-        $(#[$outer])*
-        pub fn $name(&mut self, value: $ty) -> Result<usize> {
-            const N: usize = std::mem::size_of::<$ty>();
-            self.target.put_bytes(&value.to_be_bytes()).map(|()| N)
-        }
-    };
-}
-
-impl<T: PutBytes> Writer<T> {
+impl<T: PutBytes, E: PutBytesError> Writer<T, E> {
     /// Creates a new `Writer` instance.
     ///
     /// The target, where the writer puts the binary data, is passed to the
     /// function. Every type, that implements the [`PutBytes`] trait can be the
     /// target of this writer.
-    pub fn new(target: T) -> Writer<T> {
-        Writer { target }
+    pub fn new(target: T) -> Writer<T, E> {
+        Writer {
+            target,
+            data: PhantomData,
+        }
     }
 
-    /// Serializes a data structure that implements
-    /// [Serde](https://www.serde.rs) [`Serialize`] trait into this binary
-    /// representation.
-    ///
-    /// This is simply a wrapper for
-    ///
-    /// ```text
-    /// s.serialize(self)
-    /// ```
-    pub fn serialize<S: Serialize>(&mut self, s: &S) -> Result<usize> {
-        s.serialize(self)
+    /// Serializes a data structure that implements the [`ToBytes`] trait.
+    pub fn write<TB: ToBytes>(&mut self, value: &TB) -> Result<(), E> {
+        ToBytes::to_bytes(value, &mut self.target)
     }
 
     /// Consumes this `Writer`, returning the underlying target.
     pub fn into_target(self) -> T {
         self.target
     }
-
-    write_primitive!(
-        /// Appends an `i8` value at the end of this writer.
-        write_i8 -> i8
-    );
-
-    write_primitive!(
-        /// Appends an `u8` value at the end of this writer.
-        write_u8 -> u8
-    );
-
-    write_primitive!(
-        /// Appends an `i16` value at the end of this writer.
-        write_i16 -> i16
-    );
-
-    write_primitive!(
-        /// Appends an `u16` value at the end of this writer.
-        write_u16 -> u16
-    );
-
-    write_primitive!(
-        /// Appends an `i32` value at the end of this writer.
-        write_i32 -> i32
-    );
-
-    write_primitive!(
-        /// Appends an `u32` value at the end of this writer.
-        write_u32 -> u32
-    );
-
-    write_primitive!(
-        /// Appends an `i64` value at the end of this writer.
-        write_i64 -> i64
-    );
-
-    write_primitive!(
-        /// Appends an `u64` value at the end of this writer.
-        write_u64 -> u64
-    );
-
-    write_primitive!(
-        /// Appends an `i128` value at the end of this writer.
-        write_i128 -> i128
-    );
-
-    write_primitive!(
-        /// Appends an `u128` value at the end of this writer.
-        write_u128 -> u128
-    );
-
-    /// Appends the given `bytes` at the end of this writer.
-    pub fn write_bytes(&mut self, bytes: &[u8]) -> Result<usize> {
-        self.target.put_bytes(bytes).map(|()| bytes.len())
-    }
 }
 
 impl<T> AsRef<T> for Writer<T> {
     fn as_ref(&self) -> &T {
         &self.target
-    }
-}
-
-impl<'a, P: PutBytes> ser::Serializer for &'a mut Writer<P> {
-    type Ok = usize;
-    type Error = Error;
-    type SerializeSeq = StateSerializer<'a, P>;
-    type SerializeTuple = StateSerializer<'a, P>;
-    type SerializeTupleStruct = StateSerializer<'a, P>;
-    type SerializeTupleVariant = StateSerializer<'a, P>;
-    type SerializeMap = StateSerializer<'a, P>;
-    type SerializeStruct = StateSerializer<'a, P>;
-    type SerializeStructVariant = StateSerializer<'a, P>;
-
-    fn serialize_bool(self, v: bool) -> Result<usize> {
-        self.write_u8(if v { 1 } else { 0 })
-    }
-
-    fn serialize_i8(self, v: i8) -> Result<usize> {
-        self.write_i8(v)
-    }
-
-    fn serialize_i16(self, v: i16) -> Result<usize> {
-        self.write_i16(v)
-    }
-
-    fn serialize_i32(self, v: i32) -> Result<usize> {
-        self.write_i32(v)
-    }
-
-    fn serialize_i64(self, v: i64) -> Result<usize> {
-        self.write_i64(v)
-    }
-
-    fn serialize_u8(self, v: u8) -> Result<usize> {
-        self.write_u8(v)
-    }
-
-    fn serialize_u16(self, v: u16) -> Result<usize> {
-        self.write_u16(v)
-    }
-
-    fn serialize_u32(self, v: u32) -> Result<usize> {
-        self.write_u32(v)
-    }
-
-    fn serialize_u64(self, v: u64) -> Result<usize> {
-        self.write_u64(v)
-    }
-
-    fn serialize_f32(self, _v: f32) -> Result<usize> {
-        unimplemented!()
-    }
-
-    fn serialize_f64(self, _v: f64) -> Result<usize> {
-        unimplemented!()
-    }
-
-    fn serialize_char(self, v: char) -> Result<usize> {
-        self.write_u32(v as u32)
-    }
-
-    fn serialize_str(self, v: &str) -> Result<usize> {
-        self.serialize_bytes(v.as_bytes())
-    }
-
-    fn serialize_bytes(self, v: &[u8]) -> Result<usize> {
-        self.write_u64(v.len() as u64)
-            .and_then(|a| self.write_bytes(v).map(|b| a + b))
-    }
-
-    fn serialize_none(self) -> Result<usize> {
-        self.write_u8(0)
-    }
-
-    fn serialize_some<T: Serialize + ?Sized>(self, value: &T) -> Result<usize> {
-        self.write_u8(1)
-            .and_then(|a| value.serialize(self).map(|b| a + b))
-    }
-
-    fn serialize_unit(self) -> Result<usize> {
-        Ok(0)
-    }
-
-    fn serialize_unit_struct(self, _name: &'static str) -> Result<usize> {
-        Ok(0)
-    }
-
-    fn serialize_unit_variant(
-        self,
-        _name: &'static str,
-        variant_index: u32,
-        _variant: &'static str,
-    ) -> Result<usize> {
-        self.write_u32(variant_index)
-    }
-
-    fn serialize_newtype_struct<T: Serialize + ?Sized>(
-        self,
-        _name: &'static str,
-        value: &T,
-    ) -> Result<usize> {
-        value.serialize(self)
-    }
-
-    fn serialize_newtype_variant<T: Serialize + ?Sized>(
-        self,
-        _name: &'static str,
-        variant_index: u32,
-        _variant: &'static str,
-        value: &T,
-    ) -> Result<usize> {
-        self.write_u32(variant_index)
-            .and_then(|a| value.serialize(self).map(|b| a + b))
-    }
-
-    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
-        len.ok_or(Error::RequiredLength)
-            .and_then(|len| self.write_u64(len as u64))
-            .map(move |n| StateSerializer::new(self, n))
-    }
-
-    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple> {
-        Ok(StateSerializer::new(self, 0))
-    }
-
-    fn serialize_tuple_struct(
-        self,
-        _name: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeTupleStruct> {
-        Ok(StateSerializer::new(self, 0))
-    }
-
-    fn serialize_tuple_variant(
-        self,
-        _name: &'static str,
-        variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeTupleVariant> {
-        self.write_u32(variant_index)
-            .map(move |n| StateSerializer::new(self, n))
-    }
-
-    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
-        len.ok_or(Error::RequiredLength)
-            .and_then(|len| self.write_u64(len as u64))
-            .map(move |n| StateSerializer::new(self, n))
-    }
-
-    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
-        Ok(StateSerializer::new(self, 0))
-    }
-
-    fn serialize_struct_variant(
-        self,
-        _name: &'static str,
-        variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeStructVariant> {
-        self.write_u32(variant_index)
-            .map(move |n| StateSerializer::new(self, n))
-    }
-}
-
-pub struct StateSerializer<'a, T> {
-    writer: &'a mut Writer<T>,
-    ok: usize,
-}
-
-impl<'a, T> StateSerializer<'a, T> {
-    fn new(writer: &'a mut Writer<T>, ok: usize) -> StateSerializer<T> {
-        StateSerializer { writer, ok }
-    }
-}
-
-impl<'a, P: PutBytes> ser::SerializeSeq for StateSerializer<'a, P> {
-    type Ok = usize;
-    type Error = Error;
-
-    fn serialize_element<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<()> {
-        value.serialize(&mut *self.writer).map(|n| {
-            self.ok += n;
-            ()
-        })
-    }
-
-    fn end(self) -> Result<usize> {
-        Ok(self.ok)
-    }
-}
-
-impl<'a, P: PutBytes> ser::SerializeTuple for StateSerializer<'a, P> {
-    type Ok = usize;
-    type Error = Error;
-
-    fn serialize_element<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<()> {
-        value.serialize(&mut *self.writer).map(|n| {
-            self.ok += n;
-            ()
-        })
-    }
-
-    fn end(self) -> Result<usize> {
-        Ok(self.ok)
-    }
-}
-
-impl<'a, P: PutBytes> ser::SerializeTupleStruct for StateSerializer<'a, P> {
-    type Ok = usize;
-    type Error = Error;
-
-    fn serialize_field<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<()> {
-        value.serialize(&mut *self.writer).map(|n| {
-            self.ok += n;
-            ()
-        })
-    }
-
-    fn end(self) -> Result<usize> {
-        Ok(self.ok)
-    }
-}
-
-impl<'a, P: PutBytes> ser::SerializeTupleVariant for StateSerializer<'a, P> {
-    type Ok = usize;
-    type Error = Error;
-
-    fn serialize_field<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<()> {
-        value.serialize(&mut *self.writer).map(|n| {
-            self.ok += n;
-            ()
-        })
-    }
-
-    fn end(self) -> Result<usize> {
-        Ok(self.ok)
-    }
-}
-
-impl<'a, P: PutBytes> ser::SerializeMap for StateSerializer<'a, P> {
-    type Ok = usize;
-    type Error = Error;
-
-    fn serialize_key<T: Serialize + ?Sized>(&mut self, _key: &T) -> Result<()> {
-        unimplemented!()
-    }
-
-    fn serialize_value<T: Serialize + ?Sized>(&mut self, _value: &T) -> Result<()> {
-        unimplemented!()
-    }
-
-    fn end(self) -> Result<usize> {
-        Ok(self.ok)
-    }
-
-    fn serialize_entry<K: Serialize + ?Sized, V: Serialize + ?Sized>(
-        &mut self,
-        key: &K,
-        value: &V,
-    ) -> Result<()> {
-        key.serialize(&mut *self.writer).and_then(|a| {
-            value.serialize(&mut *self.writer).map(|b| {
-                self.ok += a + b;
-                ()
-            })
-        })
-    }
-}
-
-impl<'a, P: PutBytes> ser::SerializeStruct for StateSerializer<'a, P> {
-    type Ok = usize;
-    type Error = Error;
-
-    fn serialize_field<T: Serialize + ?Sized>(
-        &mut self,
-        _key: &'static str,
-        value: &T,
-    ) -> Result<()> {
-        value.serialize(&mut *self.writer).map(|n| {
-            self.ok += n;
-            ()
-        })
-    }
-
-    fn end(self) -> Result<usize> {
-        Ok(self.ok)
-    }
-}
-
-impl<'a, P: PutBytes> ser::SerializeStructVariant for StateSerializer<'a, P> {
-    type Ok = usize;
-    type Error = Error;
-
-    fn serialize_field<T: Serialize + ?Sized>(
-        &mut self,
-        _key: &'static str,
-        value: &T,
-    ) -> Result<()> {
-        value.serialize(&mut *self.writer).map(|n| {
-            self.ok += n;
-            ()
-        })
-    }
-
-    fn end(self) -> Result<usize> {
-        Ok(self.ok)
     }
 }

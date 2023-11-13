@@ -20,5 +20,335 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod ser;
-mod writer;
+use crate::writer::{Writer, WriterError};
+
+#[test]
+fn u8() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&1u8).unwrap();
+
+    assert_eq!(writer.into_target(), [1]);
+}
+
+#[test]
+fn u8_nospace() {
+    let mut buf = [b'x'; 0];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&1u8).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+}
+
+#[test]
+fn u16() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&1u16).unwrap();
+
+    assert_eq!(writer.into_target(), [0, 1]);
+}
+
+#[test]
+fn u16_nospace() {
+    let mut buf = [b'x'; 1];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&1u16).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x']);
+}
+
+#[test]
+fn u32() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&1u32).unwrap();
+
+    assert_eq!(writer.into_target(), [0, 0, 0, 1]);
+}
+
+#[test]
+fn u32_nospace() {
+    let mut buf = [b'x'; 3];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&1u32).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 3]);
+}
+
+#[test]
+fn u64() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&1u64).unwrap();
+
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1]);
+}
+
+#[test]
+fn u64_nospace() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&1u64).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
+fn usize() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&1usize).unwrap();
+
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1]);
+}
+
+#[test]
+fn usize_nospace() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&1usize).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
+fn array_zero() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&[0u16; 0]).unwrap();
+    assert_eq!(writer.into_target(), []);
+}
+
+#[test]
+fn array_one() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&[1u16]).unwrap();
+    assert_eq!(writer.into_target(), [0, 1]);
+}
+
+#[test]
+fn array_one_nospace() {
+    let mut buf = [b'x'; 1];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x']);
+}
+
+#[test]
+fn array_two() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&[1u16, 2u16]).unwrap();
+    assert_eq!(writer.into_target(), [0, 1, 0, 2]);
+}
+
+#[test]
+fn array_two_nospace() {
+    let mut buf = [b'x'; 3];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16, 2u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 1, b'x']);
+}
+
+#[test]
+fn array_three() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&[1u16, 2u16, 3u16]).unwrap();
+    assert_eq!(writer.into_target(), [0, 1, 0, 2, 0, 3]);
+}
+
+#[test]
+fn array_three_nospace() {
+    let mut buf = [b'x'; 5];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16, 2u16, 3u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 1, 0, 2, b'x']);
+}
+
+#[test]
+fn slice_zero() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&[0u16; 0].as_slice()).unwrap();
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 0]);
+}
+
+#[test]
+fn slice_one() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&[1u16].as_slice()).unwrap();
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1, 0, 1]);
+}
+
+#[test]
+fn slice_one_nospace_len() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16].as_slice()).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
+fn slice_one_nospace_value() {
+    let mut buf = [b'x'; 9];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16].as_slice()).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 1, b'x']);
+}
+
+#[test]
+fn slice_two() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&[1u16, 2u16].as_slice()).unwrap();
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 0, 2]);
+}
+
+#[test]
+fn slice_two_nospace_len() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16, 2u16].as_slice()).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
+fn slice_two_nospace_value_1() {
+    let mut buf = [b'x'; 9];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16, 2u16].as_slice()).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 2, b'x']);
+}
+
+#[test]
+fn slice_two_nospace_value_2() {
+    let mut buf = [b'x'; 11];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16, 2u16].as_slice()).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 2, 0, 1, b'x']);
+}
+
+#[test]
+fn slice_three() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&[1u16, 2u16, 3u16].as_slice()).unwrap();
+    assert_eq!(
+        writer.into_target(),
+        [0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 2, 0, 3]
+    );
+}
+
+#[test]
+fn slice_three_nospace_len() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16, 2u16, 3u16].as_slice()).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
+fn slice_three_nospace_value_1() {
+    let mut buf = [b'x'; 9];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16, 2u16, 3u16].as_slice()).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, b'x']);
+}
+
+#[test]
+fn slice_three_nospace_value_2() {
+    let mut buf = [b'x'; 11];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16, 2u16, 3u16].as_slice()).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, 0, 1, b'x']);
+}
+
+#[test]
+fn slice_three_nospace_value_3() {
+    let mut buf = [b'x'; 13];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&[1u16, 2u16, 3u16].as_slice()).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 2, b'x']);
+}
+
+#[test]
+fn str_zero() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&"").unwrap();
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 0]);
+}
+
+#[test]
+fn str_one() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&"1").unwrap();
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1, b'1']);
+}
+
+#[test]
+fn str_two() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&"12").unwrap();
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 2, b'1', b'2']);
+}
+
+#[test]
+fn str_three() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    writer.write(&"123").unwrap();
+    assert_eq!(
+        writer.into_target(),
+        [0, 0, 0, 0, 0, 0, 0, 3, b'1', b'2', b'3']
+    );
+}
+
+#[test]
+fn str_nospace_len() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&"123").unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
+fn str_nospace_value() {
+    let mut buf = [b'x'; 10];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&"123").unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, b'1', b'2']);
+}

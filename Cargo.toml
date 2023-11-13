@@ -36,7 +36,4 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = "1.0.188"
-
-[dev-dependencies]
-serde = { version = "1.0.188", features = ["derive"] }
+thiserror = "1.0.50"

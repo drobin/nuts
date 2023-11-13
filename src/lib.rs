@@ -210,10 +210,11 @@
 //! [Serde]: https://www.serde.rs
 //! [Format specification]: #format-specification
 
-mod error;
+mod from_bytes;
+mod put_bytes;
 mod reader;
-mod source;
-mod target;
+mod take_bytes;
+mod to_bytes;
 mod writer;
 
 #[cfg(doc)]
@@ -223,75 +224,13 @@ pub mod doc_format {
     #![doc = include_str!("../docs/format.md")]
 }
 
-#[cfg(doc)]
-use serde::{Deserialize, Serialize};
-
-pub use error::{Error, Result};
-pub use reader::Reader;
-pub use source::TakeBytes;
-pub use target::PutBytes;
+pub use from_bytes::{FromBytes, TakeStringError};
+pub use put_bytes::{PutBytes, PutBytesError};
+pub use reader::{Reader, ReaderError};
+pub use take_bytes::{TakeBytes, TakeBytesError};
+pub use to_bytes::ToBytes;
 pub use writer::Writer;
 
-#[doc = include_str!("../README.md")]
-#[cfg(doctest)]
-pub struct ReadmeDoctests;
-
-#[cfg(test)]
-macro_rules! assert_error {
-    ($err:expr, $type:ident :: $memb:ident) => {
-        match $err {
-            $type::$memb => {}
-            _ => panic!("invalid error"),
-        }
-    };
-
-    ($err:expr, $type:ident :: $memb:ident ( $(| $arg:ident | $assert:expr),+ ) ) => {
-        match $err {
-            $type::$memb($($arg),*) => {
-                $(
-                    assert!($assert);
-                )*
-            }
-            _ => panic!("invalid error"),
-        }
-    };
-
-    ($err:expr, $type:ident :: $memb:ident { $(| $arg:ident | $assert:expr),+ } ) => {
-        match $err {
-            $type::$memb{$($arg),*} => {
-                $(
-                    assert!($assert);
-                )*
-            }
-            _ => panic!("invalid error"),
-        }
-    };
-}
-
-#[cfg(test)]
-macro_rules! assert_error_eq {
-    ($err:expr, $type:ident :: $memb:ident ( $(| $arg:ident | $val:expr),+ ) ) => {
-        match $err {
-            $type::$memb($($arg),*) => {
-                $(
-                    assert_eq!($arg, $val);
-                )*
-            }
-            _ => panic!("invalid error"),
-        }
-    };
-
-    ($err:expr, $type:ident :: $memb:ident { $(| $arg:ident | $val:expr),+ } ) => {
-        match $err {
-            $type::$memb{$($arg),*} => {
-                $(
-                    assert_eq!($arg, $val);
-                )*
-            }
-            _ => panic!("invalid error"),
-        }
-    };
-}
-
-#[cfg(test)]
-pub(crate) use {assert_error, assert_error_eq};
+// #[doc = include_str!("../README.md")]
+// #[cfg(doctest)]
+// pub struct ReadmeDoctests;

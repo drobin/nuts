@@ -20,26 +20,33 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod tests;
-
 use std::mem;
 
-use crate::error::{Error, Result};
-#[cfg(doc)]
-use crate::writer::Writer;
+/// Error type for the [`PutBytes`] trait.
+///
+/// [`PutBytes`] can generate one error: Not enough space is available in the
+/// target. This kind of error can be created with
+/// [`PutBytesError::no_space()`].
+pub trait PutBytesError: std::error::Error {
+    /// Creates a no space error.
+    ///
+    /// This error should be raised if the target has not anough space
+    /// available.
+    fn no_space() -> Self;
+}
 
 /// Trait that describes a writer of binary data.
 ///
-/// The [`Writer`] utility accepts all types that implements this trait.
+/// The [`Writer`](crate::Writer) utility accepts all types that implements
+/// this trait.
 pub trait PutBytes {
     /// Appends all the given data in `buf` at the end of this writer.
     ///
     /// # Errors
     ///
-    /// If not all data could be written, an [`Error::NoSpace`] error should be
-    /// returned.
-    fn put_bytes(&mut self, buf: &[u8]) -> Result<()>;
+    /// If not all data could be written, the implementator should
+    /// create an no space error with [`PutBytesError::no_space()`].
+    fn put_bytes<E: PutBytesError>(&mut self, buf: &[u8]) -> Result<(), E>;
 }
 
 /// `PutBytes` is implemented for `&mut [u8]` by copying into the slice,
@@ -49,9 +56,9 @@ pub trait PutBytes {
 /// The slice will be empty when it has been completely overwritten.
 ///
 /// If the number of bytes to be written exceeds the size of the slice, the
-/// operation will return an [`Error::NoSpace`] error.
+/// operation will return an [`PutBytesError::no_space()`] error.
 impl PutBytes for &mut [u8] {
-    fn put_bytes(&mut self, buf: &[u8]) -> Result<()> {
+    fn put_bytes<E: PutBytesError>(&mut self, buf: &[u8]) -> Result<(), E> {
         if self.len() >= buf.len() {
             let (a, b) = mem::replace(self, &mut []).split_at_mut(buf.len());
 
@@ -60,14 +67,14 @@ impl PutBytes for &mut [u8] {
 
             Ok(())
         } else {
-            Err(Error::NoSpace(None))
+            Err(E::no_space())
         }
     }
 }
 
-/// `PutBytes` is implemented for `Vec<u8>` by appending bytes to the `Vec`.
+/// `PutBytes` is implemented for [`Vec<u8>`] by appending bytes to the `Vec`.
 impl PutBytes for Vec<u8> {
-    fn put_bytes(&mut self, buf: &[u8]) -> Result<()> {
+    fn put_bytes<E: PutBytesError>(&mut self, buf: &[u8]) -> Result<(), E> {
         Ok(self.extend_from_slice(buf))
     }
 }
