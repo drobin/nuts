@@ -210,6 +210,8 @@
 //! [Serde]: https://www.serde.rs
 //! [Format specification]: #format-specification
 
+#[cfg(feature = "derive")]
+mod derive;
 mod from_bytes;
 mod put_bytes;
 mod reader;
@@ -224,7 +226,11 @@ pub mod doc_format {
     #![doc = include_str!("../docs/format.md")]
 }
 
+#[cfg(feature = "derive")]
+pub use derive::TakeDeriveError;
 pub use from_bytes::{FromBytes, TakeStringError};
+#[cfg(feature = "derive")]
+pub use nuts_bytes_derive::FromBytes;
 pub use put_bytes::{PutBytes, PutBytesError};
 pub use reader::{Reader, ReaderError};
 pub use take_bytes::{TakeBytes, TakeBytesError};

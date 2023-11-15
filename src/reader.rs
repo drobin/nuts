@@ -27,6 +27,8 @@ use std::marker::PhantomData;
 use std::string::FromUtf8Error;
 use thiserror::Error;
 
+#[cfg(feature = "derive")]
+use crate::derive::TakeDeriveError;
 use crate::from_bytes::{FromBytes, TakeStringError};
 use crate::take_bytes::{TakeBytes, TakeBytesError};
 
@@ -42,6 +44,12 @@ pub enum ReaderError {
     /// UTF-8.
     #[error("the string is invalid: {0}")]
     InvalidString(#[source] FromUtf8Error),
+
+    /// Deserialized an invalid variant index.
+    /// There is no enum variant at the given index.
+    #[cfg(feature = "derive")]
+    #[error("invalid enum, no variant at {0}")]
+    InvalidVariantIndex(usize),
 }
 
 impl TakeBytesError for ReaderError {
@@ -53,6 +61,13 @@ impl TakeBytesError for ReaderError {
 impl TakeStringError for ReaderError {
     fn invalid_string(err: FromUtf8Error) -> Self {
         Self::InvalidString(err)
+    }
+}
+
+#[cfg(feature = "derive")]
+impl TakeDeriveError for ReaderError {
+    fn invalid_variant_index(idx: usize) -> Self {
+        Self::InvalidVariantIndex(idx)
     }
 }
 

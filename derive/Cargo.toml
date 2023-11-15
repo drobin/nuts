@@ -21,23 +21,16 @@
 # IN THE SOFTWARE.
 
 [package]
-name = "nuts-bytes"
-version = "0.1.1"
+name = "nuts-bytes-derive"
+version = "0.1.0"
 edition = "2018"
-authors = ["Robin Doer <robin@robind.de>"]
-description = "A binary data format for Serde"
-categories = ["encoding"]
-keywords = ["serde", "serialization"]
-repository = "https://github.com/drobin/nuts-bytes.git"
-documentation = "https://docs.rs/nuts-bytes"
-license = "MIT"
-readme = "README.md"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[features]
-derive = ["dep:nuts-bytes-derive"]
-
 [dependencies]
-nuts-bytes-derive = { path = "derive", optional = true }
-thiserror = "1.0.50"
+quote = "1.0.33"
+syn = "2.0.39"
+
+[lib]
+proc-macro = true
