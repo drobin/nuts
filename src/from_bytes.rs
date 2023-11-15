@@ -48,6 +48,14 @@ where
     fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, E>;
 }
 
+impl<E: TakeBytesError> FromBytes<E> for bool {
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, E> {
+        let val: u8 = FromBytes::from_bytes(source)?;
+
+        Ok(val != 0)
+    }
+}
+
 macro_rules! impl_from_bytes_for_primitive {
     ($type:ty) => {
         impl<E: TakeBytesError> FromBytes<E> for $type {

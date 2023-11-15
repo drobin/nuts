@@ -30,6 +30,14 @@ pub trait ToBytes {
     fn to_bytes<PB: PutBytes, E: PutBytesError>(&self, target: &mut PB) -> Result<(), E>;
 }
 
+impl ToBytes for bool {
+    fn to_bytes<PB: PutBytes, E: PutBytesError>(&self, target: &mut PB) -> Result<(), E> {
+        let val = if *self { 1u8 } else { 0u8 };
+
+        ToBytes::to_bytes(&val, target)
+    }
+}
+
 macro_rules! impl_to_bytes_for_primitive {
     ($type:ty) => {
         impl ToBytes for $type {

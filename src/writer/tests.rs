@@ -23,6 +23,31 @@
 use crate::writer::{Writer, WriterError};
 
 #[test]
+fn bool_true() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&true).unwrap();
+
+    assert_eq!(writer.into_target(), [1]);
+}
+
+#[test]
+fn bool_false() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&false).unwrap();
+
+    assert_eq!(writer.into_target(), [0]);
+}
+
+#[test]
+fn bool_nospace() {
+    let mut buf = [b'x'; 0];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&true).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+}
+
+#[test]
 fn u8() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
     writer.write(&1u8).unwrap();

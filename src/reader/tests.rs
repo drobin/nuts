@@ -23,6 +23,24 @@
 use crate::reader::{Reader, ReaderError};
 
 #[test]
+fn bool() {
+    let mut reader = Reader::<&[u8]>::new([0, 1, 2].as_slice());
+
+    assert_eq!(reader.read::<bool>().unwrap(), false);
+    assert_eq!(reader.read::<bool>().unwrap(), true);
+    assert_eq!(reader.read::<bool>().unwrap(), true);
+}
+
+#[test]
+fn bool_eof() {
+    let mut reader = Reader::new([].as_slice());
+
+    let err = reader.read::<bool>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[]);
+}
+
+#[test]
 fn u8() {
     let mut reader = Reader::<&[u8]>::new([1].as_slice());
 
