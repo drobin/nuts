@@ -230,7 +230,7 @@ pub mod doc_format {
 pub use derive::TakeDeriveError;
 pub use from_bytes::{FromBytes, TakeStringError};
 #[cfg(feature = "derive")]
-pub use nuts_bytes_derive::FromBytes;
+pub use nuts_bytes_derive::{FromBytes, ToBytes};
 pub use put_bytes::{PutBytes, PutBytesError};
 pub use reader::{Reader, ReaderError};
 pub use take_bytes::{TakeBytes, TakeBytesError};

@@ -21,8 +21,8 @@
 // IN THE SOFTWARE.
 
 use proc_macro::TokenStream;
-use quote::{quote, quote_spanned};
-use syn::{parse_macro_input, Data, DeriveInput, Fields};
+use quote::{format_ident, quote, quote_spanned};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Index};
 
 /// Derive macro implementation of the [`FromBytes`] trait.
 ///
@@ -125,6 +125,113 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
         impl<E:nuts_bytes::TakeDeriveError> nuts_bytes::FromBytes<E> for #name {
             fn from_bytes<TB: nuts_bytes::TakeBytes>(source: &mut TB) -> Result<Self, E> {
                 #from_impl
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+/// Derive macro implementation of the [`ToBytes`] trait.
+///
+/// This derive macro generates a [`ToBytes`] implementation for `struct` and
+/// `enum` types. `union` types are currently not supported.
+///
+/// [`ToBytes`]: trait.ToBytes.html
+#[proc_macro_derive(ToBytes)]
+pub fn to_bytes(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    let name = input.ident;
+
+    let to_impl = match input.data {
+        Data::Struct(data) => {
+            let fields = data.fields.iter().enumerate().map(|(idx, field)| {
+                let variant_idx = Index::from(idx);
+                let field_ref = field
+                    .ident
+                    .as_ref()
+                    .map_or_else(|| quote!(&self.#variant_idx), |ident| quote!(&self.#ident));
+
+                quote!(ToBytes::to_bytes(#field_ref, target)?)
+            });
+
+            quote! {
+                #(#fields;)*
+                Ok(())
+            }
+        }
+        Data::Enum(data) => {
+            if data.variants.len() > 0 {
+                let variants = data.variants.iter().enumerate().map(|(idx, variant)| {
+                    let variant_idx = Index::from(idx);
+                    let variant_name = &variant.ident;
+
+                    let left_arm_args = variant.fields.iter().enumerate().map(|(idx, field)| {
+                        let ident = field.ident.as_ref().map_or_else(
+                            || format_ident!("f{}", Index::from(idx)),
+                            |ident| ident.clone(),
+                        );
+
+                        quote!(#ident)
+                    });
+                    let left_arm = match &variant.fields {
+                        Fields::Named(_) => {
+                            quote!( #name::#variant_name { #(#left_arm_args),* } )
+                        }
+                        Fields::Unnamed(_) => {
+                            quote!( #name::#variant_name ( #(#left_arm_args),* ) )
+                        }
+                        Fields::Unit => quote!( #name::#variant_name ),
+                    };
+
+                    let right_arm_fields = variant.fields.iter().enumerate().map(|(idx, field)| {
+                        let ident = field.ident.as_ref().map_or_else(
+                            || format_ident!("f{}", Index::from(idx)),
+                            |ident| ident.clone(),
+                        );
+                        quote!(ToBytes::to_bytes(#ident, target)?)
+                    });
+                    let right_arm = quote! {
+                        {
+                            ToBytes::to_bytes(&(#variant_idx as usize), target)?;
+                            #(#right_arm_fields;)*
+                        }
+                    };
+
+                    quote! {
+                        #left_arm => #right_arm
+                    }
+                });
+
+                quote! {
+                    match self {
+                        #(#variants,)*
+                    }
+
+                    Ok(())
+                }
+            } else {
+                let span = name.span();
+
+                quote_spanned!(
+                    span => compile_error!("zero-variant enums cannot be instantiated")
+                )
+            }
+        }
+        Data::Union(_data) => {
+            let span = name.span();
+
+            quote_spanned! {
+                span => compile_error!("the union type is currently not supported")
+            }
+        }
+    };
+
+    let expanded = quote! {
+        impl nuts_bytes::ToBytes for #name {
+            fn to_bytes<PB: nuts_bytes::PutBytes, E: nuts_bytes::PutBytesError>(&self, target: &mut PB) -> Result<(), E> {
+                #to_impl
             }
         }
     };
