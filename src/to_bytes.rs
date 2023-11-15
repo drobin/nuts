@@ -98,3 +98,15 @@ impl ToBytes for &str {
         self.as_bytes().to_bytes(target)
     }
 }
+
+impl<T: ToBytes> ToBytes for Option<T> {
+    fn to_bytes<PB: PutBytes, E: PutBytesError>(&self, target: &mut PB) -> Result<(), E> {
+        match self {
+            Some(val) => {
+                ToBytes::to_bytes(&1u8, target)?;
+                ToBytes::to_bytes(val, target)
+            }
+            None => ToBytes::to_bytes(&0u8, target),
+        }
+    }
+}

@@ -387,3 +387,29 @@ fn string_eof_payload() {
     assert!(matches!(err, ReaderError::Eof));
     assert_eq!(reader.as_ref(), &[b'a']);
 }
+
+#[test]
+fn option() {
+    let mut reader = Reader::<&[u8]>::new([0x00, 0x01, 0x00, 0x01, 0x02, 0x00, 0x01].as_slice());
+
+    assert_eq!(reader.read::<Option<u16>>().unwrap(), None);
+    assert_eq!(reader.read::<Option<u16>>().unwrap(), Some(1));
+    assert_eq!(reader.read::<Option<u16>>().unwrap(), Some(1));
+}
+
+#[test]
+fn option_eof() {
+    let mut reader = Reader::<&[u8]>::new([].as_slice());
+
+    let err = reader.read::<Option<u16>>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[]);
+}
+#[test]
+fn option_some_eof() {
+    let mut reader = Reader::<&[u8]>::new([0x01, 0x00].as_slice());
+
+    let err = reader.read::<Option<u16>>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[0x00]);
+}

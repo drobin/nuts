@@ -519,3 +519,39 @@ fn str_nospace_value() {
     assert!(matches!(err, WriterError::NoSpace));
     assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, b'1', b'2']);
 }
+
+#[test]
+fn option_none() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&None::<Option<u16>>).unwrap();
+
+    assert_eq!(writer.into_target(), [0x00]);
+}
+
+#[test]
+fn option_some() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&Some(1u16)).unwrap();
+
+    assert_eq!(writer.into_target(), [0x01, 0x00, 0x01]);
+}
+
+#[test]
+fn option_none_nospace() {
+    let mut buf = [b'x'; 0];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&None::<Option<u16>>).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 0]);
+}
+
+#[test]
+fn option_some_nospace() {
+    let mut buf = [b'x'; 2];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&Some(1u16)).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [1, b'x']);
+}

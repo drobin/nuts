@@ -156,3 +156,15 @@ impl<E: TakeStringError> FromBytes<E> for String {
         String::from_utf8(vec).map_err(|err| E::invalid_string(err))
     }
 }
+
+impl<E: TakeBytesError, T: FromBytes<E>> FromBytes<E> for Option<T> {
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, E> {
+        let n: u8 = FromBytes::from_bytes(source)?;
+
+        if n == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(FromBytes::from_bytes(source)?))
+        }
+    }
+}
