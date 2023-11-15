@@ -215,6 +215,26 @@ fn f64_eof() {
 }
 
 #[test]
+fn char() {
+    let mut reader =
+        Reader::<&[u8]>::new([0x00, 0x01, 0xF4, 0xAF, 0x00, 0x11, 0x00, 0x00].as_slice());
+
+    assert_eq!(reader.read::<char>().unwrap(), '💯');
+
+    let err = reader.read::<char>().unwrap_err();
+    assert!(matches!(err, ReaderError::InvalidChar(1114112)));
+}
+
+#[test]
+fn char_eof() {
+    let mut reader = Reader::<&[u8]>::new([0x00, 0x01, 0xF4].as_slice());
+
+    let err = reader.read::<char>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[0x00, 0x01, 0xF4]);
+}
+
+#[test]
 fn usize() {
     let mut reader = Reader::<&[u8]>::new([1, 2, 3, 4, 5, 6, 7, 8].as_slice());
 

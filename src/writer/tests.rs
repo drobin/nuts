@@ -261,6 +261,24 @@ fn usize_nospace() {
 }
 
 #[test]
+fn char() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&'💯').unwrap();
+
+    assert_eq!(writer.into_target(), [0x00, 0x01, 0xF4, 0xAF]);
+}
+
+#[test]
+fn char_nospace() {
+    let mut buf = [b'x'; 3];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&'💯').unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 3]);
+}
+
+#[test]
 fn array_zero() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 

@@ -65,6 +65,12 @@ impl ToBytes for usize {
     }
 }
 
+impl ToBytes for char {
+    fn to_bytes<PB: PutBytes, E: PutBytesError>(&self, target: &mut PB) -> Result<(), E> {
+        ToBytes::to_bytes(&(*self as u32), target)
+    }
+}
+
 impl<TB: ToBytes, const COUNT: usize> ToBytes for [TB; COUNT] {
     fn to_bytes<PB: PutBytes, E: PutBytesError>(&self, target: &mut PB) -> Result<(), E> {
         for i in 0..COUNT {

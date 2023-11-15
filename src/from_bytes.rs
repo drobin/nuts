@@ -91,6 +91,23 @@ impl<E: TakeBytesError> FromBytes<E> for usize {
     }
 }
 
+/// Trait describes an error when
+/// [converting into a `char`](trait.FromBytes.html#impl-FromBytes%3CE%3E-for-char).
+pub trait TakeCharError: TakeBytesError {
+    /// Deserialized an invalid character.
+    ///
+    /// There is no character which corresponds the given number.
+    fn invalid_char(n: u32) -> Self;
+}
+
+impl<E: TakeCharError> FromBytes<E> for char {
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, E> {
+        let n: u32 = FromBytes::from_bytes(source)?;
+
+        char::from_u32(n).ok_or_else(|| E::invalid_char(n))
+    }
+}
+
 impl<E: TakeBytesError, FB: Copy + Default + FromBytes<E>, const COUNT: usize> FromBytes<E>
     for [FB; COUNT]
 {

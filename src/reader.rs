@@ -29,7 +29,7 @@ use thiserror::Error;
 
 #[cfg(feature = "derive")]
 use crate::derive::TakeDeriveError;
-use crate::from_bytes::{FromBytes, TakeStringError};
+use crate::from_bytes::{FromBytes, TakeCharError, TakeStringError};
 use crate::take_bytes::{TakeBytes, TakeBytesError};
 
 /// Default error type of the [`Reader`] utility.
@@ -39,6 +39,11 @@ pub enum ReaderError {
     /// available for reading.
     #[error("no more bytes are available for reading")]
     Eof,
+
+    /// Failed to deserialize into a `char`. The source `u32` cannot be
+    /// converted into a `char`.
+    #[error("the char is invalid, {0} is not a char")]
+    InvalidChar(u32),
 
     /// Failed to deserialize into a string. The source byte data are not valid
     /// UTF-8.
@@ -55,6 +60,12 @@ pub enum ReaderError {
 impl TakeBytesError for ReaderError {
     fn eof() -> Self {
         Self::Eof
+    }
+}
+
+impl TakeCharError for ReaderError {
+    fn invalid_char(n: u32) -> Self {
+        Self::InvalidChar(n)
     }
 }
 
