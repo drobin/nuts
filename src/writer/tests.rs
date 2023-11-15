@@ -48,6 +48,91 @@ fn bool_nospace() {
 }
 
 #[test]
+fn i8() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&-1i8).unwrap();
+    writer.write(&0i8).unwrap();
+    writer.write(&1i8).unwrap();
+
+    assert_eq!(writer.into_target(), [255, 0, 1]);
+}
+
+#[test]
+fn i8_nospace() {
+    let mut buf = [b'x'; 0];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&1i8).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+}
+
+#[test]
+fn i16() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&-1i16).unwrap();
+    writer.write(&0i16).unwrap();
+    writer.write(&1i16).unwrap();
+
+    assert_eq!(writer.into_target(), [255, 255, 0, 0, 0, 1]);
+}
+
+#[test]
+fn i16_nospace() {
+    let mut buf = [b'x'; 1];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&1i16).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x']);
+}
+
+#[test]
+fn i32() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&-1i32).unwrap();
+    writer.write(&0i32).unwrap();
+    writer.write(&1i32).unwrap();
+
+    assert_eq!(
+        writer.into_target(),
+        [255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 1]
+    );
+}
+
+#[test]
+fn i32_nospace() {
+    let mut buf = [b'x'; 3];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&1i32).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 3]);
+}
+
+#[test]
+fn i64() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&-1i64).unwrap();
+    writer.write(&0i64).unwrap();
+    writer.write(&1i64).unwrap();
+
+    assert_eq!(
+        writer.into_target(),
+        [255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+    );
+}
+
+#[test]
+fn i64_nospace() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&1i64).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
 fn u8() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
     writer.write(&1u8).unwrap();
@@ -114,6 +199,45 @@ fn u64_nospace() {
     let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
 
     let err = writer.write(&1u64).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
+fn f32() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&12.5f32).unwrap();
+
+    assert_eq!(writer.into_target(), [0x41, 0x48, 0x00, 0x00]);
+}
+
+#[test]
+fn f32_nospace() {
+    let mut buf = [b'x'; 3];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&12.5f32).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 3]);
+}
+
+#[test]
+fn f64() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+    writer.write(&12.5f64).unwrap();
+
+    assert_eq!(
+        writer.into_target(),
+        [0x40, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+    );
+}
+
+#[test]
+fn f64_nospace() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&12.5f64).unwrap_err();
     assert!(matches!(err, WriterError::NoSpace));
     assert_eq!(buf, [b'x'; 7]);
 }

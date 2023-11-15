@@ -70,10 +70,16 @@ macro_rules! impl_from_bytes_for_primitive {
     };
 }
 
+impl_from_bytes_for_primitive!(i8);
+impl_from_bytes_for_primitive!(i16);
+impl_from_bytes_for_primitive!(i32);
+impl_from_bytes_for_primitive!(i64);
 impl_from_bytes_for_primitive!(u8);
 impl_from_bytes_for_primitive!(u16);
 impl_from_bytes_for_primitive!(u32);
 impl_from_bytes_for_primitive!(u64);
+impl_from_bytes_for_primitive!(f32);
+impl_from_bytes_for_primitive!(f64);
 
 impl<E: TakeBytesError> FromBytes<E> for usize {
     fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, E> {

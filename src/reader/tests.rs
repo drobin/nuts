@@ -41,6 +41,83 @@ fn bool_eof() {
 }
 
 #[test]
+fn i8() {
+    let mut reader = Reader::<&[u8]>::new([255, 0, 1].as_slice());
+
+    assert_eq!(reader.read::<i8>().unwrap(), -1);
+    assert_eq!(reader.read::<i8>().unwrap(), 0);
+    assert_eq!(reader.read::<i8>().unwrap(), 1);
+}
+
+#[test]
+fn i8_eof() {
+    let mut reader = Reader::new([].as_slice());
+
+    let err = reader.read::<i8>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[]);
+}
+
+#[test]
+fn i16() {
+    let mut reader = Reader::<&[u8]>::new([255, 255, 0, 0, 1, 2].as_slice());
+
+    assert_eq!(reader.read::<i16>().unwrap(), -1);
+    assert_eq!(reader.read::<i16>().unwrap(), 0);
+    assert_eq!(reader.read::<i16>().unwrap(), 0x0102);
+}
+
+#[test]
+fn i16_eof() {
+    let mut reader = Reader::new([1].as_slice());
+
+    let err = reader.read::<i16>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[1]);
+}
+
+#[test]
+fn i32() {
+    let mut reader = Reader::<&[u8]>::new([255, 255, 255, 255, 0, 0, 0, 0, 1, 2, 3, 4].as_slice());
+
+    assert_eq!(reader.read::<i32>().unwrap(), -1);
+    assert_eq!(reader.read::<i32>().unwrap(), 0);
+    assert_eq!(reader.read::<i32>().unwrap(), 0x01020304);
+}
+
+#[test]
+fn i32_eof() {
+    let mut reader = Reader::new([1, 2, 3].as_slice());
+
+    let err = reader.read::<i32>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[1, 2, 3]);
+}
+
+#[test]
+fn i64() {
+    let mut reader = Reader::<&[u8]>::new(
+        [
+            255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8,
+        ]
+        .as_slice(),
+    );
+
+    assert_eq!(reader.read::<i64>().unwrap(), -1);
+    assert_eq!(reader.read::<i64>().unwrap(), 0);
+    assert_eq!(reader.read::<i64>().unwrap(), 0x0102030405060708);
+}
+
+#[test]
+fn i64_eof() {
+    let mut reader = Reader::<&[u8]>::new([1, 2, 3, 4, 5, 6, 7].as_slice());
+
+    let err = reader.read::<i64>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[1, 2, 3, 4, 5, 6, 7]);
+}
+
+#[test]
 fn u8() {
     let mut reader = Reader::<&[u8]>::new([1].as_slice());
 
@@ -102,6 +179,39 @@ fn u64_eof() {
     let err = reader.read::<u64>().unwrap_err();
     assert!(matches!(err, ReaderError::Eof));
     assert_eq!(reader.as_ref(), &[1, 2, 3, 4, 5, 6, 7]);
+}
+
+#[test]
+fn f32() {
+    let mut reader = Reader::<&[u8]>::new([0x41, 0x48, 0x00, 0x00].as_slice());
+
+    assert_eq!(reader.read::<f32>().unwrap(), 12.5);
+}
+
+#[test]
+fn f32_eof() {
+    let mut reader = Reader::new([0x41, 0x48, 0x00].as_slice());
+
+    let err = reader.read::<f32>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[0x41, 0x48, 0x00]);
+}
+
+#[test]
+fn f64() {
+    let mut reader =
+        Reader::<&[u8]>::new([0x40, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00].as_slice());
+
+    assert_eq!(reader.read::<f64>().unwrap(), 12.5);
+}
+
+#[test]
+fn f64_eof() {
+    let mut reader = Reader::<&[u8]>::new([0x40, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00].as_slice());
+
+    let err = reader.read::<f64>().unwrap_err();
+    assert!(matches!(err, ReaderError::Eof));
+    assert_eq!(reader.as_ref(), &[0x40, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00]);
 }
 
 #[test]
