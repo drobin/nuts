@@ -168,3 +168,9 @@ impl<E: TakeBytesError, T: FromBytes<E>> FromBytes<E> for Option<T> {
         }
     }
 }
+
+impl<E: TakeBytesError> FromBytes<E> for () {
+    fn from_bytes<TB: TakeBytes>(_source: &mut TB) -> Result<Self, E> {
+        Ok(())
+    }
+}

@@ -466,6 +466,131 @@ fn slice_three_nospace_value_3() {
 }
 
 #[test]
+fn vec_zero() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    assert_eq!(writer.write(&Vec::<u16>::new()).unwrap(), 8);
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 0]);
+}
+
+#[test]
+fn vec_one() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    assert_eq!(writer.write(&vec![1u16]).unwrap(), 10);
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1, 0, 1]);
+}
+
+#[test]
+fn vec_one_nospace_len() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&vec![1u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
+fn vec_one_nospace_value() {
+    let mut buf = [b'x'; 9];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&vec![1u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 1, b'x']);
+}
+
+#[test]
+fn vec_two() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    assert_eq!(writer.write(&vec![1u16, 2u16]).unwrap(), 12);
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 0, 2]);
+}
+
+#[test]
+fn vec_two_nospace_len() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&vec![1u16, 2u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
+fn vec_two_nospace_value_1() {
+    let mut buf = [b'x'; 9];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&vec![1u16, 2u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 2, b'x']);
+}
+
+#[test]
+fn vec_two_nospace_value_2() {
+    let mut buf = [b'x'; 11];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&vec![1u16, 2u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 2, 0, 1, b'x']);
+}
+
+#[test]
+fn vec_three() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    assert_eq!(writer.write(&vec![1u16, 2u16, 3u16]).unwrap(), 14);
+    assert_eq!(
+        writer.into_target(),
+        [0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 2, 0, 3]
+    );
+}
+
+#[test]
+fn vec_three_nospace_len() {
+    let mut buf = [b'x'; 7];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&vec![1u16, 2u16, 3u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [b'x'; 7]);
+}
+
+#[test]
+fn vec_three_nospace_value_1() {
+    let mut buf = [b'x'; 9];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&vec![1u16, 2u16, 3u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, b'x']);
+}
+
+#[test]
+fn vec_three_nospace_value_2() {
+    let mut buf = [b'x'; 11];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&vec![1u16, 2u16, 3u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, 0, 1, b'x']);
+}
+
+#[test]
+fn vec_three_nospace_value_3() {
+    let mut buf = [b'x'; 13];
+    let mut writer = Writer::<&mut [u8]>::new(&mut buf[..]);
+
+    let err = writer.write(&vec![1u16, 2u16, 3u16]).unwrap_err();
+    assert!(matches!(err, WriterError::NoSpace));
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 2, b'x']);
+}
+
+#[test]
 fn str_zero() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
@@ -554,4 +679,12 @@ fn option_some_nospace() {
     let err = writer.write(&Some(1u16)).unwrap_err();
     assert!(matches!(err, WriterError::NoSpace));
     assert_eq!(buf, [1, b'x']);
+}
+
+#[test]
+fn unit() {
+    let mut writer = Writer::<Vec<u8>>::new(vec![]);
+
+    assert_eq!(writer.write(&()).unwrap(), 0);
+    assert_eq!(writer.into_target(), []);
 }

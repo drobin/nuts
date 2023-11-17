@@ -405,6 +405,7 @@ fn option_eof() {
     assert!(matches!(err, ReaderError::Eof));
     assert_eq!(reader.as_ref(), &[]);
 }
+
 #[test]
 fn option_some_eof() {
     let mut reader = Reader::<&[u8]>::new([0x01, 0x00].as_slice());
@@ -412,4 +413,11 @@ fn option_some_eof() {
     let err = reader.read::<Option<u16>>().unwrap_err();
     assert!(matches!(err, ReaderError::Eof));
     assert_eq!(reader.as_ref(), &[0x00]);
+}
+
+#[test]
+fn unit() {
+    let mut reader = Reader::<&[u8]>::new([].as_slice());
+
+    assert_eq!(reader.read::<()>().unwrap(), ());
 }

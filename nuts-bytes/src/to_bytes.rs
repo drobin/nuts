@@ -102,6 +102,12 @@ impl<TB: ToBytes> ToBytes for &[TB] {
     }
 }
 
+impl<TB: ToBytes> ToBytes for Vec<TB> {
+    fn to_bytes<PB: PutBytes, E: PutBytesError>(&self, target: &mut PB) -> Result<usize, E> {
+        ToBytes::to_bytes(&self.as_slice(), target)
+    }
+}
+
 impl ToBytes for &str {
     fn to_bytes<PB: PutBytes, E: PutBytesError>(&self, target: &mut PB) -> Result<usize, E> {
         self.as_bytes().to_bytes(target)
@@ -114,5 +120,11 @@ impl<T: ToBytes> ToBytes for Option<T> {
             Some(val) => Ok(ToBytes::to_bytes(&1u8, target)? + ToBytes::to_bytes(val, target)?),
             None => ToBytes::to_bytes(&0u8, target),
         }
+    }
+}
+
+impl ToBytes for () {
+    fn to_bytes<PB: PutBytes, E: PutBytesError>(&self, _target: &mut PB) -> Result<usize, E> {
+        Ok(0)
     }
 }
