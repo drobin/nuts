@@ -25,16 +25,16 @@ use crate::writer::{Writer, WriterError};
 #[test]
 fn bool_true() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&true).unwrap();
 
+    assert_eq!(writer.write(&true).unwrap(), 1);
     assert_eq!(writer.into_target(), [1]);
 }
 
 #[test]
 fn bool_false() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&false).unwrap();
 
+    assert_eq!(writer.write(&false).unwrap(), 1);
     assert_eq!(writer.into_target(), [0]);
 }
 
@@ -50,10 +50,10 @@ fn bool_nospace() {
 #[test]
 fn i8() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&-1i8).unwrap();
-    writer.write(&0i8).unwrap();
-    writer.write(&1i8).unwrap();
 
+    assert_eq!(writer.write(&-1i8).unwrap(), 1);
+    assert_eq!(writer.write(&0i8).unwrap(), 1);
+    assert_eq!(writer.write(&1i8).unwrap(), 1);
     assert_eq!(writer.into_target(), [255, 0, 1]);
 }
 
@@ -69,10 +69,10 @@ fn i8_nospace() {
 #[test]
 fn i16() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&-1i16).unwrap();
-    writer.write(&0i16).unwrap();
-    writer.write(&1i16).unwrap();
 
+    assert_eq!(writer.write(&-1i16).unwrap(), 2);
+    assert_eq!(writer.write(&0i16).unwrap(), 2);
+    assert_eq!(writer.write(&1i16).unwrap(), 2);
     assert_eq!(writer.into_target(), [255, 255, 0, 0, 0, 1]);
 }
 
@@ -89,10 +89,10 @@ fn i16_nospace() {
 #[test]
 fn i32() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&-1i32).unwrap();
-    writer.write(&0i32).unwrap();
-    writer.write(&1i32).unwrap();
 
+    assert_eq!(writer.write(&-1i32).unwrap(), 4);
+    assert_eq!(writer.write(&0i32).unwrap(), 4);
+    assert_eq!(writer.write(&1i32).unwrap(), 4);
     assert_eq!(
         writer.into_target(),
         [255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 1]
@@ -112,10 +112,10 @@ fn i32_nospace() {
 #[test]
 fn i64() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&-1i64).unwrap();
-    writer.write(&0i64).unwrap();
-    writer.write(&1i64).unwrap();
 
+    assert_eq!(writer.write(&-1i64).unwrap(), 8);
+    assert_eq!(writer.write(&0i64).unwrap(), 8);
+    assert_eq!(writer.write(&1i64).unwrap(), 8);
     assert_eq!(
         writer.into_target(),
         [255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
@@ -135,8 +135,8 @@ fn i64_nospace() {
 #[test]
 fn u8() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&1u8).unwrap();
 
+    assert_eq!(writer.write(&1u8).unwrap(), 1);
     assert_eq!(writer.into_target(), [1]);
 }
 
@@ -152,8 +152,8 @@ fn u8_nospace() {
 #[test]
 fn u16() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&1u16).unwrap();
 
+    assert_eq!(writer.write(&1u16).unwrap(), 2);
     assert_eq!(writer.into_target(), [0, 1]);
 }
 
@@ -170,8 +170,8 @@ fn u16_nospace() {
 #[test]
 fn u32() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&1u32).unwrap();
 
+    assert_eq!(writer.write(&1u32).unwrap(), 4);
     assert_eq!(writer.into_target(), [0, 0, 0, 1]);
 }
 
@@ -188,8 +188,8 @@ fn u32_nospace() {
 #[test]
 fn u64() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&1u64).unwrap();
 
+    assert_eq!(writer.write(&1u64).unwrap(), 8);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1]);
 }
 
@@ -206,8 +206,8 @@ fn u64_nospace() {
 #[test]
 fn f32() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&12.5f32).unwrap();
 
+    assert_eq!(writer.write(&12.5f32).unwrap(), 4);
     assert_eq!(writer.into_target(), [0x41, 0x48, 0x00, 0x00]);
 }
 
@@ -224,8 +224,8 @@ fn f32_nospace() {
 #[test]
 fn f64() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&12.5f64).unwrap();
 
+    assert_eq!(writer.write(&12.5f64).unwrap(), 8);
     assert_eq!(
         writer.into_target(),
         [0x40, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -245,8 +245,8 @@ fn f64_nospace() {
 #[test]
 fn usize() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&1usize).unwrap();
 
+    assert_eq!(writer.write(&1usize).unwrap(), 8);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1]);
 }
 
@@ -263,8 +263,8 @@ fn usize_nospace() {
 #[test]
 fn char() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&'💯').unwrap();
 
+    assert_eq!(writer.write(&'💯').unwrap(), 4);
     assert_eq!(writer.into_target(), [0x00, 0x01, 0xF4, 0xAF]);
 }
 
@@ -282,7 +282,7 @@ fn char_nospace() {
 fn array_zero() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&[0u16; 0]).unwrap();
+    assert_eq!(writer.write(&[0u16; 0]).unwrap(), 0);
     assert_eq!(writer.into_target(), []);
 }
 
@@ -290,7 +290,7 @@ fn array_zero() {
 fn array_one() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&[1u16]).unwrap();
+    assert_eq!(writer.write(&[1u16]).unwrap(), 2);
     assert_eq!(writer.into_target(), [0, 1]);
 }
 
@@ -308,7 +308,7 @@ fn array_one_nospace() {
 fn array_two() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&[1u16, 2u16]).unwrap();
+    assert_eq!(writer.write(&[1u16, 2u16]).unwrap(), 4);
     assert_eq!(writer.into_target(), [0, 1, 0, 2]);
 }
 
@@ -326,7 +326,7 @@ fn array_two_nospace() {
 fn array_three() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&[1u16, 2u16, 3u16]).unwrap();
+    assert_eq!(writer.write(&[1u16, 2u16, 3u16]).unwrap(), 6);
     assert_eq!(writer.into_target(), [0, 1, 0, 2, 0, 3]);
 }
 
@@ -344,7 +344,7 @@ fn array_three_nospace() {
 fn slice_zero() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&[0u16; 0].as_slice()).unwrap();
+    assert_eq!(writer.write(&[0u16; 0].as_slice()).unwrap(), 8);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 0]);
 }
 
@@ -352,7 +352,7 @@ fn slice_zero() {
 fn slice_one() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&[1u16].as_slice()).unwrap();
+    assert_eq!(writer.write(&[1u16].as_slice()).unwrap(), 10);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1, 0, 1]);
 }
 
@@ -380,7 +380,7 @@ fn slice_one_nospace_value() {
 fn slice_two() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&[1u16, 2u16].as_slice()).unwrap();
+    assert_eq!(writer.write(&[1u16, 2u16].as_slice()).unwrap(), 12);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 0, 2]);
 }
 
@@ -418,7 +418,7 @@ fn slice_two_nospace_value_2() {
 fn slice_three() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&[1u16, 2u16, 3u16].as_slice()).unwrap();
+    assert_eq!(writer.write(&[1u16, 2u16, 3u16].as_slice()).unwrap(), 14);
     assert_eq!(
         writer.into_target(),
         [0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 2, 0, 3]
@@ -469,7 +469,7 @@ fn slice_three_nospace_value_3() {
 fn str_zero() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&"").unwrap();
+    assert_eq!(writer.write(&"").unwrap(), 8);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 0]);
 }
 
@@ -477,7 +477,7 @@ fn str_zero() {
 fn str_one() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&"1").unwrap();
+    assert_eq!(writer.write(&"1").unwrap(), 9);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1, b'1']);
 }
 
@@ -485,7 +485,7 @@ fn str_one() {
 fn str_two() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&"12").unwrap();
+    assert_eq!(writer.write(&"12").unwrap(), 10);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 2, b'1', b'2']);
 }
 
@@ -493,7 +493,7 @@ fn str_two() {
 fn str_three() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
 
-    writer.write(&"123").unwrap();
+    assert_eq!(writer.write(&"123").unwrap(), 11);
     assert_eq!(
         writer.into_target(),
         [0, 0, 0, 0, 0, 0, 0, 3, b'1', b'2', b'3']
@@ -523,16 +523,16 @@ fn str_nospace_value() {
 #[test]
 fn option_none() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&None::<Option<u16>>).unwrap();
 
+    assert_eq!(writer.write(&None::<Option<u16>>).unwrap(), 1);
     assert_eq!(writer.into_target(), [0x00]);
 }
 
 #[test]
 fn option_some() {
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Some(1u16)).unwrap();
 
+    assert_eq!(writer.write(&Some(1u16)).unwrap(), 3);
     assert_eq!(writer.into_target(), [0x01, 0x00, 0x01]);
 }
 

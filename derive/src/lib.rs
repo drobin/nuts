@@ -157,8 +157,11 @@ pub fn to_bytes(input: TokenStream) -> TokenStream {
             });
 
             quote! {
-                #(#fields;)*
-                Ok(())
+                let mut n = 0;
+
+                #(n += #fields;)*
+
+                Ok(n)
             }
         }
         Data::Enum(data) => {
@@ -194,8 +197,12 @@ pub fn to_bytes(input: TokenStream) -> TokenStream {
                     });
                     let right_arm = quote! {
                         {
-                            ToBytes::to_bytes(&(#variant_idx as usize), target)?;
-                            #(#right_arm_fields;)*
+                            let mut m = 0;
+
+                            m += ToBytes::to_bytes(&(#variant_idx as usize), target)?;
+                            #(m += #right_arm_fields;)*
+
+                            m
                         }
                     };
 
@@ -205,11 +212,11 @@ pub fn to_bytes(input: TokenStream) -> TokenStream {
                 });
 
                 quote! {
-                    match self {
+                    let n = match self {
                         #(#variants,)*
-                    }
+                    };
 
-                    Ok(())
+                    Ok(n)
                 }
             } else {
                 let span = name.span();
@@ -230,7 +237,7 @@ pub fn to_bytes(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl nuts_bytes::ToBytes for #name {
-            fn to_bytes<PB: nuts_bytes::PutBytes, E: nuts_bytes::PutBytesError>(&self, target: &mut PB) -> Result<(), E> {
+            fn to_bytes<PB: nuts_bytes::PutBytes, E: nuts_bytes::PutBytesError>(&self, target: &mut PB) -> Result<usize, E> {
                 #to_impl
             }
         }

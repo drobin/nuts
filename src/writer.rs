@@ -66,7 +66,9 @@ impl<T: PutBytes, E: PutBytesError> Writer<T, E> {
     }
 
     /// Serializes a data structure that implements the [`ToBytes`] trait.
-    pub fn write<TB: ToBytes>(&mut self, value: &TB) -> Result<(), E> {
+    ///
+    /// Returns the number of bytes actually serialized.
+    pub fn write<TB: ToBytes>(&mut self, value: &TB) -> Result<usize, E> {
         ToBytes::to_bytes(value, &mut self.target)
     }
 

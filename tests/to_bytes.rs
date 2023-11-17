@@ -30,8 +30,8 @@ fn unit_struct() {
     struct Sample;
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample).unwrap();
 
+    assert_eq!(writer.write(&Sample).unwrap(), 0);
     assert_eq!(writer.into_target(), []);
 }
 
@@ -42,7 +42,8 @@ fn empty_struct() {
     struct Sample {}
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample {}).unwrap();
+    assert_eq!(writer.write(&Sample {}).unwrap(), 0);
+    assert_eq!(writer.into_target(), []);
 }
 
 #[cfg(feature = "derive")]
@@ -52,8 +53,8 @@ fn empty_tuple_struct() {
     struct Sample();
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample {}).unwrap();
 
+    assert_eq!(writer.write(&Sample {}).unwrap(), 0);
     assert_eq!(writer.into_target(), []);
 }
 
@@ -67,8 +68,8 @@ fn r#struct() {
     }
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample { f1: 1, f2: 2 }).unwrap();
 
+    assert_eq!(writer.write(&Sample { f1: 1, f2: 2 }).unwrap(), 6);
     assert_eq!(writer.into_target(), [0, 1, 0, 0, 0, 2]);
 }
 
@@ -79,8 +80,8 @@ fn newtype_struct() {
     struct Sample(u16);
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample(1)).unwrap();
 
+    assert_eq!(writer.write(&Sample(1)).unwrap(), 2);
     assert_eq!(writer.into_target(), [0, 1]);
 }
 
@@ -91,8 +92,8 @@ fn tuple_struct() {
     struct Sample(u16, u32);
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample(1, 2)).unwrap();
 
+    assert_eq!(writer.write(&Sample(1, 2)).unwrap(), 6);
     assert_eq!(writer.into_target(), [0, 1, 0, 0, 0, 2]);
 }
 
@@ -120,34 +121,34 @@ fn r#enum() {
     }
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample::V0).unwrap();
+    assert_eq!(writer.write(&Sample::V0).unwrap(), 8);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 0]);
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample::V1 {}).unwrap();
+    assert_eq!(writer.write(&Sample::V1 {}).unwrap(), 8);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1]);
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample::V2 { f1: 1 }).unwrap();
+    assert_eq!(writer.write(&Sample::V2 { f1: 1 }).unwrap(), 10);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 2, 0, 1]);
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample::V3 { f1: 1, f2: 2 }).unwrap();
+    assert_eq!(writer.write(&Sample::V3 { f1: 1, f2: 2 }).unwrap(), 14);
     assert_eq!(
         writer.into_target(),
         [0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 0, 2]
     );
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample::V4()).unwrap();
+    assert_eq!(writer.write(&Sample::V4()).unwrap(), 8);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 4]);
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample::V5(1)).unwrap();
+    assert_eq!(writer.write(&Sample::V5(1)).unwrap(), 10);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 5, 0, 1]);
 
     let mut writer = Writer::<Vec<u8>>::new(vec![]);
-    writer.write(&Sample::V6(1, 2)).unwrap();
+    assert_eq!(writer.write(&Sample::V6(1, 2)).unwrap(), 14);
     assert_eq!(
         writer.into_target(),
         [0, 0, 0, 0, 0, 0, 0, 6, 0, 1, 0, 0, 0, 2]

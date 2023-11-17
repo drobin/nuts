@@ -89,8 +89,9 @@
 //!
 //! // serialize a primitive (u32)
 //! let mut writer = Writer::<Vec<u8>>::new(vec![]);
-//! writer.write(&666u32).unwrap();
+//! let n = writer.write(&666u32).unwrap();
 //!
+//! assert_eq!(n, 4);
 //! assert_eq!(writer.into_target(), [0x00, 0x00, 0x02, 0x9A]);
 //! ```
 //!
@@ -102,8 +103,9 @@
 //! // serialize a primitive (u32)
 //! let mut buf = [0; 4];
 //! let mut writer = Writer::<&mut [u8]>::new(buf.as_mut_slice());
-//! writer.write(&666u32).unwrap();
+//! let n = writer.write(&666u32).unwrap();
 //!
+//! assert_eq!(n, 4);
 //! assert_eq!(buf, [0x00, 0x00, 0x02, 0x9A]);
 //!
 //! // Not enough space for serialization

@@ -25,8 +25,9 @@ assert_eq!(sample, Sample { f1: 1, f2: 2 });
 // Serialize the Sample struct
 
 let mut writer = Writer::<Vec<u8>>::new(vec![]);
-writer.write(&Sample { f1: 1, f2: 2 }).unwrap();
+let n = writer.write(&Sample { f1: 1, f2: 2 }).unwrap();
 
+assert_eq!(n, 6);
 assert_eq!(writer.into_target(), [0x00, 0x01, 0x00, 0x00, 0x00, 0x02]);
 ```
 
@@ -63,14 +64,16 @@ assert_eq!(sample, Sample::V2(1, 2));
 // Serialize the Sample::V1 variant
 
 let mut writer = Writer::<Vec<u8>>::new(vec![]);
-writer.write(&Sample::V1).unwrap();
+let n = writer.write(&Sample::V1).unwrap();
 
+assert_eq!(n, 8);
 assert_eq!(writer.into_target(), V1);
 
 // Serialize the Sample::V2 variant
 
 let mut writer = Writer::<Vec<u8>>::new(vec![]);
-writer.write(&Sample::V2(1, 2)).unwrap();
+let n = writer.write(&Sample::V2(1, 2)).unwrap();
 
+assert_eq!(n, 14);
 assert_eq!(writer.into_target(), V2);
 ```
