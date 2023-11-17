@@ -155,6 +155,6 @@ pub use take_bytes::{TakeBytes, TakeBytesError};
 pub use to_bytes::ToBytes;
 pub use writer::Writer;
 
-// #[doc = include_str!("../README.md")]
-// #[cfg(doctest)]
-// pub struct ReadmeDoctests;
+#[doc = include_str!("../README.md")]
+#[cfg(doctest)]
+pub struct ReadmeDoctests;
