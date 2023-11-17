@@ -155,7 +155,7 @@ pub use put_bytes::{PutBytes, PutBytesError};
 pub use reader::{Reader, ReaderError};
 pub use take_bytes::{TakeBytes, TakeBytesError};
 pub use to_bytes::ToBytes;
-pub use writer::Writer;
+pub use writer::{Writer, WriterError};
 
 #[doc = include_str!("../README.md")]
 #[cfg(doctest)]
