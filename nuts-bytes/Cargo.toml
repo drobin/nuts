@@ -41,3 +41,6 @@ derive = ["dep:nuts-bytes-derive"]
 [dependencies]
 nuts-bytes-derive = { version = "0.2.0", path = "../nuts-bytes-derive", optional = true }
 thiserror = "1.0.50"
+
+[package.metadata.docs.rs]
+all-features = true
