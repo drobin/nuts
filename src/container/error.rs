@@ -21,106 +21,64 @@
 // IN THE SOFTWARE.
 
 use openssl::error::ErrorStack;
-use std::{error, fmt};
+use thiserror::Error as ThisError;
 
 use crate::backend::Backend;
 #[cfg(doc)]
 use crate::container::cipher::Cipher;
 
+#[derive(Debug, ThisError)]
 /// Error type used by this module.
 pub enum Error<B: Backend> {
     /// An error occured in the attached backend.
+    #[error(transparent)]
     Backend(B::Err),
 
     /// Error while (de-) serializing binary data.
+    #[error(transparent)]
     Bytes(nuts_bytes::Error),
 
     /// An error in the OpenSSL library occured.
-    OpenSSL(ErrorStack),
+    #[error(transparent)]
+    OpenSSL(#[from] ErrorStack),
 
     /// The cipher key is invalid/too short.
+    #[error("invalid key")]
     InvalidKey,
 
     /// The cipher iv is invalid/too short.
+    #[error("invalid iv")]
     InvalidIv,
 
     /// The size of the block to be encrypted/decrypted is invalid and must be
     /// aligned at the [block size](Cipher::block_size) of the cipher.
+    #[error("invalid block-size")]
     InvalidBlockSize,
 
     /// A cipher-text is not trustworthy.
     ///
     /// If an authenticated decryption is performed, and the tag mismatches,
     /// this error is raised.
+    #[error("the plaintext is not trustworthy")]
     NotTrustworthy,
 
     /// No password callback is assigned to the container, thus no password
     /// is available.
+    #[error("a password is needed by the current cipher")]
     NoPassword,
 
     /// The password callback generated an error, which is passed to the
     /// variant.
+    #[error("failed to receive the password: {0}")]
     PasswordCallback(String),
 
     /// The password is wrong.
-    WrongPassword(nuts_bytes::Error),
+    #[error("the password is wrong")]
+    WrongPassword(#[source] nuts_bytes::Error),
 
     /// Try to read/write from/to a null-id which is forbidden.
+    #[error("tried to read or write a null id")]
     NullId,
-}
-
-impl<B: Backend> fmt::Display for Error<B> {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Backend(cause) => fmt::Display::fmt(cause, fmt),
-            Self::Bytes(cause) => fmt::Display::fmt(cause, fmt),
-            Self::OpenSSL(cause) => fmt::Display::fmt(cause, fmt),
-            Self::InvalidKey => write!(fmt, "Invalid key"),
-            Self::InvalidIv => write!(fmt, "Invalid iv"),
-            Self::InvalidBlockSize => write!(fmt, "Invalid block-size"),
-            Self::NotTrustworthy => write!(fmt, "The plaintext is not trustworthy"),
-            Self::NoPassword => write!(fmt, "A password is needed by the current cipher"),
-            Self::PasswordCallback(msg) => write!(fmt, "Failed to receive the password: {}", msg),
-            Self::WrongPassword(_) => write!(fmt, "The password is wrong."),
-            Self::NullId => write!(fmt, "Try to read or write a null id"),
-        }
-    }
-}
-
-impl<B: Backend> fmt::Debug for Error<B> {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Backend(cause) => fmt::Debug::fmt(cause, fmt),
-            Self::Bytes(cause) => fmt::Debug::fmt(cause, fmt),
-            Self::OpenSSL(cause) => fmt::Debug::fmt(cause, fmt),
-            Self::InvalidKey => fmt.write_str("InvalidKey"),
-            Self::InvalidIv => fmt.write_str("InvalidIv"),
-            Self::InvalidBlockSize => fmt.write_str("InvalidBlockSize"),
-            Self::NotTrustworthy => fmt.write_str("NotTrustworthy"),
-            Self::NoPassword => fmt.write_str("NoPassword"),
-            Self::PasswordCallback(msg) => write!(fmt, "PasswordCallback({})", msg),
-            Self::WrongPassword(cause) => fmt::Debug::fmt(cause, fmt),
-            Self::NullId => fmt.write_str("NullId"),
-        }
-    }
-}
-
-impl<B: Backend + 'static> error::Error for Error<B> {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        match self {
-            Self::Backend(cause) => Some(cause),
-            Self::Bytes(cause) => Some(cause),
-            Self::OpenSSL(cause) => Some(cause),
-            Self::InvalidKey => None,
-            Self::InvalidIv => None,
-            Self::InvalidBlockSize => None,
-            Self::NotTrustworthy => None,
-            Self::NoPassword => None,
-            Self::PasswordCallback(_) => None,
-            Self::WrongPassword(cause) => Some(cause),
-            Self::NullId => None,
-        }
-    }
 }
 
 impl<B: Backend> From<nuts_bytes::Error> for Error<B> {
@@ -135,12 +93,6 @@ impl<B: Backend> From<nuts_bytes::Error> for Error<B> {
         }
 
         Error::Bytes(cause)
-    }
-}
-
-impl<B: Backend> From<ErrorStack> for Error<B> {
-    fn from(cause: ErrorStack) -> Self {
-        Error::OpenSSL(cause)
     }
 }
 
