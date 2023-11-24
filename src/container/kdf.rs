@@ -35,6 +35,14 @@ use crate::container::digest::Digest;
 use crate::container::ossl;
 use crate::container::svec::SecureVec;
 
+/// [`Kdf`] related error codes.
+#[derive(Debug, Error)]
+pub enum KdfError {
+    /// An error in the OpenSSL library occured.
+    #[error(transparent)]
+    OpenSSL(#[from] ErrorStack),
+}
+
 /// Supported key derivation functions.
 ///
 /// Defines data used to calculate a wrapping key.
@@ -135,7 +143,7 @@ impl Kdf {
         digest: Digest,
         iterations: u32,
         salt_len: u32,
-    ) -> Result<Kdf, ErrorStack> {
+    ) -> Result<Kdf, KdfError> {
         let mut salt = vec![0; salt_len as usize];
         ossl::rand_bytes(&mut salt)?;
 
@@ -146,7 +154,7 @@ impl Kdf {
         })
     }
 
-    pub(crate) fn create_key(&self, password: &[u8]) -> Result<SecureVec, ErrorStack> {
+    pub(crate) fn create_key(&self, password: &[u8]) -> Result<SecureVec, KdfError> {
         match self {
             Kdf::None => Ok(vec![].into()),
             Kdf::Pbkdf2 {
@@ -270,7 +278,7 @@ pub enum ParseKdfPbkdf2Error {
     InvalidSaltLen(#[source] ParseIntError),
 
     #[error(transparent)]
-    OpenSSL(#[from] ErrorStack),
+    Kdf(#[from] KdfError),
 }
 
 #[derive(Debug, Error)]

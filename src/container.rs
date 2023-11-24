@@ -266,7 +266,7 @@ pub use cipher::{Cipher, CipherError};
 pub use digest::Digest;
 pub use error::{ContainerResult, Error};
 pub use info::Info;
-pub use kdf::Kdf;
+pub use kdf::{Kdf, KdfError};
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
 
 macro_rules! map_err {
