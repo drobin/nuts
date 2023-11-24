@@ -35,7 +35,6 @@ macro_rules! ctx_test {
         fn $name() {
             use crate::container::cipher::tests::{IV, KEY};
             use crate::container::cipher::CipherContext;
-            use crate::memory::MemoryBackend;
 
             let input = [$($input),*];
             let expected = [$($expected),*];
@@ -44,7 +43,7 @@ macro_rules! ctx_test {
 
             ctx.copy_from_slice($num, &input);
 
-            let output = ctx.$method::<MemoryBackend>(&KEY, &IV).unwrap();
+            let output = ctx.$method(&KEY, &IV).unwrap();
 
             assert_eq!(output, expected);
         }

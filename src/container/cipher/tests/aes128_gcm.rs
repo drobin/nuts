@@ -20,9 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::container::cipher::{Cipher, CipherContext};
-use crate::container::error::Error;
-use crate::memory::MemoryBackend;
+use crate::container::cipher::{Cipher, CipherContext, CipherError};
 
 use super::{ctx_test, IV, KEY};
 
@@ -57,8 +55,8 @@ fn ctx_decrypt_inval_key() {
         ],
     );
 
-    let err = ctx.decrypt::<MemoryBackend>(&KEY[..15], &IV).unwrap_err();
-    assert!(matches!(err, Error::InvalidKey));
+    let err = ctx.decrypt(&KEY[..15], &IV).unwrap_err();
+    assert!(matches!(err, CipherError::InvalidKey));
 }
 
 #[test]
@@ -72,8 +70,8 @@ fn ctx_decrypt_inval_iv() {
         ],
     );
 
-    let err = ctx.decrypt::<MemoryBackend>(&KEY, &IV[..11]).unwrap_err();
-    assert!(matches!(err, Error::InvalidIv));
+    let err = ctx.decrypt(&KEY, &IV[..11]).unwrap_err();
+    assert!(matches!(err, CipherError::InvalidIv));
 }
 
 #[test]
@@ -87,8 +85,8 @@ fn ctx_decrypt_not_trustworthy() {
         ],
     );
 
-    let err = ctx.decrypt::<MemoryBackend>(&KEY, &IV).unwrap_err();
-    assert!(matches!(err, Error::NotTrustworthy));
+    let err = ctx.decrypt(&KEY, &IV).unwrap_err();
+    assert!(matches!(err, CipherError::NotTrustworthy));
 }
 
 ctx_test!(
@@ -119,8 +117,8 @@ fn ctx_encrypt_inval_key() {
 
     ctx.copy_from_slice(3, &[1, 2, 3]);
 
-    let err = ctx.encrypt::<MemoryBackend>(&KEY[..15], &IV).unwrap_err();
-    assert!(matches!(err, Error::InvalidKey));
+    let err = ctx.encrypt(&KEY[..15], &IV).unwrap_err();
+    assert!(matches!(err, CipherError::InvalidKey));
 }
 
 #[test]
@@ -129,8 +127,8 @@ fn ctx_encrypt_inval_iv() {
 
     ctx.copy_from_slice(3, &[1, 2, 3]);
 
-    let err = ctx.encrypt::<MemoryBackend>(&KEY, &IV[..11]).unwrap_err();
-    assert!(matches!(err, Error::InvalidIv));
+    let err = ctx.encrypt(&KEY, &IV[..11]).unwrap_err();
+    assert!(matches!(err, CipherError::InvalidIv));
 }
 
 ctx_test!(

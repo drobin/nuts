@@ -25,13 +25,41 @@ mod tests;
 
 use openssl::cipher as ossl_cipher;
 use openssl::cipher_ctx::CipherCtx;
+use openssl::error::ErrorStack;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::{cmp, fmt};
+use thiserror::Error;
 
-use crate::backend::Backend;
-use crate::container::error::{ContainerResult, Error};
 use crate::container::svec::SecureVec;
+
+/// [`Cipher`] related error codes.
+#[derive(Debug, Error)]
+pub enum CipherError {
+    /// The cipher key is invalid/too short.
+    #[error("invalid key")]
+    InvalidKey,
+
+    /// The cipher iv is invalid/too short.
+    #[error("invalid iv")]
+    InvalidIv,
+
+    /// The size of the block to be encrypted/decrypted is invalid and must be
+    /// aligned at the [block size](Cipher::block_size) of the cipher.
+    #[error("invalid block-size")]
+    InvalidBlockSize,
+
+    /// A cipher-text is not trustworthy.
+    ///
+    /// If an authenticated decryption is performed, and the tag mismatches,
+    /// this error is raised.
+    #[error("the plaintext is not trustworthy")]
+    NotTrustworthy,
+
+    /// An error in the OpenSSL library occured.
+    #[error(transparent)]
+    OpenSSL(#[from] ErrorStack),
+}
 
 /// Supported cipher algorithms.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -154,7 +182,7 @@ impl CipherContext {
         &mut self.inp
     }
 
-    pub fn encrypt<B: Backend>(&mut self, key: &[u8], iv: &[u8]) -> ContainerResult<&[u8], B> {
+    pub fn encrypt(&mut self, key: &[u8], iv: &[u8]) -> Result<&[u8], CipherError> {
         match self.cipher {
             Cipher::None => self.make_none(),
             _ => self.encrypt_aad(None, key, iv).map(|_| ())?,
@@ -163,14 +191,18 @@ impl CipherContext {
         Ok(self.outp.as_slice())
     }
 
-    fn encrypt_aad<B: Backend>(
+    fn encrypt_aad(
         &mut self,
         aad: Option<&[u8]>,
         key: &[u8],
         iv: &[u8],
-    ) -> ContainerResult<usize, B> {
-        let key = key.get(..self.cipher.key_len()).ok_or(Error::InvalidKey)?;
-        let iv = iv.get(..self.cipher.iv_len()).ok_or(Error::InvalidIv)?;
+    ) -> Result<usize, CipherError> {
+        let key = key
+            .get(..self.cipher.key_len())
+            .ok_or(CipherError::InvalidKey)?;
+        let iv = iv
+            .get(..self.cipher.iv_len())
+            .ok_or(CipherError::InvalidIv)?;
 
         // number of plaintext bytes: equals to number of input bytes. There is
         // no need to align at block size because blocksize is 1 for all
@@ -186,7 +218,7 @@ impl CipherContext {
         }
 
         if ptext_len % self.cipher.block_size() != 0 {
-            return Err(Error::InvalidBlockSize);
+            return Err(CipherError::InvalidBlockSize);
         }
 
         let mut ctx = CipherCtx::new()?;
@@ -210,7 +242,7 @@ impl CipherContext {
         Ok(ctext_len)
     }
 
-    pub fn decrypt<B: Backend>(&mut self, key: &[u8], iv: &[u8]) -> ContainerResult<&[u8], B> {
+    pub fn decrypt(&mut self, key: &[u8], iv: &[u8]) -> Result<&[u8], CipherError> {
         match self.cipher {
             Cipher::None => self.make_none(),
             _ => self.decrypt_aad(None, key, iv).map(|_| ())?,
@@ -219,14 +251,18 @@ impl CipherContext {
         Ok(self.outp.as_slice())
     }
 
-    fn decrypt_aad<B: Backend>(
+    fn decrypt_aad(
         &mut self,
         aad: Option<&[u8]>,
         key: &[u8],
         iv: &[u8],
-    ) -> ContainerResult<usize, B> {
-        let key = key.get(..self.cipher.key_len()).ok_or(Error::InvalidKey)?;
-        let iv = iv.get(..self.cipher.iv_len()).ok_or(Error::InvalidIv)?;
+    ) -> Result<usize, CipherError> {
+        let key = key
+            .get(..self.cipher.key_len())
+            .ok_or(CipherError::InvalidKey)?;
+        let iv = iv
+            .get(..self.cipher.iv_len())
+            .ok_or(CipherError::InvalidIv)?;
 
         // number of ciphertext bytes: remove tag from the input.
         let ctext_bytes = self
@@ -244,7 +280,7 @@ impl CipherContext {
         }
 
         if ctext_bytes % self.cipher.block_size() != 0 {
-            return Err(Error::InvalidBlockSize);
+            return Err(CipherError::InvalidBlockSize);
         }
 
         let mut ctx = CipherCtx::new()?;
@@ -265,7 +301,7 @@ impl CipherContext {
         if self.cipher.tag_size() > 0 {
             ctx.set_tag(&self.inp[ctext_bytes..])?;
             ctx.cipher_final(&mut [])
-                .map_err(|_| Error::NotTrustworthy)?;
+                .map_err(|_| CipherError::NotTrustworthy)?;
         }
 
         Ok(ctext_bytes)

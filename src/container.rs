@@ -262,7 +262,7 @@ use crate::container::cipher::CipherContext;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;
 
-pub use cipher::Cipher;
+pub use cipher::{Cipher, CipherError};
 pub use digest::Digest;
 pub use error::{ContainerResult, Error};
 pub use info::Info;

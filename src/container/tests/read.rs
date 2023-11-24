@@ -133,7 +133,9 @@ mod aes128_ctr {
 mod aes128_gcm {
     use crate::backend::BlockId;
     use crate::container::tests::CTEXT_AES128_GCM;
-    use crate::container::{Cipher, Container, CreateOptionsBuilder, Digest, Error, Kdf};
+    use crate::container::{
+        Cipher, CipherError, Container, CreateOptionsBuilder, Digest, Error, Kdf,
+    };
     use crate::memory::{Error as MemoryError, Id, MemoryBackend};
     use crate::tests::{into_error, RND};
 
@@ -161,6 +163,6 @@ mod aes128_gcm {
         let mut buf = [0; 496];
 
         let err = container.read(&id, &mut buf).unwrap_err();
-        assert!(matches!(err, Error::NotTrustworthy));
+        assert!(matches!(err, Error::Cipher(CipherError::NotTrustworthy)));
     }
 }

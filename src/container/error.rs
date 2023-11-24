@@ -24,8 +24,7 @@ use openssl::error::ErrorStack;
 use thiserror::Error as ThisError;
 
 use crate::backend::Backend;
-#[cfg(doc)]
-use crate::container::cipher::Cipher;
+use crate::container::cipher::CipherError;
 
 #[derive(Debug, ThisError)]
 /// Error type used by this module.
@@ -42,25 +41,9 @@ pub enum Error<B: Backend> {
     #[error(transparent)]
     OpenSSL(#[from] ErrorStack),
 
-    /// The cipher key is invalid/too short.
-    #[error("invalid key")]
-    InvalidKey,
-
-    /// The cipher iv is invalid/too short.
-    #[error("invalid iv")]
-    InvalidIv,
-
-    /// The size of the block to be encrypted/decrypted is invalid and must be
-    /// aligned at the [block size](Cipher::block_size) of the cipher.
-    #[error("invalid block-size")]
-    InvalidBlockSize,
-
-    /// A cipher-text is not trustworthy.
-    ///
-    /// If an authenticated decryption is performed, and the tag mismatches,
-    /// this error is raised.
-    #[error("the plaintext is not trustworthy")]
-    NotTrustworthy,
+    /// A cipher related error
+    #[error(transparent)]
+    Cipher(#[from] CipherError),
 
     /// No password callback is assigned to the container, thus no password
     /// is available.
