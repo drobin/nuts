@@ -25,10 +25,23 @@ mod tests;
 
 use std::fmt;
 use std::rc::Rc;
+use thiserror::Error;
 
-use crate::backend::Backend;
-use crate::container::error::{ContainerResult, Error};
 use crate::container::svec::SecureVec;
+
+/// Password related error codes.
+#[derive(Debug, Error)]
+pub enum PasswordError {
+    /// No password callback is assigned to the container, thus no password
+    /// is available.
+    #[error("a password is needed by the current cipher")]
+    NoPassword,
+
+    /// The password callback generated an error, which is passed to the
+    /// variant.
+    #[error("failed to receive the password: {0}")]
+    PasswordCallback(String),
+}
 
 pub struct PasswordStore {
     callback: Option<Rc<dyn Fn() -> Result<Vec<u8>, String>>>,
@@ -51,12 +64,15 @@ impl PasswordStore {
         }
     }
 
-    pub fn value<B: Backend>(&mut self) -> ContainerResult<&[u8], B> {
+    pub fn value(&mut self) -> Result<&[u8], PasswordError> {
         match self.value {
             Some(ref v) => Ok(v),
             None => {
-                let callback = self.callback.as_ref().ok_or_else(|| Error::NoPassword)?;
-                let value = callback().map_err(|cause| Error::PasswordCallback(cause))?;
+                let callback = self
+                    .callback
+                    .as_ref()
+                    .ok_or_else(|| PasswordError::NoPassword)?;
+                let value = callback().map_err(|cause| PasswordError::PasswordCallback(cause))?;
 
                 self.value = Some(value.into());
 

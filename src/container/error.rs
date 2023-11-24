@@ -26,6 +26,7 @@ use thiserror::Error as ThisError;
 use crate::backend::Backend;
 use crate::container::cipher::CipherError;
 use crate::container::kdf::KdfError;
+use crate::container::password::PasswordError;
 
 #[derive(Debug, ThisError)]
 /// Error type used by this module.
@@ -50,15 +51,9 @@ pub enum Error<B: Backend> {
     #[error(transparent)]
     Kdf(#[from] KdfError),
 
-    /// No password callback is assigned to the container, thus no password
-    /// is available.
-    #[error("a password is needed by the current cipher")]
-    NoPassword,
-
-    /// The password callback generated an error, which is passed to the
-    /// variant.
-    #[error("failed to receive the password: {0}")]
-    PasswordCallback(String),
+    /// Password errors
+    #[error(transparent)]
+    Password(#[from] PasswordError),
 
     /// The password is wrong.
     #[error("the password is wrong")]
