@@ -265,6 +265,7 @@ use crate::container::password::PasswordStore;
 pub use cipher::{Cipher, CipherError};
 pub use digest::Digest;
 pub use error::{ContainerResult, Error};
+pub use header::HeaderError;
 pub use info::Info;
 pub use kdf::{Kdf, KdfError};
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};

@@ -30,7 +30,7 @@ use std::convert::TryFrom;
 
 use crate::backend::Backend;
 use crate::container::cipher::{Cipher, CipherContext};
-use crate::container::error::ContainerResult;
+use crate::container::header::HeaderError;
 use crate::container::kdf::Kdf;
 use crate::container::ossl;
 use crate::container::password::PasswordStore;
@@ -79,7 +79,7 @@ impl Secret {
         cipher: Cipher,
         kdf: &Kdf,
         iv: &[u8],
-    ) -> ContainerResult<PlainSecret<B>, B> {
+    ) -> Result<PlainSecret<B>, HeaderError> {
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;
             kdf.create_key(password)?
@@ -135,7 +135,7 @@ impl<B: Backend> PlainSecret<B> {
         cipher: Cipher,
         kdf: &Kdf,
         iv: &[u8],
-    ) -> ContainerResult<Secret, B> {
+    ) -> Result<Secret, HeaderError> {
         let mut writer = Writer::new(vec![]);
         let pbuf: SecureVec = writer
             .serialize(&self)

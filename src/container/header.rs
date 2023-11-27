@@ -25,18 +25,62 @@ mod rev0;
 mod secret;
 
 use nuts_bytes::{Reader, Writer};
+use openssl::error::ErrorStack;
 use std::fmt::{self, Write as FmtWrite};
+use thiserror::Error;
 
 use crate::backend::Backend;
-use crate::container::cipher::Cipher;
-use crate::container::error::ContainerResult;
+use crate::container::cipher::{Cipher, CipherError};
 use crate::container::header::inner::{Inner, Revision};
 use crate::container::header::secret::PlainSecret;
-use crate::container::kdf::Kdf;
+use crate::container::kdf::{Kdf, KdfError};
 use crate::container::options::CreateOptions;
 use crate::container::ossl;
-use crate::container::password::PasswordStore;
+use crate::container::password::{PasswordError, PasswordStore};
 use crate::container::svec::SecureVec;
+
+/// Header related errors.
+#[derive(Debug, Error)]
+pub enum HeaderError {
+    /// A cipher related error
+    #[error(transparent)]
+    Cipher(#[from] CipherError),
+
+    /// A KDF related error
+    #[error(transparent)]
+    Kdf(#[from] KdfError),
+
+    /// A password related error.
+    #[error(transparent)]
+    Password(#[from] PasswordError),
+
+    /// The password is wrong.
+    #[error("the password is wrong")]
+    WrongPassword(#[source] nuts_bytes::Error),
+
+    /// Error while (de-) serializing binary data.
+    #[error(transparent)]
+    Bytes(nuts_bytes::Error),
+
+    /// An error in the OpenSSL library occured.
+    #[error(transparent)]
+    OpenSSL(#[from] ErrorStack),
+}
+
+impl From<nuts_bytes::Error> for HeaderError {
+    fn from(value: nuts_bytes::Error) -> Self {
+        match &value {
+            nuts_bytes::Error::Serde(msg) => {
+                if msg == "secret-magic mismatch" {
+                    return Self::WrongPassword(value);
+                }
+            }
+            _ => {}
+        };
+
+        Self::Bytes(value)
+    }
+}
 
 pub struct Header {
     pub(crate) cipher: Cipher,
@@ -47,7 +91,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn create<B: Backend>(options: &CreateOptions) -> ContainerResult<Header, B> {
+    pub fn create(options: &CreateOptions) -> Result<Header, HeaderError> {
         let cipher = options.cipher;
         let mut key = vec![0; cipher.key_len()];
         let mut iv = vec![0; cipher.iv_len()];
@@ -69,7 +113,7 @@ impl Header {
     pub fn read<B: Backend>(
         buf: &[u8],
         store: &mut PasswordStore,
-    ) -> ContainerResult<(Header, B::Settings), B> {
+    ) -> Result<(Header, B::Settings), HeaderError> {
         let inner = Reader::new(buf).deserialize::<Inner>()?;
 
         let Revision::Rev0(rev0) = inner.rev;
@@ -95,7 +139,7 @@ impl Header {
         settings: B::Settings,
         buf: &mut [u8],
         store: &mut PasswordStore,
-    ) -> ContainerResult<(), B> {
+    ) -> Result<(), HeaderError> {
         let plain_secret = PlainSecret::<B>::generate(
             self.key.clone(),
             self.iv.clone(),

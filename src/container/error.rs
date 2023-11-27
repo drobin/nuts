@@ -20,63 +20,30 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use openssl::error::ErrorStack;
 use thiserror::Error as ThisError;
 
 use crate::backend::Backend;
 use crate::container::cipher::CipherError;
-use crate::container::kdf::KdfError;
-use crate::container::password::PasswordError;
+use crate::container::header::HeaderError;
 
-#[derive(Debug, ThisError)]
 /// Error type used by this module.
+#[derive(Debug, ThisError)]
 pub enum Error<B: Backend> {
     /// An error occured in the attached backend.
     #[error(transparent)]
     Backend(B::Err),
 
-    /// Error while (de-) serializing binary data.
-    #[error(transparent)]
-    Bytes(nuts_bytes::Error),
-
-    /// An error in the OpenSSL library occured.
-    #[error(transparent)]
-    OpenSSL(#[from] ErrorStack),
-
     /// A cipher related error
     #[error(transparent)]
     Cipher(#[from] CipherError),
 
-    /// A KDF related error
+    /// Errors coming from header evaluation.
     #[error(transparent)]
-    Kdf(#[from] KdfError),
-
-    /// Password errors
-    #[error(transparent)]
-    Password(#[from] PasswordError),
-
-    /// The password is wrong.
-    #[error("the password is wrong")]
-    WrongPassword(#[source] nuts_bytes::Error),
+    Header(#[from] HeaderError),
 
     /// Try to read/write from/to a null-id which is forbidden.
     #[error("tried to read or write a null id")]
     NullId,
-}
-
-impl<B: Backend> From<nuts_bytes::Error> for Error<B> {
-    fn from(cause: nuts_bytes::Error) -> Self {
-        match &cause {
-            nuts_bytes::Error::Serde(msg) => {
-                if msg == "secret-magic mismatch" {
-                    return Error::WrongPassword(cause);
-                }
-            }
-            _ => {}
-        }
-
-        Error::Bytes(cause)
-    }
 }
 
 pub type ContainerResult<T, B> = Result<T, Error<B>>;
