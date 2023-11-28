@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use nuts_bytes::{FromBytes, ToBytes};
 use openssl::cipher as ossl_cipher;
 use openssl::cipher_ctx::CipherCtx;
 use openssl::error::ErrorStack;
@@ -62,7 +63,7 @@ pub enum CipherError {
 }
 
 /// Supported cipher algorithms.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
 pub enum Cipher {
     /// No encryption.
     None,

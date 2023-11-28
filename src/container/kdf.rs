@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use nuts_bytes::{FromBytes, ToBytes};
 use openssl::error::ErrorStack;
 use openssl::pkcs5::pbkdf2_hmac;
 use serde::{Deserialize, Serialize};
@@ -53,7 +54,7 @@ pub enum KdfError {
 /// Based on a password provided by the user one of the algorithms are used to
 /// calculate a wrapping key. The wrapping key then is used for encryption of
 /// the secret in the header of the container.
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
 pub enum Kdf {
     /// No key derivation
     None,

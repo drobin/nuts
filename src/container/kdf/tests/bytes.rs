@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Reader, Writer};
+use nuts_bytes::{Error, Reader, Writer};
 
 use crate::container::digest::Digest;
 use crate::container::kdf::Kdf;
@@ -33,7 +33,7 @@ fn de_none() {
         ]
         .as_slice(),
     );
-    let kdf = reader.deserialize::<Kdf>().unwrap();
+    let kdf = reader.read::<Kdf>().unwrap();
 
     assert_eq!(kdf, Kdf::None);
 }
@@ -49,7 +49,7 @@ fn de_pbkdf2() {
         ]
         .as_slice(),
     );
-    let kdf = reader.deserialize::<Kdf>().unwrap();
+    let kdf = reader.read::<Kdf>().unwrap();
 
     assert_eq!(
         kdf,
@@ -62,9 +62,17 @@ fn de_pbkdf2() {
 }
 
 #[test]
+fn de_invalid() {
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x02].as_slice());
+
+    let err = reader.read::<Kdf>().unwrap_err();
+    assert!(matches!(err, Error::InvalidVariantIndex(2)));
+}
+
+#[test]
 fn ser_none() {
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.serialize(&Kdf::None).unwrap(), 4);
+    assert_eq!(writer.write(&Kdf::None).unwrap(), 4);
 
     assert_eq!(
         writer.into_target(),
@@ -79,7 +87,7 @@ fn ser_pbkdf2() {
     let mut writer = Writer::new(vec![]);
     assert_eq!(
         writer
-            .serialize(&Kdf::Pbkdf2 {
+            .write(&Kdf::Pbkdf2 {
                 digest: Digest::Sha1,
                 iterations: 65536,
                 salt: vec![1, 2, 3],

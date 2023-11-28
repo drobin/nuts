@@ -22,8 +22,8 @@
 
 mod aes128_ctr;
 mod aes128_gcm;
+mod bytes;
 mod none;
-mod serde;
 mod string;
 
 const KEY: [u8; 16] = [b'x'; 16];

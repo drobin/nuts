@@ -23,13 +23,14 @@
 #[cfg(test)]
 mod tests;
 
+use nuts_bytes::{FromBytes, ToBytes};
 use openssl::hash::MessageDigest;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
 /// Supported message digests.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
 pub enum Digest {
     /// SHA1
     Sha1,
