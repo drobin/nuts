@@ -23,52 +23,32 @@
 #[cfg(test)]
 mod tests;
 
-use std::marker::PhantomData;
-use thiserror::Error;
-
-use crate::to_bytes::ToBytes;
-use crate::{put_bytes::PutBytes, PutBytesError};
-
-#[derive(Debug, Error)]
-pub enum WriterError {
-    /// No more space available when writing into a byte slice.
-    #[error("no more space available for writing")]
-    NoSpace,
-}
-
-impl PutBytesError for WriterError {
-    fn no_space() -> Self {
-        Self::NoSpace
-    }
-}
+use crate::put_bytes::PutBytes;
+use crate::to_bytes::{ToBytes, ToBytesError};
 
 /// A cursor like utility that writes structured data into an arbitrary target.
 ///
 /// The target must implement the [`PutBytes`] trait which supports writing
 /// binary data into it.
 #[derive(Debug)]
-pub struct Writer<T, E = WriterError> {
+pub struct Writer<T> {
     target: T,
-    data: PhantomData<E>,
 }
 
-impl<T: PutBytes, E: PutBytesError> Writer<T, E> {
+impl<T: PutBytes> Writer<T> {
     /// Creates a new `Writer` instance.
     ///
     /// The target, where the writer puts the binary data, is passed to the
     /// function. Every type, that implements the [`PutBytes`] trait can be the
     /// target of this writer.
-    pub fn new(target: T) -> Writer<T, E> {
-        Writer {
-            target,
-            data: PhantomData,
-        }
+    pub fn new(target: T) -> Writer<T> {
+        Writer { target }
     }
 
     /// Serializes a data structure that implements the [`ToBytes`] trait.
     ///
     /// Returns the number of bytes actually serialized.
-    pub fn write<TB: ToBytes>(&mut self, value: &TB) -> Result<usize, E> {
+    pub fn write<TB: ToBytes>(&mut self, value: &TB) -> Result<usize, ToBytesError> {
         ToBytes::to_bytes(value, &mut self.target)
     }
 

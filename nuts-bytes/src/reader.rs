@@ -23,57 +23,10 @@
 #[cfg(test)]
 mod tests;
 
-use std::marker::PhantomData;
-use std::string::FromUtf8Error;
-use thiserror::Error;
-
 #[cfg(feature = "derive")]
 use crate::derive::TakeDeriveError;
-use crate::from_bytes::{FromBytes, TakeCharError, TakeStringError};
-use crate::take_bytes::{TakeBytes, TakeBytesError};
-
-/// Default error type of the [`Reader`] utility.
-#[derive(Debug, Error)]
-pub enum ReaderError {
-    /// Failed to read the requested number of bytes. No more bytes are
-    /// available for reading.
-    #[error("no more bytes are available for reading")]
-    Eof,
-
-    /// Failed to deserialize into a `char`. The source `u32` cannot be
-    /// converted into a `char`.
-    #[error("the char is invalid, {0} is not a char")]
-    InvalidChar(u32),
-
-    /// Failed to deserialize into a string. The source byte data are not valid
-    /// UTF-8.
-    #[error("the string is invalid: {0}")]
-    InvalidString(#[source] FromUtf8Error),
-
-    /// Deserialized an invalid variant index.
-    /// There is no enum variant at the given index.
-    #[cfg(feature = "derive")]
-    #[error("invalid enum, no variant at {0}")]
-    InvalidVariantIndex(usize),
-}
-
-impl TakeBytesError for ReaderError {
-    fn eof() -> Self {
-        Self::Eof
-    }
-}
-
-impl TakeCharError for ReaderError {
-    fn invalid_char(n: u32) -> Self {
-        Self::InvalidChar(n)
-    }
-}
-
-impl TakeStringError for ReaderError {
-    fn invalid_string(err: FromUtf8Error) -> Self {
-        Self::InvalidString(err)
-    }
-}
+use crate::from_bytes::{FromBytes, FromBytesError};
+use crate::take_bytes::TakeBytes;
 
 #[cfg(feature = "derive")]
 impl TakeDeriveError for ReaderError {
@@ -86,26 +39,22 @@ impl TakeDeriveError for ReaderError {
 ///
 /// The source must implement the [`TakeBytes`] trait which supports reading
 /// binary data from it.
-pub struct Reader<TB, E = ReaderError> {
+pub struct Reader<TB> {
     source: TB,
-    data: PhantomData<E>,
 }
 
-impl<TB: TakeBytes, E: TakeBytesError> Reader<TB, E> {
+impl<TB: TakeBytes> Reader<TB> {
     /// Creates a new `Reader` instance.
     ///
     /// The source of the reader is passed to the function. Every type that
     /// implements the [`TakeBytes`] trait can be the source of this reader.
-    pub fn new(source: TB) -> Reader<TB, E> {
-        Reader {
-            source,
-            data: PhantomData,
-        }
+    pub fn new(source: TB) -> Reader<TB> {
+        Reader { source }
     }
 
     /// Deserializes from this binary representation into a data structure
     /// which implements the [`FromBytes`] trait.
-    pub fn read<FB: FromBytes<E>>(&mut self) -> Result<FB, E> {
+    pub fn read<FB: FromBytes>(&mut self) -> Result<FB, FromBytesError> {
         FromBytes::from_bytes(&mut self.source)
     }
 }

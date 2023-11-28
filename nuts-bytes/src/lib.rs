@@ -38,25 +38,25 @@
 //! 2. performs the [deserialization](Reader::read).
 //!
 //! The crate implements [`TakeBytes`] already for
-//! [`&[u8]`](trait.TakeBytes.html#impl-TakeBytes%3C%27tb%3E-for-%26%27tb%20%5Bu8%5D).
+//! [`&[u8]`](trait.TakeBytes.html#impl-TakeBytes-for-%26%5Bu8%5D).
 //! It takes bytes from a [slice] of `u8` values.
 //!
 //! ## Deserialization example
 //!
 //! ```rust
-//! use nuts_bytes::{Reader, ReaderError};
+//! use nuts_bytes::{FromBytesError, Reader, TakeBytesError};
 //!
 //! // deserialize a primitive (u32)
-//! let mut reader = Reader::<&[u8]>::new([0x00, 0x00, 0x02, 0x9A].as_slice());
+//! let mut reader = Reader::new([0x00, 0x00, 0x02, 0x9A].as_slice());
 //! let n: u32 = reader.read().unwrap();
 //!
 //! assert_eq!(n, 666);
 //!
 //! // Not enough data available
-//! let mut reader = Reader::<&[u8]>::new([0; 3].as_slice());
+//! let mut reader = Reader::new([0; 3].as_slice());
 //! let err = reader.read::<u32>().unwrap_err();
 //!
-//! assert!(matches!(err, ReaderError::Eof));
+//! assert!(matches!(err, FromBytesError::TakeBytes(TakeBytesError::Eof)));
 //! ```
 //!
 //! # Serialization into a binary representation
@@ -75,7 +75,7 @@
 //! * [`&mut [u8]`](trait.PutBytes.html#impl-PutBytes-for-%26mut%20%5Bu8%5D)
 //!   Serialize into a [slice] of `u8` values. Not more than [`slice::len()`]
 //!   bytes can be written. If the number of bytes exceeds the size of the
-//!   slice, an [`PutBytesError::no_space()`] error is raised.
+//!   slice, a [`PutBytesError::NoSpace`] error is raised.
 //! * [`Vec<u8>`](trait.PutBytes.html#impl-PutBytes-for-Vec<u8>)
 //!   Serialize into a [`Vec`] of `u8` values. The binary data are appended to
 //!   the [`Vec`].
@@ -88,7 +88,7 @@
 //! use nuts_bytes::Writer;
 //!
 //! // serialize a primitive (u32)
-//! let mut writer = Writer::<Vec<u8>>::new(vec![]);
+//! let mut writer = Writer::new(vec![]);
 //! let n = writer.write(&666u32).unwrap();
 //!
 //! assert_eq!(n, 4);
@@ -102,7 +102,7 @@
 //!
 //! // serialize a primitive (u32)
 //! let mut buf = [0; 4];
-//! let mut writer = Writer::<&mut [u8]>::new(buf.as_mut_slice());
+//! let mut writer = Writer::new(buf.as_mut_slice());
 //! let n = writer.write(&666u32).unwrap();
 //!
 //! assert_eq!(n, 4);
@@ -110,7 +110,7 @@
 //!
 //! // Not enough space for serialization
 //! let mut buf = [0; 3];
-//! let mut writer = Writer::<&mut [u8]>::new(buf.as_mut_slice());
+//! let mut writer = Writer::new(buf.as_mut_slice());
 //! let err = writer.write(&666u32).unwrap_err();
 //!
 //! assert_eq!(format!("{}", err), "no more space available for writing");
@@ -148,14 +148,14 @@ pub mod doc_derive {
 
 #[cfg(feature = "derive")]
 pub use derive::TakeDeriveError;
-pub use from_bytes::{FromBytes, TakeCharError, TakeStringError};
+pub use from_bytes::{FromBytes, FromBytesError};
 #[cfg(feature = "derive")]
 pub use nuts_bytes_derive::{FromBytes, ToBytes};
 pub use put_bytes::{PutBytes, PutBytesError};
-pub use reader::{Reader, ReaderError};
+pub use reader::Reader;
 pub use take_bytes::{TakeBytes, TakeBytesError};
-pub use to_bytes::ToBytes;
-pub use writer::{Writer, WriterError};
+pub use to_bytes::{ToBytes, ToBytesError};
+pub use writer::Writer;
 
 #[doc = include_str!("../README.md")]
 #[cfg(doctest)]

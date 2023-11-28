@@ -20,16 +20,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use thiserror::Error;
+
 /// Error type for the [`TakeBytes`] trait.
-///
-/// [`TakeBytes`] can generate one error: Not enough data are available in the
-/// source. This kind of error can be created with [`TakeBytesError::eof()`].
-pub trait TakeBytesError: std::error::Error {
-    /// Creates an EOF error.
-    ///
-    /// This error should be raised if the source has not anough data
-    /// available.
-    fn eof() -> Self;
+#[derive(Debug, Error)]
+pub enum TakeBytesError {
+    /// Failed to read the requested number of bytes. No more bytes are
+    /// available for reading.
+    #[error("no more bytes are available for reading")]
+    Eof,
 }
 
 /// Trait that describes a reader of binary data.
@@ -43,8 +42,8 @@ pub trait TakeBytes {
     /// # Errors
     ///
     /// If not enough data are available to fill `buf` the implementator should
-    /// create an EOF error with [`TakeBytesError::eof()`].
-    fn take_bytes<E: TakeBytesError>(&mut self, buf: &mut [u8]) -> Result<(), E>;
+    /// return a [`TakeBytesError::Eof`] error.
+    fn take_bytes(&mut self, buf: &mut [u8]) -> Result<(), TakeBytesError>;
 }
 
 /// `TakeBytes` is implemented for `&[u8]` by taking the first part of the
@@ -53,7 +52,7 @@ pub trait TakeBytes {
 /// Note that taking bytes updates the slice to point to the yet unread part.
 /// The slice will be empty when EOF is reached.
 impl TakeBytes for &[u8] {
-    fn take_bytes<E: TakeBytesError>(&mut self, buf: &mut [u8]) -> Result<(), E> {
+    fn take_bytes(&mut self, buf: &mut [u8]) -> Result<(), TakeBytesError> {
         if buf.len() <= self.len() {
             let (a, b) = self.split_at(buf.len());
 
@@ -62,7 +61,7 @@ impl TakeBytes for &[u8] {
 
             Ok(())
         } else {
-            Err(E::eof())
+            Err(TakeBytesError::Eof)
         }
     }
 }
