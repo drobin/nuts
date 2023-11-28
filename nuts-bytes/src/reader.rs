@@ -20,9 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod tests;
-
 #[cfg(feature = "derive")]
 use crate::derive::TakeDeriveError;
 use crate::from_bytes::{FromBytes, FromBytesError};

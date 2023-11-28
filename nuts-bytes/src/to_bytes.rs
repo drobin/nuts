@@ -20,12 +20,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
 use thiserror::Error;
 
 use crate::put_bytes::{PutBytes, PutBytesError};
 
 /// Error type of the [`ToBytes`] trait.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum ToBytesError {
     /// Errors coming from [`PutBytes`].
     #[error(transparent)]

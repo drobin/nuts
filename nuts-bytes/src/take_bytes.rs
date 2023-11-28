@@ -20,10 +20,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
 use thiserror::Error;
 
 /// Error type for the [`TakeBytes`] trait.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum TakeBytesError {
     /// Failed to read the requested number of bytes. No more bytes are
     /// available for reading.

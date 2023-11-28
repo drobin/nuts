@@ -20,13 +20,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
 use std::{mem, string::FromUtf8Error};
 use thiserror::Error;
 
 use crate::take_bytes::{TakeBytes, TakeBytesError};
 
 /// Error type of the [`FromBytes`] trait.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum FromBytesError {
     /// Errors coming from [`TakeBytes`].
     #[error(transparent)]

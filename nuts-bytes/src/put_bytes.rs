@@ -20,11 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
 use std::mem;
 use thiserror::Error;
 
 /// Error type for the [`PutBytes`] trait.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum PutBytesError {
     /// No more space available when writing into a byte slice.
     #[error("no more space available for writing")]

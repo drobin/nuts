@@ -20,9 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod tests;
-
 use crate::put_bytes::PutBytes;
 use crate::to_bytes::{ToBytes, ToBytesError};
 
