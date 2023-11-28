@@ -14,7 +14,7 @@ The binary format is specified in [docs/format.md].
 ## Deserialization example
 
 ```rust
-use nuts_bytes::{FromBytesError, Reader, TakeBytesError};
+use nuts_bytes::{Error, Reader, TakeBytesError};
 
 // deserialize a primitive (u32)
 let mut reader = Reader::new([0x00, 0x00, 0x02, 0x9A].as_slice());
@@ -26,7 +26,7 @@ assert_eq!(n, 666);
 let mut reader = Reader::new([0; 3].as_slice());
 let err = reader.read::<u32>().unwrap_err();
 
-assert!(matches!(err, FromBytesError::TakeBytes(TakeBytesError::Eof)));
+assert!(matches!(err, Error::TakeBytes(TakeBytesError::Eof)));
 ```
 
 ## Serialization example

@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::from_bytes::FromBytesError;
+use crate::error::Error;
 use crate::reader::Reader;
 
 #[test]
@@ -122,7 +122,7 @@ fn char() {
     assert_eq!(reader.read::<char>().unwrap(), '💯');
 
     let err = reader.read::<char>().unwrap_err();
-    assert!(matches!(err, FromBytesError::InvalidChar(1114112)));
+    assert!(matches!(err, Error::InvalidChar(1114112)));
 }
 
 #[test]

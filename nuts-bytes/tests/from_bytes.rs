@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 #[cfg(feature = "derive")]
-use nuts_bytes::{FromBytes, FromBytesError, Reader};
+use nuts_bytes::{Error, FromBytes, Reader};
 
 #[cfg(feature = "derive")]
 #[test]
@@ -151,5 +151,5 @@ fn r#enum() {
 
     let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 7].as_slice());
     let err = reader.read::<Sample>().unwrap_err();
-    assert!(matches!(err, FromBytesError::InvalidVariantIndex(7)));
+    assert!(matches!(err, Error::InvalidVariantIndex(7)));
 }

@@ -23,17 +23,8 @@
 #[cfg(test)]
 mod tests;
 
-use thiserror::Error;
-
-use crate::put_bytes::{PutBytes, PutBytesError};
-
-/// Error type of the [`ToBytes`] trait.
-#[derive(Debug, Error, PartialEq)]
-pub enum ToBytesError {
-    /// Errors coming from [`PutBytes`].
-    #[error(transparent)]
-    PutBytes(#[from] PutBytesError),
-}
+use crate::error::Error;
+use crate::put_bytes::PutBytes;
 
 /// Trait that supports writing datatypes into a binary data stream.
 ///
@@ -45,11 +36,11 @@ pub trait ToBytes {
     /// Serializes this instance into its binary representation and writes the
     /// binary data into `target`. Returns the number of bytes actually
     /// serialized.
-    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, ToBytesError>;
+    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error>;
 }
 
 impl ToBytes for bool {
-    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, ToBytesError> {
+    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
         let val = if *self { 1u8 } else { 0u8 };
 
         ToBytes::to_bytes(&val, target)
@@ -59,7 +50,7 @@ impl ToBytes for bool {
 macro_rules! impl_to_bytes_for_primitive {
     ($type:ty) => {
         impl ToBytes for $type {
-            fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, ToBytesError> {
+            fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
                 let n = target
                     .put_bytes(&self.to_be_bytes())
                     .map(|()| std::mem::size_of::<$type>())?;
@@ -81,19 +72,19 @@ impl_to_bytes_for_primitive!(f32);
 impl_to_bytes_for_primitive!(f64);
 
 impl ToBytes for usize {
-    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, ToBytesError> {
+    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
         ToBytes::to_bytes(&(*self as u64), target)
     }
 }
 
 impl ToBytes for char {
-    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, ToBytesError> {
+    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
         ToBytes::to_bytes(&(*self as u32), target)
     }
 }
 
 impl<TB: ToBytes, const COUNT: usize> ToBytes for [TB; COUNT] {
-    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, ToBytesError> {
+    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
         let mut n = 0;
 
         for i in 0..COUNT {
@@ -105,7 +96,7 @@ impl<TB: ToBytes, const COUNT: usize> ToBytes for [TB; COUNT] {
 }
 
 impl<TB: ToBytes> ToBytes for &[TB] {
-    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, ToBytesError> {
+    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
         let mut n = self.len().to_bytes(target)?;
 
         for i in 0..self.len() {
@@ -117,19 +108,19 @@ impl<TB: ToBytes> ToBytes for &[TB] {
 }
 
 impl<TB: ToBytes> ToBytes for Vec<TB> {
-    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, ToBytesError> {
+    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
         ToBytes::to_bytes(&self.as_slice(), target)
     }
 }
 
 impl ToBytes for &str {
-    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, ToBytesError> {
+    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
         self.as_bytes().to_bytes(target)
     }
 }
 
 impl<T: ToBytes> ToBytes for Option<T> {
-    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, ToBytesError> {
+    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
         match self {
             Some(val) => Ok(ToBytes::to_bytes(&1u8, target)? + ToBytes::to_bytes(val, target)?),
             None => ToBytes::to_bytes(&0u8, target),
@@ -138,7 +129,7 @@ impl<T: ToBytes> ToBytes for Option<T> {
 }
 
 impl ToBytes for () {
-    fn to_bytes<PB: PutBytes>(&self, _target: &mut PB) -> Result<usize, ToBytesError> {
+    fn to_bytes<PB: PutBytes>(&self, _target: &mut PB) -> Result<usize, Error> {
         Ok(0)
     }
 }

@@ -44,7 +44,7 @@
 //! ## Deserialization example
 //!
 //! ```rust
-//! use nuts_bytes::{FromBytesError, Reader, TakeBytesError};
+//! use nuts_bytes::{Error, Reader, TakeBytesError};
 //!
 //! // deserialize a primitive (u32)
 //! let mut reader = Reader::new([0x00, 0x00, 0x02, 0x9A].as_slice());
@@ -56,7 +56,7 @@
 //! let mut reader = Reader::new([0; 3].as_slice());
 //! let err = reader.read::<u32>().unwrap_err();
 //!
-//! assert!(matches!(err, FromBytesError::TakeBytes(TakeBytesError::Eof)));
+//! assert!(matches!(err, Error::TakeBytes(TakeBytesError::Eof)));
 //! ```
 //!
 //! # Serialization into a binary representation
@@ -122,6 +122,7 @@
 //!
 //! [Format specification]: #format-specification
 
+mod error;
 mod from_bytes;
 mod put_bytes;
 mod reader;
@@ -144,13 +145,14 @@ pub mod doc_derive {
     #![doc = include_str!("../docs/derive.md")]
 }
 
-pub use from_bytes::{FromBytes, FromBytesError};
+pub use error::Error;
+pub use from_bytes::FromBytes;
 #[cfg(feature = "derive")]
 pub use nuts_bytes_derive::{FromBytes, ToBytes};
 pub use put_bytes::{PutBytes, PutBytesError};
 pub use reader::Reader;
 pub use take_bytes::{TakeBytes, TakeBytesError};
-pub use to_bytes::{ToBytes, ToBytesError};
+pub use to_bytes::ToBytes;
 pub use writer::Writer;
 
 #[doc = include_str!("../README.md")]

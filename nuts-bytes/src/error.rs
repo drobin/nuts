@@ -20,36 +20,36 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::error::Error;
-use crate::from_bytes::FromBytes;
-use crate::take_bytes::TakeBytes;
+use std::string::FromUtf8Error;
+use thiserror::Error;
 
-/// A cursor like utility that reads structured data from an arbitrary source.
-///
-/// The source must implement the [`TakeBytes`] trait which supports reading
-/// binary data from it.
-pub struct Reader<TB> {
-    source: TB,
-}
+use crate::put_bytes::PutBytesError;
+use crate::take_bytes::TakeBytesError;
 
-impl<TB: TakeBytes> Reader<TB> {
-    /// Creates a new `Reader` instance.
-    ///
-    /// The source of the reader is passed to the function. Every type that
-    /// implements the [`TakeBytes`] trait can be the source of this reader.
-    pub fn new(source: TB) -> Reader<TB> {
-        Reader { source }
-    }
+/// Error type of the library.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// Errors coming from [`TakeBytes`](crate::take_bytes::TakeBytes).
+    #[error(transparent)]
+    TakeBytes(#[from] TakeBytesError),
 
-    /// Deserializes from this binary representation into a data structure
-    /// which implements the [`FromBytes`] trait.
-    pub fn read<FB: FromBytes>(&mut self) -> Result<FB, Error> {
-        FromBytes::from_bytes(&mut self.source)
-    }
-}
+    /// Errors coming from [`PutBytes`](crate::put_bytes::PutBytes).
+    #[error(transparent)]
+    PutBytes(#[from] PutBytesError),
 
-impl<TB> AsRef<TB> for Reader<TB> {
-    fn as_ref(&self) -> &TB {
-        &self.source
-    }
+    /// Failed to deserialize into a `char`. The source `u32` cannot be
+    /// converted into a `char`.
+    #[error("the char is invalid, {0} is not a char")]
+    InvalidChar(u32),
+
+    /// Failed to deserialize into a string. The source byte data are not valid
+    /// UTF-8.
+    #[error("the string is invalid: {0}")]
+    InvalidString(#[source] FromUtf8Error),
+
+    /// Deserialized an invalid variant index.
+    /// There is no enum variant at the given index.
+    #[cfg(feature = "derive")]
+    #[error("invalid enum, no variant at {0}")]
+    InvalidVariantIndex(usize),
 }

@@ -23,34 +23,10 @@
 #[cfg(test)]
 mod tests;
 
-use std::{mem, string::FromUtf8Error};
-use thiserror::Error;
+use std::mem;
 
-use crate::take_bytes::{TakeBytes, TakeBytesError};
-
-/// Error type of the [`FromBytes`] trait.
-#[derive(Debug, Error, PartialEq)]
-pub enum FromBytesError {
-    /// Errors coming from [`TakeBytes`].
-    #[error(transparent)]
-    TakeBytes(#[from] TakeBytesError),
-
-    /// Failed to deserialize into a `char`. The source `u32` cannot be
-    /// converted into a `char`.
-    #[error("the char is invalid, {0} is not a char")]
-    InvalidChar(u32),
-
-    /// Failed to deserialize into a string. The source byte data are not valid
-    /// UTF-8.
-    #[error("the string is invalid: {0}")]
-    InvalidString(#[source] FromUtf8Error),
-
-    /// Deserialized an invalid variant index.
-    /// There is no enum variant at the given index.
-    #[cfg(feature = "derive")]
-    #[error("invalid enum, no variant at {0}")]
-    InvalidVariantIndex(usize),
-}
+use crate::error::Error;
+use crate::take_bytes::TakeBytes;
 
 /// Trait that supports reading datatypes from a binary data stream.
 ///
@@ -67,13 +43,14 @@ where
     /// # Errors
     ///
     /// If not enough data are available in `source`, the
-    /// [`TakeBytes::take_bytes()`] call returns a [`TakeBytesError::Eof`]
+    /// [`TakeBytes::take_bytes()`] call returns a
+    /// [`TakeBytesError::Eof`](crate::take_bytes::TakeBytesError::Eof)
     /// error, which should be simply forwarded.
-    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, FromBytesError>;
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, Error>;
 }
 
 impl FromBytes for bool {
-    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, FromBytesError> {
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, Error> {
         let val: u8 = FromBytes::from_bytes(source)?;
 
         Ok(val != 0)
@@ -83,7 +60,7 @@ impl FromBytes for bool {
 macro_rules! impl_from_bytes_for_primitive {
     ($type:ty) => {
         impl FromBytes for $type {
-            fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, FromBytesError> {
+            fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, Error> {
                 let mut buf = [0; mem::size_of::<$type>()];
 
                 source.take_bytes(&mut buf)?;
@@ -106,7 +83,7 @@ impl_from_bytes_for_primitive!(f32);
 impl_from_bytes_for_primitive!(f64);
 
 impl FromBytes for usize {
-    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, FromBytesError> {
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, Error> {
         let mut buf = [0; mem::size_of::<u64>()];
 
         source.take_bytes(&mut buf)?;
@@ -116,15 +93,15 @@ impl FromBytes for usize {
 }
 
 impl FromBytes for char {
-    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, FromBytesError> {
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, Error> {
         let n: u32 = FromBytes::from_bytes(source)?;
 
-        char::from_u32(n).ok_or_else(|| FromBytesError::InvalidChar(n))
+        char::from_u32(n).ok_or_else(|| Error::InvalidChar(n))
     }
 }
 
 impl<FB: Copy + Default + FromBytes, const COUNT: usize> FromBytes for [FB; COUNT] {
-    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, FromBytesError> {
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, Error> {
         let mut target = [Default::default(); COUNT];
 
         for i in 0..COUNT {
@@ -136,7 +113,7 @@ impl<FB: Copy + Default + FromBytes, const COUNT: usize> FromBytes for [FB; COUN
 }
 
 impl<FB: FromBytes> FromBytes for Vec<FB> {
-    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, FromBytesError> {
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, Error> {
         let len = usize::from_bytes(source)?;
         let mut vec = Vec::with_capacity(len);
 
@@ -149,18 +126,18 @@ impl<FB: FromBytes> FromBytes for Vec<FB> {
 }
 
 impl FromBytes for String {
-    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, FromBytesError> {
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, Error> {
         let len = usize::from_bytes(source)?;
 
         let mut vec = vec![0; len];
         source.take_bytes(&mut vec)?;
 
-        String::from_utf8(vec).map_err(|err| FromBytesError::InvalidString(err))
+        String::from_utf8(vec).map_err(|err| Error::InvalidString(err))
     }
 }
 
 impl<T: FromBytes> FromBytes for Option<T> {
-    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, FromBytesError> {
+    fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, Error> {
         let n: u8 = FromBytes::from_bytes(source)?;
 
         if n == 0 {
@@ -172,7 +149,7 @@ impl<T: FromBytes> FromBytes for Option<T> {
 }
 
 impl FromBytes for () {
-    fn from_bytes<TB: TakeBytes>(_source: &mut TB) -> Result<Self, FromBytesError> {
+    fn from_bytes<TB: TakeBytes>(_source: &mut TB) -> Result<Self, Error> {
         Ok(())
     }
 }

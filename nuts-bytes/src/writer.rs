@@ -20,8 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use crate::error::Error;
 use crate::put_bytes::PutBytes;
-use crate::to_bytes::{ToBytes, ToBytesError};
+use crate::to_bytes::ToBytes;
 
 /// A cursor like utility that writes structured data into an arbitrary target.
 ///
@@ -45,7 +46,7 @@ impl<T: PutBytes> Writer<T> {
     /// Serializes a data structure that implements the [`ToBytes`] trait.
     ///
     /// Returns the number of bytes actually serialized.
-    pub fn write<TB: ToBytes>(&mut self, value: &TB) -> Result<usize, ToBytesError> {
+    pub fn write<TB: ToBytes>(&mut self, value: &TB) -> Result<usize, Error> {
         ToBytes::to_bytes(value, &mut self.target)
     }
 
