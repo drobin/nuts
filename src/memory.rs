@@ -85,7 +85,7 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_bytes::Writer;
+use nuts_bytes::{FromBytes, ToBytes, Writer};
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -128,7 +128,7 @@ impl From<nuts_bytes::Error> for Error {
 }
 
 /// The [id](crate::backend::Backend::Id) of the memory backend.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
 pub struct Id(u32);
 
 impl fmt::Display for Id {
@@ -241,12 +241,12 @@ impl MemoryBackend {
     fn secret_bytes(&self) -> Result<Vec<u8>, Error> {
         let mut writer = Writer::new(vec![]);
 
-        writer.serialize(&1u32)?; // magic 1
-        writer.serialize(&1u32)?; // magic 2
-        writer.serialize::<Vec<u8>>(&vec![])?; // key
-        writer.serialize::<Vec<u8>>(&vec![])?; // iv
-        writer.serialize::<Vec<u8>>(&vec![])?; // userdata
-        writer.serialize(&())?; // settings
+        writer.write(&1u32)?; // magic 1
+        writer.write(&1u32)?; // magic 2
+        writer.write::<Vec<u8>>(&vec![])?; // key
+        writer.write::<Vec<u8>>(&vec![])?; // iv
+        writer.write::<Vec<u8>>(&vec![])?; // userdata
+        writer.write(&())?; // settings
 
         Ok(writer.into_target())
     }
@@ -254,13 +254,13 @@ impl MemoryBackend {
     fn header_bytes(&self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
         let mut writer = Writer::new(bytes.as_mut_slice());
 
-        writer.write_bytes(b"nuts-io")?; // magic
+        writer.write(b"nuts-io")?; // magic
 
-        writer.serialize(&0u32)?; // rev 0
-        writer.serialize(&Cipher::None)?; // cipher
-        writer.serialize::<Vec<u8>>(&vec![])?; // IV
-        writer.serialize(&Kdf::None)?; // KDF
-        writer.serialize(&self.secret_bytes()?)?; // secret
+        writer.write(&0u32)?; // rev 0
+        writer.write(&Cipher::None)?; // cipher
+        writer.write::<Vec<u8>>(&vec![])?; // IV
+        writer.write(&Kdf::None)?; // KDF
+        writer.write(&self.secret_bytes()?)?; // secret
 
         Ok(())
     }
