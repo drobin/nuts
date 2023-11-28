@@ -53,6 +53,7 @@ use std::error;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
+use nuts_bytes::{FromBytes, ToBytes};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -61,7 +62,7 @@ pub const HEADER_MAX_SIZE: usize = 512;
 
 /// Trait identifies a block in the storage.
 pub trait BlockId:
-    Clone + Debug + DeserializeOwned + Display + FromStr + PartialEq + Serialize
+    Clone + Debug + DeserializeOwned + Display + FromBytes + FromStr + PartialEq + Serialize + ToBytes
 {
     /// Creates a null-id.
     ///
@@ -195,7 +196,7 @@ where
     /// trait for more information on how the backend is opened.
     ///
     /// The [`Create`] trait is used to create the settings of a backend.
-    type Settings: Clone + DeserializeOwned + Serialize;
+    type Settings: Clone + DeserializeOwned + FromBytes + Serialize + ToBytes;
 
     /// The error type used by methods of this trait.
     type Err: error::Error + Send + Sync;
