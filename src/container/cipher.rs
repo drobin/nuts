@@ -27,7 +27,6 @@ use nuts_bytes::{FromBytes, ToBytes};
 use openssl::cipher as ossl_cipher;
 use openssl::cipher_ctx::CipherCtx;
 use openssl::error::ErrorStack;
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::{cmp, fmt};
 use thiserror::Error;
@@ -63,7 +62,7 @@ pub enum CipherError {
 }
 
 /// Supported cipher algorithms.
-#[derive(Clone, Copy, Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
+#[derive(Clone, Copy, Debug, FromBytes, PartialEq, ToBytes)]
 pub enum Cipher {
     /// No encryption.
     None,

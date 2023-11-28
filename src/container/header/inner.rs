@@ -24,16 +24,13 @@
 mod tests;
 
 use nuts_bytes::{FromBytes, ToBytes};
-use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
 
 use crate::container::header::rev0;
 use crate::container::header::HeaderMagicError;
 
 const MAGIC: [u8; 7] = *b"nuts-io";
 
-#[derive(Debug, Deserialize, FromBytes, Serialize, ToBytes)]
-#[serde(try_from = "[u8; 7]")]
+#[derive(Debug, FromBytes, ToBytes)]
 #[from_bytes(validate)]
 struct Magic([u8; 7]);
 
@@ -53,24 +50,12 @@ impl<T: AsRef<[u8]>> PartialEq<T> for Magic {
     }
 }
 
-impl TryFrom<[u8; 7]> for Magic {
-    type Error = String;
-
-    fn try_from(buf: [u8; 7]) -> Result<Self, String> {
-        if buf == MAGIC {
-            Ok(Magic(buf))
-        } else {
-            Err("invalid magic".to_string())
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, FromBytes, Serialize, ToBytes)]
+#[derive(Debug, FromBytes, ToBytes)]
 pub enum Revision {
     Rev0(rev0::Data),
 }
 
-#[derive(Debug, Deserialize, FromBytes, Serialize, ToBytes)]
+#[derive(Debug, FromBytes, ToBytes)]
 pub struct Inner {
     magic: Magic,
     pub rev: Revision,

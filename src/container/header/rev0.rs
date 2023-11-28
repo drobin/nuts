@@ -24,13 +24,12 @@
 mod tests;
 
 use nuts_bytes::{FromBytes, ToBytes};
-use serde::{Deserialize, Serialize};
 
 use crate::container::cipher::Cipher;
 use crate::container::header::secret::Secret;
 use crate::container::kdf::Kdf;
 
-#[derive(Debug, Deserialize, FromBytes, Serialize, ToBytes)]
+#[derive(Debug, FromBytes, ToBytes)]
 pub struct Data {
     pub cipher: Cipher,
     pub iv: Vec<u8>,

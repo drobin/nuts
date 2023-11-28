@@ -37,8 +37,8 @@ readme = "README.md"
 
 [features]
 default = ["backend", "container"]
-backend = ["dep:serde"]
-container = ["backend", "dep:nuts-bytes", "dep:openssl", "dep:openssl-sys", "dep:serde"]
+backend = []
+container = ["backend", "dep:nuts-bytes", "dep:openssl", "dep:openssl-sys"]
 debug-plain-keys = []
 
 [dependencies]
@@ -46,5 +46,4 @@ log = "0.4.20"
 nuts-bytes = { version = "0.1.1", optional = true }
 openssl = { version = "0.10.57", optional = true }
 openssl-sys = { version = "0.9.93", optional = true }
-serde = { version = "1.0.188", features = ["derive"], optional = true }
 thiserror = "1.0.50"

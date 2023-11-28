@@ -86,7 +86,6 @@
 mod tests;
 
 use nuts_bytes::{FromBytes, ToBytes, Writer};
-use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::num::ParseIntError;
@@ -128,7 +127,7 @@ impl From<nuts_bytes::Error> for Error {
 }
 
 /// The [id](crate::backend::Backend::Id) of the memory backend.
-#[derive(Clone, Copy, Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
+#[derive(Clone, Copy, Debug, FromBytes, PartialEq, ToBytes)]
 pub struct Id(u32);
 
 impl fmt::Display for Id {

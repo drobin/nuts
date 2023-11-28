@@ -21,10 +21,9 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{FromBytes, ToBytes};
-use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
-#[derive(Clone, Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
+#[derive(Clone, Debug, FromBytes, PartialEq, ToBytes)]
 pub struct SecureVec(Vec<u8>);
 
 impl AsRef<[u8]> for SecureVec {

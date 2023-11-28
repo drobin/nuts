@@ -25,8 +25,6 @@ mod tests;
 
 use nuts_bytes::{FromBytes, Reader, ToBytes, Writer};
 use openssl::error::ErrorStack;
-use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
 
 use crate::backend::Backend;
 use crate::container::cipher::{Cipher, CipherContext};
@@ -36,8 +34,7 @@ use crate::container::ossl;
 use crate::container::password::PasswordStore;
 use crate::container::svec::SecureVec;
 
-#[derive(Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
-#[serde(try_from = "[u32; 2]")]
+#[derive(Debug, FromBytes, PartialEq, ToBytes)]
 #[from_bytes(validate)]
 struct Magics([u32; 2]);
 
@@ -55,25 +52,13 @@ impl Magics {
     }
 }
 
-impl TryFrom<[u32; 2]> for Magics {
-    type Error = String;
-
-    fn try_from(value: [u32; 2]) -> Result<Self, String> {
-        if value[0] == value[1] {
-            Ok(Magics(value))
-        } else {
-            Err("secret-magic mismatch".to_string())
-        }
-    }
-}
-
 impl PartialEq<[u32; 2]> for Magics {
     fn eq(&self, other: &[u32; 2]) -> bool {
         self.0[0] == other[0] && self.0[1] == other[1]
     }
 }
 
-#[derive(Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
+#[derive(Debug, FromBytes, PartialEq, ToBytes)]
 pub struct Secret(Vec<u8>);
 
 impl Secret {
@@ -113,7 +98,7 @@ impl<T: AsRef<[u8]>> PartialEq<T> for Secret {
     }
 }
 
-#[derive(Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
+#[derive(Debug, FromBytes, PartialEq, ToBytes)]
 pub struct PlainSecret<B: Backend> {
     magics: Magics,
     pub key: SecureVec,

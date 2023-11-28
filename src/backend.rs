@@ -49,21 +49,16 @@
 //! The final [`Open::build()`] call creates the backend instance, which is
 //! used by the container.
 
+use nuts_bytes::{FromBytes, ToBytes};
 use std::error;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
-
-use nuts_bytes::{FromBytes, ToBytes};
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 
 // The maximun size of the header.
 pub const HEADER_MAX_SIZE: usize = 512;
 
 /// Trait identifies a block in the storage.
-pub trait BlockId:
-    Clone + Debug + DeserializeOwned + Display + FromBytes + FromStr + PartialEq + Serialize + ToBytes
-{
+pub trait BlockId: Clone + Debug + Display + FromBytes + FromStr + PartialEq + ToBytes {
     /// Creates a null-id.
     ///
     /// A null-id does not point to a block. It points to nowhere.
@@ -196,7 +191,7 @@ where
     /// trait for more information on how the backend is opened.
     ///
     /// The [`Create`] trait is used to create the settings of a backend.
-    type Settings: Clone + DeserializeOwned + FromBytes + Serialize + ToBytes;
+    type Settings: Clone + FromBytes + ToBytes;
 
     /// The error type used by methods of this trait.
     type Err: error::Error + Send + Sync;
