@@ -42,9 +42,9 @@ enum Sample {
     V2(u16, u32),
 }
 
-const V1: [u8; 8] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
-const V2: [u8; 14] = [
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02,
+const V1: [u8; 4] = [0x00, 0x00, 0x00, 0x00];
+const V2: [u8; 10] = [
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02,
 ];
 
 // Deserialize the Sample::V1 variant
@@ -66,7 +66,7 @@ assert_eq!(sample, Sample::V2(1, 2));
 let mut writer = Writer::new(vec![]);
 let n = writer.write(&Sample::V1).unwrap();
 
-assert_eq!(n, 8);
+assert_eq!(n, 4);
 assert_eq!(writer.into_target(), V1);
 
 // Serialize the Sample::V2 variant
@@ -74,6 +74,6 @@ assert_eq!(writer.into_target(), V1);
 let mut writer = Writer::new(vec![]);
 let n = writer.write(&Sample::V2(1, 2)).unwrap();
 
-assert_eq!(n, 14);
+assert_eq!(n, 10);
 assert_eq!(writer.into_target(), V2);
 ```

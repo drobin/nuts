@@ -121,36 +121,30 @@ fn r#enum() {
     }
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&Sample::V0).unwrap(), 8);
-    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(writer.write(&Sample::V0).unwrap(), 4);
+    assert_eq!(writer.into_target(), [0, 0, 0, 0]);
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&Sample::V1 {}).unwrap(), 8);
-    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1]);
+    assert_eq!(writer.write(&Sample::V1 {}).unwrap(), 4);
+    assert_eq!(writer.into_target(), [0, 0, 0, 1]);
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&Sample::V2 { f1: 1 }).unwrap(), 10);
-    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 2, 0, 1]);
+    assert_eq!(writer.write(&Sample::V2 { f1: 1 }).unwrap(), 6);
+    assert_eq!(writer.into_target(), [0, 0, 0, 2, 0, 1]);
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&Sample::V3 { f1: 1, f2: 2 }).unwrap(), 14);
-    assert_eq!(
-        writer.into_target(),
-        [0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 0, 2]
-    );
+    assert_eq!(writer.write(&Sample::V3 { f1: 1, f2: 2 }).unwrap(), 10);
+    assert_eq!(writer.into_target(), [0, 0, 0, 3, 0, 1, 0, 0, 0, 2]);
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&Sample::V4()).unwrap(), 8);
-    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 4]);
+    assert_eq!(writer.write(&Sample::V4()).unwrap(), 4);
+    assert_eq!(writer.into_target(), [0, 0, 0, 4]);
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&Sample::V5(1)).unwrap(), 10);
-    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 5, 0, 1]);
+    assert_eq!(writer.write(&Sample::V5(1)).unwrap(), 6);
+    assert_eq!(writer.into_target(), [0, 0, 0, 5, 0, 1]);
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&Sample::V6(1, 2)).unwrap(), 14);
-    assert_eq!(
-        writer.into_target(),
-        [0, 0, 0, 0, 0, 0, 0, 6, 0, 1, 0, 0, 0, 2]
-    );
+    assert_eq!(writer.write(&Sample::V6(1, 2)).unwrap(), 10);
+    assert_eq!(writer.into_target(), [0, 0, 0, 6, 0, 1, 0, 0, 0, 2]);
 }

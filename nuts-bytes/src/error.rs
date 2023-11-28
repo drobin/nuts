@@ -51,5 +51,5 @@ pub enum Error {
     /// There is no enum variant at the given index.
     #[cfg(feature = "derive")]
     #[error("invalid enum, no variant at {0}")]
-    InvalidVariantIndex(usize),
+    InvalidVariantIndex(u32),
 }

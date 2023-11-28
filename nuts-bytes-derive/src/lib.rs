@@ -64,41 +64,47 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
         },
         Data::Enum(data) => {
             if data.variants.len() > 0 {
-                let variants = data.variants.iter().enumerate().map(|(idx, variant)| {
-                    let variant_name = &variant.ident;
+                let variants = data
+                    .variants
+                    .iter()
+                    .take(u32::MAX as usize)
+                    .enumerate()
+                    .map(|(idx, variant)| {
+                        let variant_idx = idx as u32;
+                        let variant_name = &variant.ident;
 
-                    let fields = match &variant.fields {
-                        Fields::Named(fields) => {
-                            let fields = fields.named.iter().map(|field| {
-                                let field_name = &field.ident;
+                        let fields = match &variant.fields {
+                            Fields::Named(fields) => {
+                                let fields = fields.named.iter().map(|field| {
+                                    let field_name = &field.ident;
+
+                                    quote!(
+                                        #field_name: FromBytes::from_bytes(source)?
+                                    )
+                                });
+
+                                quote!( { #(#fields,)* } )
+                            }
+                            Fields::Unnamed(fields) => {
+                                let fields = (0..fields.unnamed.len())
+                                    .map(|_| quote!(FromBytes::from_bytes(source)?));
 
                                 quote!(
-                                    #field_name: FromBytes::from_bytes(source)?
+                                    ( #(#fields,)* )
                                 )
-                            });
+                            }
+                            Fields::Unit => quote!(),
+                        };
 
-                            quote!( { #(#fields,)* } )
-                        }
-                        Fields::Unnamed(fields) => {
-                            let fields = (0..fields.unnamed.len())
-                                .map(|_| quote!(FromBytes::from_bytes(source)?));
-
-                            quote!(
-                                ( #(#fields,)* )
-                            )
-                        }
-                        Fields::Unit => quote!(),
-                    };
-
-                    quote!(
-                        #idx => {
-                            Ok(#name::#variant_name #fields )
-                        }
-                    )
-                });
+                        quote!(
+                            #variant_idx => {
+                                Ok(#name::#variant_name #fields )
+                            }
+                        )
+                    });
 
                 quote!(
-                    let idx: usize = FromBytes::from_bytes(source)?;
+                    let idx: u32 = FromBytes::from_bytes(source)?;
 
                     match idx {
                         #(#variants,)*
@@ -168,50 +174,57 @@ pub fn to_bytes(input: TokenStream) -> TokenStream {
         }
         Data::Enum(data) => {
             if data.variants.len() > 0 {
-                let variants = data.variants.iter().enumerate().map(|(idx, variant)| {
-                    let variant_idx = Index::from(idx);
-                    let variant_name = &variant.ident;
+                let variants = data
+                    .variants
+                    .iter()
+                    .take(u32::MAX as usize)
+                    .enumerate()
+                    .map(|(idx, variant)| {
+                        let variant_idx = Index::from(idx);
+                        let variant_name = &variant.ident;
 
-                    let left_arm_args = variant.fields.iter().enumerate().map(|(idx, field)| {
-                        let ident = field.ident.as_ref().map_or_else(
-                            || format_ident!("f{}", Index::from(idx)),
-                            |ident| ident.clone(),
-                        );
+                        let left_arm_args =
+                            variant.fields.iter().enumerate().map(|(idx, field)| {
+                                let ident = field.ident.as_ref().map_or_else(
+                                    || format_ident!("f{}", Index::from(idx)),
+                                    |ident| ident.clone(),
+                                );
 
-                        quote!(#ident)
+                                quote!(#ident)
+                            });
+                        let left_arm = match &variant.fields {
+                            Fields::Named(_) => {
+                                quote!( #name::#variant_name { #(#left_arm_args),* } )
+                            }
+                            Fields::Unnamed(_) => {
+                                quote!( #name::#variant_name ( #(#left_arm_args),* ) )
+                            }
+                            Fields::Unit => quote!( #name::#variant_name ),
+                        };
+
+                        let right_arm_fields =
+                            variant.fields.iter().enumerate().map(|(idx, field)| {
+                                let ident = field.ident.as_ref().map_or_else(
+                                    || format_ident!("f{}", Index::from(idx)),
+                                    |ident| ident.clone(),
+                                );
+                                quote!(ToBytes::to_bytes(#ident, target)?)
+                            });
+                        let right_arm = quote! {
+                            {
+                                let mut m = 0;
+
+                                m += ToBytes::to_bytes(&(#variant_idx as u32), target)?;
+                                #(m += #right_arm_fields;)*
+
+                                m
+                            }
+                        };
+
+                        quote! {
+                            #left_arm => #right_arm
+                        }
                     });
-                    let left_arm = match &variant.fields {
-                        Fields::Named(_) => {
-                            quote!( #name::#variant_name { #(#left_arm_args),* } )
-                        }
-                        Fields::Unnamed(_) => {
-                            quote!( #name::#variant_name ( #(#left_arm_args),* ) )
-                        }
-                        Fields::Unit => quote!( #name::#variant_name ),
-                    };
-
-                    let right_arm_fields = variant.fields.iter().enumerate().map(|(idx, field)| {
-                        let ident = field.ident.as_ref().map_or_else(
-                            || format_ident!("f{}", Index::from(idx)),
-                            |ident| ident.clone(),
-                        );
-                        quote!(ToBytes::to_bytes(#ident, target)?)
-                    });
-                    let right_arm = quote! {
-                        {
-                            let mut m = 0;
-
-                            m += ToBytes::to_bytes(&(#variant_idx as usize), target)?;
-                            #(m += #right_arm_fields;)*
-
-                            m
-                        }
-                    };
-
-                    quote! {
-                        #left_arm => #right_arm
-                    }
-                });
 
                 quote! {
                     let n = match self {

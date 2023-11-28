@@ -121,35 +121,35 @@ fn r#enum() {
         V6(u16, u32),
     }
 
-    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 0].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 0].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V0);
 
-    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 1].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 1].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V1 {});
 
-    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 2, 0, 1].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 2, 0, 1].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V2 { f1: 1 });
 
-    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 0, 2].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 3, 0, 1, 0, 0, 0, 2].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V3 { f1: 1, f2: 2 });
 
-    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 4].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 4].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V4());
 
-    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 5, 0, 1].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 5, 0, 1].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V5(1));
 
-    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 6, 0, 1, 0, 0, 0, 2].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 6, 0, 1, 0, 0, 0, 2].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V6(1, 2));
 
-    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 7].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 7].as_slice());
     let err = reader.read::<Sample>().unwrap_err();
     assert!(matches!(err, Error::InvalidVariantIndex(7)));
 }
