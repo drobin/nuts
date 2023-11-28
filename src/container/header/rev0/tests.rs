@@ -39,7 +39,7 @@ fn de_none() {
         ]
         .as_slice(),
     );
-    let rev0 = reader.deserialize::<rev0::Data>().unwrap();
+    let rev0 = reader.read::<rev0::Data>().unwrap();
 
     assert_eq!(rev0.cipher, Cipher::None);
     assert_eq!(rev0.iv, []);
@@ -59,7 +59,7 @@ fn de_some() {
         ]
         .as_slice(),
     );
-    let rev0 = reader.deserialize::<rev0::Data>().unwrap();
+    let rev0 = reader.read::<rev0::Data>().unwrap();
 
     assert_eq!(rev0.cipher, Cipher::Aes128Ctr);
     assert_eq!(rev0.iv, [1, 2]);
@@ -84,7 +84,7 @@ fn ser_none() {
     };
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.serialize(&rev0).unwrap(), 27);
+    assert_eq!(writer.write(&rev0).unwrap(), 27);
     assert_eq!(
         writer.into_target(),
         [
@@ -110,7 +110,7 @@ fn ser_some() {
     };
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.serialize(&rev0).unwrap(), 49);
+    assert_eq!(writer.write(&rev0).unwrap(), 49);
     assert_eq!(
         writer.into_target(),
         [

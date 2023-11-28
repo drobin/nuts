@@ -26,6 +26,7 @@ use crate::container::cipher::Cipher;
 use crate::container::header::inner::{Inner, Revision};
 use crate::container::header::rev0;
 use crate::container::header::secret::Secret;
+use crate::container::header::HeaderMagicError;
 use crate::container::kdf::Kdf;
 use crate::tests::into_error;
 
@@ -45,9 +46,9 @@ fn new() {
 #[test]
 fn de_inval_magic() {
     let mut reader = Reader::new(b"xuts-io".as_slice());
-    let err = reader.deserialize::<Inner>().unwrap_err();
-    let msg = into_error!(err, Error::Serde);
-    assert_eq!(msg, "invalid magic");
+    let err = reader.read::<Inner>().unwrap_err();
+    let err = into_error!(err, Error::Custom);
+    assert!(err.is::<HeaderMagicError>());
 }
 
 #[test]
@@ -63,7 +64,7 @@ fn de_rev0() {
         ]
         .as_slice(),
     );
-    let inner = reader.deserialize::<Inner>().unwrap();
+    let inner = reader.read::<Inner>().unwrap();
 
     let Revision::Rev0(rev0) = inner.rev;
 
@@ -83,7 +84,7 @@ fn ser_rev0() {
     }));
 
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.serialize(&inner).unwrap(), 38);
+    assert_eq!(writer.write(&inner).unwrap(), 38);
     assert_eq!(
         writer.into_target(),
         [

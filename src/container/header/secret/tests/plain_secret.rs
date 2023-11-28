@@ -27,6 +27,7 @@ use nuts_bytes::{Error, Reader, Writer};
 use crate::container::cipher::Cipher;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
 use crate::container::header::secret::PlainSecret;
+use crate::container::header::SecretMagicsError;
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
 use crate::container::Digest;
@@ -37,14 +38,14 @@ use crate::tests::into_error;
 fn ser() {
     let plain_secret = plain_secret();
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.serialize(&plain_secret).unwrap(), 37);
+    assert_eq!(writer.write(&plain_secret).unwrap(), 37);
     assert_eq!(writer.into_target(), PLAIN_SECRET);
 }
 
 #[test]
 fn de() {
     let mut reader = Reader::new(PLAIN_SECRET.as_slice());
-    let out = reader.deserialize::<PlainSecret<MemoryBackend>>().unwrap();
+    let out = reader.read::<PlainSecret<MemoryBackend>>().unwrap();
     assert_eq!(out, plain_secret());
 }
 
@@ -54,11 +55,9 @@ fn de_inval() {
     vec[0] += 1;
 
     let mut reader = Reader::new(vec.as_slice());
-    let err = reader
-        .deserialize::<PlainSecret<MemoryBackend>>()
-        .unwrap_err();
-    let msg = into_error!(err, Error::Serde);
-    assert_eq!(msg, "secret-magic mismatch");
+    let err = reader.read::<PlainSecret<MemoryBackend>>().unwrap_err();
+    let err = into_error!(err, Error::Custom);
+    assert!(err.is::<SecretMagicsError>());
 }
 
 #[test]

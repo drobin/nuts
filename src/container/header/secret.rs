@@ -23,26 +23,35 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_bytes::{Reader, Writer};
+use nuts_bytes::{FromBytes, Reader, ToBytes, Writer};
 use openssl::error::ErrorStack;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
 use crate::backend::Backend;
 use crate::container::cipher::{Cipher, CipherContext};
-use crate::container::header::HeaderError;
+use crate::container::header::{HeaderError, SecretMagicsError};
 use crate::container::kdf::Kdf;
 use crate::container::ossl;
 use crate::container::password::PasswordStore;
 use crate::container::svec::SecureVec;
 
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
 #[serde(try_from = "[u32; 2]")]
+#[from_bytes(validate)]
 struct Magics([u32; 2]);
 
 impl Magics {
     fn generate() -> Result<Magics, ErrorStack> {
         ossl::rand_u32().map(|magic| Magics([magic, magic]))
+    }
+
+    fn validate(&self) -> Result<(), SecretMagicsError> {
+        if self.0[0] == self.0[1] {
+            Ok(())
+        } else {
+            Err(SecretMagicsError)
+        }
     }
 }
 
@@ -64,7 +73,7 @@ impl PartialEq<[u32; 2]> for Magics {
     }
 }
 
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
 pub struct Secret(Vec<u8>);
 
 impl Secret {
@@ -92,7 +101,7 @@ impl Secret {
         ctx.copy_from_slice(self.0.len(), &self.0);
 
         let pbuf = ctx.decrypt(&key, &iv)?;
-        let plain_secret = Reader::new(pbuf).deserialize()?;
+        let plain_secret = Reader::new(pbuf).read()?;
 
         Ok(plain_secret)
     }
@@ -104,7 +113,7 @@ impl<T: AsRef<[u8]>> PartialEq<T> for Secret {
     }
 }
 
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
 pub struct PlainSecret<B: Backend> {
     magics: Magics,
     pub key: SecureVec,
@@ -137,9 +146,7 @@ impl<B: Backend> PlainSecret<B> {
         iv: &[u8],
     ) -> Result<Secret, HeaderError> {
         let mut writer = Writer::new(vec![]);
-        let pbuf: SecureVec = writer
-            .serialize(&self)
-            .map(|_| writer.into_target().into())?;
+        let pbuf: SecureVec = writer.write(&self).map(|_| writer.into_target().into())?;
 
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;

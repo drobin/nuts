@@ -39,6 +39,16 @@ use crate::container::ossl;
 use crate::container::password::{PasswordError, PasswordStore};
 use crate::container::svec::SecureVec;
 
+/// The magic that marks the header is wrong.
+#[derive(Debug, Error)]
+#[error("invalid header")]
+struct HeaderMagicError;
+
+/// The magic number pair in the secret is wrong.
+#[derive(Debug, Error)]
+#[error("")]
+struct SecretMagicsError;
+
 /// Header related errors.
 #[derive(Debug, Error)]
 pub enum HeaderError {
@@ -70,8 +80,8 @@ pub enum HeaderError {
 impl From<nuts_bytes::Error> for HeaderError {
     fn from(value: nuts_bytes::Error) -> Self {
         match &value {
-            nuts_bytes::Error::Serde(msg) => {
-                if msg == "secret-magic mismatch" {
+            nuts_bytes::Error::Custom(err) => {
+                if err.is::<SecretMagicsError>() {
                     return Self::WrongPassword(value);
                 }
             }
@@ -114,7 +124,7 @@ impl Header {
         buf: &[u8],
         store: &mut PasswordStore,
     ) -> Result<(Header, B::Settings), HeaderError> {
-        let inner = Reader::new(buf).deserialize::<Inner>()?;
+        let inner = Reader::new(buf).read::<Inner>()?;
 
         let Revision::Rev0(rev0) = inner.rev;
 
@@ -160,7 +170,7 @@ impl Header {
         };
         let inner = Inner::new(Revision::Rev0(rev0));
 
-        Writer::new(buf).serialize(&inner)?;
+        Writer::new(buf).write(&inner)?;
 
         Ok(())
     }

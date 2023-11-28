@@ -20,11 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use nuts_bytes::{FromBytes, ToBytes};
+use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, FromBytes, PartialEq, Serialize, ToBytes)]
 pub struct SecureVec(Vec<u8>);
 
 impl AsRef<[u8]> for SecureVec {

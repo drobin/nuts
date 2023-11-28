@@ -23,16 +23,29 @@
 #[cfg(test)]
 mod tests;
 
+use nuts_bytes::{FromBytes, ToBytes};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
 use crate::container::header::rev0;
+use crate::container::header::HeaderMagicError;
 
 const MAGIC: [u8; 7] = *b"nuts-io";
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, FromBytes, Serialize, ToBytes)]
 #[serde(try_from = "[u8; 7]")]
+#[from_bytes(validate)]
 struct Magic([u8; 7]);
+
+impl Magic {
+    fn validate(&self) -> Result<(), HeaderMagicError> {
+        if self.0 == MAGIC {
+            Ok(())
+        } else {
+            Err(HeaderMagicError)
+        }
+    }
+}
 
 impl<T: AsRef<[u8]>> PartialEq<T> for Magic {
     fn eq(&self, other: &T) -> bool {
@@ -52,12 +65,12 @@ impl TryFrom<[u8; 7]> for Magic {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, FromBytes, Serialize, ToBytes)]
 pub enum Revision {
     Rev0(rev0::Data),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, FromBytes, Serialize, ToBytes)]
 pub struct Inner {
     magic: Magic,
     pub rev: Revision,

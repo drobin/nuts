@@ -28,6 +28,7 @@ use crate::container::cipher::Cipher;
 use crate::container::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
 use crate::container::header::secret::Secret;
 use crate::container::header::HeaderError;
+use crate::container::header::SecretMagicsError;
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
 use crate::container::Digest;
@@ -38,7 +39,7 @@ use crate::tests::into_error;
 fn ser_empty() {
     let secret = Secret(vec![]);
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.serialize(&secret).unwrap(), 8);
+    assert_eq!(writer.write(&secret).unwrap(), 8);
     assert_eq!(
         writer.into_target(),
         [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -49,21 +50,21 @@ fn ser_empty() {
 fn ser() {
     let secret = Secret(vec![1, 2, 3]);
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.serialize(&secret).unwrap(), 11);
+    assert_eq!(writer.write(&secret).unwrap(), 11);
     assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]);
 }
 
 #[test]
 fn de_empty() {
     let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 0].as_slice());
-    let secret = reader.deserialize::<Secret>().unwrap();
+    let secret = reader.read::<Secret>().unwrap();
     assert_eq!(secret, []);
 }
 
 #[test]
 fn de() {
     let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3].as_slice());
-    let secret = reader.deserialize::<Secret>().unwrap();
+    let secret = reader.read::<Secret>().unwrap();
     assert_eq!(secret, [1, 2, 3]);
 }
 
@@ -94,8 +95,8 @@ fn decrypt_none_invalid() {
         .unwrap_err();
 
     let err = into_error!(err, HeaderError::WrongPassword);
-    let msg = into_error!(err, BytesError::Serde);
-    assert_eq!(msg, "secret-magic mismatch");
+    let err = into_error!(err, BytesError::Custom);
+    assert!(err.is::<SecretMagicsError>());
 }
 
 #[test]
@@ -125,6 +126,6 @@ fn decrypt_some_invalid() {
         .unwrap_err();
 
     let err = into_error!(err, HeaderError::WrongPassword);
-    let msg = into_error!(err, BytesError::Serde);
-    assert_eq!(msg, "secret-magic mismatch");
+    let err = into_error!(err, BytesError::Custom);
+    assert!(err.is::<SecretMagicsError>());
 }
