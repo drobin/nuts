@@ -35,6 +35,7 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     let name = input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let from_impl = match input.data {
         Data::Struct(data) => match data.fields {
@@ -101,7 +102,7 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
 
                     match idx {
                         #(#variants,)*
-                        _=> Err(E::invalid_variant_index(idx))
+                        _=> Err(nuts_bytes::FromBytesError::InvalidVariantIndex(idx))
                     }
                 )
             } else {
@@ -122,8 +123,8 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
     };
 
     let expanded = quote! {
-        impl<E:nuts_bytes::TakeDeriveError> nuts_bytes::FromBytes<E> for #name {
-            fn from_bytes<TB: nuts_bytes::TakeBytes>(source: &mut TB) -> Result<Self, E> {
+        impl #impl_generics nuts_bytes::FromBytes for #name #ty_generics #where_clause {
+            fn from_bytes<TB: nuts_bytes::TakeBytes>(source: &mut TB) -> Result<Self, nuts_bytes::FromBytesError> {
                 #from_impl
             }
         }
@@ -143,6 +144,7 @@ pub fn to_bytes(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     let name = input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let to_impl = match input.data {
         Data::Struct(data) => {
@@ -236,8 +238,8 @@ pub fn to_bytes(input: TokenStream) -> TokenStream {
     };
 
     let expanded = quote! {
-        impl nuts_bytes::ToBytes for #name {
-            fn to_bytes<PB: nuts_bytes::PutBytes, E: nuts_bytes::PutBytesError>(&self, target: &mut PB) -> Result<usize, E> {
+        impl #impl_generics nuts_bytes::ToBytes for #name #ty_generics #where_clause {
+            fn to_bytes<PB: nuts_bytes::PutBytes>(&self, target: &mut PB) -> Result<usize, nuts_bytes::ToBytesError> {
                 #to_impl
             }
         }

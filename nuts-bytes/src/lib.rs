@@ -122,8 +122,6 @@
 //!
 //! [Format specification]: #format-specification
 
-#[cfg(feature = "derive")]
-mod derive;
 mod from_bytes;
 mod put_bytes;
 mod reader;
@@ -146,8 +144,6 @@ pub mod doc_derive {
     #![doc = include_str!("../docs/derive.md")]
 }
 
-#[cfg(feature = "derive")]
-pub use derive::TakeDeriveError;
 pub use from_bytes::{FromBytes, FromBytesError};
 #[cfg(feature = "derive")]
 pub use nuts_bytes_derive::{FromBytes, ToBytes};

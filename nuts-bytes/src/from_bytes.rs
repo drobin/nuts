@@ -44,6 +44,12 @@ pub enum FromBytesError {
     /// UTF-8.
     #[error("the string is invalid: {0}")]
     InvalidString(#[source] FromUtf8Error),
+
+    /// Deserialized an invalid variant index.
+    /// There is no enum variant at the given index.
+    #[cfg(feature = "derive")]
+    #[error("invalid enum, no variant at {0}")]
+    InvalidVariantIndex(usize),
 }
 
 /// Trait that supports reading datatypes from a binary data stream.

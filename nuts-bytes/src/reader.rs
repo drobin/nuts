@@ -20,17 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(feature = "derive")]
-use crate::derive::TakeDeriveError;
 use crate::from_bytes::{FromBytes, FromBytesError};
 use crate::take_bytes::TakeBytes;
-
-#[cfg(feature = "derive")]
-impl TakeDeriveError for ReaderError {
-    fn invalid_variant_index(idx: usize) -> Self {
-        Self::InvalidVariantIndex(idx)
-    }
-}
 
 /// A cursor like utility that reads structured data from an arbitrary source.
 ///

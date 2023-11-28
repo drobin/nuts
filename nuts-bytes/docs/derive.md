@@ -17,14 +17,14 @@ struct Sample {
 
 // Deserialize the Sample struct
 
-let mut reader = Reader::<&[u8]>::new([0x00, 0x01, 0x00, 0x00, 0x00, 0x02].as_slice());
+let mut reader = Reader::new([0x00, 0x01, 0x00, 0x00, 0x00, 0x02].as_slice());
 
 let sample: Sample = reader.read().unwrap();
 assert_eq!(sample, Sample { f1: 1, f2: 2 });
 
 // Serialize the Sample struct
 
-let mut writer = Writer::<Vec<u8>>::new(vec![]);
+let mut writer = Writer::new(vec![]);
 let n = writer.write(&Sample { f1: 1, f2: 2 }).unwrap();
 
 assert_eq!(n, 6);
@@ -49,21 +49,21 @@ const V2: [u8; 14] = [
 
 // Deserialize the Sample::V1 variant
 
-let mut reader = Reader::<&[u8]>::new(V1.as_slice());
+let mut reader = Reader::new(V1.as_slice());
 
 let sample: Sample = reader.read().unwrap();
 assert_eq!(sample, Sample::V1);
 
 // Deserialize the Sample::V2 variant
 
-let mut reader = Reader::<&[u8]>::new(V2.as_slice());
+let mut reader = Reader::new(V2.as_slice());
 
 let sample: Sample = reader.read().unwrap();
 assert_eq!(sample, Sample::V2(1, 2));
 
 // Serialize the Sample::V1 variant
 
-let mut writer = Writer::<Vec<u8>>::new(vec![]);
+let mut writer = Writer::new(vec![]);
 let n = writer.write(&Sample::V1).unwrap();
 
 assert_eq!(n, 8);
@@ -71,7 +71,7 @@ assert_eq!(writer.into_target(), V1);
 
 // Serialize the Sample::V2 variant
 
-let mut writer = Writer::<Vec<u8>>::new(vec![]);
+let mut writer = Writer::new(vec![]);
 let n = writer.write(&Sample::V2(1, 2)).unwrap();
 
 assert_eq!(n, 14);

@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 #[cfg(feature = "derive")]
-use nuts_bytes::{FromBytes, Reader, ReaderError};
+use nuts_bytes::{FromBytes, FromBytesError, Reader};
 
 #[cfg(feature = "derive")]
 #[test]
@@ -29,7 +29,7 @@ fn unit_struct() {
     #[derive(Debug, FromBytes, PartialEq)]
     struct Sample;
 
-    let mut reader = Reader::<&[u8]>::new([].as_slice());
+    let mut reader = Reader::new([].as_slice());
     let sample = reader.read::<Sample>().unwrap();
 
     assert_eq!(sample, Sample);
@@ -41,7 +41,7 @@ fn empty_struct() {
     #[derive(Debug, FromBytes, PartialEq)]
     struct Sample {}
 
-    let mut reader = Reader::<&[u8]>::new([].as_slice());
+    let mut reader = Reader::new([].as_slice());
     let sample = reader.read::<Sample>().unwrap();
 
     assert_eq!(sample, Sample {});
@@ -53,7 +53,7 @@ fn empty_tuple_struct() {
     #[derive(Debug, FromBytes, PartialEq)]
     struct Sample();
 
-    let mut reader = Reader::<&[u8]>::new([].as_slice());
+    let mut reader = Reader::new([].as_slice());
     let sample = reader.read::<Sample>().unwrap();
 
     assert_eq!(sample, Sample {});
@@ -68,7 +68,7 @@ fn r#struct() {
         f2: u32,
     }
 
-    let mut reader = Reader::<&[u8]>::new([0, 1, 0, 0, 0, 2].as_slice());
+    let mut reader = Reader::new([0, 1, 0, 0, 0, 2].as_slice());
     let sample = reader.read::<Sample>().unwrap();
 
     assert_eq!(sample, Sample { f1: 1, f2: 2 });
@@ -80,7 +80,7 @@ fn newtype_struct() {
     #[derive(Debug, FromBytes, PartialEq)]
     struct Sample(u16);
 
-    let mut reader = Reader::<&[u8]>::new([0, 1].as_slice());
+    let mut reader = Reader::new([0, 1].as_slice());
     let sample = reader.read::<Sample>().unwrap();
 
     assert_eq!(sample, Sample(1));
@@ -92,7 +92,7 @@ fn tuple_struct() {
     #[derive(Debug, FromBytes, PartialEq)]
     struct Sample(u16, u32);
 
-    let mut reader = Reader::<&[u8]>::new([0, 1, 0, 0, 0, 2].as_slice());
+    let mut reader = Reader::new([0, 1, 0, 0, 0, 2].as_slice());
     let sample = reader.read::<Sample>().unwrap();
 
     assert_eq!(sample, Sample(1, 2));
@@ -103,7 +103,7 @@ fn tuple_struct() {
 // fn zero_variant_enum() {
 //     #[derive(FromBytes)]
 //     enum Sample {}
-
+//
 //     // error: zero-variant enums cannot be instantiated
 // }
 
@@ -121,35 +121,35 @@ fn r#enum() {
         V6(u16, u32),
     }
 
-    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 0].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 0].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V0);
 
-    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 1].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 1].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V1 {});
 
-    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 2, 0, 1].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 2, 0, 1].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V2 { f1: 1 });
 
-    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 0, 2].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 0, 2].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V3 { f1: 1, f2: 2 });
 
-    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 4].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 4].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V4());
 
-    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 5, 0, 1].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 5, 0, 1].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V5(1));
 
-    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 6, 0, 1, 0, 0, 0, 2].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 6, 0, 1, 0, 0, 0, 2].as_slice());
     let sample = reader.read::<Sample>().unwrap();
     assert_eq!(sample, Sample::V6(1, 2));
 
-    let mut reader = Reader::<&[u8]>::new([0, 0, 0, 0, 0, 0, 0, 7].as_slice());
+    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 7].as_slice());
     let err = reader.read::<Sample>().unwrap_err();
-    assert!(matches!(err, ReaderError::InvalidVariantIndex(7)));
+    assert!(matches!(err, FromBytesError::InvalidVariantIndex(7)));
 }
