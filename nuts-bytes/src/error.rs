@@ -47,6 +47,10 @@ pub enum Error {
     #[error("the string is invalid: {0}")]
     InvalidString(#[source] FromUtf8Error),
 
+    /// A custom error occured.
+    #[error("{0}")]
+    Custom(Box<dyn std::error::Error + Send + Sync>),
+
     /// Deserialized an invalid variant index.
     /// There is no enum variant at the given index.
     #[cfg(feature = "derive")]

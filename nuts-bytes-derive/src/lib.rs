@@ -20,6 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+mod attr;
+
+use attr::FromBytesAttributes;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Index};
@@ -29,10 +32,34 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Index};
 /// This derive macro generates a [`FromBytes`] implementation for `struct` and
 /// `enum` types. `union` types are currently not supported.
 ///
+/// # Attributes
+///
+/// * **`#[from_bytes(validate)]`**
+///
+/// If specified on the container the generated [`FromBytes`] implementation
+/// will call a `validate()` method on the instance to validate the instance.
+///
+/// The signature of the validate method is
+///
+/// ```rust,ignore
+/// fn validate(&self) -> std::result::Result<(), ERR>
+///   where ERR: Into<Box<dyn std::error::Error + Send + Sync>>
+/// ```
+///
+/// If an validation error occurs, the error is converted into a
+/// [`Error::Custom`] error, where the error (`ERR`) is attached to the
+/// [`Error::Custom`] variant.
+///
 /// [`FromBytes`]: trait.FromBytes.html
-#[proc_macro_derive(FromBytes)]
+/// [`Error::Custom`]: enum.Error.html#variant.Custom
+#[proc_macro_derive(FromBytes, attributes(from_bytes))]
 pub fn from_bytes(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
+
+    let attrs = match FromBytesAttributes::parse(&input.attrs) {
+        Ok(attrs) => attrs,
+        Err(err) => return err.into_compile_error().into(),
+    };
 
     let name = input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
@@ -48,18 +75,18 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
                     )
                 });
 
-                quote!( Ok(#name { #(#fields,)* }) )
+                quote!( #name { #(#fields,)* } )
             }
             Fields::Unnamed(fields) => {
                 let fields =
                     (0..fields.unnamed.len()).map(|_| quote!(FromBytes::from_bytes(source)?));
 
                 quote!(
-                    Ok(#name( #(#fields,)* ))
+                    #name( #(#fields,)* )
                 )
             }
             Fields::Unit => quote!(
-                Ok(#name)
+                #name
             ),
         },
         Data::Enum(data) => {
@@ -98,7 +125,7 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
 
                         quote!(
                             #variant_idx => {
-                                Ok(#name::#variant_name #fields )
+                                #name::#variant_name #fields
                             }
                         )
                     });
@@ -108,7 +135,7 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
 
                     match idx {
                         #(#variants,)*
-                        _=> Err(nuts_bytes::Error::InvalidVariantIndex(idx))
+                        _=> { return Err(nuts_bytes::Error::InvalidVariantIndex(idx)); }
                     }
                 )
             } else {
@@ -128,10 +155,24 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
         }
     };
 
+    let validate_impl = if attrs.validate() {
+        quote! {
+            if let Err(err) = result.validate() {
+                return Err(nuts_bytes::Error::Custom(err.into()));
+            }
+        }
+    } else {
+        quote!()
+    };
+
     let expanded = quote! {
         impl #impl_generics nuts_bytes::FromBytes for #name #ty_generics #where_clause {
             fn from_bytes<TB: nuts_bytes::TakeBytes>(source: &mut TB) -> std::result::Result<Self, nuts_bytes::Error> {
-                #from_impl
+                let result = { #from_impl };
+
+                #validate_impl
+
+                Ok(result)
             }
         }
     };
