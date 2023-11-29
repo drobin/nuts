@@ -130,7 +130,7 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl #impl_generics nuts_bytes::FromBytes for #name #ty_generics #where_clause {
-            fn from_bytes<TB: nuts_bytes::TakeBytes>(source: &mut TB) -> Result<Self, nuts_bytes::Error> {
+            fn from_bytes<TB: nuts_bytes::TakeBytes>(source: &mut TB) -> std::result::Result<Self, nuts_bytes::Error> {
                 #from_impl
             }
         }
@@ -252,7 +252,7 @@ pub fn to_bytes(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl #impl_generics nuts_bytes::ToBytes for #name #ty_generics #where_clause {
-            fn to_bytes<PB: nuts_bytes::PutBytes>(&self, target: &mut PB) -> Result<usize, nuts_bytes::Error> {
+            fn to_bytes<PB: nuts_bytes::PutBytes>(&self, target: &mut PB) -> std::result::Result<usize, nuts_bytes::Error> {
                 #to_impl
             }
         }
