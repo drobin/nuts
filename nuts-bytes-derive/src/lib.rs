@@ -22,10 +22,19 @@
 
 mod attr;
 
-use attr::FromBytesAttributes;
+use attr::FieldAttributes;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Index};
+
+macro_rules! parse_field_attributes {
+    ($input:expr) => {
+        match FieldAttributes::parse($input) {
+            Ok(attrs) => attrs,
+            Err(err) => return err.into_compile_error().into(),
+        }
+    };
+}
 
 /// Derive macro implementation of the [`FromBytes`] trait.
 ///
@@ -34,32 +43,27 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Index};
 ///
 /// # Attributes
 ///
-/// * **`#[from_bytes(validate)]`**
+/// * **`#[nuts_bytes(map_from_bytes = $path)]`**
 ///
-/// If specified on the container the generated [`FromBytes`] implementation
-/// will call a `validate()` method on the instance to validate the instance.
+/// Calls the function `$path` on the deserialized value.
+/// The given function must be callable as
+/// `fn<S: FromBytes, T, E: Into<Box<dyn std::error::Error + Send + Sync>>(S) -> std::result::Result<T, E>`
 ///
-/// The signature of the validate method is
+/// If the function succeeds, the returned value is assigned to this field. An
+/// error is converted into a [`Error::Custom`] error, where the error (`E`) is
+/// attached to the [`Error::Custom`] variant.
 ///
-/// ```rust,ignore
-/// fn validate(&self) -> std::result::Result<(), ERR>
-///   where ERR: Into<Box<dyn std::error::Error + Send + Sync>>
-/// ```
+/// * **`#[nuts_bytes(map = $module)]`**
 ///
-/// If an validation error occurs, the error is converted into a
-/// [`Error::Custom`] error, where the error (`ERR`) is attached to the
-/// [`Error::Custom`] variant.
+/// Combination of `map_from_bytes` and `map_to_bytes`. The crate will use
+/// `$module::from_bytes` as the `map_from_bytes` function and
+/// `$module::to_bytes` as the `map_to_bytes` function.
 ///
 /// [`FromBytes`]: trait.FromBytes.html
 /// [`Error::Custom`]: enum.Error.html#variant.Custom
-#[proc_macro_derive(FromBytes, attributes(from_bytes))]
+#[proc_macro_derive(FromBytes, attributes(nuts_bytes))]
 pub fn from_bytes(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-
-    let attrs = match FromBytesAttributes::parse(&input.attrs) {
-        Ok(attrs) => attrs,
-        Err(err) => return err.into_compile_error().into(),
-    };
 
     let name = input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
@@ -68,18 +72,48 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
         Data::Struct(data) => match data.fields {
             Fields::Named(fields) => {
                 let fields = fields.named.iter().map(|field| {
+                    let attributes = parse_field_attributes!(&field.attrs);
                     let field_name = &field.ident;
 
-                    quote!(
-                        #field_name: FromBytes::from_bytes(source)?
-                    )
+                    if let Some(map_func) = attributes.map_from_bytes() {
+                        quote!(
+                            #field_name: {
+                                let value_in = FromBytes::from_bytes(source)?;
+
+                                match #map_func(value_in) {
+                                    Ok(value_out) => { value_out }
+                                    Err(err) => { return Err(nuts_bytes::Error::Custom(err.into())); }
+                                }
+                            }
+                        )
+                    } else {
+                        quote!(
+                            #field_name: FromBytes::from_bytes(source)?
+                        )
+                    }
                 });
 
                 quote!( #name { #(#fields,)* } )
             }
             Fields::Unnamed(fields) => {
-                let fields =
-                    (0..fields.unnamed.len()).map(|_| quote!(FromBytes::from_bytes(source)?));
+                let fields = fields.unnamed.iter().map(|field| {
+                    let attributes = parse_field_attributes!(&field.attrs);
+
+                    if let Some(map_func) = attributes.map_from_bytes() {
+                        quote! {
+                            {
+                                let value_in = FromBytes::from_bytes(source)?;
+
+                                match #map_func(value_in) {
+                                    Ok(value_out) => { value_out }
+                                    Err(err) => { return Err(nuts_bytes::Error::Custom(err.into())); }
+                                }
+                            }
+                        }
+                    } else {
+                        quote!(FromBytes::from_bytes(source)?)
+                    }
+                });
 
                 quote!(
                     #name( #(#fields,)* )
@@ -155,22 +189,10 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
         }
     };
 
-    let validate_impl = if attrs.validate() {
-        quote! {
-            if let Err(err) = result.validate() {
-                return Err(nuts_bytes::Error::Custom(err.into()));
-            }
-        }
-    } else {
-        quote!()
-    };
-
     let expanded = quote! {
         impl #impl_generics nuts_bytes::FromBytes for #name #ty_generics #where_clause {
             fn from_bytes<TB: nuts_bytes::TakeBytes>(source: &mut TB) -> std::result::Result<Self, nuts_bytes::Error> {
                 let result = { #from_impl };
-
-                #validate_impl
 
                 Ok(result)
             }

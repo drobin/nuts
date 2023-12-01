@@ -20,84 +20,114 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use quote::format_ident;
+use std::borrow::Cow;
+use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{AttrStyle, Attribute, Ident, Meta, Result, Token};
+use syn::{AttrStyle, Attribute, Ident, Path, Result, Token};
 
-enum FromBytesAttribute {
-    Validate,
+fn is_nuts_bytes_attr(attr: &Attribute) -> bool {
+    attr.style == AttrStyle::Outer && attr.path().is_ident("nuts_bytes")
 }
 
-impl FromBytesAttribute {
-    fn validate(&self) -> bool {
-        match self {
-            Self::Validate => true,
-        }
+struct AttributeList<T>(Punctuated<T, Token![,]>);
+
+impl<T> Deref for AttributeList<T> {
+    type Target = Punctuated<T, Token![,]>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
-impl Parse for FromBytesAttribute {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let key: Ident = input.parse()?;
-
-        if key == "validate" {
-            Ok(FromBytesAttribute::Validate)
-        } else {
-            return Err(syn::Error::new_spanned(
-                key,
-                "unsupported attribute for from_bytes",
-            ));
-        }
-    }
-}
-
-struct FromBytesAttributeList {
-    attrs: Punctuated<FromBytesAttribute, Token![,]>,
-}
-
-impl Parse for FromBytesAttributeList {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+impl<T: Parse> Parse for AttributeList<T> {
+    fn parse(input: ParseStream) -> Result<Self> {
         let attrs = input.call(Punctuated::parse_separated_nonempty)?;
 
-        Ok(FromBytesAttributeList { attrs })
+        Ok(AttributeList(attrs))
     }
 }
 
-pub struct FromBytesAttributes(Vec<FromBytesAttributeList>);
+#[derive(Clone)]
+enum FieldAttribute {
+    Map(Path),
+    MapFromBytes(Path),
+    MapToBytes(Path),
+}
 
-impl FromBytesAttributes {
-    pub fn parse(attrs: &Vec<Attribute>) -> Result<FromBytesAttributes> {
+impl FieldAttribute {
+    fn as_map(&self) -> Option<&Path> {
+        match self {
+            Self::Map(path) => Some(path),
+            _ => None,
+        }
+    }
+
+    fn as_map_from_bytes(&self) -> Option<&Path> {
+        match self {
+            Self::MapFromBytes(path) => Some(path),
+            _ => None,
+        }
+    }
+}
+
+impl Parse for FieldAttribute {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let key: Ident = input.parse()?;
+
+        if key == "map" {
+            let _: Token![=] = input.parse()?;
+            Ok(Self::Map(input.parse()?))
+        } else if key == "map_from_bytes" {
+            let _: Token![=] = input.parse()?;
+            Ok(Self::MapFromBytes(input.parse()?))
+        } else if key == "map_to_bytes" {
+            let _: Token![=] = input.parse()?;
+            Ok(Self::MapToBytes(input.parse()?))
+        } else {
+            Err(syn::Error::new_spanned(
+                key,
+                "unsupported attribute for nuts_bytes",
+            ))
+        }
+    }
+}
+
+pub struct FieldAttributes(Vec<FieldAttribute>);
+
+impl FieldAttributes {
+    pub fn parse(attrs: &Vec<Attribute>) -> Result<FieldAttributes> {
         let mut attr_vec = vec![];
 
-        let filtered = attrs.iter().filter(|attr| match attr.style {
-            AttrStyle::Outer => match &attr.meta {
-                Meta::Path(_) => false,
-                Meta::List(list) => match list.path.get_ident() {
-                    Some(ident) => ident == "from_bytes",
-                    None => false,
-                },
-                Meta::NameValue(_) => false,
-            },
-            AttrStyle::Inner(_) => false,
-        });
+        let filtered = attrs.iter().filter(|attr| is_nuts_bytes_attr(attr));
 
         for attr in filtered {
-            match attr.parse_args::<FromBytesAttributeList>() {
-                Ok(list) => attr_vec.push(list),
-                Err(err) => {
-                    return Err(err);
-                }
-            }
+            let list = attr.parse_args::<AttributeList<FieldAttribute>>()?;
+            attr_vec.extend(list.iter().map(Clone::clone));
         }
 
-        Ok(FromBytesAttributes(attr_vec))
+        Ok(FieldAttributes(attr_vec))
     }
 
-    pub fn validate(&self) -> bool {
-        self.any(|a| a.validate())
-    }
+    pub fn map_from_bytes<'a>(&'a self) -> Option<Cow<'a, Path>> {
+        if let Some(attr) = self
+            .0
+            .iter()
+            .find(|attr| attr.as_map_from_bytes().is_some())
+        {
+            attr.as_map_from_bytes().map(Cow::Borrowed)
+        } else {
+            self.0
+                .iter()
+                .find(|attr| attr.as_map().is_some())
+                .map(|attr| {
+                    let mut path = attr.as_map().unwrap().clone();
 
-    fn any<F: FnMut(&FromBytesAttribute) -> bool + Copy>(&self, f: F) -> bool {
-        self.0.iter().any(|p| p.attrs.iter().any(f))
+                    path.segments.push(format_ident!("from_bytes").into());
+
+                    Cow::Owned(path)
+                })
+        }
     }
 }
