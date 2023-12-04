@@ -131,3 +131,14 @@ impl FieldAttributes {
         }
     }
 }
+
+macro_rules! parse_field_attributes {
+    ($input:expr) => {
+        match crate::attr::FieldAttributes::parse($input) {
+            Ok(attrs) => attrs,
+            Err(err) => return err.into_compile_error().into(),
+        }
+    };
+}
+
+pub(crate) use parse_field_attributes;
