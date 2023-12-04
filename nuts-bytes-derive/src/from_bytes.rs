@@ -20,31 +20,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use quote::{quote, quote_spanned};
+use quote::{format_ident, quote, quote_spanned};
 use syn::{DataEnum, DataStruct, Fields, FieldsNamed, FieldsUnnamed, Ident};
 
-use crate::attr::parse_field_attributes;
+use crate::attr::{parse_field_attributes, FieldAttributes};
+
+fn call_map_func(attributes: &FieldAttributes, value_in: &Ident) -> proc_macro2::TokenStream {
+    if let Some(map_func) = attributes.map_from_bytes() {
+        quote! {
+            match #map_func(#value_in) {
+                Ok(value_out) => { value_out }
+                Err(err) => { return Err(nuts_bytes::Error::Custom(err.into())); }
+            }
+        }
+    } else {
+        quote! {
+            #value_in
+        }
+    }
+}
 
 fn named_struct(struct_name: &Ident, fields: FieldsNamed) -> proc_macro2::TokenStream {
     let fields = fields.named.iter().map(|field| {
         let attributes = parse_field_attributes!(&field.attrs);
         let field_name = &field.ident;
+        let value_in = format_ident!("value_in");
 
-        if let Some(map_func) = attributes.map_from_bytes() {
-            quote!(
-                #field_name: {
-                    let value_in = FromBytes::from_bytes(source)?;
+        let map_func = call_map_func(&attributes, &value_in);
 
-                    match #map_func(value_in) {
-                        Ok(value_out) => { value_out }
-                        Err(err) => { return Err(nuts_bytes::Error::Custom(err.into())); }
-                    }
-                }
-            )
-        } else {
-            quote!(
-                #field_name: FromBytes::from_bytes(source)?
-            )
+        quote! {
+            #field_name: {
+                let #value_in = FromBytes::from_bytes(source)?;
+                #map_func
+            }
         }
     });
 
@@ -54,20 +62,15 @@ fn named_struct(struct_name: &Ident, fields: FieldsNamed) -> proc_macro2::TokenS
 fn unnamed_struct(struct_name: &Ident, fields: FieldsUnnamed) -> proc_macro2::TokenStream {
     let fields = fields.unnamed.iter().map(|field| {
         let attributes = parse_field_attributes!(&field.attrs);
+        let value_in = format_ident!("value_in");
 
-        if let Some(map_func) = attributes.map_from_bytes() {
-            quote! {
-                {
-                    let value_in = FromBytes::from_bytes(source)?;
+        let map_func = call_map_func(&attributes, &value_in);
 
-                    match #map_func(value_in) {
-                        Ok(value_out) => { value_out }
-                        Err(err) => { return Err(nuts_bytes::Error::Custom(err.into())); }
-                    }
-                }
+        quote! {
+            {
+                let #value_in = FromBytes::from_bytes(source)?;
+                #map_func
             }
-        } else {
-            quote!(FromBytes::from_bytes(source)?)
         }
     });
 
