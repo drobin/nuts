@@ -20,79 +20,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(feature = "derive")]
-use nuts_bytes::{Error, ToBytes, Writer};
-#[cfg(feature = "derive")]
-use std::{error, fmt};
+#![cfg(feature = "derive")]
 
-#[cfg(feature = "derive")]
-pub mod map_eq_mod {
-    use super::SampleError;
+mod common;
 
-    pub(crate) fn to_bytes<T: Copy>(n: &T) -> Result<T, SampleError> {
-        Ok(*n)
-    }
-}
+use nuts_bytes::{ToBytes, Writer};
 
-#[cfg(feature = "derive")]
-pub mod map_mod {
-    use super::SampleError;
+use crate::common::{
+    assert_sample_error, map_eq_mod, map_err_mod, map_err_to_bytes, map_mod, map_to_bytes,
+};
 
-    pub(crate) fn to_bytes(n: &u8) -> Result<u16, SampleError> {
-        Ok(*n as u16 + 1)
-    }
-}
-
-#[cfg(feature = "derive")]
-fn map_to_bytes(n: &u8) -> Result<u16, SampleError> {
-    Ok(*n as u16 + 2)
-}
-
-#[cfg(feature = "derive")]
-fn map_err<T>(_n: &T) -> Result<T, SampleError> {
-    Err(SampleError("sample error".to_string()))
-}
-
-#[cfg(feature = "derive")]
-pub mod map_err_mod {
-    use super::SampleError;
-
-    pub(crate) fn to_bytes<T>(_n: &T) -> Result<T, SampleError> {
-        Err(SampleError("sample error".to_string()))
-    }
-}
-
-#[cfg(feature = "derive")]
-#[derive(Debug)]
-struct SampleError(String);
-
-#[cfg(feature = "derive")]
-impl fmt::Display for SampleError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-#[cfg(feature = "derive")]
-impl error::Error for SampleError {}
-
-#[cfg(feature = "derive")]
-macro_rules! assert_sample_err {
-    ($err:expr) => {
-        match $err {
-            Error::Custom(b) => {
-                if let Ok(err) = b.downcast::<SampleError>() {
-                    assert_eq!(err.0, "sample error");
-                } else {
-                    panic!("Not a SampleError");
-                }
-            }
-            _ => panic!("Invalid error: {:?}", $err),
-        }
-    };
-}
-
-#[cfg(feature = "derive")]
 #[test]
 fn unit_struct() {
     #[derive(Debug, PartialEq, ToBytes)]
@@ -104,7 +41,6 @@ fn unit_struct() {
     assert_eq!(writer.into_target(), []);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn empty_struct() {
     #[derive(Debug, PartialEq, ToBytes)]
@@ -115,7 +51,6 @@ fn empty_struct() {
     assert_eq!(writer.into_target(), []);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn empty_tuple_struct() {
     #[derive(Debug, PartialEq, ToBytes)]
@@ -127,7 +62,6 @@ fn empty_tuple_struct() {
     assert_eq!(writer.into_target(), []);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn r#struct() {
     #[derive(Debug, PartialEq, ToBytes)]
@@ -168,7 +102,6 @@ fn r#struct() {
     );
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn r#struct_map_err() {
     #[derive(Debug, PartialEq, ToBytes)]
@@ -181,26 +114,24 @@ fn r#struct_map_err() {
     let mut writer = Writer::new(vec![]);
 
     let err = writer.write(&Sample { f1: 1, f2: 2 }).unwrap_err();
-    assert_sample_err!(err);
+    assert_sample_error!(err);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn r#struct_map_to_bytes_err() {
     #[derive(Debug, PartialEq, ToBytes)]
     struct Sample {
         f1: u16,
-        #[nuts_bytes(map_to_bytes = map_err)]
+        #[nuts_bytes(map_to_bytes = map_err_to_bytes)]
         f2: u32,
     }
 
     let mut writer = Writer::new(vec![]);
 
     let err = writer.write(&Sample { f1: 1, f2: 2 }).unwrap_err();
-    assert_sample_err!(err);
+    assert_sample_error!(err);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn newtype_struct() {
     #[derive(Debug, PartialEq, ToBytes)]
@@ -212,7 +143,6 @@ fn newtype_struct() {
     assert_eq!(writer.into_target(), [0, 1]);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn tuple_struct() {
     #[derive(Debug, PartialEq, ToBytes)]
@@ -235,7 +165,6 @@ fn tuple_struct() {
     );
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn tuple_struct_map_err() {
     #[derive(Debug, PartialEq, ToBytes)]
@@ -244,22 +173,20 @@ fn tuple_struct_map_err() {
     let mut writer = Writer::new(vec![]);
 
     let err = writer.write(&Sample(1, 2)).unwrap_err();
-    assert_sample_err!(err);
+    assert_sample_error!(err);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn tuple_struct_map_to_bytes_err() {
     #[derive(Debug, PartialEq, ToBytes)]
-    struct Sample(u16, #[nuts_bytes(map_to_bytes = map_err)] u32);
+    struct Sample(u16, #[nuts_bytes(map_to_bytes = map_err_to_bytes)] u32);
 
     let mut writer = Writer::new(vec![]);
 
     let err = writer.write(&Sample(1, 2)).unwrap_err();
-    assert_sample_err!(err);
+    assert_sample_error!(err);
 }
 
-// #[cfg(feature = "derive")]
 // #[test]
 // fn zero_variant_enum() {
 //     #[derive(ToBytes)]
@@ -268,7 +195,6 @@ fn tuple_struct_map_to_bytes_err() {
 //     // error: zero-variant enums cannot be instantiated
 // }
 
-#[cfg(feature = "derive")]
 #[test]
 fn r#enum() {
     #[derive(Debug, PartialEq, ToBytes)]

@@ -20,79 +20,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(feature = "derive")]
+#![cfg(feature = "derive")]
+
+mod common;
+
 use nuts_bytes::{Error, FromBytes, Reader};
-#[cfg(feature = "derive")]
-use std::{error, fmt};
 
-#[cfg(feature = "derive")]
-pub mod map_eq_mod {
-    use super::SampleError;
+use crate::common::{
+    assert_sample_error, map_eq_mod, map_err_from_bytes, map_err_mod, map_from_bytes, map_mod,
+};
 
-    pub(crate) fn from_bytes<T>(n: T) -> Result<T, SampleError> {
-        Ok(n)
-    }
-}
-
-#[cfg(feature = "derive")]
-pub mod map_mod {
-    use super::SampleError;
-
-    pub(crate) fn from_bytes(n: u8) -> Result<u16, SampleError> {
-        Ok(n as u16 + 1)
-    }
-}
-
-#[cfg(feature = "derive")]
-fn map_from_bytes(n: u8) -> Result<u16, SampleError> {
-    Ok(n as u16 + 2)
-}
-
-#[cfg(feature = "derive")]
-fn map_err<T>(_n: T) -> Result<T, SampleError> {
-    Err(SampleError("sample error".to_string()))
-}
-
-#[cfg(feature = "derive")]
-pub mod map_err_mod {
-    use super::SampleError;
-
-    pub(crate) fn from_bytes<T>(_n: T) -> Result<T, SampleError> {
-        Err(SampleError("sample error".to_string()))
-    }
-}
-
-#[cfg(feature = "derive")]
-#[derive(Debug)]
-struct SampleError(String);
-
-#[cfg(feature = "derive")]
-impl fmt::Display for SampleError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-#[cfg(feature = "derive")]
-impl error::Error for SampleError {}
-
-#[cfg(feature = "derive")]
-macro_rules! assert_sample_err {
-    ($err:expr) => {
-        match $err {
-            Error::Custom(b) => {
-                if let Ok(err) = b.downcast::<SampleError>() {
-                    assert_eq!(err.0, "sample error");
-                } else {
-                    panic!("Not a SampleError");
-                }
-            }
-            _ => panic!("Invalid error: {:?}", $err),
-        }
-    };
-}
-
-#[cfg(feature = "derive")]
 #[test]
 fn unit_struct() {
     #[derive(Debug, FromBytes, PartialEq)]
@@ -104,7 +41,6 @@ fn unit_struct() {
     assert_eq!(sample, Sample);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn empty_struct() {
     #[derive(Debug, FromBytes, PartialEq)]
@@ -116,7 +52,6 @@ fn empty_struct() {
     assert_eq!(sample, Sample {});
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn empty_tuple_struct() {
     #[derive(Debug, FromBytes, PartialEq)]
@@ -128,7 +63,6 @@ fn empty_tuple_struct() {
     assert_eq!(sample, Sample {});
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn r#struct() {
     #[derive(Debug, FromBytes, PartialEq)]
@@ -164,7 +98,6 @@ fn r#struct() {
     );
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn r#struct_map_err() {
     #[derive(Debug, FromBytes, PartialEq)]
@@ -177,26 +110,24 @@ fn r#struct_map_err() {
     let mut reader = Reader::new([0, 1, 0, 0, 0, 2].as_slice());
 
     let err = reader.read::<Sample>().unwrap_err();
-    assert_sample_err!(err);
+    assert_sample_error!(err);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn r#struct_map_from_bytes_err() {
     #[derive(Debug, FromBytes, PartialEq)]
     struct Sample {
         f1: u16,
-        #[nuts_bytes(map_from_bytes = map_err)]
+        #[nuts_bytes(map_from_bytes = map_err_from_bytes)]
         f2: u32,
     }
 
     let mut reader = Reader::new([0, 1, 0, 0, 0, 2].as_slice());
 
     let err = reader.read::<Sample>().unwrap_err();
-    assert_sample_err!(err);
+    assert_sample_error!(err);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn newtype_struct() {
     #[derive(Debug, FromBytes, PartialEq)]
@@ -208,7 +139,6 @@ fn newtype_struct() {
     assert_eq!(sample, Sample(1));
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn tuple_struct() {
     #[derive(Debug, FromBytes, PartialEq)]
@@ -228,7 +158,6 @@ fn tuple_struct() {
     assert_eq!(sample, Sample(1, 2, 3, 5, 7, 8, 9));
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn tuple_struct_map_err() {
     #[derive(Debug, FromBytes, PartialEq)]
@@ -237,22 +166,20 @@ fn tuple_struct_map_err() {
     let mut reader = Reader::new([0, 1, 0, 0, 0, 2].as_slice());
 
     let err = reader.read::<Sample>().unwrap_err();
-    assert_sample_err!(err);
+    assert_sample_error!(err);
 }
 
-#[cfg(feature = "derive")]
 #[test]
 fn tuple_struct_map_from_bytes_err() {
     #[derive(Debug, FromBytes, PartialEq)]
-    struct Sample(u16, #[nuts_bytes(map_from_bytes = map_err)] u32);
+    struct Sample(u16, #[nuts_bytes(map_from_bytes = map_err_from_bytes)] u32);
 
     let mut reader = Reader::new([0, 1, 0, 0, 0, 2].as_slice());
 
     let err = reader.read::<Sample>().unwrap_err();
-    assert_sample_err!(err);
+    assert_sample_error!(err);
 }
 
-// #[cfg(feature = "derive")]
 // #[test]
 // fn zero_variant_enum() {
 //     #[derive(FromBytes)]
@@ -261,7 +188,6 @@ fn tuple_struct_map_from_bytes_err() {
 //     // error: zero-variant enums cannot be instantiated
 // }
 
-#[cfg(feature = "derive")]
 #[test]
 fn r#enum() {
     #[derive(Debug, FromBytes, PartialEq)]
