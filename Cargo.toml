@@ -37,7 +37,7 @@ readme = "README.md"
 
 [features]
 default = ["backend", "container"]
-backend = []
+backend = ["dep:nuts-bytes"]
 container = ["backend", "dep:nuts-bytes", "dep:openssl", "dep:openssl-sys"]
 debug-plain-keys = []
 
