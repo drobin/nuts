@@ -55,6 +55,7 @@ enum FieldAttribute {
     MapFromBytes(Path),
     MapToBytes(Path),
     Skip,
+    Default(Path),
 }
 
 impl FieldAttribute {
@@ -85,6 +86,13 @@ impl FieldAttribute {
             _ => false,
         }
     }
+
+    fn as_default(&self) -> Option<&Path> {
+        match self {
+            Self::Default(path) => Some(path),
+            _ => None,
+        }
+    }
 }
 
 impl Parse for FieldAttribute {
@@ -102,6 +110,9 @@ impl Parse for FieldAttribute {
             Ok(Self::MapToBytes(input.parse()?))
         } else if key == "skip" {
             Ok(Self::Skip)
+        } else if key == "default" {
+            let _: Token![=] = input.parse()?;
+            Ok(Self::Default(input.parse()?))
         } else {
             Err(syn::Error::new_spanned(
                 key,
@@ -167,6 +178,14 @@ impl FieldAttributes {
 
     pub fn is_skip(&self) -> bool {
         self.0.iter().find(|attr| attr.is_skip()).is_some()
+    }
+
+    pub fn default(&self) -> Option<&Path> {
+        self.0
+            .iter()
+            .find(|attr| attr.as_default().is_some())
+            .map(|attr| attr.as_default())
+            .flatten()
     }
 }
 

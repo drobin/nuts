@@ -46,8 +46,14 @@ fn named_struct(struct_name: &Ident, fields: FieldsNamed) -> proc_macro2::TokenS
         let field_name = &field.ident;
 
         if attributes.is_skip() {
+            let default_func = if let Some(default) = attributes.default() {
+                quote!(#default())
+            } else {
+                quote!(Default::default())
+            };
+
             quote! {
-                #field_name: Default::default()
+                #field_name: #default_func
             }
         } else {
             let value_in = format_ident!("value_in");
@@ -70,8 +76,14 @@ fn unnamed_struct(struct_name: &Ident, fields: FieldsUnnamed) -> proc_macro2::To
         let attributes = parse_field_attributes!(&field.attrs);
 
         if attributes.is_skip() {
-            quote! {
-                Default::default()
+            if let Some(default) = attributes.default() {
+                quote! {
+                    #default()
+                }
+            } else {
+                quote! {
+                    Default::default()
+                }
             }
         } else {
             let value_in = format_ident!("value_in");
