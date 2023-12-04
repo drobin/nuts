@@ -23,7 +23,7 @@
 mod plain_secret;
 mod secret;
 
-use crate::container::header::secret::{Magics, PlainSecret};
+use crate::container::header::secret::PlainSecret;
 use crate::memory::MemoryBackend;
 
 // key: AE 18 FF 41 77 79 0F 07 AB 11 E2 F1 8C 87 AD 9A
@@ -46,7 +46,7 @@ const PLAIN_SECRET: [u8; 37] = [
 
 fn plain_secret() -> PlainSecret<MemoryBackend> {
     PlainSecret {
-        magics: Magics([4711, 4711]),
+        magics: [4711, 4711],
         key: vec![1, 2].into(),
         iv: vec![3, 4, 5].into(),
         userdata: vec![].into(),

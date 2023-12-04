@@ -30,23 +30,11 @@ use crate::container::header::HeaderMagicError;
 
 const MAGIC: [u8; 7] = *b"nuts-io";
 
-#[derive(Debug, FromBytes, ToBytes)]
-#[from_bytes(validate)]
-struct Magic([u8; 7]);
-
-impl Magic {
-    fn validate(&self) -> Result<(), HeaderMagicError> {
-        if self.0 == MAGIC {
-            Ok(())
-        } else {
-            Err(HeaderMagicError)
-        }
-    }
-}
-
-impl<T: AsRef<[u8]>> PartialEq<T> for Magic {
-    fn eq(&self, other: &T) -> bool {
-        self.0 == other.as_ref()
+fn validate_magic(magic: [u8; 7]) -> Result<[u8; 7], HeaderMagicError> {
+    if magic == MAGIC {
+        Ok(magic)
+    } else {
+        Err(HeaderMagicError)
     }
 }
 
@@ -57,15 +45,13 @@ pub enum Revision {
 
 #[derive(Debug, FromBytes, ToBytes)]
 pub struct Inner {
-    magic: Magic,
+    #[nuts_bytes(map_from_bytes = validate_magic)]
+    magic: [u8; 7],
     pub rev: Revision,
 }
 
 impl Inner {
     pub fn new(rev: Revision) -> Inner {
-        Inner {
-            magic: Magic(MAGIC),
-            rev,
-        }
+        Inner { magic: MAGIC, rev }
     }
 }

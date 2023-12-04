@@ -34,27 +34,15 @@ use crate::container::ossl;
 use crate::container::password::PasswordStore;
 use crate::container::svec::SecureVec;
 
-#[derive(Debug, FromBytes, PartialEq, ToBytes)]
-#[from_bytes(validate)]
-struct Magics([u32; 2]);
-
-impl Magics {
-    fn generate() -> Result<Magics, ErrorStack> {
-        ossl::rand_u32().map(|magic| Magics([magic, magic]))
-    }
-
-    fn validate(&self) -> Result<(), SecretMagicsError> {
-        if self.0[0] == self.0[1] {
-            Ok(())
-        } else {
-            Err(SecretMagicsError)
-        }
-    }
+fn generate_magics() -> Result<[u32; 2], ErrorStack> {
+    ossl::rand_u32().map(|magic| [magic, magic])
 }
 
-impl PartialEq<[u32; 2]> for Magics {
-    fn eq(&self, other: &[u32; 2]) -> bool {
-        self.0[0] == other[0] && self.0[1] == other[1]
+fn validate_magics(magics: [u32; 2]) -> Result<[u32; 2], SecretMagicsError> {
+    if magics[0] == magics[1] {
+        Ok(magics)
+    } else {
+        Err(SecretMagicsError)
     }
 }
 
@@ -100,7 +88,8 @@ impl<T: AsRef<[u8]>> PartialEq<T> for Secret {
 
 #[derive(Debug, FromBytes, PartialEq, ToBytes)]
 pub struct PlainSecret<B: Backend> {
-    magics: Magics,
+    #[nuts_bytes(map_from_bytes = validate_magics)]
+    magics: [u32; 2],
     pub key: SecureVec,
     pub iv: SecureVec,
     pub userdata: SecureVec,
@@ -115,7 +104,7 @@ impl<B: Backend> PlainSecret<B> {
         settings: B::Settings,
     ) -> Result<PlainSecret<B>, ErrorStack> {
         Ok(PlainSecret {
-            magics: Magics::generate()?,
+            magics: generate_magics()?,
             key,
             iv,
             userdata,

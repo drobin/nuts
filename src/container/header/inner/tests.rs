@@ -40,7 +40,7 @@ fn new() {
     };
     let inner = Inner::new(Revision::Rev0(rev0));
 
-    assert_eq!(inner.magic, b"nuts-io");
+    assert_eq!(inner.magic, *b"nuts-io");
 }
 
 #[test]
