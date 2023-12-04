@@ -78,6 +78,8 @@ fn r#struct() {
         f6: u8,
         #[nuts_bytes(map_to_bytes = map_to_bytes, map = map_mod)]
         f7: u8,
+        #[nuts_bytes(skip)]
+        f8: u16,
     }
 
     let mut writer = Writer::new(vec![]);
@@ -91,7 +93,8 @@ fn r#struct() {
                 f4: 4,
                 f5: 5,
                 f6: 6,
-                f7: 7
+                f7: 7,
+                f8: 8
             })
             .unwrap(),
         15
@@ -154,11 +157,12 @@ fn tuple_struct() {
         #[nuts_bytes(map_to_bytes = map_to_bytes)] u8,
         #[nuts_bytes(map = map_mod, map_to_bytes = map_to_bytes)] u8,
         #[nuts_bytes(map_to_bytes = map_to_bytes, map = map_mod)] u8,
+        #[nuts_bytes(skip)] u16,
     );
 
     let mut writer = Writer::new(vec![]);
 
-    assert_eq!(writer.write(&Sample(1, 2, 3, 4, 5, 6, 7)).unwrap(), 15);
+    assert_eq!(writer.write(&Sample(1, 2, 3, 4, 5, 6, 7, 8)).unwrap(), 15);
     assert_eq!(
         writer.into_target(),
         [0, 1, 0, 0, 0, 2, 3, 0, 5, 0, 7, 0, 8, 0, 9]

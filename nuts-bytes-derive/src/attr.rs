@@ -54,6 +54,7 @@ enum FieldAttribute {
     Map(Path),
     MapFromBytes(Path),
     MapToBytes(Path),
+    Skip,
 }
 
 impl FieldAttribute {
@@ -77,6 +78,13 @@ impl FieldAttribute {
             _ => None,
         }
     }
+
+    fn is_skip(&self) -> bool {
+        match self {
+            Self::Skip => true,
+            _ => false,
+        }
+    }
 }
 
 impl Parse for FieldAttribute {
@@ -92,6 +100,8 @@ impl Parse for FieldAttribute {
         } else if key == "map_to_bytes" {
             let _: Token![=] = input.parse()?;
             Ok(Self::MapToBytes(input.parse()?))
+        } else if key == "skip" {
+            Ok(Self::Skip)
         } else {
             Err(syn::Error::new_spanned(
                 key,
@@ -153,6 +163,10 @@ impl FieldAttributes {
                     Cow::Owned(path)
                 })
         }
+    }
+
+    pub fn is_skip(&self) -> bool {
+        self.0.iter().find(|attr| attr.is_skip()).is_some()
     }
 }
 

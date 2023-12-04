@@ -79,6 +79,8 @@ fn r#struct() {
         f6: u16,
         #[nuts_bytes(map_from_bytes = map_from_bytes, map = map_mod)]
         f7: u16,
+        #[nuts_bytes(skip)]
+        f8: u16,
     }
 
     let mut reader = Reader::new([0, 1, 0, 0, 0, 2, 3, 4, 5, 6, 7].as_slice());
@@ -93,7 +95,8 @@ fn r#struct() {
             f4: 5,
             f5: 7,
             f6: 8,
-            f7: 9
+            f7: 9,
+            f8: 0
         }
     );
 }
@@ -150,12 +153,13 @@ fn tuple_struct() {
         #[nuts_bytes(map_from_bytes = map_from_bytes)] u16,
         #[nuts_bytes(map = map_mod, map_from_bytes = map_from_bytes)] u16,
         #[nuts_bytes(map_from_bytes = map_from_bytes, map = map_mod)] u16,
+        #[nuts_bytes(skip)] u16,
     );
 
     let mut reader = Reader::new([0, 1, 0, 0, 0, 2, 3, 4, 5, 6, 7].as_slice());
     let sample = reader.read::<Sample>().unwrap();
 
-    assert_eq!(sample, Sample(1, 2, 3, 5, 7, 8, 9));
+    assert_eq!(sample, Sample(1, 2, 3, 5, 7, 8, 9, 0));
 }
 
 #[test]

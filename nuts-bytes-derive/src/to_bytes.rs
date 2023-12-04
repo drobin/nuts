@@ -26,28 +26,34 @@ use syn::{DataEnum, DataStruct, Fields, Ident, Index};
 use crate::attr::parse_field_attributes;
 
 pub fn to_bytes_struct(_struct_name: &Ident, data: DataStruct) -> proc_macro2::TokenStream {
-    let fields = data.fields.iter().enumerate().map(|(idx, field)| {
+    let mut fields = vec![];
+
+    for (idx, field) in data.fields.iter().enumerate() {
         let attributes = parse_field_attributes!(&field.attrs);
 
-        let variant_idx = Index::from(idx);
-        let field_ref = field
-            .ident
-            .as_ref()
-            .map_or_else(|| quote!(&self.#variant_idx), |ident| quote!(&self.#ident));
+        if !attributes.is_skip() {
+            let variant_idx = Index::from(idx);
+            let field_ref = field
+                .ident
+                .as_ref()
+                .map_or_else(|| quote!(&self.#variant_idx), |ident| quote!(&self.#ident));
 
-        if let Some(map_func) = attributes.map_to_bytes() {
-            quote! {
-                {
-                    let value_out = #map_func(#field_ref).map_err(|err| nuts_bytes::Error::Custom(err.into()))?;
-                    ToBytes::to_bytes(&value_out, target)?
+            let q = if let Some(map_func) = attributes.map_to_bytes() {
+                quote! {
+                    {
+                        let value_out = #map_func(#field_ref).map_err(|err| nuts_bytes::Error::Custom(err.into()))?;
+                        ToBytes::to_bytes(&value_out, target)?
+                    }
                 }
-            }
-        } else {
-            quote! {
-                ToBytes::to_bytes(#field_ref, target)?
-            }
+            } else {
+                quote! {
+                    ToBytes::to_bytes(#field_ref, target)?
+                }
+            };
+
+            fields.push(q);
         }
-    });
+    }
 
     quote! {
         let mut n = 0;

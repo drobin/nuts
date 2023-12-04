@@ -44,14 +44,20 @@ fn named_struct(struct_name: &Ident, fields: FieldsNamed) -> proc_macro2::TokenS
     let fields = fields.named.iter().map(|field| {
         let attributes = parse_field_attributes!(&field.attrs);
         let field_name = &field.ident;
-        let value_in = format_ident!("value_in");
 
-        let map_func = call_map_func(&attributes, &value_in);
+        if attributes.is_skip() {
+            quote! {
+                #field_name: Default::default()
+            }
+        } else {
+            let value_in = format_ident!("value_in");
+            let map_func = call_map_func(&attributes, &value_in);
 
-        quote! {
-            #field_name: {
-                let #value_in = FromBytes::from_bytes(source)?;
-                #map_func
+            quote! {
+                #field_name: {
+                    let #value_in = FromBytes::from_bytes(source)?;
+                    #map_func
+                }
             }
         }
     });
@@ -62,14 +68,20 @@ fn named_struct(struct_name: &Ident, fields: FieldsNamed) -> proc_macro2::TokenS
 fn unnamed_struct(struct_name: &Ident, fields: FieldsUnnamed) -> proc_macro2::TokenStream {
     let fields = fields.unnamed.iter().map(|field| {
         let attributes = parse_field_attributes!(&field.attrs);
-        let value_in = format_ident!("value_in");
 
-        let map_func = call_map_func(&attributes, &value_in);
+        if attributes.is_skip() {
+            quote! {
+                Default::default()
+            }
+        } else {
+            let value_in = format_ident!("value_in");
+            let map_func = call_map_func(&attributes, &value_in);
 
-        quote! {
-            {
-                let #value_in = FromBytes::from_bytes(source)?;
-                #map_func
+            quote! {
+                {
+                    let #value_in = FromBytes::from_bytes(source)?;
+                    #map_func
+                }
             }
         }
     });
