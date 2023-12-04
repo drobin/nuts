@@ -88,7 +88,7 @@ pub fn from_bytes(input: TokenStream) -> TokenStream {
 /// `enum` types. `union` types are currently not supported.
 ///
 /// [`ToBytes`]: trait.ToBytes.html
-#[proc_macro_derive(ToBytes)]
+#[proc_macro_derive(ToBytes, attributes(nuts_bytes))]
 pub fn to_bytes(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 

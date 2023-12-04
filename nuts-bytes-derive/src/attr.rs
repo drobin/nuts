@@ -70,6 +70,13 @@ impl FieldAttribute {
             _ => None,
         }
     }
+
+    fn as_map_to_bytes(&self) -> Option<&Path> {
+        match self {
+            Self::MapToBytes(path) => Some(path),
+            _ => None,
+        }
+    }
 }
 
 impl Parse for FieldAttribute {
@@ -125,6 +132,23 @@ impl FieldAttributes {
                     let mut path = attr.as_map().unwrap().clone();
 
                     path.segments.push(format_ident!("from_bytes").into());
+
+                    Cow::Owned(path)
+                })
+        }
+    }
+
+    pub fn map_to_bytes<'a>(&'a self) -> Option<Cow<'a, Path>> {
+        if let Some(attr) = self.0.iter().find(|attr| attr.as_map_to_bytes().is_some()) {
+            attr.as_map_to_bytes().map(Cow::Borrowed)
+        } else {
+            self.0
+                .iter()
+                .find(|attr| attr.as_map().is_some())
+                .map(|attr| {
+                    let mut path = attr.as_map().unwrap().clone();
+
+                    path.segments.push(format_ident!("to_bytes").into());
 
                     Cow::Owned(path)
                 })
