@@ -1,6 +1,6 @@
 [package]
 name = "nuts-directory"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A backend implementation for nuts"
@@ -15,6 +15,5 @@ readme = "README.md"
 [dependencies]
 getrandom = "0.2.10"
 log = "0.4.20"
-nuts-container = { version = "0.2.0", default-features = false, features = ["backend"] }
-nuts-bytes = "0.1.1"
-serde = { version = "1.0.188", features = ["derive"] }
+nuts-container = { version = "0.2.2", default-features = false, features = ["backend"] }
+nuts-bytes = { version = "0.2.2", features = ["derive"] }
