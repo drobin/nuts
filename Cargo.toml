@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-container"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A secure storage library"
@@ -43,7 +43,7 @@ debug-plain-keys = []
 
 [dependencies]
 log = "0.4.20"
-nuts-bytes = { version = "0.1.1", optional = true }
+nuts-bytes = { version = "0.2.2", features = ["derive"], optional = true }
 openssl = { version = "0.10.57", optional = true }
 openssl-sys = { version = "0.9.93", optional = true }
 thiserror = "1.0.50"
