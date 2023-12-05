@@ -104,13 +104,13 @@ fn from_str_inval_char() {
 
 #[test]
 fn de() {
-    let id = Reader::new(ID.as_slice()).deserialize::<Id>().unwrap();
+    let id = Reader::new(ID.as_slice()).read::<Id>().unwrap();
     assert_eq!(id.0, ID);
 }
 
 #[test]
 fn ser() {
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.serialize(&Id::generate()).unwrap(), 16);
+    assert_eq!(writer.write(&Id::generate()).unwrap(), 16);
     assert_eq!(writer.into_target(), ID);
 }

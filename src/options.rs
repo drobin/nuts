@@ -23,10 +23,9 @@
 #[cfg(test)]
 mod tests;
 
-use serde::{Deserialize, Serialize};
-use std::path::Path;
-
+use nuts_bytes::{FromBytes, ToBytes};
 use nuts_container::backend::{Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
+use std::path::Path;
 
 use crate::error::{Error, Result};
 use crate::id::Id;
@@ -175,7 +174,7 @@ impl<P: AsRef<Path>> Open<DirectoryBackend<P>> for OpenOptions<P> {
 }
 
 /// [Settings](nuts_container::backend::Backend::Settings) used by the backend.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, FromBytes, ToBytes)]
 pub struct Settings {
     bsize: u32,
 }

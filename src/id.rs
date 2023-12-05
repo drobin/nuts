@@ -23,12 +23,11 @@
 #[cfg(test)]
 mod tests;
 
-use serde::{Deserialize, Serialize};
+use nuts_bytes::{FromBytes, ToBytes};
+use nuts_container::backend::BlockId;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-
-use nuts_container::backend::BlockId;
 
 use crate::error::{Error, Result};
 
@@ -61,7 +60,7 @@ const HEX: [char; SIZE] = [
 /// When storing a block to disks the path to the file is derived from the id:
 /// * The id is converted into a hex string.
 /// * The path then would be: `<first two chars>/<next two chars>/<remaining chars>`
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, FromBytes, PartialEq, ToBytes)]
 pub struct Id([u8; SIZE]);
 
 impl Id {
