@@ -2,25 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.4] - 2023-12-05
+
+### Changed
+
+- Removed Serde dependency
+- Update dependencies:
+  * `nuts-container` 0.1.1 -> 0.2.2
+  * `nuts-bytes` 0.1.1 -> 0.2.2
+  * `nuts-directory` 0.3.1 -> 0.3.2
+
 ## [0.2.3] - 2023-11-10
 
-## Added
+### Added
 
 - `Archive::lookup()` to search for an entry
 
 ## [0.2.2] - 2023-11-07
 
-## Added
+### Added
 
 - Put timestamps into entries
 
-## Changed
+### Changed
 
 - Remove `Mode` from public interface
 
 ## [0.2.1] - 2023-11-03
 
-## Changed
+### Changed
 
 - Move `container::BufContainer` to `pager::Pager`
 - Correct handling of `Error::InvalidBlockSize` error
@@ -28,17 +38,17 @@ All notable changes to this project will be documented in this file.
 
 ## [0.2.0] - 2023-11-03
 
-## Added
+### Added
 
 - The `Mode` type encodes the type and access rights and of an entry.
 
-## Changed
+### Changed
 
 - Refactoring of `Entry` & `EntryMut` which now includes the `Mode`.
 
 ## [0.1.1] - 2023-10-27
 
-## Changed
+### Changed
 
 - Refactoring of the header of the archive. The header block is guarded by a
   magic value.
@@ -53,3 +63,4 @@ Initial public release.
 [0.2.1]: https://github.com/drobin/nuts-archive/tree/v0.2.1
 [0.2.2]: https://github.com/drobin/nuts-archive/tree/v0.2.2
 [0.2.3]: https://github.com/drobin/nuts-archive/tree/v0.2.3
+[0.2.4]: https://github.com/drobin/nuts-archive/tree/v0.2.4
