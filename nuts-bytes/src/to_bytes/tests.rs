@@ -289,6 +289,41 @@ fn str_three() {
 }
 
 #[test]
+fn string_zero() {
+    let mut writer = Writer::new(vec![]);
+
+    assert_eq!(writer.write(&String::from("")).unwrap(), 8);
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 0]);
+}
+
+#[test]
+fn string_one() {
+    let mut writer = Writer::new(vec![]);
+
+    assert_eq!(writer.write(&String::from("1")).unwrap(), 9);
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 1, b'1']);
+}
+
+#[test]
+fn string_two() {
+    let mut writer = Writer::new(vec![]);
+
+    assert_eq!(writer.write(&String::from("12")).unwrap(), 10);
+    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 2, b'1', b'2']);
+}
+
+#[test]
+fn string_three() {
+    let mut writer = Writer::new(vec![]);
+
+    assert_eq!(writer.write(&String::from("123")).unwrap(), 11);
+    assert_eq!(
+        writer.into_target(),
+        [0, 0, 0, 0, 0, 0, 0, 3, b'1', b'2', b'3']
+    );
+}
+
+#[test]
 fn option_none() {
     let mut writer = Writer::new(vec![]);
 

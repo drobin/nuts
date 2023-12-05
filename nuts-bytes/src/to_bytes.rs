@@ -113,6 +113,12 @@ impl<TB: ToBytes> ToBytes for Vec<TB> {
     }
 }
 
+impl ToBytes for String {
+    fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
+        ToBytes::to_bytes(&self.as_str(), target)
+    }
+}
+
 impl ToBytes for &str {
     fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
         self.as_bytes().to_bytes(target)
