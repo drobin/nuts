@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use std::convert::TryInto;
 use std::mem;
 
 use crate::error::Error;
@@ -100,15 +101,17 @@ impl FromBytes for char {
     }
 }
 
-impl<FB: Copy + Default + FromBytes, const COUNT: usize> FromBytes for [FB; COUNT] {
+impl<FB: FromBytes, const COUNT: usize> FromBytes for [FB; COUNT] {
     fn from_bytes<TB: TakeBytes>(source: &mut TB) -> Result<Self, Error> {
-        let mut target = [Default::default(); COUNT];
+        let mut vec = vec![];
 
-        for i in 0..COUNT {
-            target[i] = FromBytes::from_bytes(source)?;
+        for _i in 0..COUNT {
+            vec.push(FromBytes::from_bytes(source)?);
         }
 
-        Ok(target)
+        Ok(vec
+            .try_into()
+            .unwrap_or_else(|_| panic!("should never be reached")))
     }
 }
 
