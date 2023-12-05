@@ -24,29 +24,37 @@
 mod tests;
 
 use log::{debug, warn};
-use nuts_bytes::{Reader, Writer};
+use nuts_bytes::{FromBytes, Reader, ToBytes, Writer};
 use nuts_container::backend::Backend;
 use nuts_container::container::Container;
-use serde::{Deserialize, Serialize};
 use std::fmt;
+use thiserror::Error;
 
 use crate::error::{ArchiveResult, Error};
-use crate::magic::magic_type;
+use crate::magic::{validate_magic, Magic, MagicErrorFactory, MAGIC};
 
-magic_type!(Magic, "invalid userdata-magic");
+#[derive(Debug, Error)]
+#[error("invalid userdata")]
+pub struct UserdataMagicError;
 
-#[derive(Deserialize, Serialize)]
+impl MagicErrorFactory for UserdataMagicError {
+    fn create() -> Self {
+        UserdataMagicError
+    }
+}
+
+// magic_type!(Magic, "invalid userdata-magic");
+
+#[derive(FromBytes, ToBytes)]
 pub struct Userdata<B: Backend> {
+    #[nuts_bytes(map_from_bytes = validate_magic::<UserdataMagicError>)]
     magic: Magic,
     pub id: B::Id,
 }
 
 impl<B: Backend> Userdata<B> {
     fn new(id: B::Id) -> Userdata<B> {
-        Userdata {
-            magic: Magic::new(),
-            id,
-        }
+        Userdata { magic: MAGIC, id }
     }
 
     pub fn create(container: &mut Container<B>, force: bool) -> ArchiveResult<Userdata<B>, B> {
@@ -59,7 +67,7 @@ impl<B: Backend> Userdata<B> {
 
         let mut writer = Writer::new(vec![]);
 
-        writer.serialize(&userdata)?;
+        writer.write(&userdata)?;
         container.update_userdata(&writer.into_target())?;
 
         debug!("userdata created: {:?}", userdata);
@@ -73,7 +81,7 @@ impl<B: Backend> Userdata<B> {
         }
 
         let mut reader = Reader::new(container.userdata());
-        let userdata = reader.deserialize::<Userdata<B>>()?;
+        let userdata = reader.read::<Userdata<B>>()?;
 
         debug!("userdata loaded: {:?}", userdata);
 

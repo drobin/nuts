@@ -72,7 +72,7 @@ macro_rules! unset_test {
 fn ser() {
     let mut writer = Writer::new(vec![]);
 
-    writer.serialize(&Mode(4711u16)).unwrap();
+    writer.write(&Mode(4711u16)).unwrap();
 
     assert_eq!(writer.into_target(), [0x12, 0x67]);
 }
@@ -81,7 +81,7 @@ fn ser() {
 fn de() {
     let mut reader = Reader::new([0x12, 0x67].as_slice());
 
-    let mode = reader.deserialize::<Mode>().unwrap();
+    let mode = reader.read::<Mode>().unwrap();
     assert_eq!(mode.0, 4711);
 }
 

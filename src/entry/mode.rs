@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use serde::{Deserialize, Serialize};
+use nuts_bytes::{FromBytes, ToBytes};
 
 #[cfg(test)]
 mod tests;
@@ -51,7 +51,7 @@ pub enum Group {
 }
 
 /// Bitmask encoding entry type & access rights.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, FromBytes, ToBytes)]
 pub(crate) struct Mode(u16);
 
 impl Mode {

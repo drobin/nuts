@@ -25,13 +25,14 @@ use nuts_bytes::{Reader, Writer};
 use nuts_container::memory::MemoryBackend;
 
 use crate::error::Error;
-use crate::header::{Header, Magic};
+use crate::header::{Header, HeaderMagicError};
+use crate::magic::MAGIC;
 use crate::tests::into_error;
 
 #[test]
 fn ser() {
     let header = Header {
-        magic: Magic::new(),
+        magic: MAGIC,
         revision: 1,
         created: Utc.timestamp_millis_opt(2).unwrap(),
         modified: Utc.timestamp_millis_opt(3).unwrap(),
@@ -39,7 +40,7 @@ fn ser() {
     };
     let mut writer = Writer::new(vec![]);
 
-    writer.serialize(&header).unwrap();
+    writer.write(&header).unwrap();
     assert_eq!(
         writer.into_target(),
         [
@@ -58,9 +59,9 @@ fn de() {
         ]
         .as_slice(),
     );
-    let header = reader.deserialize::<Header>().unwrap();
+    let header = reader.read::<Header>().unwrap();
 
-    assert_eq!(header.magic, b"nuts-archive");
+    assert_eq!(header.magic, *b"nuts-archive");
     assert_eq!(header.revision, 1);
     assert_eq!(header.created.timestamp_millis(), 2);
     assert_eq!(header.modified.timestamp_millis(), 3);
@@ -77,16 +78,16 @@ fn de_inval_magic() {
         .as_slice(),
     );
 
-    let err: Error<MemoryBackend> = reader.deserialize::<Header>().unwrap_err().into();
+    let err: Error<MemoryBackend> = reader.read::<Header>().unwrap_err().into();
     let err = into_error!(err, Error::InvalidHeader);
-    let err = into_error!(err, nuts_bytes::Error::Serde);
-    assert_eq!(err, "invalid header-magic");
+    let err = into_error!(err, nuts_bytes::Error::Custom);
+    assert!(err.is::<HeaderMagicError>());
 }
 
 #[test]
 fn inc_files() {
     let mut header = Header {
-        magic: Magic::new(),
+        magic: MAGIC,
         revision: 1,
         created: Utc.timestamp_millis_opt(2).unwrap(),
         modified: Utc.timestamp_millis_opt(3).unwrap(),

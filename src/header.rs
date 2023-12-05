@@ -23,29 +23,39 @@
 #[cfg(test)]
 mod tests;
 
-use chrono::serde::ts_milliseconds;
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use nuts_bytes::{FromBytes, ToBytes};
 use std::mem;
+use thiserror::Error;
 
-use crate::magic::magic_type;
+use crate::datetime;
+use crate::magic::{magic_size, validate_magic, Magic, MagicErrorFactory, MAGIC};
 
-magic_type!(Magic, "invalid header-magic", size);
+#[derive(Debug, Error)]
+#[error("invalid header")]
+pub struct HeaderMagicError;
 
-#[derive(Debug, Deserialize, Serialize)]
+impl MagicErrorFactory for HeaderMagicError {
+    fn create() -> Self {
+        HeaderMagicError
+    }
+}
+
+#[derive(Debug, FromBytes, ToBytes)]
 pub struct Header {
+    #[nuts_bytes(map_from_bytes = validate_magic::<HeaderMagicError>)]
     magic: Magic,
     revision: u16,
-    #[serde(with = "ts_milliseconds")]
+    #[nuts_bytes(map = datetime)]
     pub created: DateTime<Utc>,
-    #[serde(with = "ts_milliseconds")]
+    #[nuts_bytes(map = datetime)]
     pub modified: DateTime<Utc>,
     pub nfiles: u64,
 }
 
 impl Header {
     pub fn size() -> usize {
-        let magic = Magic::size();
+        let magic = magic_size();
         let revision = mem::size_of::<u16>();
         let tstamps = 2 * mem::size_of::<i64>();
         let nfiles = mem::size_of::<u64>();
@@ -57,7 +67,7 @@ impl Header {
         let now = Utc::now();
 
         Header {
-            magic: Magic::new(),
+            magic: MAGIC,
             revision: 1,
             created: now,
             modified: now,

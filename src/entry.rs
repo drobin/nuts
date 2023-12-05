@@ -25,9 +25,8 @@ pub mod mode;
 pub mod r#mut;
 pub(crate) mod tstamp;
 
-use nuts_bytes::Writer;
+use nuts_bytes::{FromBytes, ToBytes, Writer};
 use nuts_container::backend::Backend;
-use serde::{Deserialize, Serialize};
 use std::mem;
 
 use crate::entry::mode::Mode;
@@ -49,7 +48,7 @@ pub(crate) fn min_entry_size() -> usize {
     name + mode + tstamps + size
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, FromBytes, ToBytes)]
 struct Inner {
     name: String,
     mode: Mode,
@@ -69,7 +68,7 @@ impl Inner {
 
     fn load<B: Backend>(pager: &mut Pager<B>, id: &B::Id) -> ArchiveResult<Inner, B> {
         let mut reader = pager.read_buf(id)?;
-        let inner = reader.deserialize()?;
+        let inner = reader.read()?;
 
         Ok(inner)
     }
@@ -78,7 +77,7 @@ impl Inner {
         let buf = {
             let mut writer = Writer::new(vec![]);
 
-            writer.serialize(self)?;
+            writer.write(self)?;
 
             writer.into_target()
         };

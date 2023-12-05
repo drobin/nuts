@@ -37,7 +37,7 @@ fn ok() {
     assert!(lookup(&mut archive, 1).is_none());
 
     let mut reader = archive.pager.read_buf(&id).unwrap();
-    let entry = reader.deserialize::<Inner>().unwrap();
+    let entry = reader.read::<Inner>().unwrap();
 
     assert_eq!(entry.name, "foo");
     assert_eq!(entry.size, 0);

@@ -57,7 +57,7 @@ impl<B: Backend> Node<B> {
         self.0.clear();
 
         for _ in 0..ipn {
-            self.0.push(reader.deserialize::<B::Id>()?);
+            self.0.push(reader.read::<B::Id>()?);
         }
 
         Ok(())
@@ -88,7 +88,7 @@ impl<B: Backend> Node<B> {
         let mut writer = pager.create_writer();
 
         for id in self.0.iter() {
-            writer.serialize(id)?;
+            writer.write(id)?;
         }
 
         pager.write_buf(id)

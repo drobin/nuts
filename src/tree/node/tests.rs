@@ -50,7 +50,7 @@ fn aquire() {
     let mut reader = Reader::new(&buf[..16]);
 
     for _ in 0..4 {
-        assert!(reader.deserialize::<Id>().unwrap().is_null());
+        assert!(reader.read::<Id>().unwrap().is_null());
     }
 
     assert!(reader.as_ref().is_empty());
@@ -61,10 +61,10 @@ fn fill() {
     let mut pager = Pager::new(setup_container_with_bsize(16));
     let mut writer = Writer::new(vec![]);
 
-    writer.serialize(&1u32).unwrap();
-    writer.serialize(&2u32).unwrap();
-    writer.serialize(&3u32).unwrap();
-    writer.serialize(&4u32).unwrap();
+    writer.write(&1u32).unwrap();
+    writer.write(&2u32).unwrap();
+    writer.write(&3u32).unwrap();
+    writer.write(&4u32).unwrap();
 
     let id = pager.aquire().unwrap();
     assert_eq!(pager.write(&id, &writer.into_target()).unwrap(), 16);

@@ -52,7 +52,7 @@ fn read_node(container: &mut Container<MemoryBackend>, id: &Id) -> Vec<Id> {
     let mut vec = vec![];
 
     for _ in 0..2 {
-        vec.push(reader.deserialize().unwrap());
+        vec.push(reader.read().unwrap());
     }
 
     vec
@@ -83,7 +83,7 @@ fn ser() {
     };
     let mut writer = Writer::new(vec![]);
 
-    assert_eq!(writer.serialize(&tree).unwrap(), 68);
+    assert_eq!(writer.write(&tree).unwrap(), 68);
     assert_eq!(
         writer.into_target(),
         [
@@ -104,7 +104,7 @@ fn de() {
         ]
         .as_slice(),
     );
-    let tree = reader.deserialize::<Tree<MemoryBackend>>().unwrap();
+    let tree = reader.read::<Tree<MemoryBackend>>().unwrap();
 
     assert_eq!(tree.direct[0], "1".parse().unwrap());
     assert_eq!(tree.direct[1], "2".parse().unwrap());

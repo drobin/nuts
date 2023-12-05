@@ -216,6 +216,7 @@
 //!
 //! [nuts container]: nuts_container
 
+mod datetime;
 mod entry;
 mod error;
 mod header;
@@ -254,8 +255,8 @@ fn flush_header<B: Backend>(
     let mut writer = pager.create_writer();
     let mut n = 0;
 
-    n += writer.serialize(header)?;
-    n += writer.serialize(tree)?;
+    n += writer.write(header)?;
+    n += writer.write(tree)?;
 
     pager.write_buf(id)?;
 
@@ -365,8 +366,8 @@ impl<B: Backend> Archive<B> {
 
         let mut reader = pager.read_buf(&userdata.id)?;
 
-        let header = reader.deserialize::<Header>()?;
-        let tree = reader.deserialize::<Tree<B>>()?;
+        let header = reader.read::<Header>()?;
+        let tree = reader.read::<Tree<B>>()?;
 
         let archive = Archive {
             pager,

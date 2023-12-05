@@ -26,9 +26,9 @@ mod node;
 mod tests;
 
 use log::{debug, warn};
+use nuts_bytes::{FromBytes, ToBytes};
 use nuts_container::backend::{Backend, BlockId};
 use nuts_container::container::Container;
-use serde::{Deserialize, Serialize};
 use std::mem;
 
 use crate::error::{ArchiveResult, Error};
@@ -46,14 +46,14 @@ fn make_cache<B: Backend>() -> Vec<Cache<B>> {
     vec![]
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, FromBytes, ToBytes)]
 pub struct Tree<B: Backend> {
     direct: [B::Id; NUM_DIRECT as usize],
     indirect: B::Id,
     d_indirect: B::Id,
     t_indirect: B::Id,
     nblocks: u64,
-    #[serde(skip, default = "make_cache")]
+    #[nuts_bytes(skip, default = make_cache)]
     cache: Vec<Cache<B>>,
 }
 

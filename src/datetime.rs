@@ -20,24 +20,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::mem;
+use std::convert::Infallible;
 
-pub const MAGIC: [u8; 12] = *b"nuts-archive";
+use chrono::{DateTime, TimeZone, Utc};
 
-pub type Magic = [u8; 12];
-
-pub trait MagicErrorFactory {
-    fn create() -> Self;
+pub fn from_bytes(millis: i64) -> Result<DateTime<Utc>, Infallible> {
+    let dt = Utc
+        .timestamp_millis_opt(millis)
+        .earliest()
+        .unwrap_or_else(|| Utc::now());
+    Ok(dt)
 }
 
-pub fn validate_magic<E: MagicErrorFactory>(magic: Magic) -> Result<Magic, E> {
-    if magic == MAGIC {
-        Ok(magic)
-    } else {
-        Err(E::create())
-    }
-}
-
-pub fn magic_size() -> usize {
-    mem::size_of::<[u8; 12]>()
+pub fn to_bytes(dt: &DateTime<Utc>) -> Result<i64, Infallible> {
+    Ok(dt.timestamp_millis())
 }

@@ -20,23 +20,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use chrono::serde::ts_milliseconds;
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use nuts_bytes::{FromBytes, ToBytes};
 use std::mem;
 
-#[derive(Debug, Deserialize, Serialize)]
+use crate::datetime;
+
+#[derive(Debug, FromBytes, ToBytes)]
 pub struct Timestamps {
-    #[serde(with = "ts_milliseconds")]
+    #[nuts_bytes(map = datetime)]
     appended: DateTime<Utc>,
 
-    #[serde(with = "ts_milliseconds")]
+    #[nuts_bytes(map = datetime)]
     created: DateTime<Utc>,
 
-    #[serde(with = "ts_milliseconds")]
+    #[nuts_bytes(map = datetime)]
     changed: DateTime<Utc>,
 
-    #[serde(with = "ts_milliseconds")]
+    #[nuts_bytes(map = datetime)]
     modified: DateTime<Utc>,
 }
 

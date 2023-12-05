@@ -34,7 +34,7 @@ macro_rules! make_tests {
             assert!(lookup(&mut archive, 1).is_none());
 
             let mut reader = archive.pager.read_buf(&id).unwrap();
-            let entry = reader.deserialize::<Inner>().unwrap();
+            let entry = reader.read::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, 0);
@@ -53,7 +53,7 @@ macro_rules! make_tests {
             assert!(lookup(&mut archive, 2).is_none());
 
             let mut reader = archive.pager.read_buf(&id0).unwrap();
-            let entry = reader.deserialize::<Inner>().unwrap();
+            let entry = reader.read::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, HALF as u64);
@@ -76,7 +76,7 @@ macro_rules! make_tests {
             assert!(lookup(&mut archive, 2).is_none());
 
             let mut reader = archive.pager.read_buf(&id0).unwrap();
-            let entry = reader.deserialize::<Inner>().unwrap();
+            let entry = reader.read::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, FULL as u64);
@@ -101,7 +101,7 @@ macro_rules! make_tests {
             assert!(lookup(&mut archive, 3).is_none());
 
             let mut reader = archive.pager.read_buf(&id0).unwrap();
-            let entry = reader.deserialize::<Inner>().unwrap();
+            let entry = reader.read::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, FULL as u64 + HALF as u64);
@@ -133,7 +133,7 @@ macro_rules! make_tests {
             assert!(lookup(&mut archive, 3).is_none());
 
             let mut reader = archive.pager.read_buf(&id0).unwrap();
-            let entry = reader.deserialize::<Inner>().unwrap();
+            let entry = reader.read::<Inner>().unwrap();
 
             assert_eq!(entry.name, "foo");
             assert_eq!(entry.size, 2 * FULL as u64);

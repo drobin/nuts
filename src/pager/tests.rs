@@ -38,12 +38,13 @@ fn read() {
     let mut pager = Pager::new(container);
     let mut reader = pager.read_buf(&id).unwrap();
 
-    assert_eq!(reader.deserialize::<u32>().unwrap(), 1);
-    assert_eq!(reader.deserialize::<u32>().unwrap(), 2);
-    assert_eq!(reader.deserialize::<u32>().unwrap(), 3);
+    assert_eq!(reader.read::<u32>().unwrap(), 1);
+    assert_eq!(reader.read::<u32>().unwrap(), 2);
+    assert_eq!(reader.read::<u32>().unwrap(), 3);
 
-    let err = reader.deserialize::<u32>().unwrap_err();
-    into_error!(err, nuts_bytes::Error::Eof);
+    let err = reader.read::<u32>().unwrap_err();
+    let err = into_error!(err, nuts_bytes::Error::TakeBytes);
+    assert!(matches!(err, nuts_bytes::TakeBytesError::Eof));
 }
 
 #[test]
@@ -54,12 +55,13 @@ fn write() {
 
     let mut writer = pager.create_writer();
 
-    assert_eq!(writer.serialize(&1u32).unwrap(), 4);
-    assert_eq!(writer.serialize(&2u32).unwrap(), 4);
-    assert_eq!(writer.serialize(&3u32).unwrap(), 4);
+    assert_eq!(writer.write(&1u32).unwrap(), 4);
+    assert_eq!(writer.write(&2u32).unwrap(), 4);
+    assert_eq!(writer.write(&3u32).unwrap(), 4);
 
-    let err = writer.serialize(&4u32).unwrap_err();
-    into_error!(err, nuts_bytes::Error::NoSpace);
+    let err = writer.write(&4u32).unwrap_err();
+    let err = into_error!(err, nuts_bytes::Error::PutBytes);
+    assert!(matches!(err, nuts_bytes::PutBytesError::NoSpace));
 
     pager.write_buf(&id).unwrap();
 
