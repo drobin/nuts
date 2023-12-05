@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-bytes-derive"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "Serialization into a binary data format"
@@ -38,7 +38,7 @@ readme = "README.md"
 [dependencies]
 proc-macro2 = "1.0"
 quote = "1.0.33"
-syn = { version = "2.0.39", features = ["extra-traits"] }
+syn = { version = "2.0", features = ["extra-traits"] }
 
 [lib]
 proc-macro = true
