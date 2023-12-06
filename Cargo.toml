@@ -1,6 +1,6 @@
 [package]
 name = "nuts-tool"
-version = "0.3.7"
+version = "0.3.8"
 edition = "2018"
 rust-version = "1.66"
 authors = ["Robin Doer <robin@robind.de>"]

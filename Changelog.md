@@ -2,9 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.8] - 2023-12-06
+
+### Changed
+
+- Update dependencies:
+  * `nuts-archive` 0.2.3 -> 0.2.4
+  * `nuts-container` 0.2.1 -> 0.2.2
+  * `nuts-directory` 0.3.1 -> 0.3.2
+
 ## [0.3.7] - 2023-11-10
 
-## Changed
+### Changed
 
 - Update dependencies:
   * `nuts-directory` 0.3.0 -> 0.3.1
@@ -16,7 +25,7 @@ All notable changes to this project will be documented in this file.
 - Global `--quiet` option to suppress all output
 - New command `archive get` to retrieve the content of an entry
 
-## Changed
+### Changed
 
 - Update dependencies:
   * `nuts-archive` 0.2.2 -> 0.2.3
@@ -29,11 +38,11 @@ All notable changes to this project will be documented in this file.
 
 ## [0.3.4] - 2023-11-07
 
-## Added
+### Added
 
 - Put timestamps & permissions into entries while appending to the archive
 
-## Changed
+### Changed
 
 - Update dependencies:
   * `nuts-archive` 0.2.ß -> 0.2.2
@@ -41,14 +50,14 @@ All notable changes to this project will be documented in this file.
 
 ## [0.3.3] - 2023-11-03
 
-## Changed
+### Changed
 
 - Update dependencies:
   * `nuts-archive` 0.1.1 -> 0.2.0
 - `archive add` command can directly append filesystem entries
 - `--long` option for `archive list`
 
-## Added
+### Added
 
 - `archive add file|directory|symlink` commands can archive entries manually.
 
@@ -105,3 +114,4 @@ Initial public release.
 [0.3.5]: https://github.com/drobin/nuts-tool/tree/v0.3.5
 [0.3.6]: https://github.com/drobin/nuts-tool/tree/v0.3.6
 [0.3.7]: https://github.com/drobin/nuts-tool/tree/v0.3.7
+[0.3.8]: https://github.com/drobin/nuts-tool/tree/v0.3.8

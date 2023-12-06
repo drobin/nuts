@@ -434,7 +434,7 @@ dependencies = [
 
 [[package]]
 name = "nuts-tool"
-version = "0.3.7"
+version = "0.3.8"
 dependencies = [
  "anyhow",
  "cargo_metadata",
