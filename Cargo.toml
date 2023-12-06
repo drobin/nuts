@@ -21,9 +21,9 @@ colored = "2.0.4"
 env_logger = "0.9.3"
 home = "0.5.5"
 log = "0.4.20"
-nuts-archive = "0.2.3"
-nuts-container = "0.2.1"
-nuts-directory = "0.3.1"
+nuts-archive = "0.2.4"
+nuts-container = "0.2.2"
+nuts-directory = "0.3.2"
 rpassword = "7.2.0"
 
 [build-dependencies]

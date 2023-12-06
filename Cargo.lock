@@ -124,7 +124,6 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
- "serde",
  "wasm-bindgen",
  "windows-targets",
 ]
@@ -376,50 +375,61 @@ dependencies = [
 
 [[package]]
 name = "nuts-archive"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52d78cba2250612f55882be3f7a59f71bf8052e296a0daa882bd5b00e2f43b5b"
+checksum = "10e7c831874fe5963dcea94660c40466dd115a30515f79b0dfceb770ad348772"
 dependencies = [
  "chrono",
  "log",
  "nuts-bytes",
  "nuts-container",
- "serde",
+ "thiserror",
 ]
 
 [[package]]
 name = "nuts-bytes"
-version = "0.1.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c0e5aac324a1810a2206a8f47b33895e9fec4f7ae3d34c977b021d8c4691b1a"
+checksum = "e186cf2e8f4798cd9fef0d1397e9184c24caedb3dab9d3df189656d43c3cbd02"
 dependencies = [
- "serde",
+ "nuts-bytes-derive",
+ "thiserror",
+]
+
+[[package]]
+name = "nuts-bytes-derive"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3280b832d9545aefaef6adfb9ea11be1c74e39017eb4fc2c4665b1ec5ee598aa"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.37",
 ]
 
 [[package]]
 name = "nuts-container"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01af6d205341ad0b33d25405e47a0960a4ca283301b80376d14b526d5c25d083"
+checksum = "b6c43140598d1091dbf79a84dcfb0bc57909cf8646801a1f723cfa80b58bb4fc"
 dependencies = [
  "log",
  "nuts-bytes",
  "openssl",
  "openssl-sys",
- "serde",
+ "thiserror",
 ]
 
 [[package]]
 name = "nuts-directory"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef774c2d02ddabf91b3d09830fea2ee18b9d08a3178265109ecc61e63e5ce282"
+checksum = "31797255fa9f4362274527b9d81c1b2dc4e3aa29e198a2daeb805d3de2515043"
 dependencies = [
  "getrandom",
  "log",
  "nuts-bytes",
  "nuts-container",
- "serde",
 ]
 
 [[package]]
