@@ -286,6 +286,7 @@ macro_rules! map_err {
 /// open an existing container with the [`Container::open`] method. With the
 /// [`Container::read`] and [`Container::write`] methods you can read data from
 /// the container resp. write data into the container.
+#[derive(Debug)]
 pub struct Container<B: Backend> {
     backend: B,
     store: PasswordStore,

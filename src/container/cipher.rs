@@ -151,6 +151,7 @@ impl FromStr for Cipher {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct CipherContext {
     cipher: Cipher,
     inp: SecureVec,

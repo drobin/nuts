@@ -21,9 +21,10 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{FromBytes, ToBytes};
+use std::fmt;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Clone, Debug, FromBytes, PartialEq, ToBytes)]
+#[derive(Clone, FromBytes, PartialEq, ToBytes)]
 pub struct SecureVec(Vec<u8>);
 
 impl AsRef<[u8]> for SecureVec {
@@ -58,6 +59,18 @@ impl Drop for SecureVec {
 
         for elem in self.0.iter_mut() {
             *elem = 0;
+        }
+    }
+}
+
+impl fmt::Debug for SecureVec {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut dbg = fmt.debug_tuple("SecureVec");
+
+        if cfg!(feature = "debug-plain-keys") {
+            dbg.field(&format!("<{} bytes>", self.0.len())).finish()
+        } else {
+            dbg.field(&self.0).finish()
         }
     }
 }

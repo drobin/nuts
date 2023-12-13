@@ -183,7 +183,7 @@ impl Header {
 
 impl fmt::Debug for Header {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (key, iv) = if cfg!(feature = "debug-plain-keys") && cfg!(debug_assertions) {
+        let (key, iv) = if cfg!(feature = "debug-plain-keys") {
             let mut key = String::with_capacity(2 * self.key.len());
             let mut iv = String::with_capacity(2 * self.iv.len());
 
