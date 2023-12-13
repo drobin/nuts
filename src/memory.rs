@@ -245,7 +245,7 @@ impl MemoryBackend {
         writer.write::<Vec<u8>>(&vec![])?; // key
         writer.write::<Vec<u8>>(&vec![])?; // iv
         writer.write::<Vec<u8>>(&vec![])?; // userdata
-        writer.write(&())?; // settings
+        writer.write::<Vec<u8>>(&vec![])?; // settings
 
         Ok(writer.into_target())
     }

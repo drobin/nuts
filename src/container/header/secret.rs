@@ -26,7 +26,6 @@ mod tests;
 use nuts_bytes::{FromBytes, Reader, ToBytes, Writer};
 use openssl::error::ErrorStack;
 
-use crate::backend::Backend;
 use crate::container::cipher::{Cipher, CipherContext};
 use crate::container::header::{HeaderError, SecretMagicsError};
 use crate::container::kdf::Kdf;
@@ -55,13 +54,13 @@ impl Secret {
         Secret(vec)
     }
 
-    pub fn decrypt<B: Backend>(
+    pub fn decrypt(
         self,
         store: &mut PasswordStore,
         cipher: Cipher,
         kdf: &Kdf,
         iv: &[u8],
-    ) -> Result<PlainSecret<B>, HeaderError> {
+    ) -> Result<PlainSecret, HeaderError> {
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;
             kdf.create_key(password)?
@@ -87,22 +86,22 @@ impl<T: AsRef<[u8]>> PartialEq<T> for Secret {
 }
 
 #[derive(Debug, FromBytes, PartialEq, ToBytes)]
-pub struct PlainSecret<B: Backend> {
+pub struct PlainSecret {
     #[nuts_bytes(map_from_bytes = validate_magics)]
     magics: [u32; 2],
     pub key: SecureVec,
     pub iv: SecureVec,
     pub userdata: SecureVec,
-    pub settings: B::Settings,
+    pub settings: SecureVec,
 }
 
-impl<B: Backend> PlainSecret<B> {
+impl PlainSecret {
     pub fn generate(
         key: SecureVec,
         iv: SecureVec,
         userdata: SecureVec,
-        settings: B::Settings,
-    ) -> Result<PlainSecret<B>, ErrorStack> {
+        settings: SecureVec,
+    ) -> Result<PlainSecret, ErrorStack> {
         Ok(PlainSecret {
             magics: generate_magics()?,
             key,

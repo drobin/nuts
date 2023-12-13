@@ -31,21 +31,20 @@ use crate::container::header::SecretMagicsError;
 use crate::container::kdf::Kdf;
 use crate::container::password::PasswordStore;
 use crate::container::Digest;
-use crate::memory::MemoryBackend;
 use crate::tests::into_error;
 
 #[test]
 fn ser() {
     let plain_secret = plain_secret();
     let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&plain_secret).unwrap(), 37);
+    assert_eq!(writer.write(&plain_secret).unwrap(), 45);
     assert_eq!(writer.into_target(), PLAIN_SECRET);
 }
 
 #[test]
 fn de() {
     let mut reader = Reader::new(PLAIN_SECRET.as_slice());
-    let out = reader.read::<PlainSecret<MemoryBackend>>().unwrap();
+    let out = reader.read::<PlainSecret>().unwrap();
     assert_eq!(out, plain_secret());
 }
 
@@ -55,7 +54,7 @@ fn de_inval() {
     vec[0] += 1;
 
     let mut reader = Reader::new(vec.as_slice());
-    let err = reader.read::<PlainSecret<MemoryBackend>>().unwrap_err();
+    let err = reader.read::<PlainSecret>().unwrap_err();
     let err = into_error!(err, Error::Custom);
     assert!(err.is::<SecretMagicsError>());
 }

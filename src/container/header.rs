@@ -130,7 +130,9 @@ impl Header {
 
         let plain_secret = rev0
             .secret
-            .decrypt::<B>(store, rev0.cipher, &rev0.kdf, &rev0.iv)?;
+            .decrypt(store, rev0.cipher, &rev0.kdf, &rev0.iv)?;
+
+        let settings = Reader::new(plain_secret.settings.as_slice()).read()?;
 
         Ok((
             Header {
@@ -140,7 +142,7 @@ impl Header {
                 iv: plain_secret.iv,
                 userdata: plain_secret.userdata,
             },
-            plain_secret.settings,
+            settings,
         ))
     }
 
@@ -150,11 +152,14 @@ impl Header {
         buf: &mut [u8],
         store: &mut PasswordStore,
     ) -> Result<(), HeaderError> {
-        let plain_secret = PlainSecret::<B>::generate(
+        let mut writer = Writer::new(vec![]);
+        writer.write(&settings)?;
+
+        let plain_secret = PlainSecret::generate(
             self.key.clone(),
             self.iv.clone(),
             self.userdata.clone(),
-            settings,
+            writer.into_target().into(),
         )?;
 
         let mut iv = vec![0; self.cipher.iv_len()];

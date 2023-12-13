@@ -574,7 +574,10 @@ impl<B: Backend> Container<B> {
         let mut buf = [0; HEADER_MAX_SIZE];
 
         match reader.get_header_bytes(&mut buf) {
-            Ok(_) => Ok(Header::read::<B>(&buf, store)?),
+            Ok(_) => {
+                debug!("got {} header bytes", buf.len());
+                Ok(Header::read::<B>(&buf, store)?)
+            }
             Err(cause) => Err(Error::Backend(cause)),
         }
     }
