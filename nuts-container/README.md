@@ -102,21 +102,21 @@ assert_eq!(info.cipher, Cipher::Aes128Ctr);
 assert_eq!(info.kdf, kdf);
 ```
 
-## Related repositories
+## Related projects
 
-* [nuts-directory](https://github.com/drobin/nuts-directory)
+* [nuts-directory](https://crates.io/crates/nuts-directory)
   A sample implementation of a backend where all the data are stored in a
   directory hierarchy.
-* [nuts-archive](https://github.com/drobin/nuts-archive)
+* [nuts-archive](https://crates.io/crates/nuts-archive)
   An application on top of _nuts-container_ where files are stored in a `tar`
   like archive.
-* [nuts-tool](https://github.com/drobin/nuts-tool)
+* [nuts-tool](https://crates.io/crates/nuts-tool)
   A commandline applicatin used to maintain a _nuts-container_ and its
   application.
 
 ## License
 
 > You can check out the full license
-> [here](https://github.com/drobin/nuts-container/blob/master/LICENSE).
+> [here](https://github.com/drobin/nuts/blob/master/nuts-container/LICENSE).
 
 This project is licensed under the terms of the **MIT** license.

@@ -40,5 +40,11 @@ writer.write(&666u32).unwrap();
 
 assert_eq!(writer.into_target(), [0x00, 0x00, 0x02, 0x9A]);
 ```
+## License
 
-[docs/format.md]: https://github.com/drobin/nuts-bytes/blob/master/docs/format.md
+> You can check out the full license
+> [here](https://github.com/drobin/nuts/blob/master/nuts-bytes/LICENSE).
+
+This project is licensed under the terms of the **MIT** license.
+
+[docs/format.md]: https://github.com/drobin/nuts/blob/master/nuts-bytes/docs/format.md

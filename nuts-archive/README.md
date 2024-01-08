@@ -109,8 +109,8 @@ assert!(entry.next().is_none());
 ## License
 
 > You can check out the full license
-> [here](https://github.com/drobin/nuts-container/blob/master/LICENSE).
+> [here](https://github.com/drobin/nuts/blob/master/nuts-archive/LICENSE).
 
 This project is licensed under the terms of the **MIT** license.
 
-[nuts container]: https://github.com/drobin/nuts-container
+[nuts container]: https://crates.io/crates/nuts-container

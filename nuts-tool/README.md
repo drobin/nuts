@@ -30,9 +30,9 @@ block size (net):   496
 ## License
 
 > You can check out the full license
-> [here](https://github.com/drobin/nuts-container/blob/master/LICENSE).
+> [here](https://github.com/drobin/nuts/blob/master/nuts-tool/LICENSE).
 
 This project is licensed under the terms of the **MIT** license.
 
-[nuts]: https://github.com/drobin/nuts-container
-[directory backend]: https://github.com/drobin/nuts-directory
+[nuts]: https://crates.io/crates/nuts-container
+[directory backend]: https://crates.io/crates/nuts-directory

@@ -14,19 +14,19 @@ The binary format is specified in [docs/format.md].
 ## Deserialization example
 
 ```rust
-use nuts_bytes::{Reader, ReaderError};
+use nuts_bytes::{Error, Reader, TakeBytesError};
 
 // deserialize a primitive (u32)
-let mut reader = Reader::<&[u8]>::new([0x00, 0x00, 0x02, 0x9A].as_slice());
+let mut reader = Reader::new([0x00, 0x00, 0x02, 0x9A].as_slice());
 let n: u32 = reader.read().unwrap();
 
 assert_eq!(n, 666);
 
 // Not enough data available
-let mut reader = Reader::<&[u8]>::new([0; 3].as_slice());
+let mut reader = Reader::new([0; 3].as_slice());
 let err = reader.read::<u32>().unwrap_err();
 
-assert!(matches!(err, ReaderError::Eof));
+assert!(matches!(err, Error::TakeBytes(TakeBytesError::Eof)));
 ```
 
 ## Serialization example
@@ -35,10 +35,16 @@ assert!(matches!(err, ReaderError::Eof));
 use nuts_bytes::Writer;
 
 // serialize a primitive (u32)
-let mut writer = Writer::<Vec<u8>>::new(vec![]);
+let mut writer = Writer::new(vec![]);
 writer.write(&666u32).unwrap();
 
 assert_eq!(writer.into_target(), [0x00, 0x00, 0x02, 0x9A]);
 ```
+## License
 
-[docs/format.md]: https://github.com/drobin/nuts-bytes/blob/master/docs/format.md
+> You can check out the full license
+> [here](https://github.com/drobin/nuts/blob/master/nuts-bytes-derive/LICENSE).
+
+This project is licensed under the terms of the **MIT** license.
+
+[docs/format.md]: https://github.com/drobin/nuts/blob/master/nuts-bytes/docs/format.md

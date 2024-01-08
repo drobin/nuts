@@ -33,12 +33,12 @@ backend put its blocks.
 ## License
 
 > You can check out the full license
-> [here](https://github.com/drobin/nuts-container/blob/master/LICENSE).
+> [here](https://github.com/drobin/nuts/blob/master/nuts-directory/LICENSE).
 
 This project is licensed under the terms of the **MIT** license.
 
-[nuts]: https://github.com/drobin/nuts-container
-[`CreateOptions`]: https://docs.rs/nuts-container/latest/nuts_directory/struct.CreateOptions.html
-[`OpenOptions`]: https://docs.rs/nuts-container/latest/nuts_directory/struct.OpenOptions.html
+[nuts]: https://crates.io/crates/nuts-container
+[`CreateOptions`]: https://docs.rs/nuts-directory/latest/nuts_directory/struct.CreateOptions.html
+[`OpenOptions`]: https://docs.rs/nuts-directory/latest/nuts_directory/struct.OpenOptions.html
 [`Container::create`]: https://docs.rs/nuts-container/latest/nuts_container/container/struct.Container.html#method.create
 [`Container::open`]: https://docs.rs/nuts-container/latest/nuts_container/container/struct.Container.html#method.open
