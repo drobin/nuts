@@ -14,20 +14,20 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.75"
-chrono = "0.4.31"
-clap = { version = "3.2.23", features = ["color", "derive", "env"] }
-colored = "2.0.4"
-env_logger = "0.9.3"
-home = "0.5.5"
-log = "0.4.20"
-nuts-archive = "0.2.4"
-nuts-container = "0.2.2"
-nuts-directory = "0.3.2"
-rpassword = "7.2.0"
+anyhow = "=1.0.75"
+chrono = "=0.4.31"
+clap = { version = "=3.2.23", features = ["color", "derive", "env"] }
+colored = "=2.0.4"
+env_logger = "=0.9.3"
+home = "=0.5.5"
+log = "=0.4.20"
+nuts-archive = { path = "../nuts-archive", version = "=0.2.4" }
+nuts-container = { path = "../nuts-container", version = "=0.2.2" }
+nuts-directory = { path = "../nuts-directory", version = "=0.3.2" }
+rpassword = "=7.2.0"
 
 [build-dependencies]
-cargo_metadata = "0.18.1"
+cargo_metadata = "=0.18.1"
 
 [[bin]]
 name = "nuts"

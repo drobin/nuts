@@ -42,8 +42,8 @@ container = ["backend", "dep:nuts-bytes", "dep:openssl", "dep:openssl-sys"]
 debug-plain-keys = []
 
 [dependencies]
-log = "0.4.20"
-nuts-bytes = { version = "0.2.2", features = ["derive"], optional = true }
-openssl = { version = "0.10.57", optional = true }
-openssl-sys = { version = "0.9.93", optional = true }
-thiserror = "1.0.50"
+log = "=0.4.20"
+nuts-bytes = { path = "../nuts-bytes", version = "=0.2.2", features = ["derive"], optional = true }
+openssl = { version = "=0.10.57", optional = true }
+openssl-sys = { version = "=0.9.93", optional = true }
+thiserror = "=1.0.50"
