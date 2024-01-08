@@ -58,72 +58,72 @@
 //! assert_eq!(info.kdf, kdf);
 //! ```
 //!
-//! When you open a [`MemoryBackend`] you have no possibility to choose further
-//! settings because (due to the nature of this volatile storage) nothing is
-//! made persistent. On open, always an unencrypted
-//! [container](crate::container::Container) is created.
+//! You cannot open a [`MemoryBackend`] because of its volatile storage. But
+//! you can re-open an previously created backend.
 //!
 //! ```rust
 //! use nuts_container::container::*;
 //! use nuts_container::memory::MemoryBackend;
 //!
-//! // Example opens a container with an attached MemoryBackend,
-//! // which is always unencrypted.
+//! let (backend, kdf) = {
+//!     let backend = MemoryBackend::new();
+//!     let kdf = Kdf::pbkdf2(Digest::Sha1, 65536, b"123");
 //!
-//! let backend = MemoryBackend::new();
+//!     // Let's create an encrypted container (with aes128-ctr).
+//!     let options = CreateOptionsBuilder::new(Cipher::Aes128Ctr)
+//!         .with_password_callback(|| Ok(b"abc".to_vec()))
+//!         .with_kdf(kdf.clone())
+//!         .build::<MemoryBackend>()
+//!         .unwrap();
+//!     let container = Container::<MemoryBackend>::create(backend, options).unwrap();
 //!
-//! // When opening a contaier with a MemoryBackend attached,
-//! // the container is always unencrypted.
-//! let options = OpenOptionsBuilder::new().build::<MemoryBackend>().unwrap();
+//!     (container.into_backend(), kdf)
+//! };
+//!
+//! // When opening a container with an attached MemoryBackend,
+//! // the backend takes the header from a previous open attempt.
+//! let options = OpenOptionsBuilder::new()
+//!     .with_password_callback(|| Ok(b"abc".to_vec()))
+//!     .build::<MemoryBackend>()
+//!     .unwrap();
 //! let container = Container::<MemoryBackend>::open(backend, options).unwrap();
 //! let info = container.info().unwrap();
 //!
-//! assert_eq!(info.cipher, Cipher::None);
-//! assert_eq!(info.kdf, Kdf::None);
+//! assert_eq!(info.cipher, Cipher::Aes128Ctr);
+//! assert_eq!(info.kdf, kdf);
 //! ```
 
 #[cfg(test)]
 mod tests;
 
-use nuts_bytes::{FromBytes, ToBytes, Writer};
+use nuts_bytes::{FromBytes, ToBytes};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::num::ParseIntError;
 use std::str::FromStr;
-use std::{cmp, error, fmt, mem};
+use std::{cmp, fmt, mem};
+use thiserror::Error;
 
 use crate::backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
-use crate::container::{Cipher, Kdf};
 
 /// Error used by the memory backend.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
     /// Tried to read or write from/to an id, which does not exist.
+    #[error("no such id: {0}")]
     NoSuchId(Id),
 
     /// Failed to aquire the given id.
+    #[error("already aquired: {0}")]
     AlreadAquired(Id),
 
+    /// Tried to open the backend without header data
+    #[error("no header data available")]
+    NoHeader,
+
     /// Failed to serialize binary data.
-    Bytes(nuts_bytes::Error),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::NoSuchId(id) => write!(fmt, "no such id: {}", id),
-            Error::AlreadAquired(id) => write!(fmt, "already aquired: {}", id),
-            Error::Bytes(cause) => fmt::Display::fmt(cause, fmt),
-        }
-    }
-}
-
-impl error::Error for Error {}
-
-impl From<nuts_bytes::Error> for Error {
-    fn from(err: nuts_bytes::Error) -> Self {
-        Error::Bytes(err)
-    }
+    #[error(transparent)]
+    Bytes(#[from] nuts_bytes::Error),
 }
 
 /// The [id](crate::backend::Backend::Id) of the memory backend.
@@ -236,40 +236,13 @@ impl MemoryBackend {
     fn max_id(&self) -> u32 {
         *self.blocks.keys().max().unwrap_or(&0)
     }
-
-    fn secret_bytes(&self) -> Result<Vec<u8>, Error> {
-        let mut writer = Writer::new(vec![]);
-
-        writer.write(&1u32)?; // magic 1
-        writer.write(&1u32)?; // magic 2
-        writer.write::<Vec<u8>>(&vec![])?; // key
-        writer.write::<Vec<u8>>(&vec![])?; // iv
-        writer.write::<Vec<u8>>(&vec![])?; // userdata
-        writer.write::<Vec<u8>>(&vec![])?; // settings
-
-        Ok(writer.into_target())
-    }
-
-    fn header_bytes(&self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
-        let mut writer = Writer::new(bytes.as_mut_slice());
-
-        writer.write(b"nuts-io")?; // magic
-
-        writer.write(&0u32)?; // rev 0
-        writer.write(&Cipher::None)?; // cipher
-        writer.write::<Vec<u8>>(&vec![])?; // IV
-        writer.write(&Kdf::None)?; // KDF
-        writer.write(&self.secret_bytes()?)?; // secret
-
-        Ok(())
-    }
 }
 
 impl HeaderGet<Self> for MemoryBackend {
     fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
         match self.header.as_ref() {
             Some(source) => Ok(bytes.copy_from_slice(source)),
-            None => self.header_bytes(bytes),
+            None => Err(Error::NoHeader),
         }
     }
 }

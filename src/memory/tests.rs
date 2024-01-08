@@ -46,21 +46,16 @@ fn create() {
 #[test]
 fn open() {
     use crate::container::*;
-    use crate::memory::MemoryBackend;
+    use crate::memory::{Error as MemoryError, MemoryBackend};
 
-    // Example opens a container with an attached MemoryBackend,
-    // which is always unencrypted.
+    // Example tries to open a container with an attached MemoryBackend,
+    // which cannot work because no header is available.
 
     let backend = MemoryBackend::new();
-
-    // When opening a contaier with a MemoryBackend attached,
-    // the container is always unencrypted.
     let options = OpenOptionsBuilder::new().build::<MemoryBackend>().unwrap();
-    let container = Container::<MemoryBackend>::open(backend, options).unwrap();
-    let info = container.info().unwrap();
+    let err = Container::<MemoryBackend>::open(backend, options).unwrap_err();
 
-    assert_eq!(info.cipher, Cipher::None);
-    assert_eq!(info.kdf, Kdf::None);
+    assert!(matches!(err, Error::Backend(MemoryError::NoHeader)));
 }
 
 #[test]
@@ -83,8 +78,8 @@ fn reopen() {
         (container.into_backend(), kdf)
     };
 
-    // When opening a contaier with a MemoryBackend attached,
-    // the container is always unencrypted.
+    // When opening a container with an attached MemoryBackend,
+    // the backend takes the header from a previous open attempt.
     let options = OpenOptionsBuilder::new()
         .with_password_callback(|| Ok(b"abc".to_vec()))
         .build::<MemoryBackend>()
