@@ -7,7 +7,7 @@ authors = ["Robin Doer <robin@robind.de>"]
 description = "A cmdline utility for the nuts container"
 categories = ["cryptography", "command-line-utilities"]
 keywords = ["secure", "storage", "nuts"]
-repository = "https://github.com/drobin/nuts-tool.git"
+repository = "https://github.com/drobin/nuts.git"
 license = "MIT"
 readme = "README.md"
 
