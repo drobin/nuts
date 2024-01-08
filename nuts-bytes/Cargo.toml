@@ -20,9 +20,27 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-[workspace]
-members = [
-    "nuts-bytes",
-    "nuts-bytes-derive",
-    "nuts-container",
-]
+[package]
+name = "nuts-bytes"
+version = "0.2.2"
+edition = "2018"
+authors = ["Robin Doer <robin@robind.de>"]
+description = "Serialization into a binary data format"
+categories = ["encoding"]
+keywords = ["serialization", "nuts"]
+repository = "https://github.com/drobin/nuts-bytes.git"
+documentation = "https://docs.rs/nuts-bytes"
+license = "MIT"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+derive = ["dep:nuts-bytes-derive"]
+
+[dependencies]
+nuts-bytes-derive = { version = "0.2.1", path = "../nuts-bytes-derive", optional = true }
+thiserror = "1.0.50"
+
+[package.metadata.docs.rs]
+all-features = true
