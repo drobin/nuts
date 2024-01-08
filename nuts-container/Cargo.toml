@@ -20,7 +20,30 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-[workspace]
-members = [
-    "nuts-container",
-]
+[package]
+name = "nuts-container"
+version = "0.2.2"
+edition = "2018"
+authors = ["Robin Doer <robin@robind.de>"]
+description = "A secure storage library"
+categories = ["cryptography"]
+keywords = ["secure", "storage", "nuts"]
+repository = "https://github.com/drobin/nuts-container.git"
+documentation = "https://docs.rs/nuts-container"
+license = "MIT"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["backend", "container"]
+backend = ["dep:nuts-bytes"]
+container = ["backend", "dep:nuts-bytes", "dep:openssl", "dep:openssl-sys"]
+debug-plain-keys = []
+
+[dependencies]
+log = "0.4.20"
+nuts-bytes = { version = "0.2.2", features = ["derive"], optional = true }
+openssl = { version = "0.10.57", optional = true }
+openssl-sys = { version = "0.9.93", optional = true }
+thiserror = "1.0.50"
