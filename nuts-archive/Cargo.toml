@@ -20,11 +20,28 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-[workspace]
-members = [
-    "nuts-archive",
-    "nuts-bytes",
-    "nuts-bytes-derive",
-    "nuts-container",
-    "nuts-directory",
-]
+[package]
+name = "nuts-archive"
+version = "0.2.4"
+edition = "2018"
+authors = ["Robin Doer <robin@robind.de>"]
+description = "A tar like archive on top of the nuts-container"
+categories = ["cryptography"]
+keywords = ["secure", "storage", "nuts"]
+repository = "https://github.com/drobin/nuts-archive.git"
+documentation = "https://docs.rs/nuts-archive"
+license = "MIT"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = { version="0.4.31" }
+log = "0.4.20"
+nuts-bytes = { version = "0.2.2", features = ["derive"]}
+nuts-container = "0.2.2"
+thiserror = "1.0.50"
+
+[dev-dependencies]
+nuts-directory = "0.3.2"
+tempdir = "0.3.7"
