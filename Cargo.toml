@@ -27,4 +27,5 @@ members = [
     "nuts-bytes-derive",
     "nuts-container",
     "nuts-directory",
+    "nuts-tool",
 ]
