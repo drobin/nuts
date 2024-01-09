@@ -109,7 +109,7 @@ assert!(entry.next().is_none());
 ## License
 
 > You can check out the full license
-> [here](https://github.com/drobin/nuts/blob/master/nuts-archive/LICENSE).
+> [here](https://github.com/drobin/nuts/blob/master/LICENSE).
 
 This project is licensed under the terms of the **MIT** license.
 

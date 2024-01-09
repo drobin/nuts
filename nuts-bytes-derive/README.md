@@ -43,7 +43,7 @@ assert_eq!(writer.into_target(), [0x00, 0x00, 0x02, 0x9A]);
 ## License
 
 > You can check out the full license
-> [here](https://github.com/drobin/nuts/blob/master/nuts-bytes-derive/LICENSE).
+> [here](https://github.com/drobin/nuts/blob/master/LICENSE).
 
 This project is licensed under the terms of the **MIT** license.
 

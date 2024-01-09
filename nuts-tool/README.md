@@ -30,7 +30,7 @@ block size (net):   496
 ## License
 
 > You can check out the full license
-> [here](https://github.com/drobin/nuts/blob/master/nuts-tool/LICENSE).
+> [here](https://github.com/drobin/nuts/blob/master/LICENSE).
 
 This project is licensed under the terms of the **MIT** license.
 
