@@ -53,7 +53,7 @@ const HEX: [char; SIZE] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
 ];
 
-/// The [id](nuts_container::backend::Backend::Id) of the backend.
+/// The [id](nuts_backend::Backend::Id) of the backend.
 ///
 /// This id as an 16 byte random number.
 ///

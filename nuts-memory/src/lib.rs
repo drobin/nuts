@@ -20,21 +20,22 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-//! A sample [`Backend`](crate::backend::Backend) implementation which stores
-//! the data in the memory.
+//! A sample [`nuts_backend::Backend`] implementation which stores the data in
+//! memory.
 //!
 //! **This implementation is mainly used for demonstration, testing and
 //! documentation.**
 //!
 //! It stores the content of the data blocks in a [hash](HashMap) indexed by
-//! the [`Id`] of this backend, where the [id](crate::backend::Backend::Id) is
-//! a simple `u32` value.
+//! the [`Id`](nuts_backend::Backend::Id) of this backend, where the
+//! [id](nuts_backend::Backend::Id) is a simple `u32` value.
 //!
 //! When creating a [`MemoryBackend`] you can choose how the data are
-//! encrypted. Choose the related options in
-//! [`CreateOptionsBuilder`](crate::container::CreateOptionsBuilder) and the
-//! [container](crate::container::Container) will pass (possibly) encrypted
-//! data to this backend.
+//! encrypted. Choose the related options in [`CreateOptionsBuilder`] and the
+//! [container] will pass (possibly) encrypted data to this backend.
+//!
+//! [`CreateOptionsBuilder`]: https://docs.rs/nuts-container/latest/nuts_container/container/struct.CreateOptionsBuilder.html
+//! [container]: https://docs.rs/nuts-container/latest/nuts_container/container/struct.Container.html
 //!
 //! ```rust
 //! use nuts_container::container::*;
@@ -125,7 +126,7 @@ pub enum Error {
     Bytes(#[from] nuts_bytes::Error),
 }
 
-/// The [id](crate::backend::Backend::Id) of the memory backend.
+/// The [id](nuts_backend::Backend::Id) of the memory backend.
 #[derive(Clone, Copy, Debug, FromBytes, PartialEq, ToBytes)]
 pub struct Id(u32);
 
@@ -165,7 +166,7 @@ impl BlockId for Id {
 
 /// The [`Backend`] implementation itself.
 ///
-/// See the [module](crate::memory) documentation for details.
+/// See the [module](crate) documentation for details.
 #[derive(Debug, PartialEq)]
 pub struct MemoryBackend {
     bsize: u32,

@@ -31,7 +31,7 @@
 //! implements the [`Backend`] trait can act as the storage layer for the
 //! [`Container`]. The [`Container`] receives (possibly) encrypted data from
 //! the backend and pushes (possibly) encrypted data back to the backend.
-//! See the [`backend` module](crate::backend) documentation for details.
+//! See the [`backend` crate](nuts_backend) documentation for details.
 //!
 //! ## Create a container
 //!
