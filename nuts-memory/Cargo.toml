@@ -24,6 +24,14 @@
 name = "nuts-memory"
 version = "0.4.0"
 edition = "2018"
+authors = ["Robin Doer <robin@robind.de>"]
+description = "A backend implementation for nuts"
+categories = ["cryptography"]
+keywords = ["secure", "storage", "nuts"]
+repository = "https://github.com/drobin/nuts.git"
+documentation = "https://docs.rs/nuts-memory"
+license = "MIT"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
