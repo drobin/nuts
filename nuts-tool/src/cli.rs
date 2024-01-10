@@ -24,7 +24,7 @@ pub mod archive;
 pub mod container;
 
 use anyhow::{anyhow, Result};
-use clap::{ArgAction, Parser, Subcommand};
+use clap::{crate_version, ArgAction, Parser, Subcommand};
 use env_logger::Builder;
 use log::debug;
 use log::LevelFilter;
@@ -37,12 +37,9 @@ use std::path::PathBuf;
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
 
-const SHORT_VERSION: &str = env!("NUTS_TOOL_SHORT_VERSION");
-const LONG_VERSION: &str = env!("NUTS_TOOL_LONG_VERSION");
-
 #[derive(Debug, Parser)]
 #[clap(name = "nuts", bin_name = "nuts")]
-#[clap(version = SHORT_VERSION, long_version = LONG_VERSION)]
+#[clap(version = crate_version!())]
 pub struct NutsCli {
     #[clap(subcommand)]
     command: Commands,
