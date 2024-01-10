@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -24,12 +24,12 @@ mod inner;
 mod rev0;
 mod secret;
 
+use nuts_backend::Backend;
 use nuts_bytes::{Reader, Writer};
 use openssl::error::ErrorStack;
 use std::fmt::{self, Write as FmtWrite};
 use thiserror::Error;
 
-use crate::backend::Backend;
 use crate::container::cipher::{Cipher, CipherError};
 use crate::container::header::inner::{Inner, Revision};
 use crate::container::header::secret::PlainSecret;

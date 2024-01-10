@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2023,2024 Robin Doer
+# Copyright (c) 2024 Robin Doer
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -20,13 +20,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-[workspace]
-members = [
-    "nuts-archive",
-    "nuts-backend",
-    "nuts-bytes",
-    "nuts-bytes-derive",
-    "nuts-container",
-    "nuts-directory",
-    "nuts-tool",
-]
+[package]
+name = "nuts-backend"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nuts-bytes = { path = "../nuts-bytes", version = "=0.2.2" }

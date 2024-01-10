@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2023 Robin Doer
+# Copyright (c) 2023,2024 Robin Doer
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -36,14 +36,15 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["backend", "container"]
-backend = ["dep:nuts-bytes"]
-container = ["backend", "dep:nuts-bytes", "dep:openssl", "dep:openssl-sys"]
+default = []
 debug-plain-keys = []
 
 [dependencies]
 log = "=0.4.20"
-nuts-bytes = { path = "../nuts-bytes", version = "=0.2.2", features = ["derive"], optional = true }
-openssl = { version = "=0.10.57", optional = true }
-openssl-sys = { version = "=0.9.93", optional = true }
+nuts-backend = { path = "../nuts-backend", version = "=0.1.0" }
+nuts-bytes = { path = "../nuts-bytes", version = "=0.2.2", features = [
+    "derive",
+] }
+openssl = { version = "=0.10.57" }
+openssl-sys = { version = "=0.9.93" }
 thiserror = "=1.0.50"

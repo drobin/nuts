@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -84,7 +84,8 @@ macro_rules! read_tests {
 }
 
 mod none {
-    use crate::backend::BlockId;
+    use nuts_backend::BlockId;
+
     use crate::container::{Cipher, Container, CreateOptionsBuilder, Error};
     use crate::memory::{Error as MemoryError, Id, MemoryBackend};
     use crate::tests::{into_error, RND};
@@ -106,7 +107,8 @@ mod none {
 }
 
 mod aes128_ctr {
-    use crate::backend::BlockId;
+    use nuts_backend::BlockId;
+
     use crate::container::tests::CTEXT_AES128_CTR;
     use crate::container::{Cipher, Container, CreateOptionsBuilder, Digest, Error, Kdf};
     use crate::memory::{Error as MemoryError, Id, MemoryBackend};
@@ -131,7 +133,8 @@ mod aes128_ctr {
 }
 
 mod aes128_gcm {
-    use crate::backend::BlockId;
+    use nuts_backend::BlockId;
+
     use crate::container::tests::CTEXT_AES128_GCM;
     use crate::container::{
         Cipher, CipherError, Container, CreateOptionsBuilder, Digest, Error, Kdf,

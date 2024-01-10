@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -24,8 +24,8 @@
 mod tests;
 
 use log::{debug, warn};
+use nuts_backend::Backend;
 use nuts_bytes::{FromBytes, Reader, ToBytes, Writer};
-use nuts_container::backend::Backend;
 use nuts_container::container::Container;
 use std::fmt;
 use thiserror::Error;

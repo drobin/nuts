@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -96,6 +96,7 @@
 #[cfg(test)]
 mod tests;
 
+use nuts_backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 use nuts_bytes::{FromBytes, ToBytes};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -103,8 +104,6 @@ use std::num::ParseIntError;
 use std::str::FromStr;
 use std::{cmp, fmt, mem};
 use thiserror::Error;
-
-use crate::backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 
 /// Error used by the memory backend.
 #[derive(Debug, Error)]

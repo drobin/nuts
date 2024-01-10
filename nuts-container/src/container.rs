@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -255,9 +255,9 @@ mod svec;
 mod tests;
 
 use log::debug;
+use nuts_backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 use std::{any, cmp};
 
-use crate::backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 use crate::container::cipher::CipherContext;
 use crate::container::header::Header;
 use crate::container::password::PasswordStore;

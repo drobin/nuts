@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,8 +23,8 @@
 #[cfg(test)]
 mod tests;
 
+use nuts_backend::{Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 use nuts_bytes::{FromBytes, ToBytes};
-use nuts_container::backend::{Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 use std::path::Path;
 
 use crate::error::{Error, Result};

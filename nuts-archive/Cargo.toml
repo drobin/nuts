@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2023 Robin Doer
+# Copyright (c) 2023,2024 Robin Doer
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -38,6 +38,7 @@ readme = "README.md"
 [dependencies]
 chrono = { version="=0.4.31" }
 log = "=0.4.20"
+nuts-backend = { path = "../nuts-backend", version = "=0.1.0" }
 nuts-bytes = { path = "../nuts-bytes", version = "=0.2.2", features = ["derive"]}
 nuts-container = { path = "../nuts-container", version = "=0.2.2" }
 thiserror = "=1.0.50"

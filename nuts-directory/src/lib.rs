@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -61,11 +61,10 @@ mod info;
 mod options;
 
 use log::warn;
+use nuts_backend::{Backend, HeaderGet, HeaderSet, HEADER_MAX_SIZE};
 use std::io::{self, ErrorKind, Read, Write};
 use std::path::Path;
 use std::{cmp, fs};
-
-use nuts_container::backend::{Backend, HeaderGet, HeaderSet, HEADER_MAX_SIZE};
 
 pub use error::Error;
 pub use id::Id;

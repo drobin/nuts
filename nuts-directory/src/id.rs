@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,8 +23,8 @@
 #[cfg(test)]
 mod tests;
 
+use nuts_backend::BlockId;
 use nuts_bytes::{FromBytes, ToBytes};
-use nuts_container::backend::BlockId;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;

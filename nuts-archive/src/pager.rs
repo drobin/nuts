@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,8 +23,9 @@
 #[cfg(test)]
 mod tests;
 
+use nuts_backend::Backend;
 use nuts_bytes::{Reader, Writer};
-use nuts_container::{backend::Backend, container::Container};
+use nuts_container::container::Container;
 use std::ops::{Deref, DerefMut};
 
 use crate::error::ArchiveResult;

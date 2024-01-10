@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -25,8 +25,8 @@ pub mod mode;
 pub mod r#mut;
 pub(crate) mod tstamp;
 
+use nuts_backend::Backend;
 use nuts_bytes::{FromBytes, ToBytes, Writer};
-use nuts_container::backend::Backend;
 use std::mem;
 
 use crate::entry::mode::Mode;
