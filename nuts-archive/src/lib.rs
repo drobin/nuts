@@ -35,7 +35,7 @@
 //!
 //! ```rust
 //! use nuts_archive::Archive;
-//! use nuts_container::container::{Cipher, Container, CreateOptionsBuilder};
+//! use nuts_container::{Cipher, Container, CreateOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend};
 //! use tempdir::TempDir;
 //!
@@ -61,7 +61,7 @@
 //! ## Open an existing archive
 //! ```rust
 //! use nuts_archive::Archive;
-//! use nuts_container::container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
+//! use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
 //! use tempdir::TempDir;
 //!
@@ -105,7 +105,7 @@
 //!
 //! ```rust
 //! use nuts_archive::Archive;
-//! use nuts_container::container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
+//! use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
 //! use tempdir::TempDir;
 //!
@@ -160,7 +160,7 @@
 //!
 //! ```rust
 //! use nuts_archive::Archive;
-//! use nuts_container::container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
+//! use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
 //! use tempdir::TempDir;
 //!
@@ -230,7 +230,7 @@ mod userdata;
 use chrono::{DateTime, Utc};
 use log::debug;
 use nuts_backend::Backend;
-use nuts_container::container::Container;
+use nuts_container::Container;
 use std::cmp;
 use std::convert::TryInto;
 

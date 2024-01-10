@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,7 +23,7 @@
 #[test]
 fn create() {
     use nuts_archive::Archive;
-    use nuts_container::container::{Cipher, Container, CreateOptionsBuilder};
+    use nuts_container::{Cipher, Container, CreateOptionsBuilder};
     use nuts_directory::{CreateOptions, DirectoryBackend};
     use tempdir::TempDir;
 
@@ -49,7 +49,7 @@ fn create() {
 #[test]
 fn open() {
     use nuts_archive::Archive;
-    use nuts_container::container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
+    use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
     use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
     use tempdir::TempDir;
 
@@ -92,7 +92,7 @@ fn open() {
 #[test]
 fn append() {
     use nuts_archive::Archive;
-    use nuts_container::container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
+    use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
     use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
     use tempdir::TempDir;
 
@@ -146,7 +146,7 @@ fn append() {
 #[test]
 fn scan() {
     use nuts_archive::Archive;
-    use nuts_container::container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
+    use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
     use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
     use tempdir::TempDir;
 

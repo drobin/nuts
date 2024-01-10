@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023,2024 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,34 +20,42 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_container::{Cipher, Container, CreateOptionsBuilder};
-use nuts_memory::MemoryBackend;
+use std::rc::Rc;
 
-macro_rules! into_error {
-    ($err:expr, $($path:ident)::+) => {
-        match $err {
-            $($path)::+(cause) => cause,
-            _ => panic!("invalid error"),
-        }
-    };
+use crate::password::{PasswordError, PasswordStore};
+use crate::tests::into_error;
+
+#[test]
+fn with_value() {
+    let mut store = PasswordStore::with_value(&[1, 2, 3]);
+    assert_eq!(store.value().unwrap(), [1, 2, 3]);
 }
 
-pub fn setup_container() -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new();
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
+#[test]
+fn no_callback() {
+    let mut store = PasswordStore::new(None);
+    let err = store.value().unwrap_err();
+    assert!(matches!(err, PasswordError::NoPassword));
 }
 
-pub fn setup_container_with_bsize(bsize: u32) -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new_with_bsize(bsize);
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
+#[test]
+fn error_from_callback() {
+    let mut store = PasswordStore::new(Some(Rc::new(|| Err(String::from("some error")))));
 
-    Container::create(backend, options).unwrap()
+    let err = store.value().unwrap_err();
+    let msg = into_error!(err, PasswordError::PasswordCallback);
+    assert_eq!(msg, "some error");
 }
 
-pub(crate) use into_error;
+#[test]
+fn value_from_callback() {
+    let mut store = PasswordStore::new(Some(Rc::new(|| Ok(vec![1, 2, 3]))));
+
+    let value1 = store.value().unwrap();
+    assert_eq!(value1, [1, 2, 3]);
+
+    {
+        let value2 = store.value().unwrap();
+        assert_eq!(value2, [1, 2, 3]);
+    }
+}

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,7 +23,7 @@
 use anyhow::Result;
 use clap::{value_parser, Args};
 use log::debug;
-use nuts_container::container::{Cipher, Container, CreateOptionsBuilder, Kdf};
+use nuts_container::{Cipher, Container, CreateOptionsBuilder, Kdf};
 use nuts_directory::{CreateOptions, DirectoryBackend};
 use std::path::PathBuf;
 

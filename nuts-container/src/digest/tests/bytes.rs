@@ -20,34 +20,27 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_container::{Cipher, Container, CreateOptionsBuilder};
-use nuts_memory::MemoryBackend;
+use nuts_bytes::{Error, Reader, Writer};
 
-macro_rules! into_error {
-    ($err:expr, $($path:ident)::+) => {
-        match $err {
-            $($path)::+(cause) => cause,
-            _ => panic!("invalid error"),
-        }
-    };
+use crate::digest::Digest;
+
+#[test]
+fn de_sha1() {
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x00].as_slice());
+    assert_eq!(reader.read::<Digest>().unwrap(), Digest::Sha1);
 }
 
-pub fn setup_container() -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new();
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
+#[test]
+fn de_invalid() {
+    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x01].as_slice());
 
-    Container::create(backend, options).unwrap()
+    let err = reader.read::<Digest>().unwrap_err();
+    assert!(matches!(err, Error::InvalidVariantIndex(1)));
 }
 
-pub fn setup_container_with_bsize(bsize: u32) -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new_with_bsize(bsize);
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
+#[test]
+fn ser_sha1() {
+    let mut writer = Writer::new(vec![]);
+    assert_eq!(writer.write(&Digest::Sha1).unwrap(), 4);
+    assert_eq!(writer.into_target(), [0x00, 0x00, 0x00, 0x00]);
 }
-
-pub(crate) use into_error;

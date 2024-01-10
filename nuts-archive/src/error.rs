@@ -21,7 +21,6 @@
 // IN THE SOFTWARE.
 
 use nuts_backend::Backend;
-use nuts_container::container;
 use thiserror::Error;
 
 use crate::{header::HeaderMagicError, userdata::UserdataMagicError};
@@ -35,15 +34,15 @@ pub enum Error<B: Backend> {
 
     /// An error occured in a container operation.
     #[error(transparent)]
-    Container(#[from] container::Error<B>),
+    Container(#[from] nuts_container::Error<B>),
 
     /// Tried to overwrite an existing
-    /// [userdata record](container::Container::userdata).
+    /// [userdata record](nuts_container::Container::userdata).
     #[error("the container is not empty")]
     OverwriteUserdata,
 
-    /// The [userdata record](container::Container::userdata) of the container
-    /// does not refer to an archive:
+    /// The [userdata record](nuts_container::Container::userdata) of the
+    /// container does not refer to an archive:
     ///
     /// * The userdata record is empty, the container has no attached service.
     /// * Another service is attached to the container.
@@ -58,8 +57,8 @@ pub enum Error<B: Backend> {
     #[error("the archive is full")]
     Full,
 
-    /// The block size of the underlaying [container](container::Container) is
-    /// too small.
+    /// The block size of the underlaying
+    /// [container](nuts_container::Container) is too small.
     #[error("the block size is too small")]
     InvalidBlockSize,
 

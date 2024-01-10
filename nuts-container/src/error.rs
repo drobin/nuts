@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023,2024 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,34 +20,30 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_container::{Cipher, Container, CreateOptionsBuilder};
-use nuts_memory::MemoryBackend;
+use nuts_backend::Backend;
+use thiserror::Error as ThisError;
 
-macro_rules! into_error {
-    ($err:expr, $($path:ident)::+) => {
-        match $err {
-            $($path)::+(cause) => cause,
-            _ => panic!("invalid error"),
-        }
-    };
+use crate::cipher::CipherError;
+use crate::header::HeaderError;
+
+/// Error type used by this module.
+#[derive(Debug, ThisError)]
+pub enum Error<B: Backend> {
+    /// An error occured in the attached backend.
+    #[error(transparent)]
+    Backend(B::Err),
+
+    /// A cipher related error
+    #[error(transparent)]
+    Cipher(#[from] CipherError),
+
+    /// Errors coming from header evaluation.
+    #[error(transparent)]
+    Header(#[from] HeaderError),
+
+    /// Try to read/write from/to a null-id which is forbidden.
+    #[error("tried to read or write a null id")]
+    NullId,
 }
 
-pub fn setup_container() -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new();
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
-}
-
-pub fn setup_container_with_bsize(bsize: u32) -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new_with_bsize(bsize);
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
-}
-
-pub(crate) use into_error;
+pub type ContainerResult<T, B> = Result<T, Error<B>>;

@@ -22,7 +22,7 @@
 
 #[test]
 fn create() {
-    use nuts_container::container::*;
+    use nuts_container::*;
 
     use crate::MemoryBackend;
 
@@ -46,7 +46,7 @@ fn create() {
 
 #[test]
 fn open() {
-    use nuts_container::container::*;
+    use nuts_container::*;
 
     use crate::{Error as MemoryError, MemoryBackend};
 
@@ -62,7 +62,7 @@ fn open() {
 
 #[test]
 fn reopen() {
-    use nuts_container::container::*;
+    use nuts_container::*;
 
     use crate::MemoryBackend;
 

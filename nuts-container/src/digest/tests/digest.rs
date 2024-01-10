@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023,2024 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,34 +20,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_container::{Cipher, Container, CreateOptionsBuilder};
-use nuts_memory::MemoryBackend;
+use crate::digest::Digest;
 
-macro_rules! into_error {
-    ($err:expr, $($path:ident)::+) => {
-        match $err {
-            $($path)::+(cause) => cause,
-            _ => panic!("invalid error"),
-        }
-    };
+#[test]
+fn size_sha1() {
+    assert_eq!(Digest::Sha1.size(), 20);
 }
 
-pub fn setup_container() -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new();
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
+#[test]
+fn from_str_sha1() {
+    assert_eq!("sha1".parse::<Digest>().unwrap(), Digest::Sha1);
 }
 
-pub fn setup_container_with_bsize(bsize: u32) -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new_with_bsize(bsize);
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
+#[test]
+fn from_str_invalid() {
+    assert_eq!("xxx".parse::<Digest>().unwrap_err(), ());
 }
 
-pub(crate) use into_error;
+#[test]
+fn to_string_sha1() {
+    assert_eq!(Digest::Sha1.to_string(), "sha1");
+}

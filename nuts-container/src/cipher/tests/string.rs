@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023,2024 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,34 +20,40 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_container::{Cipher, Container, CreateOptionsBuilder};
-use nuts_memory::MemoryBackend;
+use crate::cipher::Cipher;
 
-macro_rules! into_error {
-    ($err:expr, $($path:ident)::+) => {
-        match $err {
-            $($path)::+(cause) => cause,
-            _ => panic!("invalid error"),
-        }
-    };
+#[test]
+fn from_str_none() {
+    assert_eq!("none".parse::<Cipher>().unwrap(), Cipher::None);
 }
 
-pub fn setup_container() -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new();
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
+#[test]
+fn from_str_aes128_ctr() {
+    assert_eq!("aes128-ctr".parse::<Cipher>().unwrap(), Cipher::Aes128Ctr);
 }
 
-pub fn setup_container_with_bsize(bsize: u32) -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new_with_bsize(bsize);
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
+#[test]
+fn from_str_aes128_gcm() {
+    assert_eq!("aes128-gcm".parse::<Cipher>().unwrap(), Cipher::Aes128Gcm);
 }
 
-pub(crate) use into_error;
+#[test]
+fn from_str_invalid() {
+    let err = "xxx".parse::<Cipher>().unwrap_err();
+    assert_eq!(err, ());
+}
+
+#[test]
+fn to_string_none() {
+    assert_eq!(Cipher::None.to_string(), "none");
+}
+
+#[test]
+fn to_string_aes128_ctr() {
+    assert_eq!(Cipher::Aes128Ctr.to_string(), "aes128-ctr");
+}
+
+#[test]
+fn to_string_aes128_gcm() {
+    assert_eq!(Cipher::Aes128Gcm.to_string(), "aes128-gcm");
+}

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023,2024 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,34 +20,34 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_container::{Cipher, Container, CreateOptionsBuilder};
-use nuts_memory::MemoryBackend;
+mod aes128_ctr;
+mod aes128_gcm;
+mod bytes;
+mod none;
+mod string;
 
-macro_rules! into_error {
-    ($err:expr, $($path:ident)::+) => {
-        match $err {
-            $($path)::+(cause) => cause,
-            _ => panic!("invalid error"),
+const KEY: [u8; 16] = [b'x'; 16];
+const IV: [u8; 16] = [b'y'; 16];
+
+macro_rules! ctx_test {
+    ($name:ident, $cipher:ident . $method:ident, $num:literal, [ $($input:literal),* ] -> [ $($expected:literal),* ]) => {
+        #[test]
+        fn $name() {
+            use crate::cipher::tests::{IV, KEY};
+            use crate::cipher::CipherContext;
+
+            let input = [$($input),*];
+            let expected = [$($expected),*];
+
+            let mut ctx = CipherContext::new(Cipher::$cipher);
+
+            ctx.copy_from_slice($num, &input);
+
+            let output = ctx.$method(&KEY, &IV).unwrap();
+
+            assert_eq!(output, expected);
         }
     };
 }
 
-pub fn setup_container() -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new();
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
-}
-
-pub fn setup_container_with_bsize(bsize: u32) -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new_with_bsize(bsize);
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
-}
-
-pub(crate) use into_error;
+pub(crate) use ctx_test;

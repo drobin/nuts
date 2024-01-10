@@ -22,7 +22,7 @@
 
 #[test]
 fn create() {
-    use nuts_container::container::*;
+    use nuts_container::*;
     use nuts_memory::MemoryBackend;
 
     // Create a container with a memory backend.
@@ -50,7 +50,7 @@ fn create() {
 
 #[test]
 fn open() {
-    use nuts_container::container::*;
+    use nuts_container::*;
     use nuts_memory::MemoryBackend;
 
     let (backend, kdf) = {
@@ -87,7 +87,7 @@ fn open() {
 
 #[test]
 fn read() {
-    use nuts_container::container::*;
+    use nuts_container::*;
     use nuts_memory::MemoryBackend;
 
     // Create a container with a memory backend.
@@ -127,7 +127,7 @@ fn read() {
 
 #[test]
 fn write() {
-    use nuts_container::container::*;
+    use nuts_container::*;
     use nuts_memory::MemoryBackend;
 
     // In this example you create a container in a separate block.

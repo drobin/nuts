@@ -38,7 +38,7 @@
 //! [container]: https://docs.rs/nuts-container/latest/nuts_container/container/struct.Container.html
 //!
 //! ```rust
-//! use nuts_container::container::*;
+//! use nuts_container::*;
 //! use nuts_memory::MemoryBackend;
 //!
 //! // Example creates an encrypted container with an attached MemoryBackend.
@@ -63,7 +63,7 @@
 //! you can re-open an previously created backend.
 //!
 //! ```rust
-//! use nuts_container::container::*;
+//! use nuts_container::*;
 //! use nuts_memory::MemoryBackend;
 //!
 //! let (backend, kdf) = {

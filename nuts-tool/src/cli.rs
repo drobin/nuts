@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -28,7 +28,7 @@ use clap::{crate_version, ArgAction, Parser, Subcommand};
 use env_logger::Builder;
 use log::debug;
 use log::LevelFilter;
-use nuts_container::container::{Container, OpenOptionsBuilder};
+use nuts_container::{Container, OpenOptionsBuilder};
 use nuts_directory::{DirectoryBackend, OpenOptions};
 use rpassword::prompt_password;
 use std::fs;

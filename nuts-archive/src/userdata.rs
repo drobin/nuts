@@ -26,7 +26,7 @@ mod tests;
 use log::{debug, warn};
 use nuts_backend::Backend;
 use nuts_bytes::{FromBytes, Reader, ToBytes, Writer};
-use nuts_container::container::Container;
+use nuts_container::Container;
 use std::fmt;
 use thiserror::Error;
 

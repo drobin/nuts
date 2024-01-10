@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -31,7 +31,7 @@ pub mod write;
 
 use anyhow::Result;
 use clap::{Args, PossibleValue, Subcommand, ValueEnum};
-use nuts_container::container::Cipher;
+use nuts_container::Cipher;
 use std::ops::Deref;
 
 use crate::cli::container::aquire::ContainerAquireArgs;

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,7 +23,7 @@
 use anyhow::Result;
 use clap::Args;
 use log::debug;
-use nuts_container::container::Container;
+use nuts_container::Container;
 use nuts_directory::DirectoryBackend;
 use std::path::PathBuf;
 

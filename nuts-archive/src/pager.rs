@@ -25,7 +25,7 @@ mod tests;
 
 use nuts_backend::Backend;
 use nuts_bytes::{Reader, Writer};
-use nuts_container::container::Container;
+use nuts_container::Container;
 use std::ops::{Deref, DerefMut};
 
 use crate::error::ArchiveResult;

@@ -20,34 +20,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_container::{Cipher, Container, CreateOptionsBuilder};
-use nuts_memory::MemoryBackend;
+#[cfg(test)]
+mod tests;
 
-macro_rules! into_error {
-    ($err:expr, $($path:ident)::+) => {
-        match $err {
-            $($path)::+(cause) => cause,
-            _ => panic!("invalid error"),
-        }
-    };
+use nuts_bytes::{FromBytes, ToBytes};
+
+use crate::header::rev0;
+use crate::header::HeaderMagicError;
+
+const MAGIC: [u8; 7] = *b"nuts-io";
+
+fn validate_magic(magic: [u8; 7]) -> Result<[u8; 7], HeaderMagicError> {
+    if magic == MAGIC {
+        Ok(magic)
+    } else {
+        Err(HeaderMagicError)
+    }
 }
 
-pub fn setup_container() -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new();
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
+#[derive(Debug, FromBytes, ToBytes)]
+pub enum Revision {
+    Rev0(rev0::Data),
 }
 
-pub fn setup_container_with_bsize(bsize: u32) -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new_with_bsize(bsize);
-    let options = CreateOptionsBuilder::new(Cipher::None)
-        .build::<MemoryBackend>()
-        .unwrap();
-
-    Container::create(backend, options).unwrap()
+#[derive(Debug, FromBytes, ToBytes)]
+pub struct Inner {
+    #[nuts_bytes(map_from_bytes = validate_magic)]
+    magic: [u8; 7],
+    pub rev: Revision,
 }
 
-pub(crate) use into_error;
+impl Inner {
+    pub fn new(rev: Revision) -> Inner {
+        Inner { magic: MAGIC, rev }
+    }
+}
