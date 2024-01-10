@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -25,7 +25,7 @@ mod symlink;
 mod write;
 mod write_all;
 
-use nuts_container::memory::{Id, MemoryBackend};
+use nuts_memory::{Id, MemoryBackend};
 
 use crate::entry::mode::Mode;
 use crate::entry::r#mut::{DirectoryBuilder, FileBuilder, InnerBuilder, SymlinkBuilder};

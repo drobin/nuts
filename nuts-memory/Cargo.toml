@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2023,2024 Robin Doer
+# Copyright (c) 2024 Robin Doer
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -21,33 +21,18 @@
 # IN THE SOFTWARE.
 
 [package]
-name = "nuts-container"
-version = "0.2.2"
+name = "nuts-memory"
+version = "0.1.0"
 edition = "2018"
-authors = ["Robin Doer <robin@robind.de>"]
-description = "A secure storage library"
-categories = ["cryptography"]
-keywords = ["secure", "storage", "nuts"]
-repository = "https://github.com/drobin/nuts.git"
-documentation = "https://docs.rs/nuts-container"
-license = "MIT"
-readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[features]
-default = []
-debug-plain-keys = []
-
 [dependencies]
-log = "=0.4.20"
 nuts-backend = { path = "../nuts-backend", version = "=0.1.0" }
 nuts-bytes = { path = "../nuts-bytes", version = "=0.2.2", features = [
     "derive",
 ] }
-openssl = { version = "=0.10.57" }
-openssl-sys = { version = "=0.9.93" }
 thiserror = "=1.0.50"
 
 [dev-dependencies]
-nuts-memory = { path = "../nuts-memory", version = "=0.1.0" }
+nuts-container = { path = "../nuts-container", version = "=0.2.2" }

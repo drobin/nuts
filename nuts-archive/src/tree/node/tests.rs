@@ -22,7 +22,7 @@
 
 use nuts_backend::BlockId;
 use nuts_bytes::{Reader, Writer};
-use nuts_container::memory::{Id, MemoryBackend};
+use nuts_memory::{Id, MemoryBackend};
 
 use crate::pager::Pager;
 use crate::tests::setup_container_with_bsize;

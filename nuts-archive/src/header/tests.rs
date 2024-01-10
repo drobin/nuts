@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
 
 use chrono::{TimeZone, Utc};
 use nuts_bytes::{Reader, Writer};
-use nuts_container::memory::MemoryBackend;
+use nuts_memory::MemoryBackend;
 
 use crate::error::Error;
 use crate::header::{Header, HeaderMagicError};

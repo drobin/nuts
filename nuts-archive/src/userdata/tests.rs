@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Reader, Writer};
-use nuts_container::memory::{Id, MemoryBackend};
+use nuts_memory::{Id, MemoryBackend};
 
 use crate::error::Error;
 use crate::tests::{into_error, setup_container};

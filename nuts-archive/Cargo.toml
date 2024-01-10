@@ -36,13 +36,16 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = { version="=0.4.31" }
+chrono = { version = "=0.4.31" }
 log = "=0.4.20"
 nuts-backend = { path = "../nuts-backend", version = "=0.1.0" }
-nuts-bytes = { path = "../nuts-bytes", version = "=0.2.2", features = ["derive"]}
+nuts-bytes = { path = "../nuts-bytes", version = "=0.2.2", features = [
+    "derive",
+] }
 nuts-container = { path = "../nuts-container", version = "=0.2.2" }
 thiserror = "=1.0.50"
 
 [dev-dependencies]
 nuts-directory = { path = "../nuts-directory", version = "=0.3.2" }
+nuts-memory = { path = "../nuts-memory", version = "=0.1.0" }
 tempdir = "=0.3.7"

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use nuts_container::container::{Cipher, Container, CreateOptionsBuilder};
-use nuts_container::memory::MemoryBackend;
+use nuts_memory::MemoryBackend;
 
 macro_rules! into_error {
     ($err:expr, $($path:ident)::+) => {

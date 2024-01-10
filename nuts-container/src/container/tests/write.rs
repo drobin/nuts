@@ -91,9 +91,9 @@ macro_rules! write_tests {
 
 mod none {
     use nuts_backend::BlockId;
+    use nuts_memory::{Error as MemoryError, Id, MemoryBackend};
 
     use crate::container::{Cipher, Container, CreateOptionsBuilder, Error};
-    use crate::memory::{Error as MemoryError, Id, MemoryBackend};
     use crate::tests::{into_error, RND};
 
     fn setup_container() -> (Container<MemoryBackend>, Id) {
@@ -113,10 +113,10 @@ mod none {
 
 mod aed128_ctr {
     use nuts_backend::BlockId;
+    use nuts_memory::{Error as MemoryError, Id, MemoryBackend};
 
     use crate::container::tests::CTEXT_AES128_CTR;
     use crate::container::{Cipher, Container, CreateOptionsBuilder, Digest, Error, Kdf};
-    use crate::memory::{Error as MemoryError, Id, MemoryBackend};
     use crate::tests::{into_error, RND};
 
     const LESS: [u8; 512] = [
@@ -214,10 +214,10 @@ mod aed128_ctr {
 
 mod aes128_gcm {
     use nuts_backend::BlockId;
+    use nuts_memory::{Error as MemoryError, Id, MemoryBackend};
 
     use crate::container::tests::CTEXT_AES128_GCM;
     use crate::container::{Cipher, Container, CreateOptionsBuilder, Digest, Error, Kdf};
-    use crate::memory::{Error as MemoryError, Id, MemoryBackend};
     use crate::tests::{into_error, RND};
 
     const LESS: [u8; 512] = [

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,8 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use nuts_memory::MemoryBackend;
+
 use crate::container::{Cipher, Container, CreateOptionsBuilder, Digest, Info, Kdf};
-use crate::memory::MemoryBackend;
 
 #[test]
 fn none() {

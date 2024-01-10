@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use nuts_backend::BlockId;
-use nuts_container::memory::MemoryBackend;
+use nuts_memory::MemoryBackend;
 
 use crate::pager::Pager;
 use crate::tests::setup_container_with_bsize;

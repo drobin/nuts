@@ -38,7 +38,7 @@
 //!
 //! ```rust
 //! use nuts_container::container::*;
-//! use nuts_container::memory::MemoryBackend;
+//! use nuts_memory::MemoryBackend;
 //!
 //! // Example creates an encrypted container with an attached MemoryBackend.
 //!
@@ -63,7 +63,7 @@
 //!
 //! ```rust
 //! use nuts_container::container::*;
-//! use nuts_container::memory::MemoryBackend;
+//! use nuts_memory::MemoryBackend;
 //!
 //! let (backend, kdf) = {
 //!     let backend = MemoryBackend::new();

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,8 +22,9 @@
 
 #[test]
 fn create() {
-    use crate::container::*;
-    use crate::memory::MemoryBackend;
+    use nuts_container::container::*;
+
+    use crate::MemoryBackend;
 
     // Example creates an encrypted container with an attached MemoryBackend.
 
@@ -45,8 +46,9 @@ fn create() {
 
 #[test]
 fn open() {
-    use crate::container::*;
-    use crate::memory::{Error as MemoryError, MemoryBackend};
+    use nuts_container::container::*;
+
+    use crate::{Error as MemoryError, MemoryBackend};
 
     // Example tries to open a container with an attached MemoryBackend,
     // which cannot work because no header is available.
@@ -60,8 +62,9 @@ fn open() {
 
 #[test]
 fn reopen() {
-    use crate::container::*;
-    use crate::memory::MemoryBackend;
+    use nuts_container::container::*;
+
+    use crate::MemoryBackend;
 
     let (backend, kdf) = {
         let backend = MemoryBackend::new();

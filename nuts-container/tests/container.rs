@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,7 +23,7 @@
 #[test]
 fn create() {
     use nuts_container::container::*;
-    use nuts_container::memory::MemoryBackend;
+    use nuts_memory::MemoryBackend;
 
     // Create a container with a memory backend.
     let backend = MemoryBackend::new();
@@ -51,7 +51,7 @@ fn create() {
 #[test]
 fn open() {
     use nuts_container::container::*;
-    use nuts_container::memory::MemoryBackend;
+    use nuts_memory::MemoryBackend;
 
     let (backend, kdf) = {
         // In this example you create a container in a separate block.
@@ -88,7 +88,7 @@ fn open() {
 #[test]
 fn read() {
     use nuts_container::container::*;
-    use nuts_container::memory::MemoryBackend;
+    use nuts_memory::MemoryBackend;
 
     // Create a container with a memory backend.
     let mut backend = MemoryBackend::new();
@@ -128,7 +128,7 @@ fn read() {
 #[test]
 fn write() {
     use nuts_container::container::*;
-    use nuts_container::memory::MemoryBackend;
+    use nuts_memory::MemoryBackend;
 
     // In this example you create a container in a separate block.
     // So, the created container is closed again when leaving the scope.
