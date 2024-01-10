@@ -1,6 +1,6 @@
 [package]
 name = "nuts-tool"
-version = "0.3.8"
+version = "0.4.0"
 edition = "2018"
 rust-version = "1.66"
 authors = ["Robin Doer <robin@robind.de>"]
@@ -21,9 +21,9 @@ colored = "=2.0.4"
 env_logger = "=0.9.3"
 home = "=0.5.5"
 log = "=0.4.20"
-nuts-archive = { path = "../nuts-archive", version = "=0.2.4" }
-nuts-container = { path = "../nuts-container", version = "=0.2.2" }
-nuts-directory = { path = "../nuts-directory", version = "=0.3.2" }
+nuts-archive = { path = "../nuts-archive", version = "=0.4.0" }
+nuts-container = { path = "../nuts-container", version = "=0.4.0" }
+nuts-directory = { path = "../nuts-directory", version = "=0.4.0" }
 rpassword = "=7.2.0"
 
 [[bin]]

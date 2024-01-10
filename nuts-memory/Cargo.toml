@@ -22,17 +22,17 @@
 
 [package]
 name = "nuts-memory"
-version = "0.1.0"
+version = "0.4.0"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-nuts-backend = { path = "../nuts-backend", version = "=0.1.0" }
-nuts-bytes = { path = "../nuts-bytes", version = "=0.2.2", features = [
+nuts-backend = { path = "../nuts-backend", version = "=0.4.0" }
+nuts-bytes = { path = "../nuts-bytes", version = "=0.4.0", features = [
     "derive",
 ] }
 thiserror = "=1.0.50"
 
 [dev-dependencies]
-nuts-container = { path = "../nuts-container", version = "=0.2.2" }
+nuts-container = { path = "../nuts-container", version = "=0.4.0" }

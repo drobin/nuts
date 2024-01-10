@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2024-01-10
+
+Huge refactoring release. Put all `nuts-*` projects into a Cargo workspace
+project.
+
 ## nuts-archive
 
 ### 0.2.4 - 2023-12-05
@@ -290,3 +295,5 @@ Initial public release.
 ### 0.1.0 - 2023-10-02
 
 Initial public release.
+
+[0.4.0]: https://github.com/drobin/nuts/tree/v0.4.0
