@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2024-01-15
+
+### Changed
+
+Update dependencies:
+
+* `anyhow` 1.0.75 -> 1.0.79
+* `colored` 2.0.4 -> 2.1.0
+* `env_logger` 0.9.3 -> 0.10.1
+* `getrandom` 0.2.10 -> 0.2.100.2.12
+* `home` 0.5.5 -> 0.5.9
+* `openssl` 0.10.57 -> 0.10.62
+* `openssl-sys` 0.9.93 -> 0.9.98
+* `rpassword` 7.2.0 -> 7.3.1
+* `thiserror` 1.0.50 -> 1.0.56
+
 ## [0.4.0] - 2024-01-10
 
 Huge refactoring release. Put all `nuts-*` projects into a Cargo workspace
@@ -297,3 +313,4 @@ Initial public release.
 Initial public release.
 
 [0.4.0]: https://github.com/drobin/nuts/tree/v0.4.0
+[0.4.1]: https://github.com/drobin/nuts/tree/v0.4.1
