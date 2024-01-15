@@ -13,7 +13,7 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-getrandom = "=0.2.10"
+getrandom = "=0.2.12"
 log = "=0.4.20"
 nuts-backend = { path = "../nuts-backend", version = "=0.4.0" }
 nuts-bytes = { path = "../nuts-bytes", version = "=0.4.0", features = [

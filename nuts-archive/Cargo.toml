@@ -43,7 +43,7 @@ nuts-bytes = { path = "../nuts-bytes", version = "=0.4.0", features = [
     "derive",
 ] }
 nuts-container = { path = "../nuts-container", version = "=0.4.0" }
-thiserror = "=1.0.50"
+thiserror = "=1.0.56"
 
 [dev-dependencies]
 nuts-directory = { path = "../nuts-directory", version = "=0.4.0" }

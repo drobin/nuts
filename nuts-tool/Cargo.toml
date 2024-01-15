@@ -14,17 +14,17 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "=1.0.75"
+anyhow = "=1.0.79"
 chrono = "=0.4.31"
 clap = { version = "=3.2.23", features = ["cargo", "color", "derive", "env"] }
-colored = "=2.0.4"
-env_logger = "=0.9.3"
-home = "=0.5.5"
+colored = "=2.1.0"
+env_logger = "=0.10.1"
+home = "=0.5.9"
 log = "=0.4.20"
 nuts-archive = { path = "../nuts-archive", version = "=0.4.0" }
 nuts-container = { path = "../nuts-container", version = "=0.4.0" }
 nuts-directory = { path = "../nuts-directory", version = "=0.4.0" }
-rpassword = "=7.2.0"
+rpassword = "=7.3.1"
 
 [[bin]]
 name = "nuts"

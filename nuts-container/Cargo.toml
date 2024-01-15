@@ -45,9 +45,9 @@ nuts-backend = { path = "../nuts-backend", version = "=0.4.0" }
 nuts-bytes = { path = "../nuts-bytes", version = "=0.4.0", features = [
     "derive",
 ] }
-openssl = { version = "=0.10.57" }
-openssl-sys = { version = "=0.9.93" }
-thiserror = "=1.0.50"
+openssl = { version = "=0.10.62" }
+openssl-sys = { version = "=0.9.98" }
+thiserror = "=1.0.56"
 
 [dev-dependencies]
 nuts-memory = { path = "../nuts-memory", version = "=0.4.0" }
