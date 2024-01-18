@@ -1,6 +1,6 @@
 [package]
 name = "nuts-directory"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A backend implementation for nuts"
@@ -15,7 +15,7 @@ readme = "README.md"
 [dependencies]
 getrandom = "=0.2.12"
 log = "=0.4.20"
-nuts-backend = { path = "../nuts-backend", version = "=0.4.1" }
-nuts-bytes = { path = "../nuts-bytes", version = "=0.4.1", features = [
+nuts-backend = { path = "../nuts-backend", version = "=0.4.2" }
+nuts-bytes = { path = "../nuts-bytes", version = "=0.4.2", features = [
     "derive",
 ] }
