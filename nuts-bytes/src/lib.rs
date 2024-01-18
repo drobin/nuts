@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -72,13 +72,16 @@
 //!
 //! The crate implements [`PutBytes`] for the following types:
 //!
-//! * [`&mut [u8]`](trait.PutBytes.html#impl-PutBytes-for-%26mut%20%5Bu8%5D)
+//! * [`&mut [u8]`](trait.PutBytes.html#impl-PutBytes-for-%26mut+%5Bu8%5D)
 //!   Serialize into a [slice] of `u8` values. Not more than [`slice::len()`]
 //!   bytes can be written. If the number of bytes exceeds the size of the
 //!   slice, a [`PutBytesError::NoSpace`] error is raised.
 //! * [`Vec<u8>`](trait.PutBytes.html#impl-PutBytes-for-Vec<u8>)
 //!   Serialize into a [`Vec`] of `u8` values. The binary data are appended to
 //!   the [`Vec`].
+//! * [`&mut Vec<u8>`](trait.PutBytes.html#impl-PutBytes-for-%26mut+Vec<u8>)
+//!   Serialize into a mutable reference of a  [`Vec`] of `u8` values. The
+//!   binary data are appended to the [`Vec`].
 //!
 //! ## Serialization examples
 //!

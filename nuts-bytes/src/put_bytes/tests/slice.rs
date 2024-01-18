@@ -20,6 +20,60 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod slice;
-mod vec;
-mod vec_ref;
+use crate::{PutBytes, PutBytesError};
+
+#[test]
+fn empty_slice_put_zero() {
+    let mut buf = [0; 0];
+
+    buf.as_mut().put_bytes(&[]).unwrap();
+}
+
+#[test]
+fn empty_slice_put_one() {
+    let mut buf = [0; 0];
+
+    let err = buf.as_mut().put_bytes(&[1]).unwrap_err();
+    assert_eq!(err, PutBytesError::NoSpace);
+}
+
+#[test]
+fn slice_put_zero() {
+    let mut buf = [b'x'; 3];
+
+    buf.as_mut().put_bytes(&[]).unwrap();
+    assert_eq!(buf, [b'x', b'x', b'x']);
+}
+
+#[test]
+fn slice_put_one() {
+    let mut buf = [b'x'; 3];
+
+    buf.as_mut().put_bytes(&[1]).unwrap();
+    assert_eq!(buf, [1, b'x', b'x']);
+}
+
+#[test]
+fn slice_put_two() {
+    let mut buf = [b'x'; 3];
+
+    buf.as_mut().put_bytes(&[1, 2]).unwrap();
+    assert_eq!(buf, [1, 2, b'x']);
+}
+
+#[test]
+fn slice_put_three() {
+    let mut buf = [b'x'; 3];
+
+    buf.as_mut().put_bytes(&[1, 2, 3]).unwrap();
+    assert_eq!(buf, [1, 2, 3]);
+}
+
+#[test]
+fn slice_put_four() {
+    let mut buf = [b'x'; 3];
+
+    let err = buf.as_mut().put_bytes(&[1, 2, 3, 4]).unwrap_err();
+    assert_eq!(err, PutBytesError::NoSpace);
+    assert_eq!(buf, [b'x', b'x', b'x']);
+}

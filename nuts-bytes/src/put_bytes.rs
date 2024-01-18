@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -73,6 +73,13 @@ impl PutBytes for &mut [u8] {
 
 /// `PutBytes` is implemented for [`Vec<u8>`] by appending bytes to the `Vec`.
 impl PutBytes for Vec<u8> {
+    fn put_bytes(&mut self, buf: &[u8]) -> Result<(), PutBytesError> {
+        Ok(self.extend_from_slice(buf))
+    }
+}
+
+/// `PutBytes` is implemented for [&mut `Vec<u8>`] by appending bytes to the `Vec`.
+impl PutBytes for &mut Vec<u8> {
     fn put_bytes(&mut self, buf: &[u8]) -> Result<(), PutBytesError> {
         Ok(self.extend_from_slice(buf))
     }
