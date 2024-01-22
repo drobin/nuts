@@ -37,10 +37,10 @@
 //! use nuts_archive::Archive;
 //! use nuts_container::{Cipher, Container, CreateOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend};
-//! use tempdir::TempDir;
+//! use tempfile::{Builder, TempDir};
 //!
 //! // Let's create a container (with a directory backend) in a temporary directory
-//! let tmp_dir = TempDir::new("nuts-archive").unwrap();
+//! let tmp_dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 //! let backend_options = CreateOptions::for_path(tmp_dir);
 //! let contaner_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
 //!     .with_password_callback(|| Ok(b"123".to_vec()))
@@ -63,11 +63,11 @@
 //! use nuts_archive::Archive;
 //! use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
-//! use tempdir::TempDir;
+//! use tempfile::{Builder, TempDir};
 //!
 //! // This will create an empty archive in a temporary directory.
 //! let tmp_dir = {
-//!     let dir = TempDir::new("nuts-archive").unwrap();
+//!     let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 //!
 //!     let backend_options = CreateOptions::for_path(&dir);
 //!     let contaner_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
@@ -95,7 +95,7 @@
 //! // Open the archive
 //! let archive = Archive::open(container).unwrap();
 //!
-//! // Ferch some information
+//! // Fetch some information
 //! let info = archive.info();
 //! assert_eq!(info.blocks, 0);
 //! assert_eq!(info.files, 0);
@@ -107,11 +107,11 @@
 //! use nuts_archive::Archive;
 //! use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
-//! use tempdir::TempDir;
+//! use tempfile::{Builder, TempDir};
 //!
 //! // This will create an empty archive in a temporary directory.
 //! let tmp_dir = {
-//!     let dir = TempDir::new("nuts-archive").unwrap();
+//!     let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 //!
 //!     let backend_options = CreateOptions::for_path(&dir);
 //!     let contaner_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
@@ -162,11 +162,11 @@
 //! use nuts_archive::Archive;
 //! use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
-//! use tempdir::TempDir;
+//! use tempfile::{Builder, TempDir};
 //!
 //! // This will create an empty archive in a temporary directory.
 //! let tmp_dir = {
-//!     let dir = TempDir::new("nuts-archive").unwrap();
+//!     let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 //!
 //!     let backend_options = CreateOptions::for_path(&dir);
 //!     let contaner_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)

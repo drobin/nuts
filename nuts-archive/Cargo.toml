@@ -48,4 +48,4 @@ thiserror = "=1.0.56"
 [dev-dependencies]
 nuts-directory = { path = "../nuts-directory", version = "=0.4.2" }
 nuts-memory = { path = "../nuts-memory", version = "=0.4.2" }
-tempdir = "=0.3.7"
+tempfile = "~3.9.0"

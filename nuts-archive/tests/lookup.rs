@@ -23,10 +23,10 @@
 use nuts_archive::Archive;
 use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
-use tempdir::TempDir;
+use tempfile::{Builder, TempDir};
 
 fn setup_archive() -> TempDir {
-    let tmp_dir = TempDir::new("nuts-archive").unwrap();
+    let tmp_dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 
     let backend_options = CreateOptions::for_path(&tmp_dir);
     let contaner_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
