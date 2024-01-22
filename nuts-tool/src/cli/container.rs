@@ -30,7 +30,8 @@ pub mod release;
 pub mod write;
 
 use anyhow::Result;
-use clap::{Args, PossibleValue, Subcommand, ValueEnum};
+use clap::builder::PossibleValue;
+use clap::{Args, Subcommand, ValueEnum};
 use nuts_container::Cipher;
 use std::ops::Deref;
 
@@ -73,7 +74,7 @@ impl ValueEnum for CliCipher {
         ]
     }
 
-    fn to_possible_value<'a>(&self) -> Option<PossibleValue<'a>> {
+    fn to_possible_value(&self) -> Option<PossibleValue> {
         let value = match self.0 {
             Cipher::None => NONE,
             Cipher::Aes128Ctr => AES128_CTR,
