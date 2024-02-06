@@ -167,8 +167,6 @@ impl<P: AsRef<Path>> HeaderSet<Self> for DirectoryBackend<P> {
 }
 
 impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
-    type CreateOptions = CreateOptions<P>;
-    type OpenOptions = OpenOptions<P>;
     type Settings = Settings;
     type Err = Error;
     type Id = Id;

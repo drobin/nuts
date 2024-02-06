@@ -204,8 +204,6 @@ impl Open<Self> for MemoryBackend {
 }
 
 impl Backend for MemoryBackend {
-    type CreateOptions = Self;
-    type OpenOptions = Self;
     type Settings = ();
     type Err = Error;
     type Id = Id;

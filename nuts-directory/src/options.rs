@@ -33,8 +33,7 @@ use crate::{read_header, write_header, DirectoryBackend};
 
 const BLOCK_MIN_SIZE: u32 = 512;
 
-/// [Options](nuts_backend::Backend::CreateOptions) needed to create the
-/// backend.
+/// [Options](nuts_backend::Create) needed to create the backend.
 ///
 /// You must pass the path, where the directory tree should be stored, to
 /// [`CreateOptions::for_path()`], if creating a `CreateOptions` instance.
@@ -139,7 +138,7 @@ impl<P: AsRef<Path>> Create<DirectoryBackend<P>> for CreateOptions<P> {
     }
 }
 
-/// [Options](nuts_backend::Backend::OpenOptions) needed to open the backend.
+/// [Options](nuts_backend::Open) needed to open the backend.
 ///
 /// You must pass the path, where the directory tree is stored, to
 /// [`OpenOptions::for_path()`], if creating a `OpenOptions` instance.

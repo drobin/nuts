@@ -174,16 +174,6 @@ pub trait Backend: HeaderGet<Self> + HeaderSet<Self>
 where
     Self: Sized,
 {
-    /// Options used to create a backend instance.
-    ///
-    /// Used to create a backend.
-    type CreateOptions: Create<Self>;
-
-    /// Options used to open a backend instance.
-    ///
-    /// Use to open the backend.
-    type OpenOptions: Open<Self>;
-
     /// Runtime configuration used by the backend.
     ///
     /// It should contain all settings/information needed by the backend. It is

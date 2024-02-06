@@ -36,9 +36,8 @@
 //! ## Create a container
 //!
 //! The [`Container::create()`] method is used to create a new container. It
-//! expects an instance of a type that implements the
-//! [`Backend::CreateOptions`] trait, which acts as a builder for the related
-//! [`Backend`].
+//! expects an instance of a type that implements the [`Create`] trait, which
+//! acts as a builder for the related [`Backend`].
 //!
 //! Example:
 //!
@@ -72,8 +71,8 @@
 //! ## Open a container
 //!
 //! The [`Container::open()`] method is used to open a container. It expects an
-//! instance of a type that implements the [`Backend::OpenOptions`] trait,
-//! which acts as a builder for the related [`Backend`].
+//! instance of a type that implements the [`Open`] trait, which acts as a
+//! builder for the related [`Backend`].
 //!
 //! Example:
 //!
@@ -300,8 +299,8 @@ impl<B: Backend> Container<B> {
     /// This method expects two arguments:
     ///
     /// 1. `backend_options`, which is a type that implements the
-    ///    [`Backend::CreateOptions`] trait. It acts as a builder for a
-    ///    concrete [`Backend`] instance.
+    ///    [`Create`] trait. It acts as a builder for a concrete [`Backend`]
+    ///    instance.
     /// 2. `options`, which is a builder of this `Container`. A
     ///    [`CreateOptions`] instance can be created with the
     ///    [`CreateOptionsBuilder`] utility.
@@ -318,8 +317,8 @@ impl<B: Backend> Container<B> {
     /// # Errors
     ///
     /// Errors are listed in the [`Error`] type.
-    pub fn create(
-        mut backend_options: B::CreateOptions,
+    pub fn create<C: Create<B>>(
+        mut backend_options: C,
         options: CreateOptions,
     ) -> ContainerResult<Container<B>, B> {
         let header = Header::create(&options)?;
@@ -351,9 +350,8 @@ impl<B: Backend> Container<B> {
     ///
     /// This method expects two arguments:
     ///
-    /// 1. `backend_options`, which is a type that implements the
-    ///    [`Backend::OpenOptions`] trait. It acts as a builder for a concrete
-    ///    [`Backend`] instance.
+    /// 1. `backend_options`, which is a type that implements the [`Open`]
+    ///    trait. It acts as a builder for a concrete [`Backend`] instance.
     /// 2. `options`, which is a builder of this `Container`. A
     ///    [`OpenOptions`] instance can be created with the
     ///    [`OpenOptionsBuilder`] utility.
@@ -366,8 +364,8 @@ impl<B: Backend> Container<B> {
     /// # Errors
     ///
     /// Errors are listed in the [`Error`] type.
-    pub fn open(
-        mut backend_options: B::OpenOptions,
+    pub fn open<O: Open<B>>(
+        mut backend_options: O,
         options: OpenOptions,
     ) -> ContainerResult<Container<B>, B> {
         let callback = options.callback.map(|cb| cb.clone());
