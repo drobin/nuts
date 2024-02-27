@@ -21,11 +21,10 @@
 // IN THE SOFTWARE.
 
 mod cache;
-mod node;
 #[cfg(test)]
 mod tests;
 
-use log::{debug, warn};
+use log::debug;
 use nuts_backend::{Backend, BlockId};
 use nuts_bytes::{FromBytes, ToBytes};
 use nuts_container::Container;
@@ -34,27 +33,22 @@ use std::mem;
 use crate::error::{ArchiveResult, Error};
 use crate::pager::Pager;
 use crate::tree::cache::Cache;
-use crate::tree::node::Node;
 
 fn ids_per_node<B: Backend>(container: &Container<B>) -> u32 {
-    container.block_size() / B::Id::size() as u32
+    (container.block_size() - mem::size_of::<u32>() as u32) / B::Id::size() as u32
 }
 
 const NUM_DIRECT: u32 = 12;
-
-fn make_cache<B: Backend>() -> Vec<Cache<B>> {
-    vec![]
-}
+const IDX_INDIRECT: usize = NUM_DIRECT as usize;
+const IDX_D_INDIRECT: usize = IDX_INDIRECT + 1;
+const IDX_T_INDIRECT: usize = IDX_D_INDIRECT + 1;
 
 #[derive(Debug, FromBytes, ToBytes)]
 pub struct Tree<B: Backend> {
-    direct: [B::Id; NUM_DIRECT as usize],
-    indirect: B::Id,
-    d_indirect: B::Id,
-    t_indirect: B::Id,
+    ids: Vec<B::Id>,
     nblocks: u64,
-    #[nuts_bytes(skip, default = make_cache)]
-    cache: Vec<Cache<B>>,
+    #[nuts_bytes(skip)]
+    cache: Cache<B>,
 }
 
 impl<B: Backend> Tree<B> {
@@ -70,25 +64,9 @@ impl<B: Backend> Tree<B> {
 
     pub fn new() -> Tree<B> {
         Tree {
-            direct: [
-                B::Id::null(),
-                B::Id::null(),
-                B::Id::null(),
-                B::Id::null(),
-                B::Id::null(),
-                B::Id::null(),
-                B::Id::null(),
-                B::Id::null(),
-                B::Id::null(),
-                B::Id::null(),
-                B::Id::null(),
-                B::Id::null(),
-            ],
-            indirect: B::Id::null(),
-            d_indirect: B::Id::null(),
-            t_indirect: B::Id::null(),
+            ids: vec![],
             nblocks: 0,
-            cache: vec![],
+            cache: Cache::new(),
         }
     }
 
@@ -99,210 +77,185 @@ impl<B: Backend> Tree<B> {
     pub fn aquire(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
         let ipn = ids_per_node(pager) as u64; // ids per node
 
-        if self.nblocks < NUM_DIRECT as u64 + ipn + ipn * ipn + ipn * ipn * ipn {
-            self.lookup_cache(pager, self.nblocks as usize, true)
+        if self.nblocks < NUM_DIRECT as u64 {
+            self.aquire_direct(pager)
+        } else if self.nblocks < NUM_DIRECT as u64 + ipn {
+            self.aquire_indirect(pager)
+        } else if self.nblocks < NUM_DIRECT as u64 + ipn + ipn * ipn {
+            self.aquire_d_indirect(pager)
+        } else if self.nblocks < NUM_DIRECT as u64 + ipn + ipn * ipn + ipn * ipn * ipn {
+            self.aquire_t_indirect(pager)
         } else {
             Err(Error::Full)
         }
     }
 
     pub fn lookup(&mut self, pager: &mut Pager<B>, idx: usize) -> Option<ArchiveResult<&B::Id, B>> {
-        if idx < self.nblocks as usize {
-            match self.lookup_cache(pager, idx, false) {
-                Ok(id) => {
-                    if id.is_null() {
-                        None
-                    } else {
-                        Some(Ok(id))
-                    }
-                }
-                Err(err) => Some(Err(err)),
-            }
-        } else {
-            None
+        if idx >= self.nblocks as usize {
+            return None;
         }
-    }
 
-    fn lookup_cache(
-        &mut self,
-        pager: &mut Pager<B>,
-        idx: usize,
-        aquire: bool,
-    ) -> ArchiveResult<&B::Id, B> {
         let ipn = ids_per_node(pager) as usize; // ids per node
 
-        if idx < NUM_DIRECT as usize {
-            self.lookup_direct(pager, idx, aquire)
+        let result = if idx < NUM_DIRECT as usize {
+            self.lookup_direct(idx)
         } else if idx < NUM_DIRECT as usize + ipn {
-            self.lookup_indirect(pager, idx - NUM_DIRECT as usize, aquire)
+            self.lookup_indirect(pager, idx - NUM_DIRECT as usize)
         } else if idx < NUM_DIRECT as usize + ipn + ipn * ipn {
-            self.lookup_d_indirect(pager, idx - NUM_DIRECT as usize - ipn, aquire)
+            self.lookup_d_indirect(pager, idx - NUM_DIRECT as usize - ipn)
         } else {
-            self.lookup_t_indirect(pager, idx - NUM_DIRECT as usize - ipn - ipn * ipn, aquire)
+            self.lookup_t_indirect(pager, idx - NUM_DIRECT as usize - ipn - ipn * ipn)
+        };
+
+        match result {
+            Ok(Some(id)) => Some(Ok(id)),
+            Ok(None) => None,
+            Err(err) => Some(Err(err)),
         }
     }
 
-    fn lookup_direct(
-        &mut self,
-        pager: &mut Pager<B>,
-        idx: usize,
-        aquire: bool,
-    ) -> ArchiveResult<&B::Id, B> {
-        if aquire {
-            if self.direct[idx].is_null() {
-                self.direct[idx] = pager.aquire()?;
-                self.nblocks += 1;
-            } else {
-                warn!("lookup_direct: already aquired at {}", idx);
-            }
-        }
+    fn lookup_direct(&mut self, idx: usize) -> ArchiveResult<Option<&B::Id>, B> {
+        assert!(idx < NUM_DIRECT as usize);
+
+        let id = self.ids.get(idx);
 
         debug!(
-            "lookup_direct: idx={}, aquire={}, nblocks={}, id={}",
-            idx, aquire, self.nblocks, self.direct[idx]
+            "lookup_direct: idx={}, nblocks={}, id={:?}",
+            idx, self.nblocks, id
         );
 
-        Ok(&self.direct[idx])
+        Ok(id)
+    }
+
+    fn aquire_direct(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
+        assert!(self.nblocks < NUM_DIRECT as u64);
+
+        self.ids.push(pager.aquire()?);
+        self.nblocks += 1;
+
+        let id = &self.ids[self.nblocks as usize - 1];
+
+        debug!("aquire_direct: nblocks={} => {}", self.nblocks, id);
+
+        Ok(id)
     }
 
     fn lookup_indirect(
         &mut self,
         pager: &mut Pager<B>,
         idx: usize,
-        aquire: bool,
-    ) -> ArchiveResult<&B::Id, B> {
-        if self.indirect.is_null() {
-            self.indirect = Node::aquire(pager)?;
-        }
-
-        self.cache.resize_with(1, || Cache::new(pager));
-        self.cache[0].refresh(pager, &self.indirect)?;
-
-        debug!("lookup_indirect: cache={}", self.cache[0].id());
-
-        if aquire {
-            if self.cache[0].aquire(pager, idx, true)? {
-                self.nblocks += 1;
-            } else {
-                warn!("lookup_indirect: already aquired at {}", idx);
-            }
-        }
+    ) -> ArchiveResult<Option<&B::Id>, B> {
+        let id = self
+            .cache
+            .resolve(pager, self.ids.get(IDX_INDIRECT), &[idx])?;
 
         debug!(
-            "loopup_indirect: idx={}, aquire={}, nblocks={}, id={}",
-            idx, aquire, self.nblocks, self.cache[0][idx]
+            "loopup_indirect: idx={}, nblocks={}, {:?}",
+            idx, self.nblocks, id
         );
 
-        Ok(&self.cache[0][idx])
+        Ok(id)
+    }
+
+    fn aquire_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
+        while self.ids.get(IDX_INDIRECT).is_none() {
+            self.ids.push(pager.aquire()?);
+        }
+
+        let idx = self.nblocks as usize - NUM_DIRECT as usize;
+        let id = self.cache.aquire(pager, &self.ids[IDX_INDIRECT], &[idx])?;
+
+        self.nblocks += 1;
+
+        debug!(
+            "aquire_indirect: idx={}, nblocks={} => {}",
+            idx, self.nblocks, id
+        );
+
+        Ok(id)
     }
 
     fn lookup_d_indirect(
         &mut self,
         pager: &mut Pager<B>,
         idx: usize,
-        aquire: bool,
-    ) -> ArchiveResult<&B::Id, B> {
+    ) -> ArchiveResult<Option<&B::Id>, B> {
         let ipn = ids_per_node(pager) as usize; // ids per node
+        let d_idx = [(idx / ipn) % ipn, idx % ipn];
+        let d_indirect = self.ids.get(IDX_D_INDIRECT);
 
-        if self.d_indirect.is_null() {
-            self.d_indirect = Node::aquire(pager)?;
-        }
-
-        self.cache.resize_with(2, || Cache::new(pager));
-
-        let d_idx = ((idx / ipn) % ipn, idx % ipn);
-
-        // level 0
-
-        self.cache[0].refresh(pager, &self.d_indirect)?;
-        debug!("lookup_d_indirect: cache[0]={}", self.cache[0].id());
-
-        if aquire {
-            self.cache[0].aquire(pager, d_idx.0, false)?;
-        } else if self.cache[0][d_idx.0].is_null() {
-            return Ok(&self.cache[0][d_idx.0]);
-        }
-
-        // level 1
-
-        let id = self.cache[0][d_idx.0].clone();
-        self.cache[1].refresh(pager, &id)?;
-        debug!("lookup_d_indirect: cache[1]={}", self.cache[1].id());
-
-        if aquire {
-            if self.cache[1].aquire(pager, d_idx.1, true)? {
-                self.nblocks += 1;
-            } else {
-                warn!("lookup_d_indirect: already aquired at {}", d_idx.1);
-            }
-        }
+        let id = self.cache.resolve(pager, d_indirect, &d_idx)?;
 
         debug!(
-            "loopup_d_indirect: idx={} => ({}, {}), aquire={}, nblocks={}, id={}",
-            idx, d_idx.0, d_idx.1, aquire, self.nblocks, self.cache[1][d_idx.1]
+            "loopup_d_indirect: idx={} => {:?}, nblocks={} => {:?}",
+            idx, d_idx, self.nblocks, id
         );
 
-        Ok(&self.cache[1][d_idx.1])
+        Ok(id)
+    }
+
+    fn aquire_d_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
+        while self.ids.get(IDX_D_INDIRECT).is_none() {
+            self.ids.push(pager.aquire()?);
+        }
+
+        let ipn = ids_per_node(pager) as usize; // ids per node
+        let idx = self.nblocks as usize - NUM_DIRECT as usize - ipn;
+
+        let d_idx = [(idx / ipn) % ipn, idx % ipn];
+        let d_indirect = &self.ids[IDX_D_INDIRECT];
+
+        let id = self.cache.aquire(pager, d_indirect, &d_idx)?;
+
+        self.nblocks += 1;
+
+        debug!(
+            "aquire_d_indirect: idx={} => {:?}, nblocks={} => {}",
+            idx, d_idx, self.nblocks, id
+        );
+
+        Ok(id)
     }
 
     fn lookup_t_indirect(
         &mut self,
         pager: &mut Pager<B>,
         idx: usize,
-        aquire: bool,
-    ) -> ArchiveResult<&B::Id, B> {
+    ) -> ArchiveResult<Option<&B::Id>, B> {
         let ipn = ids_per_node(pager) as usize; // ids per node
+        let t_idx = [(idx / (ipn * ipn)) % ipn, (idx / ipn) % ipn, idx % ipn];
+        let t_indirect = self.ids.get(IDX_T_INDIRECT);
 
-        if self.t_indirect.is_null() {
-            self.t_indirect = Node::aquire(pager)?;
-        }
-
-        self.cache.resize_with(3, || Cache::new(pager));
-
-        let t_idx = ((idx / (ipn * ipn)) % ipn, (idx / ipn) % ipn, idx % ipn);
-
-        // level 0
-
-        self.cache[0].refresh(pager, &self.t_indirect)?;
-        debug!("lookup_t_indirect: cache[0]={}", self.cache[0].id());
-
-        if aquire {
-            self.cache[0].aquire(pager, t_idx.0, false)?;
-        } else if self.cache[0][t_idx.0].is_null() {
-            return Ok(&self.cache[0][t_idx.0]);
-        }
-
-        // level 1
-
-        let id = self.cache[0][t_idx.0].clone();
-        self.cache[1].refresh(pager, &id)?;
-        debug!("lookup_t_indirect: cache[1]={}", self.cache[1].id());
-
-        if aquire {
-            self.cache[1].aquire(pager, t_idx.1, false)?;
-        } else if self.cache[1][t_idx.1].is_null() {
-            return Ok(&self.cache[1][t_idx.1]);
-        }
-
-        // level 2
-
-        let id = self.cache[1][t_idx.1].clone();
-        self.cache[2].refresh(pager, &id)?;
-        debug!("lookup_t_indirect: cache[2]={}", self.cache[2].id());
-
-        if aquire {
-            if self.cache[2].aquire(pager, t_idx.2, true)? {
-                self.nblocks += 1;
-            } else {
-                warn!("lookup_t_indirect: already aquired at {}", t_idx.2);
-            }
-        }
+        let id = self.cache.resolve(pager, t_indirect, &t_idx)?;
 
         debug!(
-            "loopup_t_indirect: idx={} => ({}, {}, {}), aquire={}, nblocks={}, id={}",
-            idx, t_idx.0, t_idx.1, t_idx.2, aquire, self.nblocks, self.cache[2][t_idx.2]
+            "loopup_t_indirect: idx={} => {:?}, nblocks={} => {:?}",
+            idx, t_idx, self.nblocks, id
         );
 
-        Ok(&self.cache[2][t_idx.2])
+        Ok(id)
+    }
+
+    fn aquire_t_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
+        while self.ids.get(IDX_T_INDIRECT).is_none() {
+            self.ids.push(pager.aquire()?);
+        }
+
+        let ipn = ids_per_node(pager) as usize; // ids per node
+        let idx = self.nblocks as usize - NUM_DIRECT as usize - ipn - ipn * ipn;
+
+        let t_idx = [(idx / (ipn * ipn)) % ipn, (idx / ipn) % ipn, idx % ipn];
+        let t_indirect = &self.ids[IDX_T_INDIRECT];
+
+        let id = self.cache.aquire(pager, &t_indirect, &t_idx)?;
+
+        self.nblocks += 1;
+
+        debug!(
+            "aquire_t_indirect: idx={} => {:?}, nblocks={} => {}",
+            idx, t_idx, self.nblocks, id
+        );
+
+        Ok(id)
     }
 }

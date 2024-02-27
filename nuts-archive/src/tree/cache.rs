@@ -20,71 +20,154 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#[cfg(test)]
-mod tests;
-
-use nuts_backend::{Backend, BlockId};
-use std::ops::Deref;
+use nuts_backend::Backend;
+use nuts_bytes::{Reader, Writer};
 
 use crate::error::ArchiveResult;
 use crate::pager::Pager;
-use crate::tree::node::Node;
 
 #[derive(Debug)]
-pub struct Cache<B: Backend> {
-    id: B::Id,
+struct Node<B: Backend> {
+    buf: Vec<u8>,
+    vec: Vec<B::Id>,
+}
+
+impl<B: Backend> Node<B> {
+    fn new() -> Node<B> {
+        Node {
+            buf: vec![],
+            vec: vec![],
+        }
+    }
+
+    fn load(&mut self, id: &B::Id, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
+        self.buf.resize(pager.block_size() as usize, 0);
+        pager.read(id, &mut self.buf)?;
+
+        self.vec.clear();
+
+        let mut reader = Reader::new(self.buf.as_slice());
+        let count = reader.read::<u32>()?;
+
+        for _ in 0..count {
+            self.vec.push(reader.read()?);
+        }
+
+        Ok(())
+    }
+
+    fn flush(&mut self, id: &B::Id, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
+        self.buf.resize(pager.block_size() as usize, 0);
+
+        let mut writer = Writer::new(self.buf.as_mut_slice());
+
+        writer.write(&(self.vec.len() as u32))?;
+
+        for id in &self.vec {
+            writer.write(id)?;
+        }
+
+        pager.write(id, &self.buf)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct Inner<B: Backend> {
+    id: Option<B::Id>,
     node: Node<B>,
 }
 
-impl<'a, B: Backend> Cache<B> {
-    pub fn new(pager: &Pager<B>) -> Cache<B> {
-        Cache {
-            id: B::Id::null(),
-            node: Node::new(pager),
+impl<'a, B: Backend> Inner<B> {
+    fn new() -> Inner<B> {
+        Inner {
+            id: None,
+            node: Node::new(),
         }
     }
 
-    pub fn id(&self) -> &B::Id {
-        &self.id
+    fn refresh(&mut self, id: &B::Id, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
+        let must_refresh = match self.id.as_ref() {
+            Some(in_id) => in_id != id,
+            None => true,
+        };
+
+        if must_refresh {
+            self.id = Some(id.clone());
+            self.node.load(id, pager)?;
+        }
+
+        Ok(())
     }
 
-    pub fn refresh(&mut self, pager: &mut Pager<B>, id: &B::Id) -> ArchiveResult<bool, B> {
-        if &self.id != id {
-            self.id = id.clone();
-            self.node.fill(pager, id)?;
-
-            Ok(true)
-        } else {
-            Ok(false)
+    fn flush(&mut self, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
+        if let Some(id) = self.id.as_ref() {
+            self.node.flush(id, pager)?;
         }
-    }
 
-    pub fn aquire(
-        &mut self,
-        pager: &mut Pager<B>,
-        idx: usize,
-        leaf: bool,
-    ) -> ArchiveResult<bool, B> {
-        if self.node[idx].is_null() {
-            self.node[idx] = if leaf {
-                pager.aquire()?
-            } else {
-                Node::aquire(pager)?
-            };
-
-            self.node.flush(pager, &self.id)?;
-
-            Ok(true)
-        } else {
-            Ok(false)
-        }
+        Ok(())
     }
 }
 
-impl<B: Backend> Deref for Cache<B> {
-    type Target = Node<B>;
+#[derive(Debug)]
+pub struct Cache<B: Backend>(Vec<Inner<B>>);
 
-    fn deref(&self) -> &Node<B> {
-        &self.node
+impl<B: Backend> Cache<B> {
+    pub fn new() -> Cache<B> {
+        Cache(vec![])
+    }
+
+    pub fn resolve<'a>(
+        &'a mut self,
+        pager: &mut Pager<B>,
+        start: Option<&'a B::Id>,
+        idxs: &[usize],
+    ) -> ArchiveResult<Option<&'a B::Id>, B> {
+        self.0.resize_with(idxs.len(), || Inner::new());
+
+        let mut id_opt = start;
+
+        for (entry, idx) in self.0.iter_mut().zip(idxs) {
+            match id_opt {
+                Some(id) => {
+                    entry.refresh(id, pager)?;
+                    id_opt = entry.node.vec.get(*idx);
+                }
+                None => return Ok(None),
+            }
+        }
+
+        Ok(id_opt)
+    }
+
+    pub fn aquire<'a>(
+        &'a mut self,
+        pager: &mut Pager<B>,
+        start: &'a B::Id,
+        idxs: &[usize],
+    ) -> ArchiveResult<&'a B::Id, B> {
+        self.0.resize_with(idxs.len(), || Inner::new());
+
+        let mut id = start;
+
+        for (entry, idx) in self.0.iter_mut().zip(idxs) {
+            entry.refresh(id, pager)?;
+
+            if entry.node.vec.get(*idx).is_none() {
+                entry.node.vec.push(pager.aquire()?);
+                entry.flush(pager)?;
+            }
+
+            id = &entry.node.vec[*idx];
+        }
+
+        Ok(id)
+    }
+}
+
+impl<B: Backend> Default for Cache<B> {
+    fn default() -> Self {
+        Cache::new()
     }
 }
