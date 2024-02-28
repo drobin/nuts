@@ -34,9 +34,10 @@ use std::mem;
 use crate::error::{ArchiveResult, Error};
 use crate::pager::Pager;
 use crate::tree::cache::Cache;
+use crate::tree::node::Node;
 
 fn ids_per_node<B: Backend>(container: &Container<B>) -> u32 {
-    (container.block_size() - mem::size_of::<u32>() as u32) / B::Id::size() as u32
+    (container.block_size() - 2 * mem::size_of::<u32>() as u32) / B::Id::size() as u32
 }
 
 const NUM_DIRECT: u32 = 12;
@@ -159,9 +160,7 @@ impl<B: Backend> Tree<B> {
     }
 
     fn aquire_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
-        while self.ids.get(IDX_INDIRECT).is_none() {
-            self.ids.push(pager.aquire()?);
-        }
+        self.ensure_id(IDX_INDIRECT, pager)?;
 
         let idx = self.nblocks as usize - NUM_DIRECT as usize;
         let id = self.cache.aquire(pager, &self.ids[IDX_INDIRECT], &[idx])?;
@@ -196,9 +195,7 @@ impl<B: Backend> Tree<B> {
     }
 
     fn aquire_d_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
-        while self.ids.get(IDX_D_INDIRECT).is_none() {
-            self.ids.push(pager.aquire()?);
-        }
+        self.ensure_id(IDX_D_INDIRECT, pager)?;
 
         let ipn = ids_per_node(pager) as usize; // ids per node
         let idx = self.nblocks as usize - NUM_DIRECT as usize - ipn;
@@ -238,9 +235,7 @@ impl<B: Backend> Tree<B> {
     }
 
     fn aquire_t_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
-        while self.ids.get(IDX_T_INDIRECT).is_none() {
-            self.ids.push(pager.aquire()?);
-        }
+        self.ensure_id(IDX_T_INDIRECT, pager)?;
 
         let ipn = ids_per_node(pager) as usize; // ids per node
         let idx = self.nblocks as usize - NUM_DIRECT as usize - ipn - ipn * ipn;
@@ -258,5 +253,17 @@ impl<B: Backend> Tree<B> {
         );
 
         Ok(id)
+    }
+
+    fn ensure_id(&mut self, idx: usize, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
+        while self.ids.get(idx).is_none() {
+            let id = pager.aquire()?;
+
+            Node::<B>::new().flush(&id, pager)?;
+
+            self.ids.push(id);
+        }
+
+        Ok(())
     }
 }

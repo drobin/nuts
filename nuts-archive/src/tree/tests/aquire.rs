@@ -24,11 +24,9 @@ use nuts_memory::MemoryBackend;
 
 use crate::pager::Pager;
 use crate::tests::setup_container_with_bsize;
-use crate::tree::tests::{_id, assert_direct, make_tree};
+use crate::tree::tests::{_id, assert_direct, make_tree, BSIZE};
 use crate::tree::Tree;
 use crate::Error;
-
-const BSIZE: u32 = 12;
 
 macro_rules! assert_indirect {
     ($tree:expr, $pager:expr) => {

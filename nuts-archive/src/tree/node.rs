@@ -20,6 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
 use std::ops::Deref;
 
 use nuts_backend::Backend;
@@ -27,6 +30,8 @@ use nuts_bytes::{Reader, Writer};
 
 use crate::error::ArchiveResult;
 use crate::pager::Pager;
+
+const MAGIC: [u8; 4] = *b"node";
 
 #[derive(Debug)]
 pub struct Node<B: Backend> {
@@ -49,6 +54,13 @@ impl<B: Backend> Node<B> {
         self.vec.clear();
 
         let mut reader = Reader::new(self.buf.as_slice());
+
+        let magic = reader.read::<[u8; MAGIC.len()]>()?;
+
+        if magic != MAGIC {
+            return Err(crate::Error::InvalidNode(id.clone()));
+        }
+
         let count = reader.read::<u32>()?;
 
         for _ in 0..count {
@@ -58,8 +70,13 @@ impl<B: Backend> Node<B> {
         Ok(())
     }
 
-    pub fn add(&mut self, id: B::Id) {
-        self.vec.push(id)
+    pub fn aquire(&mut self, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
+        let id = pager.aquire()?;
+
+        Node::<B>::new().flush(&id, pager)?;
+        self.vec.push(id);
+
+        Ok(())
     }
 
     pub fn flush(&mut self, id: &B::Id, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
@@ -67,6 +84,7 @@ impl<B: Backend> Node<B> {
 
         let mut writer = Writer::new(self.buf.as_mut_slice());
 
+        writer.write(&MAGIC)?;
         writer.write(&(self.vec.len() as u32))?;
 
         for id in &self.vec {

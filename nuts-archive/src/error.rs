@@ -62,6 +62,10 @@ pub enum Error<B: Backend> {
     #[error("the block size is too small")]
     InvalidBlockSize,
 
+    /// Tries to read an archive node, which is invalid.
+    #[error("not an archive node: {0}")]
+    InvalidNode(B::Id),
+
     /// An error returned by
     /// [`FileEntry::read_all()`](crate::FileEntry::read_all) when the
     /// operation could not be completed because an “end of file” was reached

@@ -108,7 +108,7 @@ impl<B: Backend> Cache<B> {
             entry.refresh(id, pager)?;
 
             if entry.node.get(*idx).is_none() {
-                entry.node.add(pager.aquire()?);
+                entry.node.aquire(pager)?;
                 entry.flush(pager)?;
             }
 

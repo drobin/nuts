@@ -25,15 +25,14 @@ use nuts_memory::MemoryBackend;
 
 use crate::pager::Pager;
 use crate::tests::setup_container_with_bsize;
-use crate::tree::tests::{_id, assert_direct, make_tree};
+use crate::tree::tests::{_id, assert_direct, make_tree, BSIZE};
 use crate::tree::Tree;
-
-const BSIZE: u32 = 12;
 
 macro_rules! make_node {
     ($pager:expr, $parent:expr, $num:literal => $($id:expr),+) => {{
         let mut writer = Writer::new(vec![]);
 
+        writer.write(b"node").unwrap();
         writer.write(&($num as u32)).unwrap();
 
         $(

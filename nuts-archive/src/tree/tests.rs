@@ -29,6 +29,8 @@ use nuts_memory::MemoryBackend;
 use crate::tree::cache::Cache;
 use crate::tree::Tree;
 
+const BSIZE: u32 = 16;
+
 macro_rules! _id {
     ($id:expr) => {
         $id.parse::<<nuts_memory::MemoryBackend as nuts_backend::Backend>::Id>()
