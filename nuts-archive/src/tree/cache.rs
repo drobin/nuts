@@ -21,57 +21,10 @@
 // IN THE SOFTWARE.
 
 use nuts_backend::Backend;
-use nuts_bytes::{Reader, Writer};
 
 use crate::error::ArchiveResult;
 use crate::pager::Pager;
-
-#[derive(Debug)]
-struct Node<B: Backend> {
-    buf: Vec<u8>,
-    vec: Vec<B::Id>,
-}
-
-impl<B: Backend> Node<B> {
-    fn new() -> Node<B> {
-        Node {
-            buf: vec![],
-            vec: vec![],
-        }
-    }
-
-    fn load(&mut self, id: &B::Id, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
-        self.buf.resize(pager.block_size() as usize, 0);
-        pager.read(id, &mut self.buf)?;
-
-        self.vec.clear();
-
-        let mut reader = Reader::new(self.buf.as_slice());
-        let count = reader.read::<u32>()?;
-
-        for _ in 0..count {
-            self.vec.push(reader.read()?);
-        }
-
-        Ok(())
-    }
-
-    fn flush(&mut self, id: &B::Id, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
-        self.buf.resize(pager.block_size() as usize, 0);
-
-        let mut writer = Writer::new(self.buf.as_mut_slice());
-
-        writer.write(&(self.vec.len() as u32))?;
-
-        for id in &self.vec {
-            writer.write(id)?;
-        }
-
-        pager.write(id, &self.buf)?;
-
-        Ok(())
-    }
-}
+use crate::tree::node::Node;
 
 #[derive(Debug)]
 struct Inner<B: Backend> {
@@ -132,7 +85,7 @@ impl<B: Backend> Cache<B> {
             match id_opt {
                 Some(id) => {
                     entry.refresh(id, pager)?;
-                    id_opt = entry.node.vec.get(*idx);
+                    id_opt = entry.node.get(*idx);
                 }
                 None => return Ok(None),
             }
@@ -154,12 +107,12 @@ impl<B: Backend> Cache<B> {
         for (entry, idx) in self.0.iter_mut().zip(idxs) {
             entry.refresh(id, pager)?;
 
-            if entry.node.vec.get(*idx).is_none() {
-                entry.node.vec.push(pager.aquire()?);
+            if entry.node.get(*idx).is_none() {
+                entry.node.add(pager.aquire()?);
                 entry.flush(pager)?;
             }
 
-            id = &entry.node.vec[*idx];
+            id = &entry.node[*idx];
         }
 
         Ok(id)

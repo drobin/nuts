@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 mod cache;
+mod node;
 #[cfg(test)]
 mod tests;
 
