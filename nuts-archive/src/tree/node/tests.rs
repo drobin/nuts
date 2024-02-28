@@ -107,6 +107,21 @@ fn flush() {
 }
 
 #[test]
+fn flush_nospace() {
+    let mut pager = Pager::new(setup_container_with_bsize(19));
+    let id = pager.aquire().unwrap();
+
+    let mut node = Node::new();
+
+    node.vec.push("4711".parse().unwrap());
+    node.vec.push("4712".parse().unwrap());
+    node.vec.push("4713".parse().unwrap());
+
+    let err = node.flush(&id, &mut pager).unwrap_err();
+    assert!(matches!(err, Error::InvalidBlockSize));
+}
+
+#[test]
 fn aquire() {
     let mut pager = Pager::new(setup_container_with_bsize(16));
     let mut node = Node::<MemoryBackend>::new();

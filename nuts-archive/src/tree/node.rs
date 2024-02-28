@@ -23,12 +23,11 @@
 #[cfg(test)]
 mod tests;
 
+use nuts_backend::Backend;
+use nuts_bytes::{PutBytesError, Reader, Writer};
 use std::ops::Deref;
 
-use nuts_backend::Backend;
-use nuts_bytes::{Reader, Writer};
-
-use crate::error::ArchiveResult;
+use crate::error::{ArchiveResult, Error};
 use crate::pager::Pager;
 
 const MAGIC: [u8; 4] = *b"node";
@@ -82,6 +81,20 @@ impl<B: Backend> Node<B> {
     pub fn flush(&mut self, id: &B::Id, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
         self.buf.resize(pager.block_size() as usize, 0);
 
+        if let Err(err) = self.flush_to_buf() {
+            let err: Error<B> = match err {
+                nuts_bytes::Error::PutBytes(PutBytesError::NoSpace) => Error::InvalidBlockSize,
+                _ => err.into(),
+            };
+            return Err(err);
+        }
+
+        pager.write(id, &self.buf)?;
+
+        Ok(())
+    }
+
+    fn flush_to_buf(&mut self) -> Result<(), nuts_bytes::Error> {
         let mut writer = Writer::new(self.buf.as_mut_slice());
 
         writer.write(&MAGIC)?;
@@ -90,8 +103,6 @@ impl<B: Backend> Node<B> {
         for id in &self.vec {
             writer.write(id)?;
         }
-
-        pager.write(id, &self.buf)?;
 
         Ok(())
     }
