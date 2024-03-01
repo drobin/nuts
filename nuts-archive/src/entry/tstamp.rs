@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,6 @@
 
 use chrono::{DateTime, Utc};
 use nuts_bytes::{FromBytes, ToBytes};
-use std::mem;
 
 use crate::datetime;
 
@@ -42,10 +41,6 @@ pub struct Timestamps {
 }
 
 impl Timestamps {
-    pub(crate) fn size() -> usize {
-        4 * mem::size_of::<i64>()
-    }
-
     pub fn new() -> Timestamps {
         let now = Utc::now();
 

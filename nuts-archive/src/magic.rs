@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,8 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::mem;
-
 pub const MAGIC: [u8; 12] = *b"nuts-archive";
 
 pub type Magic = [u8; 12];
@@ -36,8 +34,4 @@ pub fn validate_magic<E: MagicErrorFactory>(magic: Magic) -> Result<Magic, E> {
     } else {
         Err(E::create())
     }
-}
-
-pub fn magic_size() -> usize {
-    mem::size_of::<[u8; 12]>()
 }

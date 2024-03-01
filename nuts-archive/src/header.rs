@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -25,11 +25,10 @@ mod tests;
 
 use chrono::{DateTime, Utc};
 use nuts_bytes::{FromBytes, ToBytes};
-use std::mem;
 use thiserror::Error;
 
 use crate::datetime;
-use crate::magic::{magic_size, validate_magic, Magic, MagicErrorFactory, MAGIC};
+use crate::magic::{validate_magic, Magic, MagicErrorFactory, MAGIC};
 
 #[derive(Debug, Error)]
 #[error("invalid header")]
@@ -54,15 +53,6 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn size() -> usize {
-        let magic = magic_size();
-        let revision = mem::size_of::<u16>();
-        let tstamps = 2 * mem::size_of::<i64>();
-        let nfiles = mem::size_of::<u64>();
-
-        magic + revision + tstamps + nfiles
-    }
-
     pub fn create() -> Header {
         let now = Utc::now();
 

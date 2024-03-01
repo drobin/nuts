@@ -27,7 +27,6 @@ pub(crate) mod tstamp;
 
 use nuts_backend::Backend;
 use nuts_bytes::{FromBytes, ToBytes, Writer};
-use std::mem;
 
 use crate::entry::mode::Mode;
 use crate::entry::tstamp::Timestamps;
@@ -38,15 +37,6 @@ use crate::pager::Pager;
 const HALF: u8 = 53;
 #[cfg(test)]
 const FULL: u8 = 106;
-
-pub(crate) fn min_entry_size() -> usize {
-    let name = mem::size_of::<u64>() + 1;
-    let mode = mem::size_of::<Mode>();
-    let tstamps = Timestamps::size();
-    let size = mem::size_of::<u64>();
-
-    name + mode + tstamps + size
-}
 
 #[derive(Debug, FromBytes, ToBytes)]
 struct Inner {

@@ -232,7 +232,6 @@ use log::debug;
 use nuts_backend::Backend;
 use nuts_bytes::PutBytesError;
 use nuts_container::Container;
-use std::cmp;
 use std::convert::TryInto;
 
 pub use entry::immut::{DirectoryEntry, Entry, FileEntry, SymlinkEntry};
@@ -241,7 +240,6 @@ pub use entry::r#mut::{DirectoryBuilder, EntryMut, FileBuilder, SymlinkBuilder};
 pub use error::{ArchiveResult, Error};
 
 use crate::entry::immut::InnerEntry;
-use crate::entry::min_entry_size;
 use crate::header::Header;
 use crate::pager::Pager;
 use crate::tree::Tree;
@@ -285,16 +283,6 @@ fn flush_header<B: Backend>(
     }
 }
 
-    let min_size = cmp::max(cmp::max(header, tree), entry);
-
-    debug!(
-        "min_block_size = {} (header: {}, tree: {}, entry: {})",
-        min_size, header, tree, entry
-    );
-
-    min_size
-}
-
 /// Information/statistics from the archive.
 #[derive(Debug)]
 pub struct Info {
@@ -335,10 +323,6 @@ impl<B: Backend> Archive<B> {
     /// If user data of the container could be overwritten, an
     /// [`Error::OverwriteUserdata`] error will be returned.
     pub fn create(container: Container<B>, force: bool) -> ArchiveResult<Archive<B>, B> {
-        if (container.block_size() as usize) < min_block_size::<B>() {
-            return Err(Error::InvalidBlockSize);
-        }
-
         let mut pager = Pager::new(container);
         let userdata = Userdata::create(&mut pager, force)?;
 
@@ -372,10 +356,6 @@ impl<B: Backend> Archive<B> {
     /// [`Error::InvalidUserdata(Some(...))`](Error::InvalidUserdata) error is
     /// returned.
     pub fn open(container: Container<B>) -> ArchiveResult<Archive<B>, B> {
-        if (container.block_size() as usize) < min_block_size::<B>() {
-            return Err(Error::InvalidBlockSize);
-        }
-
         let mut pager = Pager::new(container);
         let userdata = Userdata::load(&mut pager)?;
 
