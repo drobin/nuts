@@ -23,7 +23,6 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_backend::BlockId;
 use nuts_bytes::{FromBytes, ToBytes};
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -140,11 +139,5 @@ impl FromStr for Id {
         }
 
         Ok(id)
-    }
-}
-
-impl BlockId for Id {
-    fn size() -> usize {
-        SIZE
     }
 }

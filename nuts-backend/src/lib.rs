@@ -57,12 +57,6 @@ use std::str::FromStr;
 // The maximun size of the header.
 pub const HEADER_MAX_SIZE: usize = 512;
 
-/// Trait identifies a block in the storage.
-pub trait BlockId: Clone + Debug + Display + FromBytes + FromStr + PartialEq + ToBytes {
-    /// Returns the number of bytes needed to store the id.
-    fn size() -> usize;
-}
-
 /// Trait used to receive the header of a container.
 ///
 /// The container uses the [`HeaderGet::get_header_bytes()`] method to ask the
@@ -180,7 +174,7 @@ where
 
     /// The id identifies a block in the storage. It is used everywhere you
     /// need a pointer to a block.
-    type Id: BlockId;
+    type Id: Clone + Debug + Display + FromBytes + FromStr + PartialEq + ToBytes;
 
     /// Information of the backend.
     ///

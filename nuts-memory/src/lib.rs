@@ -30,7 +30,7 @@
 //! the [`Id`](nuts_backend::Backend::Id) of this backend, where the
 //! [id](nuts_backend::Backend::Id) is a simple `u32` value.
 
-use nuts_backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
+use nuts_backend::{Backend, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 use nuts_bytes::{FromBytes, ToBytes};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -74,12 +74,6 @@ impl FromStr for Id {
 
     fn from_str(s: &str) -> Result<Self, ParseIntError> {
         FromStr::from_str(s).map(|n| Id(n))
-    }
-}
-
-impl BlockId for Id {
-    fn size() -> usize {
-        mem::size_of::<u32>()
     }
 }
 
