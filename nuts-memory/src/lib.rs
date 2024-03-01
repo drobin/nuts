@@ -199,6 +199,10 @@ impl Backend for MemoryBackend {
         Ok(())
     }
 
+    fn id_size() -> usize {
+        mem::size_of::<u32>()
+    }
+
     fn block_size(&self) -> u32 {
         self.bsize
     }

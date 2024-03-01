@@ -72,6 +72,7 @@ pub use info::Info;
 pub use options::{CreateOptions, OpenOptions, Settings};
 
 use crate::error::Result;
+use crate::id::SIZE;
 
 fn read_block(path: &Path, id: &Id, bsize: u32, buf: &mut [u8]) -> Result<usize> {
     let path = id.to_pathbuf(path);
@@ -174,6 +175,10 @@ impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
 
     fn info(&self) -> Result<Info> {
         Ok(Info { bsize: self.bsize })
+    }
+
+    fn id_size() -> usize {
+        SIZE
     }
 
     fn block_size(&self) -> u32 {

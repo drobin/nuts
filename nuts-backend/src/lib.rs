@@ -200,6 +200,9 @@ where
     /// On any error a self-defined [`Backend::Err`] is returned.
     fn info(&self) -> Result<Self::Info, Self::Err>;
 
+    /// Returns the number of bytes needed to store the id.
+    fn id_size() -> usize;
+
     /// Returns the block size of the backend.
     fn block_size(&self) -> u32;
 
