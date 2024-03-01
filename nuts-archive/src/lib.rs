@@ -230,6 +230,7 @@ mod userdata;
 use chrono::{DateTime, Utc};
 use log::debug;
 use nuts_backend::Backend;
+use nuts_bytes::PutBytesError;
 use nuts_container::Container;
 use std::cmp;
 use std::convert::TryInto;
@@ -252,23 +253,37 @@ fn flush_header<B: Backend>(
     header: &Header,
     tree: &Tree<B>,
 ) -> ArchiveResult<(), B> {
-    let mut writer = pager.create_writer();
-    let mut n = 0;
+    fn inner<B: Backend>(
+        pager: &mut Pager<B>,
+        header: &Header,
+        tree: &Tree<B>,
+    ) -> Result<usize, nuts_bytes::Error> {
+        let mut writer = pager.create_writer();
+        let mut n = 0;
 
-    n += writer.write(header)?;
-    n += writer.write(tree)?;
+        n += writer.write(header)?;
+        n += writer.write(tree)?;
 
-    pager.write_buf(id)?;
+        Ok(n)
+    }
 
-    debug!("{} bytes written into header at {}", n, id);
+    match inner(pager, header, tree) {
+        Ok(n) => {
+            pager.write_buf(id)?;
 
-    Ok(())
+            debug!("{} bytes written into header at {}", n, id);
+
+            Ok(())
+        }
+        Err(err) => {
+            let err: Error<B> = match err {
+                nuts_bytes::Error::PutBytes(PutBytesError::NoSpace) => Error::InvalidBlockSize,
+                _ => err.into(),
+            };
+            Err(err)
+        }
+    }
 }
-
-fn min_block_size<B: Backend>() -> usize {
-    let header = Header::size();
-    let tree = Tree::<B>::size();
-    let entry = min_entry_size();
 
     let min_size = cmp::max(cmp::max(header, tree), entry);
 
