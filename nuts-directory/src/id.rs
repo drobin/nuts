@@ -72,10 +72,6 @@ impl Id {
         Id([u8::MIN; SIZE])
     }
 
-    pub(crate) fn max() -> Id {
-        Id([u8::MAX; SIZE])
-    }
-
     fn as_hex(&self) -> String {
         let mut target = String::with_capacity(2 * SIZE);
 
@@ -148,14 +144,6 @@ impl FromStr for Id {
 }
 
 impl BlockId for Id {
-    fn null() -> Id {
-        Id::max()
-    }
-
-    fn is_null(&self) -> bool {
-        self.0 == Id::max().0
-    }
-
     fn size() -> usize {
         SIZE
     }

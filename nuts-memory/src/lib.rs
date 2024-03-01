@@ -69,12 +69,6 @@ impl fmt::Display for Id {
     }
 }
 
-impl Id {
-    fn null() -> Id {
-        Id(u32::MAX)
-    }
-}
-
 impl FromStr for Id {
     type Err = ParseIntError;
 
@@ -84,14 +78,6 @@ impl FromStr for Id {
 }
 
 impl BlockId for Id {
-    fn null() -> Id {
-        Id::null()
-    }
-
-    fn is_null(&self) -> bool {
-        self.eq(&Id::null())
-    }
-
     fn size() -> usize {
         mem::size_of::<u32>()
     }

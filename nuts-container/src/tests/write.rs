@@ -67,14 +67,6 @@ macro_rules! write_tests {
         }
 
         #[test]
-        fn null() {
-            let (mut container, _) = setup_container();
-
-            let err = container.write(&Id::null(), &[]).unwrap_err();
-            assert!(matches!(err, Error::NullId));
-        }
-
-        #[test]
         fn no_such_id() {
             let (mut container, id) = setup_container();
 
@@ -90,7 +82,6 @@ macro_rules! write_tests {
 }
 
 mod none {
-    use nuts_backend::BlockId;
     use nuts_memory::{Error as MemoryError, Id, MemoryBackend};
 
     use crate::tests::{into_error, RND};
@@ -112,7 +103,6 @@ mod none {
 }
 
 mod aed128_ctr {
-    use nuts_backend::BlockId;
     use nuts_memory::{Error as MemoryError, Id, MemoryBackend};
 
     use crate::tests::CTEXT_AES128_CTR;
@@ -213,7 +203,6 @@ mod aed128_ctr {
 }
 
 mod aes128_gcm {
-    use nuts_backend::BlockId;
     use nuts_memory::{Error as MemoryError, Id, MemoryBackend};
 
     use crate::tests::CTEXT_AES128_GCM;

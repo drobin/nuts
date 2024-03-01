@@ -40,10 +40,6 @@ pub enum Error<B: Backend> {
     /// Errors coming from header evaluation.
     #[error(transparent)]
     Header(#[from] HeaderError),
-
-    /// Try to read/write from/to a null-id which is forbidden.
-    #[error("tried to read or write a null id")]
-    NullId,
 }
 
 pub type ContainerResult<T, B> = Result<T, Error<B>>;

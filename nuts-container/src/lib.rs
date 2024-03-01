@@ -254,7 +254,7 @@ mod svec;
 mod tests;
 
 use log::debug;
-use nuts_backend::{Backend, BlockId, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
+use nuts_backend::{Backend, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
 use std::{any, cmp};
 
 use crate::cipher::CipherContext;
@@ -514,10 +514,6 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`Error`] type.
     pub fn read(&mut self, id: &B::Id, buf: &mut [u8]) -> ContainerResult<usize, B> {
-        if id.is_null() {
-            return Err(Error::NullId);
-        }
-
         let ctext = self.ctx.inp_mut(self.backend.block_size() as usize);
         map_err!(self.backend.read(id, ctext))?;
 
@@ -552,10 +548,6 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`Error`] type.
     pub fn write(&mut self, id: &B::Id, buf: &[u8]) -> ContainerResult<usize, B> {
-        if id.is_null() {
-            return Err(Error::NullId);
-        }
-
         let len = self.ctx.copy_from_slice(self.block_size() as usize, buf);
 
         let key = &self.header.key;

@@ -59,14 +59,6 @@ pub const HEADER_MAX_SIZE: usize = 512;
 
 /// Trait identifies a block in the storage.
 pub trait BlockId: Clone + Debug + Display + FromBytes + FromStr + PartialEq + ToBytes {
-    /// Creates a null-id.
-    ///
-    /// A null-id does not point to a block. It points to nowhere.
-    fn null() -> Self;
-
-    /// Tests whether this id is a null-id.
-    fn is_null(&self) -> bool;
-
     /// Returns the number of bytes needed to store the id.
     fn size() -> usize;
 }

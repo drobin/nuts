@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -40,18 +40,6 @@ fn generate() {
 fn min() {
     let id = Id::min();
     assert_eq!(id.0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-}
-
-#[test]
-fn max() {
-    let id = Id::max();
-    assert_eq!(
-        id.0,
-        [
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            0xff, 0xff
-        ]
-    );
 }
 
 #[test]
