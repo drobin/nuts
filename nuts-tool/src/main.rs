@@ -22,16 +22,47 @@
 
 use anyhow::Result;
 use clap::Parser;
+use nuts_directory::DirectoryBackend;
 use nuts_tool::cli::NutsCli;
 use nuts_tool::{say, say_err};
+use std::path::PathBuf;
+
+type ArchiveError = nuts_archive::Error<DirectoryBackend<PathBuf>>;
+
+fn print_archive_error(err: &ArchiveError) -> bool {
+    match err {
+        ArchiveError::UnsupportedRevision(rev, version) => {
+            say_err!(
+                "The archive is not supported anymore!\n\
+                The latest version that supports the revision {} is {}.\n\
+                Any newer version will no longer be able to read this archive.",
+                rev,
+                version
+            );
+            true
+        }
+        _ => false,
+    }
+}
+
+fn print_error(err: anyhow::Error) -> i32 {
+    let mut printed = false;
+
+    if let Some(err) = err.downcast_ref::<ArchiveError>() {
+        printed = print_archive_error(err);
+    }
+
+    if !printed {
+        say_err!("{}", err);
+    }
+
+    1
+}
 
 fn main() -> Result<()> {
     std::process::exit(match run_cli() {
         Ok(_) => 0,
-        Err(err) => {
-            say_err!("{}", err);
-            1
-        }
+        Err(err) => print_error(err),
     })
 }
 
