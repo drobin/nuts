@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -78,6 +78,7 @@ impl Say {
     }
 }
 
+#[macro_export]
 macro_rules! say {
     ($level:ident $($arg:tt)*) => {{
         crate::say::SAY.with(|say|
@@ -90,18 +91,16 @@ macro_rules! say {
     };
 }
 
-#[allow(unused_macros)]
+#[macro_export]
 macro_rules! say_warn {
     ($($arg:tt)*) => {
         say!(Warning $($arg)*);
     };
 }
 
+#[macro_export]
 macro_rules! say_err {
     ($($arg:tt)*) => {
         say!(Error $($arg)*);
     };
 }
-
-#[allow(unused_imports)]
-pub(crate) use {say, say_err, say_warn};

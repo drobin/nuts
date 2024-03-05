@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -30,7 +30,7 @@ use std::fmt::{self, Write};
 use std::path::PathBuf;
 
 use crate::cli::open_container;
-use crate::say::say;
+use crate::say;
 use crate::time::TimeFormat;
 
 enum Type {

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,13 +23,13 @@
 use anyhow::Result;
 use clap::Parser;
 use nuts_tool::cli::NutsCli;
-use nuts_tool::say;
+use nuts_tool::{say, say_err};
 
 fn main() -> Result<()> {
     std::process::exit(match run_cli() {
         Ok(_) => 0,
         Err(err) => {
-            eprintln!("{}", err);
+            say_err!("{}", err);
             1
         }
     })

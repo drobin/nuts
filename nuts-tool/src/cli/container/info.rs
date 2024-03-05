@@ -29,7 +29,8 @@ use std::path::PathBuf;
 
 use crate::cli::open_container;
 use crate::format::Format;
-use crate::say::{is_quiet, say};
+use crate::say;
+use crate::say::is_quiet;
 
 #[derive(Args, Debug)]
 pub struct ContainerInfoArgs {
