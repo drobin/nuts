@@ -41,6 +41,11 @@ pub enum Error<B: Backend> {
     #[error("the container is not empty")]
     OverwriteUserdata,
 
+    /// The revision of the archive is not supported anymore. You can open the
+    /// archive till the given version.
+    #[error("unsupported revision: {0}, latest supported version is {1}")]
+    UnsupportedRevision(u16, String),
+
     /// The [userdata record](nuts_container::Container::userdata) of the
     /// container does not refer to an archive:
     ///

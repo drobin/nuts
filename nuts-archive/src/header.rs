@@ -24,11 +24,15 @@
 mod tests;
 
 use chrono::{DateTime, Utc};
+use nuts_backend::Backend;
 use nuts_bytes::{FromBytes, ToBytes};
 use thiserror::Error;
 
-use crate::datetime;
 use crate::magic::{validate_magic, Magic, MagicErrorFactory, MAGIC};
+use crate::{datetime, ArchiveResult, Error};
+
+const CURRENT_REVISION: u16 = 2;
+const UNSUPPORTED_REVISIONS: [(u16, &str); 1] = [(1, "0.4.3")];
 
 #[derive(Debug, Error)]
 #[error("invalid header")]
@@ -58,11 +62,21 @@ impl Header {
 
         Header {
             magic: MAGIC,
-            revision: 1,
+            revision: CURRENT_REVISION,
             created: now,
             modified: now,
             nfiles: 0,
         }
+    }
+
+    pub fn validate_revision<B: Backend>(&self) -> ArchiveResult<(), B> {
+        for (rev, version) in UNSUPPORTED_REVISIONS {
+            if self.revision == rev {
+                return Err(Error::UnsupportedRevision(rev, version.to_string()));
+            }
+        }
+
+        Ok(())
     }
 
     pub fn inc_files(&mut self) {

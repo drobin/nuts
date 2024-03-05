@@ -362,6 +362,9 @@ impl<B: Backend> Archive<B> {
         let mut reader = pager.read_buf(&userdata.id)?;
 
         let header = reader.read::<Header>()?;
+
+        header.validate_revision()?;
+
         let tree = reader.read::<Tree<B>>()?;
 
         let archive = Archive {
