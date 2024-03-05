@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2024-03-05
+
+### Changed
+
+* `nuts-backend`: Remove support for a null-id, which does not fit into the
+                  Rust world. Therefore the `BlockId` trait was removed.
+* `nuts-memory`: Adapt `nuts-backend` changes.
+* `nuts-directory`: Adapt `nuts-backend` changes.
+* `nuts-archive`:
+  - Refactor the node-tree because of removed null-id in `nuts-backend`.
+  - Switch to a new revision: 2
+  - **Old archives with revision 1 cannot be opened anymore.**
+
 ## [0.4.3] - 2024-01-22
 
 ### Changed
@@ -335,3 +348,4 @@ Initial public release.
 [0.4.1]: https://github.com/drobin/nuts/tree/v0.4.1
 [0.4.2]: https://github.com/drobin/nuts/tree/v0.4.2
 [0.4.3]: https://github.com/drobin/nuts/tree/v0.4.3
+[0.5.0]: https://github.com/drobin/nuts/tree/v0.5.0
