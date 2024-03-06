@@ -254,7 +254,7 @@ mod svec;
 mod tests;
 
 use log::debug;
-use nuts_backend::{Backend, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
+use nuts_backend::{Backend, Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
 use std::{any, cmp};
 
 use crate::cipher::CipherContext;
@@ -318,17 +318,19 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`Error`] type.
     pub fn create<C: Create<B>>(
-        mut backend_options: C,
+        backend_options: C,
         options: CreateOptions,
     ) -> ContainerResult<Container<B>, B> {
+        let mut header_bytes = [0; HEADER_MAX_SIZE];
         let header = Header::create(&options)?;
         let settings = backend_options.settings();
 
         let callback = options.callback.map(|cb| cb.clone());
         let mut store = PasswordStore::new(callback);
 
-        Self::write_header(&mut backend_options, &header, settings, &mut store)?;
-        let backend = map_err!(backend_options.build())?;
+        header.write::<B>(settings, &mut header_bytes, &mut store)?;
+
+        let backend = map_err!(backend_options.build(header_bytes))?;
 
         debug!(
             "Container created, backend: {}, header: {:?}",
@@ -436,11 +438,14 @@ impl<B: Backend> Container<B> {
     /// Errors are listed in the [`Error`] type.
     pub fn update_userdata(&mut self, userdata: &[u8]) -> ContainerResult<(), B> {
         let (mut header, settings) = Self::read_header(&mut self.backend, &mut self.store)?;
+        let mut header_bytes = [0; HEADER_MAX_SIZE];
 
         header.userdata.clear();
         header.userdata.extend_from_slice(userdata);
 
-        Self::write_header(&mut self.backend, &header, settings, &mut self.store)?;
+        header.write::<B>(settings, &mut header_bytes, &mut self.store)?;
+        map_err!(self.backend.write_header(&header_bytes))?;
+
         self.header = header;
 
         Ok(())
@@ -558,7 +563,7 @@ impl<B: Backend> Container<B> {
         map_err!(self.backend.write(id, ctext)).map(|_| len)
     }
 
-    fn read_header<H: HeaderGet<B>>(
+    fn read_header<H: ReceiveHeader<B>>(
         reader: &mut H,
         store: &mut PasswordStore,
     ) -> ContainerResult<(Header, B::Settings), B> {
@@ -571,17 +576,5 @@ impl<B: Backend> Container<B> {
             }
             Err(cause) => Err(Error::Backend(cause)),
         }
-    }
-
-    fn write_header<H: HeaderSet<B>>(
-        writer: &mut H,
-        header: &Header,
-        settings: B::Settings,
-        store: &mut PasswordStore,
-    ) -> ContainerResult<(), B> {
-        let mut buf = [0; HEADER_MAX_SIZE];
-
-        header.write::<B>(settings, &mut buf, store)?;
-        map_err!(writer.put_header_bytes(&buf))
     }
 }

@@ -30,7 +30,7 @@
 //! the [`Id`](nuts_backend::Backend::Id) of this backend, where the
 //! [id](nuts_backend::Backend::Id) is a simple `u32` value.
 
-use nuts_backend::{Backend, Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
+use nuts_backend::{Backend, Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
 use nuts_bytes::{FromBytes, ToBytes};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -151,7 +151,7 @@ impl MemoryBackend {
     }
 }
 
-impl HeaderGet<Self> for MemoryBackend {
+impl ReceiveHeader<Self> for MemoryBackend {
     fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
         match self.header.as_ref() {
             Some(source) => Ok(bytes.copy_from_slice(source)),
@@ -160,19 +160,13 @@ impl HeaderGet<Self> for MemoryBackend {
     }
 }
 
-impl HeaderSet<Self> for MemoryBackend {
-    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
-        self.header = Some(*bytes);
-        Ok(())
-    }
-}
-
 impl Create<Self> for MemoryBackend {
     fn settings(&self) -> () {
         ()
     }
 
-    fn build(self) -> Result<MemoryBackend, Error> {
+    fn build(mut self, header: [u8; HEADER_MAX_SIZE]) -> Result<MemoryBackend, Error> {
+        <Self as Backend>::write_header(&mut self, &header)?;
         Ok(self)
     }
 }
@@ -243,5 +237,10 @@ impl Backend for MemoryBackend {
             }
             None => Err(Error::NoSuchId(*id)),
         }
+    }
+
+    fn write_header(&mut self, buf: &[u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
+        self.header = Some(*buf);
+        Ok(())
     }
 }

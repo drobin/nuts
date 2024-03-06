@@ -61,7 +61,7 @@ mod info;
 mod options;
 
 use log::warn;
-use nuts_backend::{Backend, HeaderGet, HeaderSet, HEADER_MAX_SIZE};
+use nuts_backend::{Backend, ReceiveHeader, HEADER_MAX_SIZE};
 use std::io::{self, ErrorKind, Read, Write};
 use std::path::Path;
 use std::{cmp, fs};
@@ -155,15 +155,9 @@ pub struct DirectoryBackend<P: AsRef<Path>> {
     path: P,
 }
 
-impl<P: AsRef<Path>> HeaderGet<Self> for DirectoryBackend<P> {
+impl<P: AsRef<Path>> ReceiveHeader<Self> for DirectoryBackend<P> {
     fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<()> {
         read_header(self.path.as_ref(), bytes)
-    }
-}
-
-impl<P: AsRef<Path>> HeaderSet<Self> for DirectoryBackend<P> {
-    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
-        write_header(self.path.as_ref(), self.bsize, bytes)
     }
 }
 
@@ -219,5 +213,9 @@ impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
 
     fn write(&mut self, id: &Id, buf: &[u8]) -> Result<usize> {
         write_block(self.path.as_ref(), id, false, false, self.bsize, buf)
+    }
+
+    fn write_header(&mut self, buf: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
+        write_header(self.path.as_ref(), self.bsize, buf)
     }
 }

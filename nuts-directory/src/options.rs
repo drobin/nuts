@@ -23,7 +23,7 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_backend::{Create, HeaderGet, HeaderSet, Open, HEADER_MAX_SIZE};
+use nuts_backend::{Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
 use nuts_bytes::{FromBytes, ToBytes};
 use std::path::Path;
 
@@ -52,7 +52,6 @@ pub struct CreateOptions<P: AsRef<Path>> {
     path: P,
     bsize: u32,
     overwrite: bool,
-    header: Vec<u8>,
 }
 
 impl<P: AsRef<Path>> CreateOptions<P> {
@@ -67,7 +66,6 @@ impl<P: AsRef<Path>> CreateOptions<P> {
             path,
             bsize: BLOCK_MIN_SIZE,
             overwrite: false,
-            header: vec![],
         }
     }
 
@@ -100,25 +98,12 @@ impl<P: AsRef<Path>> CreateOptions<P> {
     }
 }
 
-impl<P: AsRef<Path>> HeaderSet<DirectoryBackend<P>> for CreateOptions<P> {
-    fn put_header_bytes(&mut self, bytes: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
-        self.validate()?;
-
-        // The header is written while the backend is created (in Create::build).
-        // Here you simple cache the data for later usage.
-        self.header.clear();
-        self.header.extend_from_slice(bytes);
-
-        Ok(())
-    }
-}
-
 impl<P: AsRef<Path>> Create<DirectoryBackend<P>> for CreateOptions<P> {
     fn settings(&self) -> Settings {
         Settings { bsize: self.bsize }
     }
 
-    fn build(self) -> Result<DirectoryBackend<P>> {
+    fn build(self, header: [u8; HEADER_MAX_SIZE]) -> Result<DirectoryBackend<P>> {
         self.validate()?;
 
         if !self.overwrite {
@@ -129,7 +114,7 @@ impl<P: AsRef<Path>> Create<DirectoryBackend<P>> for CreateOptions<P> {
             }
         }
 
-        write_header(self.path.as_ref(), self.bsize, &self.header)?;
+        write_header(self.path.as_ref(), self.bsize, &header)?;
 
         Ok(DirectoryBackend {
             bsize: self.bsize,
@@ -156,7 +141,7 @@ impl<P: AsRef<Path>> OpenOptions<P> {
     }
 }
 
-impl<P: AsRef<Path>> HeaderGet<DirectoryBackend<P>> for OpenOptions<P> {
+impl<P: AsRef<Path>> ReceiveHeader<DirectoryBackend<P>> for OpenOptions<P> {
     fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<()> {
         read_header(self.path.as_ref(), bytes)
     }
