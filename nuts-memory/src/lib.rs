@@ -187,7 +187,7 @@ impl Backend for MemoryBackend {
         Ok(())
     }
 
-    fn id_size() -> usize {
+    fn id_size(&self) -> usize {
         mem::size_of::<u32>()
     }
 

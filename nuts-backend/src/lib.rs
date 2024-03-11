@@ -179,7 +179,7 @@ where
     fn info(&self) -> Result<Self::Info, Self::Err>;
 
     /// Returns the number of bytes needed to store the id.
-    fn id_size() -> usize;
+    fn id_size(&self) -> usize;
 
     /// Returns the block size of the backend.
     fn block_size(&self) -> u32;

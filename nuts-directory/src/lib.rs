@@ -171,7 +171,7 @@ impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
         Ok(Info { bsize: self.bsize })
     }
 
-    fn id_size() -> usize {
+    fn id_size(&self) -> usize {
         SIZE
     }
 
