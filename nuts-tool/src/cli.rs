@@ -23,7 +23,7 @@
 pub mod archive;
 pub mod container;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{crate_version, ArgAction, Parser, Subcommand};
 use env_logger::Builder;
 use log::debug;
@@ -36,6 +36,7 @@ use std::path::PathBuf;
 
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
+use crate::tool_dir;
 
 #[derive(Debug, Parser)]
 #[clap(name = "nuts", bin_name = "nuts")]
@@ -85,24 +86,6 @@ impl Commands {
             Self::Container(args) => args.run(),
             Self::Archive(args) => args.run(),
         }
-    }
-}
-
-fn tool_dir() -> Result<PathBuf> {
-    match home::home_dir() {
-        Some(dir) => {
-            let tool_dir = dir.join(".nuts");
-
-            debug!("tool_dir: {}", tool_dir.display());
-
-            if !tool_dir.is_dir() {
-                debug!("creating tool dir {}", tool_dir.display());
-                fs::create_dir(&tool_dir)?;
-            }
-
-            Ok(tool_dir)
-        }
-        None => Err(anyhow!("unable to locate home-directory")),
     }
 }
 

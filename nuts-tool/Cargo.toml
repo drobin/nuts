@@ -25,6 +25,8 @@ nuts-archive = { path = "../nuts-archive", version = "=0.5.0" }
 nuts-container = { path = "../nuts-container", version = "=0.5.0" }
 nuts-directory = { path = "../nuts-directory", version = "=0.5.0" }
 rpassword = "=7.3.1"
+serde = { version = "1", features = ["derive"] }
+toml = "=0.8.11"
 
 [[bin]]
 name = "nuts"

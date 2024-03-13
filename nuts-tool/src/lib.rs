@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,8 +20,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use anyhow::{anyhow, Result};
+use log::debug;
+use std::fs;
+use std::path::PathBuf;
+
 pub mod archive;
 pub mod cli;
+pub mod config;
 pub mod format;
 pub mod say;
 pub mod time;
+
+fn tool_dir() -> Result<PathBuf> {
+    match home::home_dir() {
+        Some(dir) => {
+            let tool_dir = dir.join(".nuts");
+
+            debug!("tool_dir: {}", tool_dir.display());
+
+            if !tool_dir.is_dir() {
+                debug!("creating tool dir {}", tool_dir.display());
+                fs::create_dir(&tool_dir)?;
+            }
+
+            Ok(tool_dir)
+        }
+        None => Err(anyhow!("unable to locate home-directory")),
+    }
+}
