@@ -22,6 +22,7 @@
 
 pub mod archive;
 pub mod container;
+pub mod plugin;
 
 use anyhow::Result;
 use clap::{crate_version, ArgAction, Parser, Subcommand};
@@ -36,6 +37,7 @@ use std::path::PathBuf;
 
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
+use crate::cli::plugin::PluginArgs;
 use crate::tool_dir;
 
 #[derive(Debug, Parser)]
@@ -73,6 +75,9 @@ impl NutsCli {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
+    /// Configure plugins
+    Plugin(PluginArgs),
+
     /// General container tasks
     Container(ContainerArgs),
 
@@ -83,6 +88,7 @@ pub enum Commands {
 impl Commands {
     pub fn run(&self) -> Result<()> {
         match self {
+            Self::Plugin(args) => args.run(),
             Self::Container(args) => args.run(),
             Self::Archive(args) => args.run(),
         }
