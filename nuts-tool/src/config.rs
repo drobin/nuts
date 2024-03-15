@@ -28,6 +28,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
+use crate::plugin::Plugin;
 use crate::tool_dir;
 
 fn load_path(path: &Path) -> io::Result<Option<String>> {
@@ -62,6 +63,13 @@ impl Inner {
 
         if !self.path.is_executable() {
             error!("{}: not executable", self.path.display());
+            return false;
+        }
+
+        let plugin = Plugin::new(&self.path);
+
+        if let Err(err) = plugin.info() {
+            error!("{}: not a plugin ({})", self.path.display(), err);
             return false;
         }
 
