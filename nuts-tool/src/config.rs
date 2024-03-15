@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
+use is_executable::IsExecutable;
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -52,6 +53,24 @@ struct Inner {
     path: PathBuf,
 }
 
+impl Inner {
+    fn validate(&self) -> bool {
+        if !self.path.is_file() {
+            error!("{}: not a file", self.path.display());
+            return false;
+        }
+
+        if !self.path.is_executable() {
+            error!("{}: not executable", self.path.display());
+            return false;
+        }
+
+        debug!("{}: is valid", self.path.display());
+
+        true
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PluginConfig {
     #[serde(flatten)]
@@ -75,8 +94,9 @@ impl PluginConfig {
     pub fn all_plugins(&self) -> Vec<&str> {
         let mut keys = self
             .plugins
-            .keys()
-            .map(|s| s.as_str())
+            .iter()
+            .filter(|(_, inner)| inner.validate())
+            .map(|(name, _)| name.as_str())
             .collect::<Vec<&str>>();
 
         keys.sort();
@@ -85,7 +105,10 @@ impl PluginConfig {
     }
 
     pub fn have_plugin(&self, name: &str) -> bool {
-        self.plugins.contains_key(name)
+        self.plugins
+            .get(name)
+            .filter(|inner| inner.validate())
+            .is_some()
     }
 
     pub fn remove_plugin(&mut self, name: &str) -> bool {
@@ -93,15 +116,24 @@ impl PluginConfig {
     }
 
     pub fn path(&self, name: &str) -> Option<&Path> {
-        self.plugins.get(name).map(|inner| inner.path.as_path())
+        self.plugins
+            .get(name)
+            .filter(|inner| inner.validate())
+            .map(|inner| inner.path.as_path())
     }
 
-    pub fn set_path<P: AsRef<Path>>(&mut self, name: &str, path: P) {
+    pub fn set_path<P: AsRef<Path>>(&mut self, name: &str, path: P) -> bool {
         let inner = Inner {
             path: path.as_ref().into(),
         };
 
-        self.plugins.insert(name.to_string(), inner);
+        let valid = inner.validate();
+
+        if valid {
+            self.plugins.insert(name.to_string(), inner);
+        }
+
+        valid
     }
 
     pub fn save(&self) -> Result<()> {
