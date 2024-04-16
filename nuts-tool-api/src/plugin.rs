@@ -20,22 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod bson;
-mod msg;
-#[cfg(feature = "plugin")]
-pub mod plugin;
+//! Code especially for the plugin
 
-use serde::{Deserialize, Serialize};
-
-pub use bson::{BsonError, BsonReader, BsonWriter};
-pub use msg::{ErrorResponse, OkResponse, Request, Response};
-
-/// Information of a plugin
-#[derive(Debug, Deserialize, Serialize)]
-pub struct PluginInfo {
-    /// Name of the plugin
-    pub name: String,
-
-    /// Version of the plugin
-    pub version: String,
-}
+pub mod cli;
