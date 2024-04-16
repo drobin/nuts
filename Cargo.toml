@@ -30,4 +30,5 @@ members = [
     "nuts-directory",
     "nuts-memory",
     "nuts-tool",
+    "nuts-tool-api",
 ]
