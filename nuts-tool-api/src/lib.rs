@@ -21,5 +21,19 @@
 // IN THE SOFTWARE.
 
 mod bson;
+mod msg;
+
+use serde::{Deserialize, Serialize};
 
 pub use bson::{BsonError, BsonReader, BsonWriter};
+pub use msg::{ErrorResponse, OkResponse, Request, Response};
+
+/// Information of a plugin
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PluginInfo {
+    /// Name of the plugin
+    pub name: String,
+
+    /// Version of the plugin
+    pub version: String,
+}
