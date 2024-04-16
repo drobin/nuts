@@ -23,3 +23,6 @@
 //! Code especially for the plugin
 
 pub mod cli;
+mod handler;
+
+pub use handler::{InfoHandler, OpenCreateHandler, PluginHandler};
