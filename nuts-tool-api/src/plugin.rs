@@ -24,5 +24,22 @@
 
 pub mod cli;
 mod handler;
+mod runner;
 
 pub use handler::{InfoHandler, OpenCreateHandler, PluginHandler};
+pub use runner::PluginRunner;
+
+pub mod clap_prelude {
+    //! Preludes used to define extra arguments.
+    //!
+    //! If you define
+    //! [extra arguments](crate::plugin::PluginHandler::CreateArgs) for the
+    //! `create` command, you must include these preludes:
+    //!
+    //! ```
+    //! use nuts_tool_api::plugin::clap_prelude::*;
+    //! ```
+
+    pub use ::clap;
+    pub use ::clap::Args;
+}
