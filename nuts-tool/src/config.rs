@@ -23,12 +23,12 @@
 use anyhow::Result;
 use is_executable::IsExecutable;
 use log::{debug, error};
+use nuts_tool_api::tool::Plugin;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
-use crate::plugin::Plugin;
 use crate::tool_dir;
 
 fn load_path(path: &Path) -> io::Result<Option<String>> {

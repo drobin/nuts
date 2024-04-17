@@ -24,12 +24,13 @@ log = "=0.4.20"
 nuts-archive = { path = "../nuts-archive", version = "=0.5.0" }
 nuts-container = { path = "../nuts-container", version = "=0.5.0" }
 nuts-directory = { path = "../nuts-directory", version = "=0.5.0" }
-bson = "2.9.0"
+nuts-tool-api = { path = "../nuts-tool-api", version = "=0.1.0", default-features = false, features = [
+    "tool",
+] }
 rpassword = "=7.3.1"
 serde = { version = "1", features = ["derive"] }
 toml = "=0.8.11"
 is_executable = "=1.0.1"
-wait-timeout = "0.2.0"
 
 [[bin]]
 name = "nuts"

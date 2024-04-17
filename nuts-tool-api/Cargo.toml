@@ -19,3 +19,4 @@ thiserror = "=1.0.56"
 [features]
 default = ["plugin"]
 plugin = ["dep:clap", "dep:env_logger", "dep:nuts-backend"]
+tool = ["dep:nuts-backend"]

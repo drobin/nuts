@@ -20,24 +20,53 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod bson;
-mod msg;
-#[cfg(feature = "plugin")]
-pub mod plugin;
-#[cfg(feature = "tool")]
-pub mod tool;
+mod plugin;
 
-use serde::{Deserialize, Serialize};
+use log::error;
+use std::process::ExitStatus;
+use std::sync::mpsc::{RecvError, SendError};
+use thiserror::Error;
 
-pub use bson::{BsonError, BsonReader, BsonWriter};
-pub use msg::{ErrorResponse, OkResponse, Request, Response};
+use crate::bson::BsonError;
+use crate::msg::{ErrorResponse, Request, Response};
 
-/// Information of a plugin
-#[derive(Debug, Deserialize, Serialize)]
-pub struct PluginInfo {
-    /// Name of the plugin
-    pub name: String,
+#[derive(Debug, Error)]
+pub enum PluginError {
+    #[error(transparent)]
+    Bson(#[from] BsonError),
 
-    /// Version of the plugin
-    pub version: String,
+    #[error("{0:?}")]
+    Response(ErrorResponse),
+
+    #[error("invalid response")]
+    InvalidResponse,
+
+    #[error(transparent)]
+    ChannelSendRequest(#[from] SendError<Request>),
+
+    #[error(transparent)]
+    ChannelSendResponse(#[from] SendError<Response>),
+
+    #[error(transparent)]
+    ChannelRecv(#[from] RecvError),
+
+    #[error("channel is closed")]
+    ChannelClosed,
+
+    #[error("short plugin infos")]
+    ShortPluginInfo,
+
+    #[error("failed to fetch plugin information, plugin exited with {0}")]
+    BadPluginInfo(ExitStatus),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error("not connected")]
+    NotConnected,
 }
+
+type PluginResult<T> = std::result::Result<T, PluginError>;
+
+pub use connection::PluginConnection;
+pub use plugin::Plugin;
