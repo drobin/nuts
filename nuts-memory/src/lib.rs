@@ -30,7 +30,7 @@
 //! the [`Id`](nuts_backend::Backend::Id) of this backend, where the
 //! [id](nuts_backend::Backend::Id) is a simple `u32` value.
 
-use nuts_backend::{Backend, Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
+use nuts_backend::{Backend, Binary, Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
 use nuts_bytes::{FromBytes, ToBytes};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -74,6 +74,23 @@ impl FromStr for Id {
 
     fn from_str(s: &str) -> Result<Self, ParseIntError> {
         FromStr::from_str(s).map(|n| Id(n))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Settings;
+
+impl Binary for Settings {
+    fn from_bytes(bytes: &[u8]) -> Option<Settings> {
+        if bytes.is_empty() {
+            Some(Settings)
+        } else {
+            None
+        }
+    }
+
+    fn as_bytes(&self) -> Vec<u8> {
+        vec![]
     }
 }
 
@@ -161,8 +178,8 @@ impl ReceiveHeader<Self> for MemoryBackend {
 }
 
 impl Create<Self> for MemoryBackend {
-    fn settings(&self) -> () {
-        ()
+    fn settings(&self) -> Settings {
+        Settings
     }
 
     fn build(mut self, header: [u8; HEADER_MAX_SIZE]) -> Result<MemoryBackend, Error> {
@@ -172,13 +189,13 @@ impl Create<Self> for MemoryBackend {
 }
 
 impl Open<Self> for MemoryBackend {
-    fn build(self, _settings: ()) -> Result<MemoryBackend, Error> {
+    fn build(self, _settings: Settings) -> Result<MemoryBackend, Error> {
         Ok(self)
     }
 }
 
 impl Backend for MemoryBackend {
-    type Settings = ();
+    type Settings = Settings;
     type Err = Error;
     type Id = Id;
     type Info = ();

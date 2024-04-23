@@ -23,8 +23,9 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_backend::{Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
-use nuts_bytes::{FromBytes, ToBytes};
+use nuts_backend::{Binary, Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
+use std::convert::TryInto;
+use std::mem;
 use std::path::Path;
 
 use crate::error::{Error, Result};
@@ -157,7 +158,24 @@ impl<P: AsRef<Path>> Open<DirectoryBackend<P>> for OpenOptions<P> {
 }
 
 /// [Settings](nuts_backend::Backend::Settings) used by the backend.
-#[derive(Clone, Debug, FromBytes, ToBytes)]
+#[derive(Clone, Debug)]
 pub struct Settings {
     bsize: u32,
+}
+
+impl Binary for Settings {
+    fn from_bytes(bytes: &[u8]) -> Option<Settings> {
+        if bytes.len() == mem::size_of::<u32>() {
+            let bytes = bytes.try_into().unwrap();
+            let bsize = u32::from_be_bytes(bytes);
+
+            Some(Settings { bsize })
+        } else {
+            None
+        }
+    }
+
+    fn as_bytes(&self) -> Vec<u8> {
+        self.bsize.to_be_bytes().to_vec()
+    }
 }

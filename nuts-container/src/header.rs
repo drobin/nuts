@@ -24,7 +24,7 @@ mod inner;
 mod rev0;
 mod secret;
 
-use nuts_backend::Backend;
+use nuts_backend::{Backend, Binary};
 use nuts_bytes::{Reader, Writer};
 use openssl::error::ErrorStack;
 use std::fmt::{self, Write as FmtWrite};
@@ -67,6 +67,10 @@ pub enum HeaderError {
     /// The password is wrong.
     #[error("the password is wrong")]
     WrongPassword(#[source] nuts_bytes::Error),
+
+    /// Invalid settings, could not parse backend settings from header.
+    #[error("invalid settings")]
+    InvalidSettings,
 
     /// Error while (de-) serializing binary data.
     #[error(transparent)]
@@ -132,7 +136,8 @@ impl Header {
             .secret
             .decrypt(store, rev0.cipher, &rev0.kdf, &rev0.iv)?;
 
-        let settings = Reader::new(plain_secret.settings.as_slice()).read()?;
+        let vec: Vec<u8> = Reader::new(plain_secret.settings.as_slice()).read()?;
+        let settings = B::Settings::from_bytes(&vec).ok_or(HeaderError::InvalidSettings)?;
 
         Ok((
             Header {
@@ -153,7 +158,7 @@ impl Header {
         store: &mut PasswordStore,
     ) -> Result<(), HeaderError> {
         let mut writer = Writer::new(vec![]);
-        writer.write(&settings)?;
+        writer.write(&settings.as_bytes())?;
 
         let plain_secret = PlainSecret::generate(
             self.key.clone(),

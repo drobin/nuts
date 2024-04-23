@@ -56,6 +56,26 @@ use std::str::FromStr;
 // The maximun size of the header.
 pub const HEADER_MAX_SIZE: usize = 512;
 
+/// Trait for binary conversion.
+///
+/// * [`Self::as_bytes`] is used to create a binary representation of this
+///   instance.
+/// * The [`Self::from_bytes`] method is used to convert the binary data back
+///   to its instance.
+pub trait Binary
+where
+    Self: Sized,
+{
+    /// Creates an instance of [`Self`] based on its binary representation.
+    ///
+    /// On success an instance of [`Self`] wrapped into a [`Some`] is returned.
+    /// On any error [`None`] is returned.
+    fn from_bytes(bytes: &[u8]) -> Option<Self>;
+
+    /// Creates the binary representation of [`self`].
+    fn as_bytes(&self) -> Vec<u8>;
+}
+
 /// Trait used to receive the header of a container.
 ///
 /// The container uses the [`ReceiveHeader::get_header_bytes()`] method to ask
@@ -151,7 +171,7 @@ where
     /// trait for more information on how the backend is opened.
     ///
     /// The [`Create`] trait is used to create the settings of a backend.
-    type Settings: Clone + FromBytes + ToBytes;
+    type Settings: Binary + Clone;
 
     /// The error type used by methods of this trait.
     type Err: error::Error + Send + Sync;
