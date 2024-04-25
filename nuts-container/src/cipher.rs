@@ -23,7 +23,6 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_bytes::{FromBytes, ToBytes};
 use openssl::cipher as ossl_cipher;
 use openssl::cipher_ctx::CipherCtx;
 use openssl::error::ErrorStack;
@@ -31,6 +30,7 @@ use std::str::FromStr;
 use std::{cmp, fmt};
 use thiserror::Error;
 
+use crate::buffer::{Buffer, BufferError, BufferMut};
 use crate::svec::SecureVec;
 
 /// [`Cipher`] related error codes.
@@ -62,7 +62,7 @@ pub enum CipherError {
 }
 
 /// Supported cipher algorithms.
-#[derive(Clone, Copy, Debug, FromBytes, PartialEq, ToBytes)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Cipher {
     /// No encryption.
     None,
@@ -115,6 +115,27 @@ impl Cipher {
             Cipher::Aes128Ctr => 0,
             Cipher::Aes128Gcm => 16,
         }
+    }
+
+    pub(crate) fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Cipher, BufferError> {
+        let b = buf.get_u32()?;
+
+        match b {
+            0 => Ok(Cipher::None),
+            1 => Ok(Cipher::Aes128Ctr),
+            2 => Ok(Cipher::Aes128Gcm),
+            _ => Err(BufferError::InvalidIndex("Cipher".to_string(), b)),
+        }
+    }
+
+    pub(crate) fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), BufferError> {
+        let b = match self {
+            Cipher::None => 0,
+            Cipher::Aes128Ctr => 1,
+            Cipher::Aes128Gcm => 2,
+        };
+
+        buf.put_u32(b)
     }
 
     fn to_openssl(self) -> Option<&'static ossl_cipher::CipherRef> {

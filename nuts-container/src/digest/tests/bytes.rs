@@ -20,27 +20,47 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Error, Reader, Writer};
-
+use crate::buffer::BufferError;
 use crate::digest::Digest;
 
 #[test]
 fn de_sha1() {
-    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x00].as_slice());
-    assert_eq!(reader.read::<Digest>().unwrap(), Digest::Sha1);
+    let buf = [0x00, 0x00, 0x00, 0x00];
+
+    assert_eq!(
+        Digest::get_from_buffer(&mut &buf[..]).unwrap(),
+        Digest::Sha1
+    );
+}
+
+#[test]
+fn de_eof() {
+    let buf = [0x00, 0x00, 0x00];
+    let err = Digest::get_from_buffer(&mut &buf[..]).unwrap_err();
+
+    assert!(matches!(err, BufferError::UnexpectedEof));
 }
 
 #[test]
 fn de_invalid() {
-    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x01].as_slice());
+    let buf = [0x00, 0x00, 0x00, 0x01];
+    let err = Digest::get_from_buffer(&mut &buf[..]).unwrap_err();
 
-    let err = reader.read::<Digest>().unwrap_err();
-    assert!(matches!(err, Error::InvalidVariantIndex(1)));
+    assert_eq!(err.to_string(), "no Digest at 1");
 }
 
 #[test]
 fn ser_sha1() {
-    let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&Digest::Sha1).unwrap(), 4);
-    assert_eq!(writer.into_target(), [0x00, 0x00, 0x00, 0x00]);
+    let mut buf = vec![];
+
+    Digest::Sha1.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x00]);
+}
+
+#[test]
+fn ser_write_zero() {
+    let mut buf = [0; 3];
+    let err = Digest::Sha1.put_into_buffer(&mut &mut buf[..]).unwrap_err();
+
+    assert!(matches!(err, BufferError::WriteZero));
 }

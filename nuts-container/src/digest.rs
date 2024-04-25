@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,13 +23,14 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_bytes::{FromBytes, ToBytes};
 use openssl::hash::MessageDigest;
 use std::fmt;
 use std::str::FromStr;
 
+use crate::buffer::{Buffer, BufferError, BufferMut};
+
 /// Supported message digests.
-#[derive(Clone, Copy, Debug, FromBytes, PartialEq, ToBytes)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Digest {
     /// SHA1
     Sha1,
@@ -64,6 +65,23 @@ impl Digest {
         match self {
             Digest::Sha1 => 20,
         }
+    }
+
+    pub(crate) fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Digest, BufferError> {
+        let b = buf.get_u32()?;
+
+        match b {
+            0 => Ok(Digest::Sha1),
+            _ => Err(BufferError::InvalidIndex("Digest".to_string(), b)),
+        }
+    }
+
+    pub(crate) fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), BufferError> {
+        let b = match self {
+            Digest::Sha1 => 0,
+        };
+
+        buf.put_u32(b)
     }
 
     pub(crate) fn to_openssl(&self) -> MessageDigest {

@@ -23,11 +23,12 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_bytes::{FromBytes, Reader, ToBytes, Writer};
 use openssl::error::ErrorStack;
+use std::ops::DerefMut;
 
+use crate::buffer::{Buffer, BufferMut};
 use crate::cipher::{Cipher, CipherContext};
-use crate::header::{HeaderError, SecretMagicsError};
+use crate::header::HeaderError;
 use crate::kdf::Kdf;
 use crate::ossl;
 use crate::password::PasswordStore;
@@ -37,15 +38,7 @@ fn generate_magics() -> Result<[u32; 2], ErrorStack> {
     ossl::rand_u32().map(|magic| [magic, magic])
 }
 
-fn validate_magics(magics: [u32; 2]) -> Result<[u32; 2], SecretMagicsError> {
-    if magics[0] == magics[1] {
-        Ok(magics)
-    } else {
-        Err(SecretMagicsError)
-    }
-}
-
-#[derive(Debug, FromBytes, PartialEq, ToBytes)]
+#[derive(Debug, PartialEq)]
 pub struct Secret(Vec<u8>);
 
 impl Secret {
@@ -73,9 +66,19 @@ impl Secret {
         ctx.copy_from_slice(self.0.len(), &self.0);
 
         let pbuf = ctx.decrypt(&key, &iv)?;
-        let plain_secret = Reader::new(pbuf).read()?;
+        let plain_secret = PlainSecret::get_from_buffer(&mut &pbuf[..])?;
 
         Ok(plain_secret)
+    }
+
+    pub fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Secret, HeaderError> {
+        let vec = buf.get_vec()?;
+
+        Ok(Secret(vec))
+    }
+
+    pub fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), HeaderError> {
+        buf.put_vec(&self.0).map_err(|err| err.into())
     }
 }
 
@@ -85,9 +88,8 @@ impl<T: AsRef<[u8]>> PartialEq<T> for Secret {
     }
 }
 
-#[derive(Debug, FromBytes, PartialEq, ToBytes)]
+#[derive(Debug, PartialEq)]
 pub struct PlainSecret {
-    #[nuts_bytes(map_from_bytes = validate_magics)]
     magics: [u32; 2],
     pub key: SecureVec,
     pub iv: SecureVec,
@@ -118,8 +120,8 @@ impl PlainSecret {
         kdf: &Kdf,
         iv: &[u8],
     ) -> Result<Secret, HeaderError> {
-        let mut writer = Writer::new(vec![]);
-        let pbuf: SecureVec = writer.write(&self).map(|_| writer.into_target().into())?;
+        let mut pbuf: SecureVec = vec![].into();
+        self.put_into_buffer(pbuf.deref_mut())?;
 
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;
@@ -134,5 +136,38 @@ impl PlainSecret {
         let cbuf = ctx.encrypt(&key, &iv)?;
 
         Ok(Secret(cbuf.to_vec()))
+    }
+
+    pub fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<PlainSecret, HeaderError> {
+        let magic1 = buf.get_u32()?;
+        let magic2 = buf.get_u32()?;
+
+        if magic1 != magic2 {
+            return Err(HeaderError::WrongPassword);
+        }
+
+        let key = buf.get_vec()?.into();
+        let iv = buf.get_vec()?.into();
+        let userdata = buf.get_vec()?.into();
+        let settings = buf.get_vec()?.into();
+
+        Ok(PlainSecret {
+            magics: [magic1, magic2],
+            key,
+            iv,
+            userdata,
+            settings,
+        })
+    }
+
+    pub fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), HeaderError> {
+        buf.put_u32(self.magics[0])?;
+        buf.put_u32(self.magics[1])?;
+        buf.put_vec(&self.key)?;
+        buf.put_vec(&self.iv)?;
+        buf.put_vec(&self.userdata)?;
+        buf.put_vec(&self.settings)?;
+
+        Ok(())
     }
 }

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,11 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{FromBytes, ToBytes};
 use std::fmt;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Clone, FromBytes, PartialEq, ToBytes)]
+#[derive(Clone, PartialEq)]
 pub struct SecureVec(Vec<u8>);
 
 impl AsRef<[u8]> for SecureVec {

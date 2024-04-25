@@ -20,15 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Error, Reader, Writer};
-
 use crate::cipher::Cipher;
 use crate::header::inner::{Inner, Revision};
-use crate::header::rev0;
 use crate::header::secret::Secret;
-use crate::header::HeaderMagicError;
+use crate::header::{rev0, HeaderError};
 use crate::kdf::Kdf;
-use crate::tests::into_error;
 
 #[test]
 fn new() {
@@ -45,27 +41,24 @@ fn new() {
 
 #[test]
 fn de_inval_magic() {
-    let mut reader = Reader::new(b"xuts-io".as_slice());
-    let err = reader.read::<Inner>().unwrap_err();
-    let err = into_error!(err, Error::Custom);
-    assert!(err.is::<HeaderMagicError>());
+    let buf = *b"xuts-io";
+    let err = Inner::get_from_buffer(&mut &buf[..]).unwrap_err();
+
+    assert!(matches!(err, HeaderError::InvalidHeader));
 }
 
 #[test]
 fn de_rev0() {
-    let mut reader = Reader::new(
-        [
-            b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
-            0x00, 0x00, 0x00, 0x00, // rev0 variant,
-            0x00, 0x00, 0x00, 0x00, // cipher
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
-            0x00, 0x00, 0x00, 0x00, // kdf
-            0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
-        ]
-        .as_slice(),
-    );
-    let inner = reader.read::<Inner>().unwrap();
+    let buf = [
+        b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
+        0x00, 0x00, 0x00, 0x00, // rev0 variant,
+        0x00, 0x00, 0x00, 0x00, // cipher
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
+        0x00, 0x00, 0x00, 0x00, // kdf
+        0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
+    ];
 
+    let inner = Inner::get_from_buffer(&mut &buf[..]).unwrap();
     let Revision::Rev0(rev0) = inner.rev;
 
     assert_eq!(rev0.cipher, Cipher::None);
@@ -76,6 +69,7 @@ fn de_rev0() {
 
 #[test]
 fn ser_rev0() {
+    let mut buf = vec![];
     let inner = Inner::new(Revision::Rev0(rev0::Data {
         cipher: Cipher::None,
         iv: vec![],
@@ -83,10 +77,9 @@ fn ser_rev0() {
         secret: Secret::new(vec![1, 2, 3]),
     }));
 
-    let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&inner).unwrap(), 38);
+    inner.put_into_buffer(&mut buf).unwrap();
     assert_eq!(
-        writer.into_target(),
+        buf,
         [
             b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
             0x00, 0x00, 0x00, 0x00, // rev0 variant,

@@ -240,6 +240,7 @@
 //!     runtime information in the secret. It gets it back when opening the
 //!     backend again. See [`Backend::Settings`] for more information.
 
+mod buffer;
 mod cipher;
 mod digest;
 mod error;
@@ -261,6 +262,7 @@ use crate::cipher::CipherContext;
 use crate::header::Header;
 use crate::password::PasswordStore;
 
+pub use buffer::BufferError;
 pub use cipher::{Cipher, CipherError};
 pub use digest::Digest;
 pub use error::{ContainerResult, Error};

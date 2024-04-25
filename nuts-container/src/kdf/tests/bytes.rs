@@ -20,39 +20,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Error, Reader, Writer};
-
+use crate::buffer::BufferError;
 use crate::digest::Digest;
 use crate::kdf::Kdf;
 
 #[test]
 fn de_none() {
-    let mut reader = Reader::new(
-        [
-            0x00, 0x00, 0x00, 0x00, // none variant
-        ]
-        .as_slice(),
-    );
-    let kdf = reader.read::<Kdf>().unwrap();
+    let buf = [0x00, 0x00, 0x00, 0x00];
 
-    assert_eq!(kdf, Kdf::None);
+    assert_eq!(Kdf::get_from_buffer(&mut &buf[..]).unwrap(), Kdf::None);
 }
 
 #[test]
 fn de_pbkdf2() {
-    let mut reader = Reader::new(
-        [
-            0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
-            0x00, 0x00, 0x00, 0x00, // sha1
-            0x00, 0x01, 0x00, 0x00, // iterations
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // salt
-        ]
-        .as_slice(),
-    );
-    let kdf = reader.read::<Kdf>().unwrap();
+    let buf = [
+        0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
+        0x00, 0x00, 0x00, 0x00, // sha1
+        0x00, 0x01, 0x00, 0x00, // iterations
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // salt
+    ];
 
     assert_eq!(
-        kdf,
+        Kdf::get_from_buffer(&mut &buf[..]).unwrap(),
         Kdf::Pbkdf2 {
             digest: Digest::Sha1,
             iterations: 65536,
@@ -62,42 +51,43 @@ fn de_pbkdf2() {
 }
 
 #[test]
-fn de_invalid() {
-    let mut reader = Reader::new([0x00, 0x00, 0x00, 0x02].as_slice());
+fn de_eof() {
+    let buf = [0x00, 0x00, 0x00];
+    let err = Kdf::get_from_buffer(&mut &buf[..]).unwrap_err();
 
-    let err = reader.read::<Kdf>().unwrap_err();
-    assert!(matches!(err, Error::InvalidVariantIndex(2)));
+    assert!(matches!(err, BufferError::UnexpectedEof));
+}
+
+#[test]
+fn de_invalid() {
+    let buf = [0x00, 0x00, 0x00, 0x02];
+    let err = Kdf::get_from_buffer(&mut &buf[..]).unwrap_err();
+
+    assert_eq!(err.to_string(), "no Kdf at 2");
 }
 
 #[test]
 fn ser_none() {
-    let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&Kdf::None).unwrap(), 4);
+    let mut buf = vec![];
 
-    assert_eq!(
-        writer.into_target(),
-        [
-            0x00,0x00,0x00,0x00, // none variant
-        ]
-    );
+    Kdf::None.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x00,]);
 }
 
 #[test]
 fn ser_pbkdf2() {
-    let mut writer = Writer::new(vec![]);
-    assert_eq!(
-        writer
-            .write(&Kdf::Pbkdf2 {
-                digest: Digest::Sha1,
-                iterations: 65536,
-                salt: vec![1, 2, 3],
-            })
-            .unwrap(),
-        23
-    );
+    let mut buf = vec![];
+
+    Kdf::Pbkdf2 {
+        digest: Digest::Sha1,
+        iterations: 65536,
+        salt: vec![1, 2, 3],
+    }
+    .put_into_buffer(&mut buf)
+    .unwrap();
 
     assert_eq!(
-        writer.into_target(),
+        buf,
         [
             0x00, 0x00, 0x00, 0x01, // pbkdf2 variant
             0x00, 0x00, 0x00, 0x00, // sha1
@@ -105,4 +95,12 @@ fn ser_pbkdf2() {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3 // salt
         ]
     );
+}
+
+#[test]
+fn ser_write_zero() {
+    let mut buf = [0; 3];
+    let err = Kdf::None.put_into_buffer(&mut &mut buf[..]).unwrap_err();
+
+    assert!(matches!(err, BufferError::WriteZero));
 }

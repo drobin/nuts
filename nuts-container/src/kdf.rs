@@ -23,7 +23,6 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_bytes::{FromBytes, ToBytes};
 use openssl::error::ErrorStack;
 use openssl::pkcs5::pbkdf2_hmac;
 use std::fmt;
@@ -31,6 +30,7 @@ use std::num::ParseIntError;
 use std::str::FromStr;
 use thiserror::Error;
 
+use crate::buffer::{Buffer, BufferError, BufferMut};
 use crate::digest::Digest;
 use crate::ossl;
 use crate::svec::SecureVec;
@@ -53,7 +53,7 @@ pub enum KdfError {
 /// Based on a password provided by the user one of the algorithms are used to
 /// calculate a wrapping key. The wrapping key then is used for encryption of
 /// the secret in the header of the container.
-#[derive(Clone, FromBytes, PartialEq, ToBytes)]
+#[derive(Clone, PartialEq)]
 pub enum Kdf {
     /// No key derivation
     None,
@@ -176,6 +176,40 @@ impl Kdf {
                 pbkdf2_hmac(password, salt, *iterations as usize, md, &mut key)?;
 
                 Ok(key.into())
+            }
+        }
+    }
+
+    pub(crate) fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Kdf, BufferError> {
+        let b = buf.get_u32()?;
+
+        match b {
+            0 => Ok(Kdf::None),
+            1 => {
+                let digest = Digest::get_from_buffer(buf)?;
+                let iterations = buf.get_u32()?;
+                let salt = buf.get_vec()?;
+
+                Ok(Kdf::pbkdf2(digest, iterations, &salt))
+            }
+            _ => Err(BufferError::InvalidIndex("Kdf".to_string(), b)),
+        }
+    }
+
+    pub(crate) fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), BufferError> {
+        match self {
+            Kdf::None => buf.put_u32(0),
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt,
+            } => {
+                buf.put_u32(1)?;
+                digest.put_into_buffer(buf)?;
+                buf.put_u32(*iterations)?;
+                buf.put_vec(salt.as_slice())?;
+
+                Ok(())
             }
         }
     }

@@ -20,8 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Reader, Writer};
-
 use crate::cipher::Cipher;
 use crate::digest::Digest;
 use crate::header::rev0;
@@ -30,16 +28,14 @@ use crate::kdf::Kdf;
 
 #[test]
 fn de_none() {
-    let mut reader = Reader::new(
-        [
-            0x00, 0x00, 0x00, 0x00, // cipher
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
-            0x00, 0x00, 0x00, 0x00, // kdf
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
-        ]
-        .as_slice(),
-    );
-    let rev0 = reader.read::<rev0::Data>().unwrap();
+    let buf = [
+        0x00, 0x00, 0x00, 0x00, // cipher
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
+        0x00, 0x00, 0x00, 0x00, // kdf
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
+    ];
+
+    let rev0 = rev0::Data::get_from_buffer(&mut &buf[..]).unwrap();
 
     assert_eq!(rev0.cipher, Cipher::None);
     assert_eq!(rev0.iv, []);
@@ -49,17 +45,15 @@ fn de_none() {
 
 #[test]
 fn de_some() {
-    let mut reader = Reader::new(
-        [
-            0x00, 0x00, 0x00, 0x01, // cipher
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 1, 2, // iv,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x000, 0x01, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 3, 4, 5, // kdf
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 6, 7, 8, 9, // secret
-        ]
-        .as_slice(),
-    );
-    let rev0 = reader.read::<rev0::Data>().unwrap();
+    let buf = [
+        0x00, 0x00, 0x00, 0x01, // cipher
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 1, 2, // iv,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x000, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x03, 3, 4, 5, // kdf
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 6, 7, 8, 9, // secret
+    ];
+
+    let rev0 = rev0::Data::get_from_buffer(&mut &buf[..]).unwrap();
 
     assert_eq!(rev0.cipher, Cipher::Aes128Ctr);
     assert_eq!(rev0.iv, [1, 2]);
@@ -76,6 +70,7 @@ fn de_some() {
 
 #[test]
 fn ser_none() {
+    let mut buf = vec![];
     let rev0 = rev0::Data {
         cipher: Cipher::None,
         iv: vec![],
@@ -83,10 +78,9 @@ fn ser_none() {
         secret: Secret::new(vec![1, 2, 3]),
     };
 
-    let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&rev0).unwrap(), 27);
+    rev0.put_into_buffer(&mut buf).unwrap();
     assert_eq!(
-        writer.into_target(),
+        buf,
         [
             0x00, 0x00, 0x00, 0x00, // cipher
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
@@ -98,6 +92,7 @@ fn ser_none() {
 
 #[test]
 fn ser_some() {
+    let mut buf = vec![];
     let rev0 = rev0::Data {
         cipher: Cipher::Aes128Ctr,
         iv: vec![1, 2],
@@ -109,10 +104,9 @@ fn ser_some() {
         secret: Secret::new(vec![6, 7, 8, 9]),
     };
 
-    let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&rev0).unwrap(), 49);
+    rev0.put_into_buffer(&mut buf).unwrap();
     assert_eq!(
-        writer.into_target(),
+        buf,
         [
             0x00, 0x00, 0x00, 0x01, // cipher
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 1, 2, // iv,

@@ -404,7 +404,6 @@ version = "0.5.0"
 dependencies = [
  "log",
  "nuts-backend",
- "nuts-bytes",
  "nuts-memory",
  "openssl",
  "openssl-sys",

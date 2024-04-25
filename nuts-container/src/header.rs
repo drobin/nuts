@@ -25,11 +25,11 @@ mod rev0;
 mod secret;
 
 use nuts_backend::{Backend, Binary};
-use nuts_bytes::{Reader, Writer};
 use openssl::error::ErrorStack;
 use std::fmt::{self, Write as FmtWrite};
 use thiserror::Error;
 
+use crate::buffer::BufferError;
 use crate::cipher::{Cipher, CipherError};
 use crate::header::inner::{Inner, Revision};
 use crate::header::secret::PlainSecret;
@@ -38,16 +38,6 @@ use crate::options::CreateOptions;
 use crate::ossl;
 use crate::password::{PasswordError, PasswordStore};
 use crate::svec::SecureVec;
-
-/// The magic that marks the header is wrong.
-#[derive(Debug, Error)]
-#[error("invalid header")]
-struct HeaderMagicError;
-
-/// The magic number pair in the secret is wrong.
-#[derive(Debug, Error)]
-#[error("")]
-struct SecretMagicsError;
 
 /// Header related errors.
 #[derive(Debug, Error)]
@@ -66,7 +56,11 @@ pub enum HeaderError {
 
     /// The password is wrong.
     #[error("the password is wrong")]
-    WrongPassword(#[source] nuts_bytes::Error),
+    WrongPassword,
+
+    /// Invalid header, could not validate magic
+    #[error("invalid header")]
+    InvalidHeader,
 
     /// Invalid settings, could not parse backend settings from header.
     #[error("invalid settings")]
@@ -74,26 +68,11 @@ pub enum HeaderError {
 
     /// Error while (de-) serializing binary data.
     #[error(transparent)]
-    Bytes(nuts_bytes::Error),
+    Buffer(#[from] BufferError),
 
     /// An error in the OpenSSL library occured.
     #[error(transparent)]
     OpenSSL(#[from] ErrorStack),
-}
-
-impl From<nuts_bytes::Error> for HeaderError {
-    fn from(value: nuts_bytes::Error) -> Self {
-        match &value {
-            nuts_bytes::Error::Custom(err) => {
-                if err.is::<SecretMagicsError>() {
-                    return Self::WrongPassword(value);
-                }
-            }
-            _ => {}
-        };
-
-        Self::Bytes(value)
-    }
 }
 
 pub struct Header {
@@ -128,16 +107,15 @@ impl Header {
         buf: &[u8],
         store: &mut PasswordStore,
     ) -> Result<(Header, B::Settings), HeaderError> {
-        let inner = Reader::new(buf).read::<Inner>()?;
-
+        let inner = Inner::get_from_buffer(&mut &buf[..])?;
         let Revision::Rev0(rev0) = inner.rev;
 
         let plain_secret = rev0
             .secret
             .decrypt(store, rev0.cipher, &rev0.kdf, &rev0.iv)?;
 
-        let vec: Vec<u8> = Reader::new(plain_secret.settings.as_slice()).read()?;
-        let settings = B::Settings::from_bytes(&vec).ok_or(HeaderError::InvalidSettings)?;
+        let settings =
+            B::Settings::from_bytes(&plain_secret.settings).ok_or(HeaderError::InvalidSettings)?;
 
         Ok((
             Header {
@@ -157,14 +135,11 @@ impl Header {
         buf: &mut [u8],
         store: &mut PasswordStore,
     ) -> Result<(), HeaderError> {
-        let mut writer = Writer::new(vec![]);
-        writer.write(&settings.as_bytes())?;
-
         let plain_secret = PlainSecret::generate(
             self.key.clone(),
             self.iv.clone(),
             self.userdata.clone(),
-            writer.into_target().into(),
+            settings.as_bytes().into(),
         )?;
 
         let mut iv = vec![0; self.cipher.iv_len()];
@@ -180,7 +155,7 @@ impl Header {
         };
         let inner = Inner::new(Revision::Rev0(rev0));
 
-        Writer::new(buf).write(&inner)?;
+        inner.put_into_buffer(&mut &mut buf[..])?;
 
         Ok(())
     }

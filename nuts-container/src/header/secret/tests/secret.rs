@@ -22,48 +22,45 @@
 
 use std::rc::Rc;
 
-use nuts_bytes::{Error as BytesError, Reader, Writer};
-
 use crate::cipher::Cipher;
 use crate::digest::Digest;
 use crate::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
 use crate::header::secret::Secret;
 use crate::header::HeaderError;
-use crate::header::SecretMagicsError;
 use crate::kdf::Kdf;
 use crate::password::PasswordStore;
-use crate::tests::into_error;
 
 #[test]
 fn ser_empty() {
+    let mut buf = vec![];
     let secret = Secret(vec![]);
-    let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&secret).unwrap(), 8);
-    assert_eq!(
-        writer.into_target(),
-        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-    );
+
+    secret.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 }
 
 #[test]
 fn ser() {
+    let mut buf = vec![];
     let secret = Secret(vec![1, 2, 3]);
-    let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&secret).unwrap(), 11);
-    assert_eq!(writer.into_target(), [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]);
+
+    secret.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]);
 }
 
 #[test]
 fn de_empty() {
-    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 0].as_slice());
-    let secret = reader.read::<Secret>().unwrap();
+    let buf = [0, 0, 0, 0, 0, 0, 0, 0];
+
+    let secret = Secret::get_from_buffer(&mut &buf[..]).unwrap();
     assert_eq!(secret, []);
 }
 
 #[test]
 fn de() {
-    let mut reader = Reader::new([0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3].as_slice());
-    let secret = reader.read::<Secret>().unwrap();
+    let buf = [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3];
+
+    let secret = Secret::get_from_buffer(&mut &buf[..]).unwrap();
     assert_eq!(secret, [1, 2, 3]);
 }
 
@@ -93,9 +90,7 @@ fn decrypt_none_invalid() {
         .decrypt(&mut store, Cipher::None, &Kdf::None, &[])
         .unwrap_err();
 
-    let err = into_error!(err, HeaderError::WrongPassword);
-    let err = into_error!(err, BytesError::Custom);
-    assert!(err.is::<SecretMagicsError>());
+    assert!(matches!(err, HeaderError::WrongPassword));
 }
 
 #[test]
@@ -124,7 +119,5 @@ fn decrypt_some_invalid() {
         .decrypt(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
         .unwrap_err();
 
-    let err = into_error!(err, HeaderError::WrongPassword);
-    let err = into_error!(err, BytesError::Custom);
-    assert!(err.is::<SecretMagicsError>());
+    assert!(matches!(err, HeaderError::WrongPassword));
 }

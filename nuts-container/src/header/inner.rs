@@ -23,29 +23,44 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_bytes::{FromBytes, ToBytes};
+use std::convert::TryInto;
 
-use crate::header::rev0;
-use crate::header::HeaderMagicError;
+use crate::buffer::Buffer;
+use crate::buffer::BufferError;
+use crate::buffer::BufferMut;
+use crate::header::{rev0, HeaderError};
 
 const MAGIC: [u8; 7] = *b"nuts-io";
 
-fn validate_magic(magic: [u8; 7]) -> Result<[u8; 7], HeaderMagicError> {
-    if magic == MAGIC {
-        Ok(magic)
-    } else {
-        Err(HeaderMagicError)
-    }
-}
-
-#[derive(Debug, FromBytes, ToBytes)]
+#[derive(Debug)]
 pub enum Revision {
     Rev0(rev0::Data),
 }
 
-#[derive(Debug, FromBytes, ToBytes)]
+impl Revision {
+    pub fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Revision, HeaderError> {
+        let b = buf.get_u32()?;
+
+        match b {
+            0 => rev0::Data::get_from_buffer(buf).map(|data| Revision::Rev0(data)),
+            _ => Err(BufferError::InvalidIndex("Revision".to_string(), b).into()),
+        }
+    }
+
+    pub fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), HeaderError> {
+        match self {
+            Revision::Rev0(data) => {
+                buf.put_u32(0)?;
+                data.put_into_buffer(buf)?;
+
+                Ok(())
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Inner {
-    #[nuts_bytes(map_from_bytes = validate_magic)]
     magic: [u8; 7],
     pub rev: Revision,
 }
@@ -53,5 +68,24 @@ pub struct Inner {
 impl Inner {
     pub fn new(rev: Revision) -> Inner {
         Inner { magic: MAGIC, rev }
+    }
+
+    pub fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Inner, HeaderError> {
+        let magic: [u8; 7] = buf.get_chunk(7)?.try_into().unwrap();
+
+        if magic != MAGIC {
+            return Err(HeaderError::InvalidHeader);
+        }
+
+        let rev = Revision::get_from_buffer(buf)?;
+
+        Ok(Inner { magic, rev })
+    }
+
+    pub(crate) fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), HeaderError> {
+        buf.put_chunk(&self.magic)?;
+        self.rev.put_into_buffer(buf)?;
+
+        Ok(())
     }
 }

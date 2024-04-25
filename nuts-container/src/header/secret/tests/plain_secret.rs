@@ -22,29 +22,26 @@
 
 use std::rc::Rc;
 
-use nuts_bytes::{Error, Reader, Writer};
-
 use crate::cipher::Cipher;
 use crate::digest::Digest;
 use crate::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
 use crate::header::secret::PlainSecret;
-use crate::header::SecretMagicsError;
+use crate::header::HeaderError;
 use crate::kdf::Kdf;
 use crate::password::PasswordStore;
-use crate::tests::into_error;
 
 #[test]
 fn ser() {
-    let plain_secret = plain_secret();
-    let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&plain_secret).unwrap(), 45);
-    assert_eq!(writer.into_target(), PLAIN_SECRET);
+    let mut buf = vec![];
+
+    plain_secret().put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, PLAIN_SECRET);
 }
 
 #[test]
 fn de() {
-    let mut reader = Reader::new(PLAIN_SECRET.as_slice());
-    let out = reader.read::<PlainSecret>().unwrap();
+    let out = PlainSecret::get_from_buffer(&mut &PLAIN_SECRET[..]).unwrap();
+
     assert_eq!(out, plain_secret());
 }
 
@@ -53,10 +50,8 @@ fn de_inval() {
     let mut vec = PLAIN_SECRET.to_vec();
     vec[0] += 1;
 
-    let mut reader = Reader::new(vec.as_slice());
-    let err = reader.read::<PlainSecret>().unwrap_err();
-    let err = into_error!(err, Error::Custom);
-    assert!(err.is::<SecretMagicsError>());
+    let err = PlainSecret::get_from_buffer(&mut vec.as_slice()).unwrap_err();
+    assert!(matches!(err, HeaderError::WrongPassword));
 }
 
 #[test]
