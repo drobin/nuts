@@ -26,7 +26,7 @@ mod node;
 mod tests;
 
 use log::debug;
-use nuts_backend::Backend;
+use nuts_backend::{Backend, IdSize};
 use nuts_bytes::{FromBytes, ToBytes};
 use nuts_container::Container;
 use std::mem;
@@ -37,8 +37,7 @@ use crate::tree::cache::Cache;
 use crate::tree::node::Node;
 
 fn ids_per_node<B: Backend>(container: &Container<B>) -> u32 {
-    (container.block_size() - 2 * mem::size_of::<u32>() as u32)
-        / container.backend().id_size() as u32
+    (container.block_size() - 2 * mem::size_of::<u32>() as u32) / <B::Id as IdSize>::size() as u32
 }
 
 const NUM_DIRECT: u32 = 12;

@@ -76,6 +76,12 @@ where
     fn as_bytes(&self) -> Vec<u8>;
 }
 
+/// Trait evaluates the size of an [id](Backend::Id).
+pub trait IdSize {
+    /// Returns the number of bytes needed to store the id.
+    fn size() -> usize;
+}
+
 /// Trait used to receive the header of a container.
 ///
 /// The container uses the [`ReceiveHeader::get_header_bytes()`] method to ask
@@ -178,7 +184,7 @@ where
 
     /// The id identifies a block in the storage. It is used everywhere you
     /// need a pointer to a block.
-    type Id: Clone + Debug + Display + FromBytes + FromStr + PartialEq + ToBytes;
+    type Id: Clone + Debug + Display + FromBytes + FromStr + IdSize + PartialEq + ToBytes;
 
     /// Information of the backend.
     ///
@@ -197,9 +203,6 @@ where
     ///
     /// On any error a self-defined [`Backend::Err`] is returned.
     fn info(&self) -> Result<Self::Info, Self::Err>;
-
-    /// Returns the number of bytes needed to store the id.
-    fn id_size(&self) -> usize;
 
     /// Returns the block size of the backend.
     fn block_size(&self) -> u32;

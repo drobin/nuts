@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use nuts_backend::IdSize;
 use nuts_bytes::{FromBytes, ToBytes};
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -47,7 +48,7 @@ fn rand_bytes() -> [u8; SIZE] {
     buf
 }
 
-pub(crate) const SIZE: usize = 16;
+const SIZE: usize = 16;
 const HEX: [char; SIZE] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
 ];
@@ -61,6 +62,12 @@ const HEX: [char; SIZE] = [
 /// * The path then would be: `<first two chars>/<next two chars>/<remaining chars>`
 #[derive(Clone, FromBytes, PartialEq, ToBytes)]
 pub struct Id([u8; SIZE]);
+
+impl IdSize for Id {
+    fn size() -> usize {
+        SIZE
+    }
+}
 
 impl Id {
     pub(crate) fn generate() -> Id {

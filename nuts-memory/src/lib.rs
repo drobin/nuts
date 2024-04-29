@@ -30,7 +30,7 @@
 //! the [`Id`](nuts_backend::Backend::Id) of this backend, where the
 //! [id](nuts_backend::Backend::Id) is a simple `u32` value.
 
-use nuts_backend::{Backend, Binary, Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
+use nuts_backend::{Backend, Binary, Create, IdSize, Open, ReceiveHeader, HEADER_MAX_SIZE};
 use nuts_bytes::{FromBytes, ToBytes};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -62,6 +62,12 @@ pub enum Error {
 /// The [id](nuts_backend::Backend::Id) of the memory backend.
 #[derive(Clone, Copy, Debug, FromBytes, PartialEq, ToBytes)]
 pub struct Id(u32);
+
+impl IdSize for Id {
+    fn size() -> usize {
+        mem::size_of::<u32>()
+    }
+}
 
 impl fmt::Display for Id {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -202,10 +208,6 @@ impl Backend for MemoryBackend {
 
     fn info(&self) -> Result<(), Error> {
         Ok(())
-    }
-
-    fn id_size(&self) -> usize {
-        mem::size_of::<u32>()
     }
 
     fn block_size(&self) -> u32 {
