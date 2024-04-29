@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,6 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use crate::id::Id;
 use crate::pager::Pager;
 use crate::tests::{into_error, setup_container_with_bsize};
 
@@ -36,7 +37,7 @@ fn read() {
     );
 
     let mut pager = Pager::new(container);
-    let mut reader = pager.read_buf(&id).unwrap();
+    let mut reader = pager.read_buf(&Id::new(id)).unwrap();
 
     assert_eq!(reader.read::<u32>().unwrap(), 1);
     assert_eq!(reader.read::<u32>().unwrap(), 2);

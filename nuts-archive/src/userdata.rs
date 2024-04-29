@@ -26,12 +26,13 @@ mod tests;
 use log::{debug, warn};
 use nuts_backend::Backend;
 use nuts_bytes::{FromBytes, Reader, ToBytes, Writer};
-use nuts_container::Container;
 use std::fmt;
 use thiserror::Error;
 
 use crate::error::{ArchiveResult, Error};
+use crate::id::Id;
 use crate::magic::{validate_magic, Magic, MagicErrorFactory, MAGIC};
+use crate::pager::Pager;
 
 #[derive(Debug, Error)]
 #[error("invalid userdata")]
@@ -49,38 +50,38 @@ impl MagicErrorFactory for UserdataMagicError {
 pub struct Userdata<B: Backend> {
     #[nuts_bytes(map_from_bytes = validate_magic::<UserdataMagicError>)]
     magic: Magic,
-    pub id: B::Id,
+    pub id: Id<B>,
 }
 
 impl<B: Backend> Userdata<B> {
-    fn new(id: B::Id) -> Userdata<B> {
+    fn new(id: Id<B>) -> Userdata<B> {
         Userdata { magic: MAGIC, id }
     }
 
-    pub fn create(container: &mut Container<B>, force: bool) -> ArchiveResult<Userdata<B>, B> {
-        if !force && !container.userdata().is_empty() {
+    pub fn create(pager: &mut Pager<B>, force: bool) -> ArchiveResult<Userdata<B>, B> {
+        if !force && !pager.userdata().is_empty() {
             return Err(Error::OverwriteUserdata);
         }
 
-        let id = container.aquire()?;
+        let id = pager.aquire()?;
         let userdata = Userdata::<B>::new(id);
 
         let mut writer = Writer::new(vec![]);
 
         writer.write(&userdata)?;
-        container.update_userdata(&writer.into_target())?;
+        pager.update_userdata(&writer.into_target())?;
 
         debug!("userdata created: {:?}", userdata);
 
         Ok(userdata)
     }
 
-    pub fn load(container: &mut Container<B>) -> ArchiveResult<Userdata<B>, B> {
-        if container.userdata().is_empty() {
+    pub fn load(pager: &mut Pager<B>) -> ArchiveResult<Userdata<B>, B> {
+        if pager.userdata().is_empty() {
             return Err(Error::InvalidUserdata(None));
         }
 
-        let mut reader = Reader::new(container.userdata());
+        let mut reader = Reader::new(pager.userdata());
         let userdata = reader.read::<Userdata<B>>()?;
 
         debug!("userdata loaded: {:?}", userdata);

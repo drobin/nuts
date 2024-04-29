@@ -220,6 +220,7 @@ mod datetime;
 mod entry;
 mod error;
 mod header;
+mod id;
 mod magic;
 mod pager;
 #[cfg(test)]
@@ -228,6 +229,7 @@ mod tree;
 mod userdata;
 
 use chrono::{DateTime, Utc};
+use id::Id;
 use log::debug;
 use nuts_backend::Backend;
 use nuts_bytes::PutBytesError;
@@ -247,7 +249,7 @@ use crate::userdata::Userdata;
 
 fn flush_header<B: Backend>(
     pager: &mut Pager<B>,
-    id: &B::Id,
+    id: &Id<B>,
     header: &Header,
     tree: &Tree<B>,
 ) -> ArchiveResult<(), B> {
@@ -302,7 +304,7 @@ pub struct Info {
 /// The archive.
 pub struct Archive<B: Backend> {
     pager: Pager<B>,
-    header_id: B::Id,
+    header_id: Id<B>,
     header: Header,
     tree: Tree<B>,
 }

@@ -32,6 +32,7 @@ use crate::entry::{populate_mode_api, populate_tstamp_api, Inner};
 use crate::error::ArchiveResult;
 use crate::flush_header;
 use crate::header::Header;
+use crate::id::Id;
 use crate::pager::Pager;
 use crate::tree::Tree;
 
@@ -39,7 +40,7 @@ macro_rules! impl_new {
     ($type:ident, $mode:ident) => {
         pub(crate) fn new(
             pager: &'a mut Pager<B>,
-            header_id: &'a B::Id,
+            header_id: &'a Id<B>,
             header: &'a mut Header,
             tree: &'a mut Tree<B>,
             name: String,
@@ -128,7 +129,7 @@ pub struct SymlinkBuilder<'a, B: Backend> {
 impl<'a, B: Backend> SymlinkBuilder<'a, B> {
     pub(crate) fn new(
         pager: &'a mut Pager<B>,
-        header_id: &'a B::Id,
+        header_id: &'a Id<B>,
         header: &'a mut Header,
         tree: &'a mut Tree<B>,
         name: String,
@@ -162,7 +163,7 @@ impl<'a, B: Backend> SymlinkBuilder<'a, B> {
 
 struct InnerBuilder<'a, B: Backend> {
     pager: &'a mut Pager<B>,
-    header_id: &'a B::Id,
+    header_id: &'a Id<B>,
     header: &'a mut Header,
     tree: &'a mut Tree<B>,
     entry: Inner,
@@ -171,7 +172,7 @@ struct InnerBuilder<'a, B: Backend> {
 impl<'a, B: Backend> InnerBuilder<'a, B> {
     fn new(
         pager: &'a mut Pager<B>,
-        header_id: &'a B::Id,
+        header_id: &'a Id<B>,
         header: &'a mut Header,
         tree: &'a mut Tree<B>,
         name: String,
@@ -211,23 +212,23 @@ impl<'a, B: Backend> InnerBuilder<'a, B> {
 /// you the possibility to add content to the entry.
 pub struct EntryMut<'a, B: Backend> {
     pager: &'a mut Pager<B>,
-    header_id: &'a B::Id,
+    header_id: &'a Id<B>,
     header: &'a mut Header,
     tree: &'a mut Tree<B>,
     entry: Inner,
-    first: B::Id,
-    last: B::Id,
+    first: Id<B>,
+    last: Id<B>,
     cache: Vec<u8>,
 }
 
 impl<'a, B: Backend> EntryMut<'a, B> {
     fn new(
         pager: &'a mut Pager<B>,
-        header_id: &'a B::Id,
+        header_id: &'a Id<B>,
         header: &'a mut Header,
         tree: &'a mut Tree<B>,
         entry: Inner,
-        id: B::Id,
+        id: Id<B>,
     ) -> EntryMut<'a, B> {
         EntryMut {
             pager,

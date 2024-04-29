@@ -25,13 +25,14 @@ mod symlink;
 mod write;
 mod write_all;
 
-use nuts_memory::{Id, MemoryBackend};
+use nuts_memory::MemoryBackend;
 
 use crate::entry::mode::Mode;
 use crate::entry::r#mut::{DirectoryBuilder, FileBuilder, InnerBuilder, SymlinkBuilder};
+use crate::id::Id;
 use crate::Archive;
 
-fn lookup(archive: &mut Archive<MemoryBackend>, idx: usize) -> Option<&Id> {
+fn lookup(archive: &mut Archive<MemoryBackend>, idx: usize) -> Option<&Id<MemoryBackend>> {
     match archive.tree.lookup(&mut archive.pager, idx) {
         Some(result) => Some(result.unwrap()),
         None => None,

@@ -26,9 +26,10 @@ mod tests;
 use nuts_backend::Backend;
 use nuts_bytes::{Reader, Writer};
 use nuts_container::Container;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 
 use crate::error::ArchiveResult;
+use crate::id::Id;
 
 pub struct Pager<B: Backend> {
     container: Container<B>,
@@ -52,22 +53,46 @@ impl<B: Backend> Pager<B> {
         Writer::new(self.buf.as_mut_slice())
     }
 
-    pub fn read_buf(&mut self, id: &B::Id) -> ArchiveResult<Reader<&[u8]>, B> {
+    pub fn read_buf(&mut self, id: &Id<B>) -> ArchiveResult<Reader<&[u8]>, B> {
         self.read_buf_raw(id)?;
         Ok(self.create_reader())
     }
 
-    pub fn read_buf_raw(&mut self, id: &B::Id) -> ArchiveResult<&[u8], B> {
-        let n = self.container.read(id, &mut self.buf)?;
+    pub fn read_buf_raw(&mut self, id: &Id<B>) -> ArchiveResult<&[u8], B> {
+        let n = self.container.read(id.as_ref(), &mut self.buf)?;
 
         assert_eq!(n, self.buf.len());
 
         Ok(&self.buf)
     }
 
-    pub fn write_buf(&mut self, id: &B::Id) -> ArchiveResult<(), B> {
-        self.container.write(id, &self.buf)?;
+    pub fn write_buf(&mut self, id: &Id<B>) -> ArchiveResult<(), B> {
+        self.container.write(id.as_ref(), &self.buf)?;
         Ok(())
+    }
+
+    pub fn aquire(&mut self) -> ArchiveResult<Id<B>, B> {
+        let id = self.container.aquire()?;
+
+        Ok(Id::new(id))
+    }
+
+    pub fn read(&mut self, id: &Id<B>, buf: &mut [u8]) -> ArchiveResult<usize, B> {
+        self.container
+            .read(id.as_ref(), buf)
+            .map_err(|err| err.into())
+    }
+
+    pub fn write(&mut self, id: &Id<B>, buf: &[u8]) -> ArchiveResult<usize, B> {
+        self.container
+            .write(id.as_ref(), buf)
+            .map_err(|err| err.into())
+    }
+
+    pub fn update_userdata(&mut self, userdata: &[u8]) -> ArchiveResult<(), B> {
+        self.container
+            .update_userdata(userdata)
+            .map_err(|err| err.into())
     }
 
     fn whiteout(&mut self) {
@@ -84,11 +109,5 @@ impl<B: Backend> Deref for Pager<B> {
 
     fn deref(&self) -> &Container<B> {
         &self.container
-    }
-}
-
-impl<B: Backend> DerefMut for Pager<B> {
-    fn deref_mut(&mut self) -> &mut Container<B> {
-        &mut self.container
     }
 }

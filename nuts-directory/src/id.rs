@@ -23,8 +23,8 @@
 #[cfg(test)]
 mod tests;
 
-use nuts_backend::IdSize;
-use nuts_bytes::{FromBytes, ToBytes};
+use nuts_backend::{Binary, IdSize};
+use std::convert::TryInto;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -60,8 +60,21 @@ const HEX: [char; SIZE] = [
 /// When storing a block to disks the path to the file is derived from the id:
 /// * The id is converted into a hex string.
 /// * The path then would be: `<first two chars>/<next two chars>/<remaining chars>`
-#[derive(Clone, FromBytes, PartialEq, ToBytes)]
+#[derive(Clone, PartialEq)]
 pub struct Id([u8; SIZE]);
+
+impl Binary for Id {
+    fn from_bytes(bytes: &[u8]) -> Option<Id> {
+        match bytes.try_into() {
+            Ok(buf) => Some(Id(buf)),
+            Err(_) => None,
+        }
+    }
+
+    fn as_bytes(&self) -> Vec<u8> {
+        self.0.to_vec()
+    }
+}
 
 impl IdSize for Id {
     fn size() -> usize {

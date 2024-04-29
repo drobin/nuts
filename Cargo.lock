@@ -377,9 +377,6 @@ dependencies = [
 [[package]]
 name = "nuts-backend"
 version = "0.5.0"
-dependencies = [
- "nuts-bytes",
-]
 
 [[package]]
 name = "nuts-bytes"
@@ -417,7 +414,6 @@ dependencies = [
  "getrandom",
  "log",
  "nuts-backend",
- "nuts-bytes",
 ]
 
 [[package]]

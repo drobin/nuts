@@ -77,7 +77,7 @@ fn load_inval_node() {
 
     let err = Node::new().load(&id, &mut pager).unwrap_err();
     let err_id = into_error!(err, Error::InvalidNode);
-    assert_eq!(err_id, id);
+    assert_eq!(err_id, *id.as_ref());
 }
 
 #[test]

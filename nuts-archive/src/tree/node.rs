@@ -28,6 +28,7 @@ use nuts_bytes::{PutBytesError, Reader, Writer};
 use std::ops::Deref;
 
 use crate::error::{ArchiveResult, Error};
+use crate::id::Id;
 use crate::pager::Pager;
 
 const MAGIC: [u8; 4] = *b"node";
@@ -35,7 +36,7 @@ const MAGIC: [u8; 4] = *b"node";
 #[derive(Debug)]
 pub struct Node<B: Backend> {
     buf: Vec<u8>,
-    vec: Vec<B::Id>,
+    vec: Vec<Id<B>>,
 }
 
 impl<B: Backend> Node<B> {
@@ -46,7 +47,7 @@ impl<B: Backend> Node<B> {
         }
     }
 
-    pub fn load(&mut self, id: &B::Id, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
+    pub fn load(&mut self, id: &Id<B>, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
         self.buf.resize(pager.block_size() as usize, 0);
         pager.read(id, &mut self.buf)?;
 
@@ -57,7 +58,7 @@ impl<B: Backend> Node<B> {
         let magic = reader.read::<[u8; MAGIC.len()]>()?;
 
         if magic != MAGIC {
-            return Err(crate::Error::InvalidNode(id.clone()));
+            return Err(crate::Error::InvalidNode(id.as_ref().clone()));
         }
 
         let count = reader.read::<u32>()?;
@@ -78,7 +79,7 @@ impl<B: Backend> Node<B> {
         Ok(())
     }
 
-    pub fn flush(&mut self, id: &B::Id, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
+    pub fn flush(&mut self, id: &Id<B>, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
         self.buf.resize(pager.block_size() as usize, 0);
 
         if let Err(err) = self.flush_to_buf() {
@@ -109,9 +110,9 @@ impl<B: Backend> Node<B> {
 }
 
 impl<B: Backend> Deref for Node<B> {
-    type Target = [B::Id];
+    type Target = [Id<B>];
 
-    fn deref(&self) -> &[B::Id] {
+    fn deref(&self) -> &[Id<B>] {
         &self.vec
     }
 }

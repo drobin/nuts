@@ -31,6 +31,7 @@ use nuts_bytes::{FromBytes, ToBytes, Writer};
 use crate::entry::mode::Mode;
 use crate::entry::tstamp::Timestamps;
 use crate::error::ArchiveResult;
+use crate::id::Id;
 use crate::pager::Pager;
 
 #[cfg(test)]
@@ -56,14 +57,14 @@ impl Inner {
         }
     }
 
-    fn load<B: Backend>(pager: &mut Pager<B>, id: &B::Id) -> ArchiveResult<Inner, B> {
+    fn load<B: Backend>(pager: &mut Pager<B>, id: &Id<B>) -> ArchiveResult<Inner, B> {
         let mut reader = pager.read_buf(id)?;
         let inner = reader.read()?;
 
         Ok(inner)
     }
 
-    fn flush<B: Backend>(&self, pager: &mut Pager<B>, id: &B::Id) -> ArchiveResult<(), B> {
+    fn flush<B: Backend>(&self, pager: &mut Pager<B>, id: &Id<B>) -> ArchiveResult<(), B> {
         let buf = {
             let mut writer = Writer::new(vec![]);
 

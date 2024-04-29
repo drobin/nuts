@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_bytes::{Reader, Writer};
+use nuts_backend::Binary;
 use std::path::Path;
 
 use crate::id::Id;
@@ -92,13 +92,13 @@ fn from_str_inval_char() {
 
 #[test]
 fn de() {
-    let id = Reader::new(ID.as_slice()).read::<Id>().unwrap();
+    let id = Id::from_bytes(ID.as_slice()).unwrap();
     assert_eq!(id.0, ID);
 }
 
 #[test]
 fn ser() {
-    let mut writer = Writer::new(vec![]);
-    assert_eq!(writer.write(&Id::generate()).unwrap(), 16);
-    assert_eq!(writer.into_target(), ID);
+    let buf = Id::generate().as_bytes();
+
+    assert_eq!(buf, ID);
 }

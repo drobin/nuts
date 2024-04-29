@@ -23,12 +23,13 @@
 use nuts_backend::Backend;
 
 use crate::error::ArchiveResult;
+use crate::id::Id;
 use crate::pager::Pager;
 use crate::tree::node::Node;
 
 #[derive(Debug)]
 struct Inner<B: Backend> {
-    id: Option<B::Id>,
+    id: Option<Id<B>>,
     node: Node<B>,
 }
 
@@ -40,7 +41,7 @@ impl<'a, B: Backend> Inner<B> {
         }
     }
 
-    fn refresh(&mut self, id: &B::Id, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
+    fn refresh(&mut self, id: &Id<B>, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
         let must_refresh = match self.id.as_ref() {
             Some(in_id) => in_id != id,
             None => true,
@@ -74,9 +75,9 @@ impl<B: Backend> Cache<B> {
     pub fn resolve<'a>(
         &'a mut self,
         pager: &mut Pager<B>,
-        start: Option<&'a B::Id>,
+        start: Option<&'a Id<B>>,
         idxs: &[usize],
-    ) -> ArchiveResult<Option<&'a B::Id>, B> {
+    ) -> ArchiveResult<Option<&'a Id<B>>, B> {
         self.0.resize_with(idxs.len(), || Inner::new());
 
         let mut id_opt = start;
@@ -97,9 +98,9 @@ impl<B: Backend> Cache<B> {
     pub fn aquire<'a>(
         &'a mut self,
         pager: &mut Pager<B>,
-        start: &'a B::Id,
+        start: &'a Id<B>,
         idxs: &[usize],
-    ) -> ArchiveResult<&'a B::Id, B> {
+    ) -> ArchiveResult<&'a Id<B>, B> {
         self.0.resize_with(idxs.len(), || Inner::new());
 
         let mut id = start;

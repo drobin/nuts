@@ -30,6 +30,7 @@ use std::convert::{TryFrom, TryInto};
 
 use crate::entry::{populate_mode_api, populate_tstamp_api, Inner};
 use crate::error::{ArchiveResult, Error};
+use crate::id::Id;
 use crate::pager::Pager;
 use crate::tree::Tree;
 
@@ -224,7 +225,7 @@ impl<'a, B: Backend> TryFrom<InnerEntry<'a, B>> for Entry<'a, B> {
             );
 
             match src.tree.lookup(src.pager, src.idx) {
-                Some(Ok(id)) => Err(Error::InvalidType(Some(id.clone()))),
+                Some(Ok(id)) => Err(Error::InvalidType(Some(id.as_ref().clone()))),
                 Some(Err(err)) => {
                     error!("id lookup failed for idx {}", src.idx);
                     Err(err)
@@ -404,7 +405,7 @@ impl<'a, B: Backend> InnerEntry<'a, B> {
         pager: &'a mut Pager<B>,
         tree: &'a mut Tree<B>,
         idx: usize,
-        id: &B::Id,
+        id: &Id<B>,
     ) -> ArchiveResult<InnerEntry<'a, B>, B> {
         let inner = Inner::load(pager, id)?;
 

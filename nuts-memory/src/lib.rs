@@ -34,6 +34,7 @@ use nuts_backend::{Backend, Binary, Create, IdSize, Open, ReceiveHeader, HEADER_
 use nuts_bytes::{FromBytes, ToBytes};
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::num::ParseIntError;
 use std::str::FromStr;
 use std::{cmp, fmt, mem};
@@ -62,6 +63,19 @@ pub enum Error {
 /// The [id](nuts_backend::Backend::Id) of the memory backend.
 #[derive(Clone, Copy, Debug, FromBytes, PartialEq, ToBytes)]
 pub struct Id(u32);
+
+impl Binary for Id {
+    fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        match bytes.try_into() {
+            Ok(buf) => Some(Id(u32::from_be_bytes(buf))),
+            Err(_) => None,
+        }
+    }
+
+    fn as_bytes(&self) -> Vec<u8> {
+        self.0.to_be_bytes().to_vec()
+    }
+}
 
 impl IdSize for Id {
     fn size() -> usize {

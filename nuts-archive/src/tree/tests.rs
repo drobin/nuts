@@ -33,7 +33,7 @@ const BSIZE: u32 = 16;
 
 macro_rules! _id {
     ($id:expr) => {
-        $id.parse::<<nuts_memory::MemoryBackend as nuts_backend::Backend>::Id>()
+        $id.parse::<crate::id::Id<nuts_memory::MemoryBackend>>()
             .unwrap()
     };
 }

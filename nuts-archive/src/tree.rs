@@ -32,6 +32,7 @@ use nuts_container::Container;
 use std::mem;
 
 use crate::error::{ArchiveResult, Error};
+use crate::id::Id;
 use crate::pager::Pager;
 use crate::tree::cache::Cache;
 use crate::tree::node::Node;
@@ -47,7 +48,7 @@ const IDX_T_INDIRECT: usize = IDX_D_INDIRECT + 1;
 
 #[derive(Debug, FromBytes, ToBytes)]
 pub struct Tree<B: Backend> {
-    ids: Vec<B::Id>,
+    ids: Vec<Id<B>>,
     nblocks: u64,
     #[nuts_bytes(skip)]
     cache: Cache<B>,
@@ -66,7 +67,7 @@ impl<B: Backend> Tree<B> {
         self.nblocks
     }
 
-    pub fn aquire(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
+    pub fn aquire(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
         let ipn = ids_per_node(pager) as u64; // ids per node
 
         if self.nblocks < NUM_DIRECT as u64 {
@@ -82,7 +83,7 @@ impl<B: Backend> Tree<B> {
         }
     }
 
-    pub fn lookup(&mut self, pager: &mut Pager<B>, idx: usize) -> Option<ArchiveResult<&B::Id, B>> {
+    pub fn lookup(&mut self, pager: &mut Pager<B>, idx: usize) -> Option<ArchiveResult<&Id<B>, B>> {
         if idx >= self.nblocks as usize {
             return None;
         }
@@ -106,7 +107,7 @@ impl<B: Backend> Tree<B> {
         }
     }
 
-    fn lookup_direct(&mut self, idx: usize) -> ArchiveResult<Option<&B::Id>, B> {
+    fn lookup_direct(&mut self, idx: usize) -> ArchiveResult<Option<&Id<B>>, B> {
         assert!(idx < NUM_DIRECT as usize);
 
         let id = self.ids.get(idx);
@@ -119,7 +120,7 @@ impl<B: Backend> Tree<B> {
         Ok(id)
     }
 
-    fn aquire_direct(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
+    fn aquire_direct(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
         assert!(self.nblocks < NUM_DIRECT as u64);
 
         self.ids.push(pager.aquire()?);
@@ -136,7 +137,7 @@ impl<B: Backend> Tree<B> {
         &mut self,
         pager: &mut Pager<B>,
         idx: usize,
-    ) -> ArchiveResult<Option<&B::Id>, B> {
+    ) -> ArchiveResult<Option<&Id<B>>, B> {
         let id = self
             .cache
             .resolve(pager, self.ids.get(IDX_INDIRECT), &[idx])?;
@@ -149,7 +150,7 @@ impl<B: Backend> Tree<B> {
         Ok(id)
     }
 
-    fn aquire_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
+    fn aquire_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
         self.ensure_id(IDX_INDIRECT, pager)?;
 
         let idx = self.nblocks as usize - NUM_DIRECT as usize;
@@ -169,7 +170,7 @@ impl<B: Backend> Tree<B> {
         &mut self,
         pager: &mut Pager<B>,
         idx: usize,
-    ) -> ArchiveResult<Option<&B::Id>, B> {
+    ) -> ArchiveResult<Option<&Id<B>>, B> {
         let ipn = ids_per_node(pager) as usize; // ids per node
         let d_idx = [(idx / ipn) % ipn, idx % ipn];
         let d_indirect = self.ids.get(IDX_D_INDIRECT);
@@ -184,7 +185,7 @@ impl<B: Backend> Tree<B> {
         Ok(id)
     }
 
-    fn aquire_d_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
+    fn aquire_d_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
         self.ensure_id(IDX_D_INDIRECT, pager)?;
 
         let ipn = ids_per_node(pager) as usize; // ids per node
@@ -209,7 +210,7 @@ impl<B: Backend> Tree<B> {
         &mut self,
         pager: &mut Pager<B>,
         idx: usize,
-    ) -> ArchiveResult<Option<&B::Id>, B> {
+    ) -> ArchiveResult<Option<&Id<B>>, B> {
         let ipn = ids_per_node(pager) as usize; // ids per node
         let t_idx = [(idx / (ipn * ipn)) % ipn, (idx / ipn) % ipn, idx % ipn];
         let t_indirect = self.ids.get(IDX_T_INDIRECT);
@@ -224,7 +225,7 @@ impl<B: Backend> Tree<B> {
         Ok(id)
     }
 
-    fn aquire_t_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&B::Id, B> {
+    fn aquire_t_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
         self.ensure_id(IDX_T_INDIRECT, pager)?;
 
         let ipn = ids_per_node(pager) as usize; // ids per node

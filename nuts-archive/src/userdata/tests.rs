@@ -21,9 +21,11 @@
 // IN THE SOFTWARE.
 
 use nuts_bytes::{Reader, Writer};
-use nuts_memory::{Id, MemoryBackend};
+use nuts_memory::MemoryBackend;
 
 use crate::error::Error;
+use crate::id::Id;
+use crate::pager::Pager;
 use crate::tests::{into_error, setup_container};
 use crate::userdata::{Userdata, UserdataMagicError};
 
@@ -56,7 +58,7 @@ fn de_ok() {
 
 #[test]
 fn ser_ok() {
-    let id = "1".parse::<Id>().unwrap();
+    let id = "1".parse::<Id<MemoryBackend>>().unwrap();
     let userdata = Userdata::<MemoryBackend>::new(id);
 
     let mut writer = Writer::new(vec![]);
@@ -68,21 +70,21 @@ fn ser_ok() {
 
 #[test]
 fn create_userdata_unforced() {
-    let mut container = setup_container();
+    let mut pager = Pager::new(setup_container());
 
-    container.update_userdata(&[b'x'; 1]).unwrap();
+    pager.update_userdata(&[b'x'; 1]).unwrap();
 
-    let err = Userdata::<MemoryBackend>::create(&mut container, false).unwrap_err();
+    let err = Userdata::<MemoryBackend>::create(&mut pager, false).unwrap_err();
     assert!(matches!(err, Error::OverwriteUserdata));
 }
 
 #[test]
 fn create_userdata_forced() {
-    let mut container = setup_container();
+    let mut pager = Pager::new(setup_container());
 
-    container.update_userdata(&[b'x'; 1]).unwrap();
+    pager.update_userdata(&[b'x'; 1]).unwrap();
 
-    let userdata = Userdata::<MemoryBackend>::create(&mut container, true).unwrap();
+    let userdata = Userdata::<MemoryBackend>::create(&mut pager, true).unwrap();
 
     assert_eq!(userdata.magic, *b"nuts-archive");
     assert_eq!(userdata.id.to_string(), "1");
@@ -90,8 +92,8 @@ fn create_userdata_forced() {
 
 #[test]
 fn create_no_userdata_unforced() {
-    let mut container = setup_container();
-    let userdata = Userdata::<MemoryBackend>::create(&mut container, false).unwrap();
+    let mut pager = Pager::new(setup_container());
+    let userdata = Userdata::<MemoryBackend>::create(&mut pager, false).unwrap();
 
     assert_eq!(userdata.magic, *b"nuts-archive");
     assert_eq!(userdata.id.to_string(), "1");
@@ -99,8 +101,8 @@ fn create_no_userdata_unforced() {
 
 #[test]
 fn create_no_userdata_forced() {
-    let mut container = setup_container();
-    let userdata = Userdata::<MemoryBackend>::create(&mut container, true).unwrap();
+    let mut pager = Pager::new(setup_container());
+    let userdata = Userdata::<MemoryBackend>::create(&mut pager, true).unwrap();
 
     assert_eq!(userdata.magic, *b"nuts-archive");
     assert_eq!(userdata.id.to_string(), "1");
@@ -108,32 +110,32 @@ fn create_no_userdata_forced() {
 
 #[test]
 fn load_no_userdata() {
-    let mut container = setup_container();
+    let mut pager = Pager::new(setup_container());
 
-    let err = Userdata::<MemoryBackend>::load(&mut container).unwrap_err();
+    let err = Userdata::<MemoryBackend>::load(&mut pager).unwrap_err();
     let err = into_error!(err, Error::InvalidUserdata);
     assert!(err.is_none());
 }
 
 #[test]
 fn load_invalid_userdata() {
-    let mut container = setup_container();
+    let mut pager = Pager::new(setup_container());
 
     let userdata = [&[USERDATA[0] + 1], &USERDATA[1..]].concat();
-    container.update_userdata(&userdata).unwrap();
+    pager.update_userdata(&userdata).unwrap();
 
-    let err = Userdata::<MemoryBackend>::load(&mut container).unwrap_err();
+    let err = Userdata::<MemoryBackend>::load(&mut pager).unwrap_err();
     let err = into_error!(err, Error::InvalidUserdata);
     assert!(err.is_some());
 }
 
 #[test]
 fn load_ok() {
-    let mut container = setup_container();
+    let mut pager = Pager::new(setup_container());
 
-    container.update_userdata(&USERDATA).unwrap();
+    pager.update_userdata(&USERDATA).unwrap();
 
-    let userdata = Userdata::<MemoryBackend>::load(&mut container).unwrap();
+    let userdata = Userdata::<MemoryBackend>::load(&mut pager).unwrap();
 
     assert_eq!(userdata.magic, *b"nuts-archive");
     assert_eq!(userdata.id.to_string(), "1");
@@ -141,13 +143,13 @@ fn load_ok() {
 
 #[test]
 fn load_ok_attached() {
-    let mut container = setup_container();
+    let mut pager = Pager::new(setup_container());
 
     let mut userdata = USERDATA.to_vec();
     userdata.push(b'x');
-    container.update_userdata(&userdata).unwrap();
+    pager.update_userdata(&userdata).unwrap();
 
-    let userdata = Userdata::<MemoryBackend>::load(&mut container).unwrap();
+    let userdata = Userdata::<MemoryBackend>::load(&mut pager).unwrap();
 
     assert_eq!(userdata.magic, *b"nuts-archive");
     assert_eq!(userdata.id.to_string(), "1");

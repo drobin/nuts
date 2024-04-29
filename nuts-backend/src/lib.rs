@@ -48,7 +48,6 @@
 //! The final [`Open::build()`] call creates the backend instance, which is
 //! used by the container.
 
-use nuts_bytes::{FromBytes, ToBytes};
 use std::error;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
@@ -184,7 +183,7 @@ where
 
     /// The id identifies a block in the storage. It is used everywhere you
     /// need a pointer to a block.
-    type Id: Clone + Debug + Display + FromBytes + FromStr + IdSize + PartialEq + ToBytes;
+    type Id: Binary + Clone + Debug + Display + FromStr + IdSize + PartialEq;
 
     /// Information of the backend.
     ///
