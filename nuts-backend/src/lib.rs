@@ -49,7 +49,7 @@
 //! used by the container.
 
 use std::error;
-use std::fmt::{Debug, Display};
+use std::fmt::Display;
 use std::str::FromStr;
 
 // The maximun size of the header.
@@ -183,7 +183,7 @@ where
 
     /// The id identifies a block in the storage. It is used everywhere you
     /// need a pointer to a block.
-    type Id: Binary + Clone + Debug + Display + FromStr + IdSize + PartialEq;
+    type Id: Binary + Clone + Display + FromStr + IdSize + PartialEq;
 
     /// Information of the backend.
     ///

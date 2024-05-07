@@ -111,7 +111,7 @@ impl<B: Backend> PartialEq for Id<B> {
 
 impl<B: Backend> fmt::Debug for Id<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(&self.0, fmt)
+        fmt::Display::fmt(&self.0, fmt)
     }
 }
 
