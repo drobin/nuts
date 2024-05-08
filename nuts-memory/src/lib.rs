@@ -280,4 +280,8 @@ impl Backend for MemoryBackend {
         self.header = Some(*buf);
         Ok(())
     }
+
+    fn delete(self) {
+        // noop
+    }
 }

@@ -579,4 +579,11 @@ impl<B: Backend> Container<B> {
             Err(cause) => Err(Error::Backend(cause)),
         }
     }
+
+    /// Deletes the entire container and all traces.
+    ///
+    /// The method must not fail!
+    pub fn delete(self) {
+        self.backend.delete()
+    }
 }

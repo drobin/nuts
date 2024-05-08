@@ -287,4 +287,9 @@ where
     /// header, that's why such a method is used. Not more than
     /// [`HEADER_MAX_SIZE`] bytes can be stored in the header.
     fn write_header(&mut self, buf: &[u8; HEADER_MAX_SIZE]) -> Result<(), Self::Err>;
+
+    /// Deletes the entire instance and all traces.
+    ///
+    /// The method must not fail!
+    fn delete(self);
 }

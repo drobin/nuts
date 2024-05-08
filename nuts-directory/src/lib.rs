@@ -60,7 +60,7 @@ mod id;
 mod info;
 mod options;
 
-use log::warn;
+use log::{error, warn};
 use nuts_backend::{Backend, ReceiveHeader, HEADER_MAX_SIZE};
 use std::io::{self, ErrorKind, Read, Write};
 use std::path::Path;
@@ -212,5 +212,11 @@ impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
 
     fn write_header(&mut self, buf: &[u8; HEADER_MAX_SIZE]) -> Result<()> {
         write_header(self.path.as_ref(), self.bsize, buf)
+    }
+
+    fn delete(self) {
+        if let Err(err) = fs::remove_dir_all(self.path) {
+            error!("failed to delete backend instance: {}", err);
+        }
     }
 }

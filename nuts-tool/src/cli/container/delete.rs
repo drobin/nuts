@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -25,7 +25,7 @@ use clap::Args;
 use log::debug;
 use std::fs;
 
-use crate::cli::container_dir_for;
+use crate::cli::{container_dir_for, open_container};
 
 #[derive(Args, Debug)]
 pub struct ContainerDeleteArgs {
@@ -37,11 +37,16 @@ pub struct ContainerDeleteArgs {
 impl ContainerDeleteArgs {
     pub fn run(&self) -> Result<()> {
         let path = container_dir_for(&self.container)?;
+        let container = open_container(&self.container)?;
 
         debug!("container: {}", self.container);
         debug!("path: {}", path.display());
 
-        fs::remove_dir_all(path)?;
+        container.delete();
+
+        if path.exists() {
+            fs::remove_dir_all(path)?;
+        }
 
         Ok(())
     }
