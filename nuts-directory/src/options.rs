@@ -41,10 +41,6 @@ const BLOCK_MIN_SIZE: u32 = 512;
 ///
 /// Furthermore the following options can be specified:
 ///
-/// * [`CreateOptions::with_overwrite()`]: If set to `true` an already existing
-///   path is reused. **Note**: If you overwrite an existing path, the content
-///   is not removed! If set to `false` and the base path exists, the build
-///   operation aborts with [`Error::Exists`]. The default is `false`.
 /// * [`CreateOptions::with_bsize()`]: Specifies the block size of the backend.
 ///   This is the number of bytes, which can  be stored in an individual block.
 ///   The minimum block size is 512 bytes. The default is `512`.
@@ -52,7 +48,6 @@ const BLOCK_MIN_SIZE: u32 = 512;
 pub struct CreateOptions<P: AsRef<Path>> {
     path: P,
     bsize: u32,
-    overwrite: bool,
 }
 
 impl<P: AsRef<Path>> CreateOptions<P> {
@@ -66,19 +61,7 @@ impl<P: AsRef<Path>> CreateOptions<P> {
         CreateOptions {
             path,
             bsize: BLOCK_MIN_SIZE,
-            overwrite: false,
         }
-    }
-
-    /// Assigns a new overwrite flag to the options.
-    ///
-    /// If set to `true` an already existing path is reused. **Note**: If you
-    /// overwrite an existing path, the content is not removed! If set to
-    /// `false` and the base path exists, the build operation aborts with
-    /// [`Error::Exists`].
-    pub fn with_overwrite(mut self, overwrite: bool) -> Self {
-        self.overwrite = overwrite;
-        self
     }
 
     /// Assigns a new block size to the options.
@@ -104,10 +87,10 @@ impl<P: AsRef<Path>> Create<DirectoryBackend<P>> for CreateOptions<P> {
         Settings { bsize: self.bsize }
     }
 
-    fn build(self, header: [u8; HEADER_MAX_SIZE]) -> Result<DirectoryBackend<P>> {
+    fn build(self, header: [u8; HEADER_MAX_SIZE], overwrite: bool) -> Result<DirectoryBackend<P>> {
         self.validate()?;
 
-        if !self.overwrite {
+        if !overwrite {
             let header_path = Id::min().to_pathbuf(self.path.as_ref());
 
             if header_path.exists() {

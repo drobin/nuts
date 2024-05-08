@@ -56,6 +56,7 @@ pub struct CreateOptions {
     pub(crate) callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>,
     pub(crate) cipher: Cipher,
     pub(crate) kdf: KdfBuilder,
+    pub(crate) overwrite: bool,
 }
 
 /// Utility used to create a [`CreateOptions`] instance.
@@ -76,6 +77,7 @@ impl CreateOptionsBuilder {
             callback: None,
             cipher,
             kdf,
+            overwrite: false,
         })
     }
 
@@ -111,6 +113,16 @@ impl CreateOptionsBuilder {
             self.0.kdf = KdfBuilder::Kdf(kdf);
         }
 
+        self
+    }
+
+    /// Assigns a new overwrite flag to the options.
+    ///
+    /// If set to `true` an already existing backend is overwritten. If
+    /// `overwrite` is set to `false` and the requested container exists, the
+    ///  build should fail.
+    pub fn with_overwrite(mut self, overwrite: bool) -> Self {
+        self.0.overwrite = overwrite;
         self
     }
 

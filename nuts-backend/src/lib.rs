@@ -135,7 +135,11 @@ pub trait Create<B: Backend> {
     /// The `header` argument contains the binary data of the (possibly
     /// encrypted) header of the container. The method should persist the
     /// header in the backend.
-    fn build(self, header: [u8; HEADER_MAX_SIZE]) -> Result<B, B::Err>;
+    ///
+    /// If `overwrite` is `true`, then an existing backend instance should be
+    /// overwritten. If `overwrite` is set to `false` and the requested backend
+    /// instance exists, the build should fail.
+    fn build(self, header: [u8; HEADER_MAX_SIZE], overwrite: bool) -> Result<B, B::Err>;
 }
 
 /// Trait used to open a [`Backend`].

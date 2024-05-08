@@ -332,7 +332,7 @@ impl<B: Backend> Container<B> {
 
         header.write::<B>(settings, &mut header_bytes, &mut store)?;
 
-        let backend = map_err!(backend_options.build(header_bytes))?;
+        let backend = map_err!(backend_options.build(header_bytes, options.overwrite))?;
 
         debug!(
             "Container created, backend: {}, header: {:?}",

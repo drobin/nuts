@@ -202,7 +202,11 @@ impl Create<Self> for MemoryBackend {
         Settings
     }
 
-    fn build(mut self, header: [u8; HEADER_MAX_SIZE]) -> Result<MemoryBackend, Error> {
+    fn build(
+        mut self,
+        header: [u8; HEADER_MAX_SIZE],
+        _overwrite: bool,
+    ) -> Result<MemoryBackend, Error> {
         <Self as Backend>::write_header(&mut self, &header)?;
         Ok(self)
     }

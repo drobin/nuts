@@ -76,11 +76,10 @@ impl ContainerCreateArgs {
         debug!("cipher: {:?}", *self.cipher);
         debug!("overwrite: {}", self.overwrite);
 
-        let backend_options = CreateOptions::for_path(path)
-            .with_bsize(self.block_size)
+        let backend_options = CreateOptions::for_path(path).with_bsize(self.block_size);
+        let mut builder = CreateOptionsBuilder::new(*self.cipher)
+            .with_password_callback(ask_for_password)
             .with_overwrite(self.overwrite);
-        let mut builder =
-            CreateOptionsBuilder::new(*self.cipher).with_password_callback(ask_for_password);
 
         if self.cipher != Cipher::None {
             if let Some(kdf) = self.kdf.clone() {
