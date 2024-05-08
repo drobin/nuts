@@ -25,10 +25,9 @@ use chrono::{DateTime, Utc};
 use clap::{ArgAction, Args};
 use log::debug;
 use nuts_archive::{Archive, Entry, Group};
-use nuts_directory::DirectoryBackend;
 use std::fmt::{self, Write};
-use std::path::PathBuf;
 
+use crate::backend::PluginBackend;
 use crate::cli::open_container;
 use crate::say;
 use crate::time::TimeFormat;
@@ -52,7 +51,7 @@ impl fmt::Display for Type {
 struct Permissions(bool, bool, bool);
 
 impl Permissions {
-    fn from_entry(entry: &Entry<DirectoryBackend<PathBuf>>, group: Group) -> Permissions {
+    fn from_entry(entry: &Entry<PluginBackend>, group: Group) -> Permissions {
         Permissions(
             entry.can_read(group),
             entry.can_write(group),
@@ -85,8 +84,8 @@ impl fmt::Display for Permissions {
     }
 }
 
-impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for Type {
-    fn from(entry: &'a Entry<'a, DirectoryBackend<PathBuf>>) -> Self {
+impl<'a> From<&'a Entry<'a, PluginBackend>> for Type {
+    fn from(entry: &'a Entry<'a, PluginBackend>) -> Self {
         match entry {
             Entry::File(_) => Type::File,
             Entry::Directory(_) => Type::Directory,
@@ -108,8 +107,8 @@ struct ListEntry {
     other_perms: Permissions,
 }
 
-impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for ListEntry {
-    fn from(entry: &Entry<DirectoryBackend<PathBuf>>) -> Self {
+impl<'a> From<&'a Entry<'a, PluginBackend>> for ListEntry {
+    fn from(entry: &Entry<PluginBackend>) -> Self {
         ListEntry {
             name: entry.name().to_string(),
             size: entry.size(),
@@ -125,9 +124,7 @@ impl<'a> From<&'a Entry<'a, DirectoryBackend<PathBuf>>> for ListEntry {
     }
 }
 
-fn collect_entries<'a>(
-    archive: &'a mut Archive<DirectoryBackend<PathBuf>>,
-) -> Result<Vec<ListEntry>> {
+fn collect_entries<'a>(archive: &'a mut Archive<PluginBackend>) -> Result<Vec<ListEntry>> {
     let mut vec = vec![];
     let mut entry_opt = archive.first();
 

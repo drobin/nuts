@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,7 +23,6 @@
 use anyhow::Result;
 use clap::Args;
 use log::debug;
-use nuts_directory::Id;
 use std::cmp;
 
 use crate::cli::open_container;
@@ -56,7 +55,7 @@ impl ContainerReadArgs {
         debug!("container: {}", self.container);
 
         let mut container = open_container(&self.container)?;
-        let id: Id = self.id.parse()?;
+        let id = self.id.parse()?;
 
         let max_bytes = self.max_bytes.unwrap_or(u64::MAX);
         let block_size = container.block_size();

@@ -24,10 +24,11 @@ use anyhow::Result;
 use clap::Args;
 use log::debug;
 use nuts_container::Container;
-use nuts_directory::DirectoryBackend;
-use std::path::PathBuf;
+use std::cmp;
 
+use crate::backend::PluginBackend;
 use crate::cli::open_container;
+use crate::config::ContainerConfig;
 use crate::format::Format;
 use crate::say;
 use crate::say::is_quiet;
@@ -48,18 +49,33 @@ pub struct ContainerInfoArgs {
 }
 
 impl ContainerInfoArgs {
-    fn print_info(&self, container: &Container<DirectoryBackend<PathBuf>>) -> Result<()> {
+    fn print_info(&self, container: &Container<PluginBackend>) -> Result<()> {
+        let container_config = ContainerConfig::load()?;
+        let plugin = container_config.get_plugin(&self.container).unwrap_or("?");
         let info = container.info()?;
 
-        say!("cipher:             {}", info.cipher);
-        say!("kdf:                {}", info.kdf.to_string());
-        say!("block size (gross): {}", info.bsize_gross);
-        say!("block size (net):   {}", info.bsize_net);
+        let key_width = 19;
+        let key_width = info
+            .backend
+            .iter()
+            .fold(key_width, |acc, (key, _)| cmp::max(acc, key.len() + 1));
+
+        say!("{:<key_width$} {}", "plugin:", plugin,);
+        say!("{:<key_width$} {}", "cipher:", info.cipher,);
+        say!("{:<key_width$} {}", "kdf:", info.kdf.to_string());
+        say!("{:<key_width$} {}", "block size (gross):", info.bsize_gross);
+        say!("{:<key_width$} {}", "block size (net):", info.bsize_net);
+
+        say!("");
+
+        for (key, value) in info.backend {
+            say!("{:<key_width$} {}", format!("{}:", key), value);
+        }
 
         Ok(())
     }
 
-    fn print_userdata(&self, container: &Container<DirectoryBackend<PathBuf>>) -> Result<()> {
+    fn print_userdata(&self, container: &Container<PluginBackend>) -> Result<()> {
         if !is_quiet() {
             let mut writer = self.format.create_writer();
 

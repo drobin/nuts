@@ -20,24 +20,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::Result;
-use clap::{value_parser, Args};
+use anyhow::{anyhow, ensure, Result};
+use clap::{value_parser, ArgAction, Args};
 use log::debug;
 use nuts_container::{Cipher, Container, CreateOptionsBuilder, Kdf};
-use nuts_directory::{CreateOptions, DirectoryBackend};
-use std::path::PathBuf;
+use nuts_tool_api::tool::Plugin;
 
+use crate::backend::{PluginBackend, PluginBackendCreateBuilder};
+use crate::cli::ask_for_password;
 use crate::cli::container::{CliCipher, AES128_GCM};
-use crate::cli::{ask_for_password, container_dir_for};
+use crate::config::{ContainerConfig, PluginConfig};
 
 #[derive(Args, Debug)]
 pub struct ContainerCreateArgs {
     /// The  name of the new container
     name: String,
 
-    /// Set the block-size to SIZE
-    #[clap(short, long, id = "SIZE", default_value = "512")]
-    block_size: u32,
+    /// Specifies the plugin used by the new container
+    #[clap(short, long)]
+    plugin: String,
 
     /// Sets the cipher to CIPHER.
     #[clap(short, long, value_parser = value_parser!(CliCipher), default_value = AES128_GCM)]
@@ -62,21 +63,38 @@ pub struct ContainerCreateArgs {
     kdf: Option<Kdf>,
 
     /// If set, overwrites an existing container
-    #[clap(short, long, value_parser)]
+    #[clap(short, long, action = ArgAction::SetTrue)]
     overwrite: bool,
+
+    /// Arguments passed to the plugin
+    #[clap(value_name = "PLUGIN ARGS")]
+    plugin_args: Vec<String>,
 }
 
 impl ContainerCreateArgs {
     pub fn run(&self) -> Result<()> {
-        let path = container_dir_for(&self.name)?;
-
         debug!("name: {}", self.name);
-        debug!("path: {}", path.display());
-        debug!("bsize: {}", self.block_size);
+        debug!("plugin: {}", self.plugin);
         debug!("cipher: {:?}", *self.cipher);
         debug!("overwrite: {}", self.overwrite);
+        debug!("plugin args: {:?}", self.plugin_args);
 
-        let backend_options = CreateOptions::for_path(path).with_bsize(self.block_size);
+        let plugin_config = PluginConfig::load()?;
+        let mut container_config = ContainerConfig::load()?;
+
+        let exe = plugin_config
+            .path(&self.plugin)
+            .ok_or_else(|| anyhow!("no such plugin: {}", self.plugin))?;
+        let plugin = Plugin::new(exe);
+
+        let container_add_ok = container_config.add_plugin(&self.name, &self.plugin);
+        ensure!(
+            container_add_ok,
+            "you already have a container with the name {}",
+            self.name
+        );
+
+        let backend_options = PluginBackendCreateBuilder::new(plugin, &self.name)?;
         let mut builder = CreateOptionsBuilder::new(*self.cipher)
             .with_password_callback(ask_for_password)
             .with_overwrite(self.overwrite);
@@ -88,8 +106,10 @@ impl ContainerCreateArgs {
             }
         }
 
-        let options = builder.build::<DirectoryBackend<PathBuf>>()?;
-        Container::<DirectoryBackend<PathBuf>>::create(backend_options, options)?;
+        let options = builder.build::<PluginBackend>()?;
+        Container::<PluginBackend>::create(backend_options, options)?;
+
+        container_config.save()?;
 
         Ok(())
     }

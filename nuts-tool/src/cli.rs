@@ -24,17 +24,20 @@ pub mod archive;
 pub mod container;
 pub mod plugin;
 
+use anyhow::anyhow;
 use anyhow::Result;
 use clap::{crate_version, ArgAction, Parser, Subcommand};
 use env_logger::Builder;
 use log::LevelFilter;
 use nuts_container::{Container, OpenOptionsBuilder};
-use nuts_directory::{DirectoryBackend, OpenOptions};
+use nuts_tool_api::tool::Plugin;
 use rpassword::prompt_password;
 
+use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
 use crate::cli::plugin::PluginArgs;
+use crate::config::{ContainerConfig, PluginConfig};
 
 #[derive(Debug, Parser)]
 #[clap(name = "nuts", bin_name = "nuts")]
@@ -91,13 +94,24 @@ impl Commands {
     }
 }
 
-fn open_container(name: &str) -> Result<Container<DirectoryBackend<PathBuf>>> {
-    let path = container_dir_for(name)?;
+fn open_container(name: &str) -> Result<Container<PluginBackend>> {
+    let container_config = ContainerConfig::load()?;
+    let plugin_config = PluginConfig::load()?;
+
+    let plugin = container_config
+        .get_plugin(name)
+        .ok_or_else(|| anyhow!("no such container: {}", name))?;
+    let exe = plugin_config
+        .path(plugin)
+        .ok_or_else(|| anyhow!("no such plugin: {}", plugin))?;
+
+    let plugin = Plugin::new(exe);
+    let plugin_builder = PluginBackendOpenBuilder::new(plugin, name)?;
 
     let builder = OpenOptionsBuilder::new().with_password_callback(ask_for_password);
-    let options = builder.build::<DirectoryBackend<PathBuf>>()?;
+    let options = builder.build::<PluginBackend>()?;
 
-    Ok(Container::open(OpenOptions::for_path(path), options)?)
+    Container::open(plugin_builder, options).map_err(|err| err.into())
 }
 
 pub fn ask_for_password() -> Result<Vec<u8>, String> {

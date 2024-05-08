@@ -27,6 +27,8 @@ use nuts_tool_api::container_dir_for;
 use std::fs;
 
 use crate::cli::open_container;
+use crate::config::ContainerConfig;
+use crate::{say, say_warn};
 
 #[derive(Args, Debug)]
 pub struct ContainerDeleteArgs {
@@ -39,15 +41,22 @@ impl ContainerDeleteArgs {
     pub fn run(&self) -> Result<()> {
         let path = container_dir_for(&self.container)?;
         let container = open_container(&self.container)?;
+        let mut container_config = ContainerConfig::load()?;
 
         debug!("container: {}", self.container);
         debug!("path: {}", path.display());
+
+        if !container_config.remove_plugin(&self.container) {
+            say_warn!("container {} not configured", self.container);
+        }
 
         container.delete();
 
         if path.exists() {
             fs::remove_dir_all(path)?;
         }
+
+        container_config.save()?;
 
         Ok(())
     }

@@ -24,14 +24,14 @@ use anyhow::Result;
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use log::{debug, error, trace, warn};
 use nuts_archive::{Archive, Group};
-use nuts_directory::DirectoryBackend;
 use std::fs::{self, File, Metadata};
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 #[cfg(unix)]
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
+use crate::backend::PluginBackend;
 use crate::{say, say_err};
 
 #[cfg(unix)]
@@ -129,10 +129,7 @@ fn can_execute(metadata: &Metadata, group: Group) -> bool {
     }
 }
 
-pub fn append_recursive(
-    archive: &mut Archive<DirectoryBackend<PathBuf>>,
-    path: &Path,
-) -> Result<()> {
+pub fn append_recursive(archive: &mut Archive<PluginBackend>, path: &Path) -> Result<()> {
     debug!("append {}", path.display());
 
     let metadata = match fs::symlink_metadata(path) {

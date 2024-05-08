@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,7 +23,6 @@
 use anyhow::Result;
 use clap::Args;
 use log::debug;
-use nuts_directory::Id;
 
 use crate::cli::open_container;
 
@@ -42,8 +41,8 @@ impl ContainerReleaseArgs {
         debug!("id: {}", self.id);
         debug!("container: {}", self.container);
 
-        let id: Id = self.id.parse()?;
         let mut container = open_container(&self.container)?;
+        let id = self.id.parse()?;
 
         container.release(id)?;
 

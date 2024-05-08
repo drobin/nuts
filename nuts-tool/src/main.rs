@@ -22,12 +22,11 @@
 
 use anyhow::Result;
 use clap::Parser;
-use nuts_directory::DirectoryBackend;
+use nuts_tool::backend::PluginBackend;
 use nuts_tool::cli::NutsCli;
 use nuts_tool::{say, say_err};
-use std::path::PathBuf;
 
-type ArchiveError = nuts_archive::Error<DirectoryBackend<PathBuf>>;
+type ArchiveError = nuts_archive::Error<PluginBackend>;
 
 fn print_archive_error(err: &ArchiveError) -> bool {
     match err {

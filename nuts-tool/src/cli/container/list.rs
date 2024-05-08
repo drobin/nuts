@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -21,26 +21,38 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
-use clap::Args;
+use clap::{ArgAction, Args};
 use log::debug;
 
-use crate::cli::container_dir;
+use crate::config::{ContainerConfig, PluginConfig};
+use crate::{say, say_warn};
 
 #[derive(Args, Debug)]
-pub struct ContainerListArgs {}
+pub struct ContainerListArgs {
+    /// Display all container (even with broken configuration)
+    #[clap(short, long, action = ArgAction::SetTrue)]
+    all: bool,
+}
 
 impl ContainerListArgs {
     pub fn run(&self) -> Result<()> {
-        for entry in container_dir()?.read_dir()? {
-            debug!("{:?}", entry);
+        debug!("all: {}", self.all);
 
-            match entry {
-                Ok(entry) => {
-                    if entry.file_type()?.is_dir() {
-                        println!("{}", entry.file_name().to_string_lossy());
-                    }
-                }
-                Err(cause) => return Err(cause.into()),
+        let container_config = ContainerConfig::load()?;
+        let plugin_config = PluginConfig::load()?;
+
+        for name in container_config.list_container() {
+            let ok = container_config
+                .get_plugin(name)
+                .map(|p| plugin_config.have_plugin(p))
+                .unwrap_or(false);
+
+            if ok && self.all {
+                say!("  {}", name);
+            } else if ok && !self.all {
+                say!("{}", name);
+            } else if self.all {
+                say_warn!("! {}", name);
             }
         }
 
