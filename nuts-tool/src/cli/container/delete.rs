@@ -23,9 +23,10 @@
 use anyhow::Result;
 use clap::Args;
 use log::debug;
+use nuts_tool_api::container_dir_for;
 use std::fs;
 
-use crate::cli::{container_dir_for, open_container};
+use crate::cli::open_container;
 
 #[derive(Args, Debug)]
 pub struct ContainerDeleteArgs {

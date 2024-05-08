@@ -27,18 +27,14 @@ pub mod plugin;
 use anyhow::Result;
 use clap::{crate_version, ArgAction, Parser, Subcommand};
 use env_logger::Builder;
-use log::debug;
 use log::LevelFilter;
 use nuts_container::{Container, OpenOptionsBuilder};
 use nuts_directory::{DirectoryBackend, OpenOptions};
 use rpassword::prompt_password;
-use std::fs;
-use std::path::PathBuf;
 
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
 use crate::cli::plugin::PluginArgs;
-use crate::tool_dir;
 
 #[derive(Debug, Parser)]
 #[clap(name = "nuts", bin_name = "nuts")]
@@ -102,29 +98,6 @@ fn open_container(name: &str) -> Result<Container<DirectoryBackend<PathBuf>>> {
     let options = builder.build::<DirectoryBackend<PathBuf>>()?;
 
     Ok(Container::open(OpenOptions::for_path(path), options)?)
-}
-
-fn container_dir() -> Result<PathBuf> {
-    let parent = tool_dir()?;
-    let dir = parent.join("container.d");
-
-    debug!("container_dir: {}", dir.display());
-
-    if !dir.is_dir() {
-        debug!("creating container dir {}", dir.display());
-        fs::create_dir(&dir)?;
-    }
-
-    Ok(dir)
-}
-
-fn container_dir_for<S: AsRef<str>>(name: S) -> Result<PathBuf> {
-    let parent = container_dir()?;
-    let dir = parent.join(name.as_ref());
-
-    debug!("container_dir for {}: {}", name.as_ref(), dir.display());
-
-    Ok(dir)
 }
 
 pub fn ask_for_password() -> Result<Vec<u8>, String> {
