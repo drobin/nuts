@@ -112,7 +112,7 @@ macro_rules! handshake_func {
     ($name:ident ( $( $argn:ident : $argt:ty ),* ) -> $ty:ty, $req:expr, $variant:pat => $ret:tt) => {
         pub fn $name(&mut self, $($argn: $argt),*) -> PluginResult<$ty> {
             let response = self.handshake($req).map_err(|err| {
-                error!("failed message handshake: {}",err);
+                error!("failed message handshake: {}", err);
                 err
             })?;
 
@@ -214,20 +214,49 @@ impl PluginConnection {
     handshake_func!(read(id: Vec<u8>) -> Vec<u8>, Request::Read(id), OkResponse::Bytes(bytes) => bytes);
     handshake_func!(write(id: Vec<u8>, bytes: Vec<u8>) -> usize, Request::Write(id, bytes), OkResponse::Usize(num) => num);
     handshake_func!(delete() -> (), Request::Delete, OkResponse::Void => ());
-    handshake_func!(quit() -> (), Request::Quit, OkResponse::Void => ());
+
+    pub fn quit(&mut self) -> PluginResult<()> {
+        let response = match self.handshake(Request::Quit) {
+            Ok(response) => Ok(response),
+            Err(PluginError::ChannelClosed) => {
+                debug!("quit handshake failed with ChannelClosed, ignoring...");
+                Ok(Response::ok_void())
+            }
+            Err(err) => {
+                error!("failed quit message handshake: {}", err);
+                Err(err)
+            }
+        }?;
+
+        let result = match response {
+            Response::Ok(OkResponse::Void) => Ok(()),
+            Response::Ok(_) => Err(PluginError::InvalidResponse),
+            Response::Err(err) => Err(PluginError::Response(err)),
+        };
+
+        if result.is_err() {
+            self.shutdown();
+        }
+
+        result
+    }
 
     fn handshake(&mut self, request: Request) -> PluginResult<Response> {
-        let tx = self.tx_in.as_mut().unwrap();
+        debug!("handshake requested for {:?}", request);
 
-        tx.send(request)?;
+        if let Some(tx) = self.tx_in.as_mut() {
+            tx.send(request)?;
 
-        match self.rx_out.recv() {
-            Ok(response) => Ok(response),
-            Err(err) => {
-                error!("{}", err);
-                self.shutdown();
-                Err(PluginError::ChannelClosed)
+            match self.rx_out.recv() {
+                Ok(response) => Ok(response),
+                Err(err) => {
+                    error!("xxx: {}", err);
+                    self.shutdown();
+                    Err(PluginError::ChannelClosed)
+                }
             }
+        } else {
+            Err(PluginError::ChannelClosed)
         }
     }
 
