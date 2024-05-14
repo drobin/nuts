@@ -38,6 +38,27 @@ The nuts-archive is an application based on the nuts container. Inspired by the
 The [nuts-tool] projects implements a commandline utility to maintain nuts
 container and its application.
 
+## Try it out
+
+The easiest way to try out the `nuts` tool is in a Docker container:
+
+```
+docker pull dorobin/nuts
+```
+
+Then open a shell in a container:
+
+```
+docker run -it dorobin/nuts bash
+```
+
+```
+root@92cdafaf933b:/# # you are inside the container
+root@92cdafaf933b:/# # the nuts tool is installed as /usr/local/bin/nuts
+root@92cdafaf933b:/# ls /usr/local/bin/nuts
+/usr/local/bin/nuts
+```
+
 [nuts-archive]: https://github.com/drobin/nuts/tree/master/nuts-archive
 [nuts-container]: https://github.com/drobin/nuts/tree/master/nuts-container
 [nuts-directory]: https://github.com/drobin/nuts/tree/master/nuts-directory
