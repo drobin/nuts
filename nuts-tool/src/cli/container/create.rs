@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::{anyhow, ensure, Result};
+use anyhow::{ensure, Result};
 use clap::{value_parser, ArgAction, Args};
 use log::debug;
 use nuts_container::{Cipher, Container, CreateOptionsBuilder, Kdf};
@@ -82,10 +82,8 @@ impl ContainerCreateArgs {
         let plugin_config = PluginConfig::load()?;
         let mut container_config = ContainerConfig::load()?;
 
-        let exe = plugin_config
-            .path(&self.plugin)
-            .ok_or_else(|| anyhow!("no such plugin: {}", self.plugin))?;
-        let plugin = Plugin::new(exe);
+        let exe = plugin_config.path(&self.plugin)?;
+        let plugin = Plugin::new(&exe);
 
         let container_add_ok = container_config.add_plugin(&self.name, &self.plugin);
         ensure!(

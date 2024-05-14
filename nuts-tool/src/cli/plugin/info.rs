@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use clap::Args;
 
 use crate::config::PluginConfig;
@@ -35,13 +35,9 @@ pub struct PluginInfoArgs {
 impl PluginInfoArgs {
     pub fn run(&self) -> Result<()> {
         let config = PluginConfig::load()?;
+        let path = config.path(&self.name)?;
 
-        match config.path(&self.name) {
-            Some(path) => {
-                say!("path: {}", path.display());
-            }
-            None => bail!("no such plugin: {}", self.name),
-        };
+        say!("path: {}", path.display());
 
         Ok(())
     }

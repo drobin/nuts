@@ -101,11 +101,9 @@ fn open_container(name: &str) -> Result<Container<PluginBackend>> {
     let plugin = container_config
         .get_plugin(name)
         .ok_or_else(|| anyhow!("no such container: {}", name))?;
-    let exe = plugin_config
-        .path(plugin)
-        .ok_or_else(|| anyhow!("no such plugin: {}", plugin))?;
+    let exe = plugin_config.path(plugin)?;
 
-    let plugin = Plugin::new(exe);
+    let plugin = Plugin::new(&exe);
     let plugin_builder = PluginBackendOpenBuilder::new(plugin, name)?;
 
     let builder = OpenOptionsBuilder::new().with_password_callback(ask_for_password);

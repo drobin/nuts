@@ -20,15 +20,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use is_executable::IsExecutable;
 use log::{debug, error};
 use nuts_tool_api::tool::Plugin;
 use nuts_tool_api::tool_dir;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fs;
 use std::path::{Path, PathBuf};
+use std::{env, fs};
 
 use crate::config::load_path;
 
@@ -38,25 +39,54 @@ struct Inner {
 }
 
 impl Inner {
+    fn absolute_path(&self) -> Result<Cow<Path>> {
+        if self.path.is_absolute() {
+            Ok(Cow::Borrowed(self.path.as_path()))
+        } else {
+            let cur_exe = env::current_exe()
+                .map_err(|err| anyhow!("could not detect path of executable: {}", err))?;
+            let path = cur_exe.with_file_name(self.path.as_os_str());
+
+            debug!(
+                "make absolute path from '{}' & '{}': '{}'",
+                cur_exe.display(),
+                self.path.display(),
+                path.display()
+            );
+
+            Ok(Cow::Owned(path))
+        }
+    }
+
     fn validate(&self) -> bool {
-        if !self.path.is_file() {
-            error!("{}: not a file", self.path.display());
+        match self.absolute_path() {
+            Ok(path) => Self::validate_path(&path),
+            Err(err) => {
+                error!("failed to validate {}: {}", self.path.display(), err);
+                false
+            }
+        }
+    }
+
+    fn validate_path(path: &Path) -> bool {
+        if !path.is_file() {
+            error!("{}: not a file", path.display());
             return false;
         }
 
-        if !self.path.is_executable() {
-            error!("{}: not executable", self.path.display());
+        if !path.is_executable() {
+            error!("{}: not executable", path.display());
             return false;
         }
 
-        let plugin = Plugin::new(&self.path);
+        let plugin = Plugin::new(&path);
 
         if let Err(err) = plugin.info() {
-            error!("{}: not a plugin ({})", self.path.display(), err);
+            error!("{}: not a plugin ({})", path.display(), err);
             return false;
         }
 
-        debug!("{}: is valid", self.path.display());
+        debug!("{}: is valid", path.display());
 
         true
     }
@@ -106,11 +136,11 @@ impl PluginConfig {
         self.plugins.remove(name).is_some()
     }
 
-    pub fn path(&self, name: &str) -> Option<&Path> {
-        self.plugins
-            .get(name)
-            .filter(|inner| inner.validate())
-            .map(|inner| inner.path.as_path())
+    pub fn path(&self, name: &str) -> Result<Cow<Path>> {
+        match self.plugins.get(name).filter(|inner| inner.validate()) {
+            Some(inner) => inner.absolute_path(),
+            None => Err(anyhow!("no such plugin: {}", name)),
+        }
     }
 
     pub fn set_path<P: AsRef<Path>>(&mut self, name: &str, path: P) -> bool {
