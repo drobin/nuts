@@ -69,8 +69,8 @@ impl ContainerConfig {
         self.container.get(name).map(|inner| inner.plugin.as_str())
     }
 
-    pub fn add_plugin(&mut self, name: &str, plugin: &str) -> bool {
-        if self.container.contains_key(name) {
+    pub fn add_plugin(&mut self, name: &str, plugin: &str, force: bool) -> bool {
+        if self.container.contains_key(name) && !force {
             return false;
         }
 

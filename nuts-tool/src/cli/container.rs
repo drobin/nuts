@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 pub mod aquire;
+pub mod attach;
 pub mod create;
 pub mod delete;
 pub mod info;
@@ -36,6 +37,7 @@ use nuts_container::Cipher;
 use std::ops::Deref;
 
 use crate::cli::container::aquire::ContainerAquireArgs;
+use crate::cli::container::attach::ContainerAttachArgs;
 use crate::cli::container::create::ContainerCreateArgs;
 use crate::cli::container::delete::ContainerDeleteArgs;
 use crate::cli::container::info::ContainerInfoArgs;
@@ -105,6 +107,9 @@ pub enum ContainerCommand {
     /// Aquires a new block in a container
     Aquire(ContainerAquireArgs),
 
+    /// Attaches a plugin to a nuts-container
+    Attach(ContainerAttachArgs),
+
     /// Creates a nuts-container
     Create(ContainerCreateArgs),
 
@@ -131,6 +136,7 @@ impl ContainerCommand {
     pub fn run(&self) -> Result<()> {
         match self {
             Self::Aquire(args) => args.run(),
+            Self::Attach(args) => args.run(),
             Self::Create(args) => args.run(),
             Self::Delete(args) => args.run(),
             Self::Info(args) => args.run(),
