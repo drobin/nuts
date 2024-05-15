@@ -22,6 +22,7 @@
 
 use anyhow::{bail, Result};
 use clap::Args;
+use log::debug;
 
 use crate::config::PluginConfig;
 
@@ -33,12 +34,14 @@ pub struct PluginRemoveArgs {
 
 impl PluginRemoveArgs {
     pub fn run(&self) -> Result<()> {
+        debug!("name: {}", self.name);
+
         let mut config = PluginConfig::load()?;
 
         if config.remove_plugin(&self.name) {
             config.save()?;
         } else {
-            bail!("the plugin {} is not configured", self.name);
+            bail!("the plugin '{}' is not configured", self.name);
         }
 
         Ok(())

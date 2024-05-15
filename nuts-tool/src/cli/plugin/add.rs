@@ -20,8 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::{ensure, Result};
+use anyhow::{bail, Result};
 use clap::Args;
+use log::debug;
 use std::path::PathBuf;
 
 use crate::config::PluginConfig;
@@ -38,15 +39,19 @@ pub struct PluginAddArgs {
 
 impl PluginAddArgs {
     pub fn run(&self) -> Result<()> {
+        debug!("name: {}", self.name);
+        debug!("path: {:?}", self.path);
+
         let mut config = PluginConfig::load()?;
 
-        ensure!(
-            !config.have_plugin(&self.name),
-            "the plugin {} is already configured",
-            self.name
-        );
+        if config.have_plugin(&self.name) {
+            bail!("the plugin '{}' is already configured", self.name);
+        }
 
-        config.set_path(&self.name, &self.path);
+        if !config.set_path(&self.name, &self.path) {
+            bail!("the path '{}' is invalid", self.path.display());
+        }
+
         config.save()?;
 
         Ok(())

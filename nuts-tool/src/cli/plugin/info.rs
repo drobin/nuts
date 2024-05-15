@@ -20,8 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use clap::Args;
+use log::debug;
 
 use crate::config::PluginConfig;
 use crate::say;
@@ -34,7 +35,14 @@ pub struct PluginInfoArgs {
 
 impl PluginInfoArgs {
     pub fn run(&self) -> Result<()> {
+        debug!("name: {}", self.name);
+
         let config = PluginConfig::load()?;
+
+        if !config.have_plugin(&self.name) {
+            bail!("the plugin '{}' is not configured", self.name);
+        }
+
         let path = config.path(&self.name)?;
 
         say!("path: {}", path.display());
