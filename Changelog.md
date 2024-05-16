@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2024-05-16
+
+### Added
+
+* `nuts-tool`: Introduction of a plugin system. Now the `nuts` tool can handle
+               various backends without recompile it.
+* `nuts-tool-api`: The new crate contains code which makes it easier to
+                   implement a `nuts` tool plugin.
+* `nuts-directory`: Is additionally implemented as a `nuts` tool plugin. Can be
+                    enabled with the `plugin` feature.
+
+### Changed
+
+* `nuts-backend`: Some refactoring useful for implementing the `nuts` tool
+                  plugin.
+
 ## [0.5.0] - 2024-03-05
 
 ### Changed
@@ -349,3 +365,4 @@ Initial public release.
 [0.4.2]: https://github.com/drobin/nuts/tree/v0.4.2
 [0.4.3]: https://github.com/drobin/nuts/tree/v0.4.3
 [0.5.0]: https://github.com/drobin/nuts/tree/v0.5.0
+[0.6.0]: https://github.com/drobin/nuts/tree/v0.6.0

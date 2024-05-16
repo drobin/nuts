@@ -6,6 +6,7 @@ PACKAGES="
   nuts-bytes-derive
   nuts-bytes
   nuts-backend
+  nuts-tool-api
   nuts-memory
   nuts-directory
   nuts-container
