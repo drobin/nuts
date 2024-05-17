@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -28,7 +28,7 @@ pub fn from_bytes(millis: i64) -> Result<DateTime<Utc>, Infallible> {
     let dt = Utc
         .timestamp_millis_opt(millis)
         .earliest()
-        .unwrap_or_else(|| Utc::now());
+        .unwrap_or_else(Utc::now);
     Ok(dt)
 }
 

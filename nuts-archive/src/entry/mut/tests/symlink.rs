@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -30,8 +30,7 @@ fn ok() {
     let container = setup_container_with_bsize(FULL as u32);
     let mut archive = Archive::create(container, false).unwrap();
 
-    let tuple = setup_symlink_builder(&mut archive).build().unwrap();
-    assert_eq!(tuple, ());
+    setup_symlink_builder(&mut archive).build().unwrap();
 
     let id0 = lookup(&mut archive, 0).unwrap().clone();
     let id1 = lookup(&mut archive, 1).unwrap().clone();

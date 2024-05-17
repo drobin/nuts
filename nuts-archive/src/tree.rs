@@ -234,7 +234,7 @@ impl<B: Backend> Tree<B> {
         let t_idx = [(idx / (ipn * ipn)) % ipn, (idx / ipn) % ipn, idx % ipn];
         let t_indirect = &self.ids[IDX_T_INDIRECT];
 
-        let id = self.cache.aquire(pager, &t_indirect, &t_idx)?;
+        let id = self.cache.aquire(pager, t_indirect, &t_idx)?;
 
         self.nblocks += 1;
 
@@ -256,5 +256,11 @@ impl<B: Backend> Tree<B> {
         }
 
         Ok(())
+    }
+}
+
+impl<B: Backend> Default for Tree<B> {
+    fn default() -> Self {
+        Self::new()
     }
 }

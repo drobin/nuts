@@ -39,9 +39,7 @@ fn lookup(archive: &mut Archive<MemoryBackend>, idx: usize) -> Option<&Id<Memory
     }
 }
 
-fn setup_inner_builder<'a>(
-    archive: &'a mut Archive<MemoryBackend>,
-) -> InnerBuilder<'a, MemoryBackend> {
+fn setup_inner_builder(archive: &mut Archive<MemoryBackend>) -> InnerBuilder<MemoryBackend> {
     InnerBuilder::new(
         &mut archive.pager,
         &archive.header_id,
@@ -52,9 +50,7 @@ fn setup_inner_builder<'a>(
     )
 }
 
-fn setup_file_builder<'a>(
-    archive: &'a mut Archive<MemoryBackend>,
-) -> FileBuilder<'a, MemoryBackend> {
+fn setup_file_builder(archive: &mut Archive<MemoryBackend>) -> FileBuilder<MemoryBackend> {
     FileBuilder::new(
         &mut archive.pager,
         &archive.header_id,
@@ -64,9 +60,9 @@ fn setup_file_builder<'a>(
     )
 }
 
-fn setup_directory_builder<'a>(
-    archive: &'a mut Archive<MemoryBackend>,
-) -> DirectoryBuilder<'a, MemoryBackend> {
+fn setup_directory_builder(
+    archive: &mut Archive<MemoryBackend>,
+) -> DirectoryBuilder<MemoryBackend> {
     DirectoryBuilder::new(
         &mut archive.pager,
         &archive.header_id,
@@ -76,9 +72,7 @@ fn setup_directory_builder<'a>(
     )
 }
 
-fn setup_symlink_builder<'a>(
-    archive: &'a mut Archive<MemoryBackend>,
-) -> SymlinkBuilder<'a, MemoryBackend> {
+fn setup_symlink_builder(archive: &mut Archive<MemoryBackend>) -> SymlinkBuilder<MemoryBackend> {
     SymlinkBuilder::new(
         &mut archive.pager,
         &archive.header_id,

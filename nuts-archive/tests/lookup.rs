@@ -99,7 +99,7 @@ fn two_entries() {
     }
 
     {
-        assert_eq!(archive.append_directory("d1").build().unwrap(), ());
+        archive.append_directory("d1").build().unwrap();
     }
 
     // File lookup succeeded
@@ -138,14 +138,11 @@ fn three_entries() {
     }
 
     {
-        assert_eq!(archive.append_directory("d1").build().unwrap(), ());
+        archive.append_directory("d1").build().unwrap();
     }
 
     {
-        assert_eq!(
-            archive.append_symlink("s1.txt", "f1.txt").build().unwrap(),
-            ()
-        );
+        archive.append_symlink("s1.txt", "f1.txt").build().unwrap();
     }
 
     // File lookup succeeded

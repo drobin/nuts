@@ -72,8 +72,8 @@ fn aquire_indirect(num: usize, tree: &mut Tree<MemoryBackend>, pager: &mut Pager
 fn aquire_d_indirect(num: usize, tree: &mut Tree<MemoryBackend>, pager: &mut Pager<MemoryBackend>) {
     let results = [_id!("18"), _id!("19"), _id!("21"), _id!("22")];
 
-    for i in 0..num {
-        assert_eq!(tree.aquire(pager).unwrap(), &results[i]);
+    for id in results.iter().take(num) {
+        assert_eq!(tree.aquire(pager).unwrap(), id);
     }
 }
 
@@ -89,8 +89,8 @@ fn aquire_t_indirect(num: usize, tree: &mut Tree<MemoryBackend>, pager: &mut Pag
         _id!("37"),
     ];
 
-    for i in 0..num {
-        assert_eq!(tree.aquire(pager).unwrap(), &results[i]);
+    for id in results.iter().take(num) {
+        assert_eq!(tree.aquire(pager).unwrap(), id);
     }
 }
 

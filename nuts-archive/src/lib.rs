@@ -396,7 +396,7 @@ impl<B: Backend> Archive<B> {
     /// Next, you can use [`Entry::next()`] to traverse through the archive.
     ///
     /// If the archive is empty, [`None`] is returned.
-    pub fn first<'a>(&'a mut self) -> Option<ArchiveResult<Entry<'a, B>, B>> {
+    pub fn first(&mut self) -> Option<ArchiveResult<Entry<B>, B>> {
         match InnerEntry::first(&mut self.pager, &mut self.tree) {
             Some(Ok(inner)) => Some(inner.try_into()),
             Some(Err(err)) => Some(Err(err)),
@@ -409,10 +409,7 @@ impl<B: Backend> Archive<B> {
     /// It scans the whole archive and returns the first entry which has the
     /// given name wrapped into a [`Some`]. If no such entry exists, [`None`]
     /// is returned.
-    pub fn lookup<'a, N: AsRef<str>>(
-        &'a mut self,
-        name: N,
-    ) -> Option<ArchiveResult<Entry<'a, B>, B>> {
+    pub fn lookup<N: AsRef<str>>(&mut self, name: N) -> Option<ArchiveResult<Entry<B>, B>> {
         let mut entry_opt = self.first();
 
         loop {
@@ -438,7 +435,7 @@ impl<B: Backend> Archive<B> {
     /// The method returns a [`FileBuilder`] instance, where you are able to
     /// set some more properties for the new entry. Calling
     /// [`FileBuilder::build()`] will finally create the entry.
-    pub fn append_file<'a, N: AsRef<str>>(&'a mut self, name: N) -> FileBuilder<'a, B> {
+    pub fn append_file<N: AsRef<str>>(&mut self, name: N) -> FileBuilder<B> {
         FileBuilder::new(
             &mut self.pager,
             &self.header_id,
@@ -454,7 +451,7 @@ impl<B: Backend> Archive<B> {
     /// The method returns a [`DirectoryBuilder`] instance, where you are able
     /// to set some more properties for the new entry. Calling
     /// [`DirectoryBuilder::build()`] will finally create the entry.
-    pub fn append_directory<'a, N: AsRef<str>>(&'a mut self, name: N) -> DirectoryBuilder<'a, B> {
+    pub fn append_directory<N: AsRef<str>>(&mut self, name: N) -> DirectoryBuilder<B> {
         DirectoryBuilder::new(
             &mut self.pager,
             &self.header_id,
@@ -472,11 +469,11 @@ impl<B: Backend> Archive<B> {
     /// The method returns a [`SymlinkBuilder`] instance, where you are able to
     /// set some more properties for the new entry. Calling
     /// [`SymlinkBuilder::build()`] will finally create the entry.
-    pub fn append_symlink<'a, N: AsRef<str>, T: AsRef<str>>(
-        &'a mut self,
+    pub fn append_symlink<N: AsRef<str>, T: AsRef<str>>(
+        &mut self,
         name: N,
         target: T,
-    ) -> SymlinkBuilder<'a, B> {
+    ) -> SymlinkBuilder<B> {
         SymlinkBuilder::new(
             &mut self.pager,
             &self.header_id,

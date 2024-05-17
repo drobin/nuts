@@ -33,7 +33,7 @@ struct Inner<B: Backend> {
     node: Node<B>,
 }
 
-impl<'a, B: Backend> Inner<B> {
+impl<B: Backend> Inner<B> {
     fn new() -> Inner<B> {
         Inner {
             id: None,
