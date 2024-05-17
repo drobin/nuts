@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -87,8 +87,8 @@ impl<TB: ToBytes, const COUNT: usize> ToBytes for [TB; COUNT] {
     fn to_bytes<PB: PutBytes>(&self, target: &mut PB) -> Result<usize, Error> {
         let mut n = 0;
 
-        for i in 0..COUNT {
-            n += ToBytes::to_bytes(&self[i], target)?;
+        for b in self.iter().take(COUNT) {
+            n += ToBytes::to_bytes(b, target)?;
         }
 
         Ok(n)
@@ -100,7 +100,7 @@ impl<TB: ToBytes> ToBytes for &[TB] {
         let mut n = self.len().to_bytes(target)?;
 
         for i in 0..self.len() {
-            n += self.as_ref()[i].to_bytes(target)?;
+            n += self[i].to_bytes(target)?;
         }
 
         Ok(n)

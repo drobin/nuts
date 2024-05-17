@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -27,9 +27,9 @@ use crate::reader::Reader;
 fn bool() {
     let mut reader = Reader::new([0, 1, 2].as_slice());
 
-    assert_eq!(reader.read::<bool>().unwrap(), false);
-    assert_eq!(reader.read::<bool>().unwrap(), true);
-    assert_eq!(reader.read::<bool>().unwrap(), true);
+    assert!(!reader.read::<bool>().unwrap());
+    assert!(reader.read::<bool>().unwrap());
+    assert!(reader.read::<bool>().unwrap());
 }
 
 #[test]
@@ -238,5 +238,5 @@ fn option() {
 fn unit() {
     let mut reader = Reader::new([].as_slice());
 
-    assert_eq!(reader.read::<()>().unwrap(), ());
+    reader.read::<()>().unwrap();
 }

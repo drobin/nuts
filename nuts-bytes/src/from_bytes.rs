@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -135,7 +135,7 @@ impl FromBytes for String {
         let mut vec = vec![0; len];
         source.take_bytes(&mut vec)?;
 
-        String::from_utf8(vec).map_err(|err| Error::InvalidString(err))
+        String::from_utf8(vec).map_err(Error::InvalidString)
     }
 }
 

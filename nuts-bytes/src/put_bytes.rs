@@ -59,7 +59,7 @@ pub trait PutBytes {
 impl PutBytes for &mut [u8] {
     fn put_bytes(&mut self, buf: &[u8]) -> Result<(), PutBytesError> {
         if self.len() >= buf.len() {
-            let (a, b) = mem::replace(self, &mut []).split_at_mut(buf.len());
+            let (a, b) = mem::take(self).split_at_mut(buf.len());
 
             a.copy_from_slice(buf);
             *self = b;
@@ -74,13 +74,15 @@ impl PutBytes for &mut [u8] {
 /// `PutBytes` is implemented for [`Vec<u8>`] by appending bytes to the `Vec`.
 impl PutBytes for Vec<u8> {
     fn put_bytes(&mut self, buf: &[u8]) -> Result<(), PutBytesError> {
-        Ok(self.extend_from_slice(buf))
+        self.extend_from_slice(buf);
+        Ok(())
     }
 }
 
 /// `PutBytes` is implemented for [&mut `Vec<u8>`] by appending bytes to the `Vec`.
 impl PutBytes for &mut Vec<u8> {
     fn put_bytes(&mut self, buf: &[u8]) -> Result<(), PutBytesError> {
-        Ok(self.extend_from_slice(buf))
+        self.extend_from_slice(buf);
+        Ok(())
     }
 }
