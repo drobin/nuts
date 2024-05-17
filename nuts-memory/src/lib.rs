@@ -93,7 +93,7 @@ impl FromStr for Id {
     type Err = ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, ParseIntError> {
-        FromStr::from_str(s).map(|n| Id(n))
+        FromStr::from_str(s).map(Id)
     }
 }
 
@@ -188,10 +188,19 @@ impl MemoryBackend {
     }
 }
 
+impl Default for MemoryBackend {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReceiveHeader<Self> for MemoryBackend {
     fn get_header_bytes(&mut self, bytes: &mut [u8; HEADER_MAX_SIZE]) -> Result<(), Error> {
         match self.header.as_ref() {
-            Some(source) => Ok(bytes.copy_from_slice(source)),
+            Some(source) => {
+                bytes.copy_from_slice(source);
+                Ok(())
+            }
             None => Err(Error::NoHeader),
         }
     }
