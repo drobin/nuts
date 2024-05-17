@@ -81,8 +81,8 @@ impl Say {
 #[macro_export]
 macro_rules! say {
     ($level:ident $($arg:tt)*) => {{
-        crate::say::SAY.with(|say|
-            say.borrow().say(crate::say::Level::$level, format_args!($($arg)*))
+        $crate::say::SAY.with(|say|
+            say.borrow().say($crate::say::Level::$level, format_args!($($arg)*))
         );
     }};
 

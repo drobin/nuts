@@ -124,7 +124,7 @@ impl<'a> From<&'a Entry<'a, PluginBackend>> for ListEntry {
     }
 }
 
-fn collect_entries<'a>(archive: &'a mut Archive<PluginBackend>) -> Result<Vec<ListEntry>> {
+fn collect_entries(archive: &mut Archive<PluginBackend>) -> Result<Vec<ListEntry>> {
     let mut vec = vec![];
     let mut entry_opt = archive.first();
 

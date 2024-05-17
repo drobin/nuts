@@ -79,7 +79,7 @@ impl Inner {
             return false;
         }
 
-        let plugin = Plugin::new(&path);
+        let plugin = Plugin::new(path);
 
         if let Err(err) = plugin.info() {
             error!("{}: not a plugin ({})", path.display(), err);

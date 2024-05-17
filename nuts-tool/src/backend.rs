@@ -126,7 +126,7 @@ impl Open<PluginBackend> for PluginBackendOpenBuilder {
     fn build(self, settings: PluginSettings) -> Result<PluginBackend, PluginError> {
         with_connection(|conn| conn.open(settings.0.clone()))?;
 
-        Ok(PluginBackend::new()?)
+        PluginBackend::new()
     }
 }
 
@@ -156,7 +156,7 @@ impl Create<PluginBackend> for PluginBackendCreateBuilder {
     ) -> Result<PluginBackend, PluginError> {
         with_connection(|conn| conn.create(header.to_vec(), overwrite))?;
 
-        Ok(PluginBackend::new()?)
+        PluginBackend::new()
     }
 }
 
