@@ -39,8 +39,7 @@ fn from_str_aes128_gcm() {
 
 #[test]
 fn from_str_invalid() {
-    let err = "xxx".parse::<Cipher>().unwrap_err();
-    assert_eq!(err, ());
+    "xxx".parse::<Cipher>().unwrap_err();
 }
 
 #[test]

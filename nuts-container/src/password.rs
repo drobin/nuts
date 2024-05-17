@@ -43,13 +43,15 @@ pub enum PasswordError {
     PasswordCallback(String),
 }
 
+pub type CallbackFn = dyn Fn() -> Result<Vec<u8>, String>;
+
 pub struct PasswordStore {
-    callback: Option<Rc<dyn Fn() -> Result<Vec<u8>, String>>>,
+    callback: Option<Rc<CallbackFn>>,
     value: Option<SecureVec>,
 }
 
 impl PasswordStore {
-    pub fn new(callback: Option<Rc<dyn Fn() -> Result<Vec<u8>, String>>>) -> PasswordStore {
+    pub fn new(callback: Option<Rc<CallbackFn>>) -> PasswordStore {
         PasswordStore {
             callback,
             value: None,
@@ -68,11 +70,8 @@ impl PasswordStore {
         match self.value {
             Some(ref v) => Ok(v),
             None => {
-                let callback = self
-                    .callback
-                    .as_ref()
-                    .ok_or_else(|| PasswordError::NoPassword)?;
-                let value = callback().map_err(|cause| PasswordError::PasswordCallback(cause))?;
+                let callback = self.callback.as_ref().ok_or(PasswordError::NoPassword)?;
+                let value = callback().map_err(PasswordError::PasswordCallback)?;
 
                 self.value = Some(value.into());
 
@@ -89,10 +88,7 @@ impl fmt::Debug for PasswordStore {
             None => None,
         };
 
-        let value = match self.value {
-            Some(_) => Some("***"),
-            None => None,
-        };
+        let value = self.value.as_ref().map(|_| "***");
 
         fmt.debug_struct("PasswordStore")
             .field("callback", &callback)

@@ -84,7 +84,7 @@ impl Digest {
         buf.put_u32(b)
     }
 
-    pub(crate) fn to_openssl(&self) -> MessageDigest {
+    pub(crate) fn as_openssl(&self) -> MessageDigest {
         match self {
             Digest::Sha1 => MessageDigest::sha1(),
         }

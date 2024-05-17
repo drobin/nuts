@@ -170,7 +170,7 @@ impl Kdf {
                     panic!("invalid salt, cannot be empty");
                 }
 
-                let md = digest.to_openssl();
+                let md = digest.as_openssl();
                 let mut key = vec![0; digest.size()];
 
                 pbkdf2_hmac(password, salt, *iterations as usize, md, &mut key)?;
@@ -263,7 +263,7 @@ fn parse_pbkdf2(v: &[&str]) -> Result<Kdf, ParseKdfPbkdf2Error> {
     const DEFAULT_ITERATIONS: u32 = 65536;
     const DEFAULT_SALT_LEN: u32 = 16;
 
-    if v.len() != 0 && v.len() != 3 {
+    if !v.is_empty() && v.len() != 3 {
         return Err(ParseKdfPbkdf2Error::InvalidNumberOfArguments(v.len()));
     }
 
@@ -278,14 +278,14 @@ fn parse_pbkdf2(v: &[&str]) -> Result<Kdf, ParseKdfPbkdf2Error> {
         DEFAULT_ITERATIONS
     } else {
         v[1].parse::<u32>()
-            .map_err(|err| ParseKdfPbkdf2Error::InvalidIterations(err))?
+            .map_err(ParseKdfPbkdf2Error::InvalidIterations)?
     };
 
     let salt_len = if v.is_empty() || v[2].is_empty() {
         DEFAULT_SALT_LEN
     } else {
         v[2].parse::<u32>()
-            .map_err(|err| ParseKdfPbkdf2Error::InvalidSaltLen(err))?
+            .map_err(ParseKdfPbkdf2Error::InvalidSaltLen)?
     };
 
     Ok(Kdf::generate_pbkdf2(digest, iterations, salt_len)?)
@@ -341,8 +341,8 @@ impl FromStr for Kdf {
         }
 
         match v[0] {
-            "none" => parse_none(&v[1..]).map_err(|err| ParseKdfError::None(err)),
-            "pbkdf2" => parse_pbkdf2(&v[1..]).map_err(|err| ParseKdfError::Pbkdf2(err)),
+            "none" => parse_none(&v[1..]).map_err(ParseKdfError::None),
+            "pbkdf2" => parse_pbkdf2(&v[1..]).map_err(ParseKdfError::Pbkdf2),
             _ => Err(ParseKdfError::Unknown(v[0].to_string())),
         }
     }

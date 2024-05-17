@@ -34,7 +34,7 @@ fn from_str_sha1() {
 
 #[test]
 fn from_str_invalid() {
-    assert_eq!("xxx".parse::<Digest>().unwrap_err(), ());
+    "xxx".parse::<Digest>().unwrap_err();
 }
 
 #[test]

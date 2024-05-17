@@ -65,7 +65,7 @@ impl Secret {
 
         ctx.copy_from_slice(self.0.len(), &self.0);
 
-        let pbuf = ctx.decrypt(&key, &iv)?;
+        let pbuf = ctx.decrypt(&key, iv)?;
         let plain_secret = PlainSecret::get_from_buffer(&mut &pbuf[..])?;
 
         Ok(plain_secret)
@@ -133,7 +133,7 @@ impl PlainSecret {
         let mut ctx = CipherContext::new(cipher);
 
         ctx.copy_from_slice(pbuf.len(), &pbuf);
-        let cbuf = ctx.encrypt(&key, &iv)?;
+        let cbuf = ctx.encrypt(&key, iv)?;
 
         Ok(Secret(cbuf.to_vec()))
     }

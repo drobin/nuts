@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022,2023 Robin Doer
+// Copyright (c) 2022-2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -19,6 +19,22 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
+
+use openssl::error::ErrorStack;
+
+#[cfg(test)]
+pub use test::rand_bytes;
+
+#[cfg(not(test))]
+pub use production::rand_bytes;
+
+pub fn rand_u32() -> Result<u32, ErrorStack> {
+    let mut bytes = [0; 4];
+
+    rand_bytes(&mut bytes)?;
+
+    Ok(u32::from_be_bytes(bytes))
+}
 
 #[cfg(not(test))]
 mod production {
@@ -40,20 +56,4 @@ mod test {
         buf.clone_from_slice(&RND[..buf.len()]);
         Ok(())
     }
-}
-
-use openssl::error::ErrorStack;
-
-#[cfg(test)]
-pub use test::rand_bytes;
-
-#[cfg(not(test))]
-pub use production::rand_bytes;
-
-pub fn rand_u32() -> Result<u32, ErrorStack> {
-    let mut bytes = [0; 4];
-
-    rand_bytes(&mut bytes)?;
-
-    Ok(u32::from_be_bytes(bytes))
 }

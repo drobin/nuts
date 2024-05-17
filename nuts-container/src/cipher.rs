@@ -290,8 +290,7 @@ impl CipherContext {
         let ctext_bytes = self
             .inp
             .len()
-            .checked_sub(self.cipher.tag_size() as usize)
-            .unwrap_or(0);
+            .saturating_sub(self.cipher.tag_size() as usize);
 
         // number of plaintext bytes: equals to ciphertext bytes (for now) because
         // blocksize is 1 for all ciphers.

@@ -42,7 +42,7 @@ impl Revision {
         let b = buf.get_u32()?;
 
         match b {
-            0 => rev0::Data::get_from_buffer(buf).map(|data| Revision::Rev0(data)),
+            0 => rev0::Data::get_from_buffer(buf).map(Revision::Rev0),
             _ => Err(BufferError::InvalidIndex("Revision".to_string(), b).into()),
         }
     }

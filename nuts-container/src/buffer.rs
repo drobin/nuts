@@ -51,7 +51,7 @@ macro_rules! get_func {
 }
 
 pub trait Buffer: Sized {
-    fn get_chunk<'a>(&'a mut self, len: usize) -> Result<&'a [u8], BufferError>;
+    fn get_chunk(&mut self, len: usize) -> Result<&[u8], BufferError>;
 
     get_func!(get_u8, u8);
     get_func!(get_u16, u16);
@@ -61,7 +61,7 @@ pub trait Buffer: Sized {
     fn get_usize(&mut self) -> Result<usize, BufferError> {
         self.get_u64()?
             .try_into()
-            .map_err(|err| BufferError::InvalidUsize(err))
+            .map_err(BufferError::InvalidUsize)
     }
 
     fn get_vec(&mut self) -> Result<Vec<u8>, BufferError> {
@@ -100,7 +100,7 @@ pub trait BufferMut: Sized {
 }
 
 impl Buffer for &[u8] {
-    fn get_chunk<'a>(&'a mut self, len: usize) -> Result<&'a [u8], BufferError> {
+    fn get_chunk(&mut self, len: usize) -> Result<&[u8], BufferError> {
         if self.len() >= len {
             let buf = &self[..len];
 
@@ -115,7 +115,8 @@ impl Buffer for &[u8] {
 
 impl BufferMut for Vec<u8> {
     fn put_chunk(&mut self, buf: &[u8]) -> Result<(), BufferError> {
-        Ok(self.extend_from_slice(buf))
+        self.extend_from_slice(buf);
+        Ok(())
     }
 }
 
@@ -127,7 +128,7 @@ impl BufferMut for &mut [u8] {
             target.copy_from_slice(buf);
 
             // Lifetime dance taken from `impl Write for &mut [u8]`.
-            let (_, b) = mem::replace(self, &mut []).split_at_mut(buf.len());
+            let (_, b) = mem::take(self).split_at_mut(buf.len());
 
             *self = b;
 

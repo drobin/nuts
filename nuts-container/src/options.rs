@@ -22,12 +22,12 @@
 
 use nuts_backend::Backend;
 use std::rc::Rc;
-use std::result;
 
 use crate::cipher::Cipher;
 use crate::digest::Digest;
 use crate::error::ContainerResult;
 use crate::kdf::{Kdf, KdfError};
+use crate::password::CallbackFn;
 #[cfg(doc)]
 use crate::{error::Error, Container};
 
@@ -53,7 +53,7 @@ impl KdfBuilder {
 /// Use the [`CreateOptionsBuilder`] utility to create a `CreateOptions`
 /// instance.
 pub struct CreateOptions {
-    pub(crate) callback: Option<Rc<dyn Fn() -> result::Result<Vec<u8>, String>>>,
+    pub(crate) callback: Option<Rc<CallbackFn>>,
     pub(crate) cipher: Cipher,
     pub(crate) kdf: KdfBuilder,
     pub(crate) overwrite: bool,
@@ -143,7 +143,7 @@ impl CreateOptionsBuilder {
 ///
 /// Use the [`OpenOptionsBuilder`] utility to create a `OpenOptions` instance.
 pub struct OpenOptions {
-    pub(crate) callback: Option<Rc<dyn Fn() -> Result<Vec<u8>, String>>>,
+    pub(crate) callback: Option<Rc<CallbackFn>>,
 }
 
 /// Utility used to create a [`OpenOptions`] instance.
@@ -188,5 +188,11 @@ impl OpenOptionsBuilder {
     /// If validation has failed an [`Error`] is returned.
     pub fn build<B: Backend>(self) -> ContainerResult<OpenOptions, B> {
         Ok(self.0)
+    }
+}
+
+impl Default for OpenOptionsBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }

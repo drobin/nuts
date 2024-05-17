@@ -327,7 +327,7 @@ impl<B: Backend> Container<B> {
         let header = Header::create(&options)?;
         let settings = backend_options.settings();
 
-        let callback = options.callback.map(|cb| cb.clone());
+        let callback = options.callback.clone();
         let mut store = PasswordStore::new(callback);
 
         header.write::<B>(settings, &mut header_bytes, &mut store)?;
@@ -372,7 +372,7 @@ impl<B: Backend> Container<B> {
         mut backend_options: O,
         options: OpenOptions,
     ) -> ContainerResult<Container<B>, B> {
-        let callback = options.callback.map(|cb| cb.clone());
+        let callback = options.callback.clone();
         let mut store = PasswordStore::new(callback);
 
         let (header, settings) = Self::read_header(&mut backend_options, &mut store)?;
@@ -464,8 +464,7 @@ impl<B: Backend> Container<B> {
     pub fn block_size(&self) -> u32 {
         self.backend
             .block_size()
-            .checked_sub(self.header.cipher.tag_size())
-            .unwrap_or(0)
+            .saturating_sub(self.header.cipher.tag_size())
     }
 
     /// Aquires a new block in the backend.
