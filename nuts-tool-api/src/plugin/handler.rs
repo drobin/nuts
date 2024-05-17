@@ -332,7 +332,7 @@ impl<'a, B: Backend, T: PluginHandler<B>> OpenCreateHandler<'a, B, T> {
                 Ok(None) => {
                     leave_loop = true;
                 }
-                Err(err) => return Err(err.into()),
+                Err(err) => return Err(err),
             }
         }
 

@@ -84,16 +84,16 @@ fn stderr_thread(stderr: ChildStderr) -> PluginResult<()> {
         if n > 0 {
             let line = String::from_utf8_lossy(&line_buf);
 
-            if line.starts_with("nuts-log-error:") {
-                error!("[plugin] {}", line[15..].trim());
-            } else if line.starts_with("nuts-log-warn:") {
-                warn!("[plugin] {}", line[14..].trim());
-            } else if line.starts_with("nuts-log-info:") {
-                info!("[plugin] {}", line[14..].trim());
-            } else if line.starts_with("nuts-log-debug:") {
-                debug!("[plugin] {}", line[15..].trim());
-            } else if line.starts_with("nuts-log-trace:") {
-                trace!("[plugin] {}", line[15..].trim());
+            if let Some(msg) = line.strip_prefix("nuts-log-error:") {
+                error!("[plugin] {}", msg.trim());
+            } else if let Some(msg) = line.strip_prefix("nuts-log-warn:") {
+                warn!("[plugin] {}", msg.trim());
+            } else if let Some(msg) = line.strip_prefix("nuts-log-info:") {
+                info!("[plugin] {}", msg.trim());
+            } else if let Some(msg) = line.strip_prefix("nuts-log-debug:") {
+                debug!("[plugin] {}", msg.trim());
+            } else if let Some(msg) = line.strip_prefix("nuts-log-trace:") {
+                trace!("[plugin] {}", msg.trim());
             } else {
                 error!("stderr: {}", line.trim_end());
             }
@@ -171,7 +171,7 @@ impl PluginConnection {
         PluginConnection {
             child,
             tx_in: Some(tx_in),
-            rx_out: rx_out,
+            rx_out,
             t_stdin: Some(t_stdin),
             t_stdout: Some(t_stdout),
             t_stderr: Some(t_stderr),

@@ -96,7 +96,7 @@ impl<'a> Plugin<'a> {
     fn new_child(&self, stdin: Stdio, args: &[&str]) -> PluginResult<Child> {
         debug!("executing {} with {:?}", self.0.display(), args);
 
-        let mut command = Command::new(&self.0);
+        let mut command = Command::new(self.0);
 
         command
             .args(args)
