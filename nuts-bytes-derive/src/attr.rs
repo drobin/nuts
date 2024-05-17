@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -81,10 +81,7 @@ impl FieldAttribute {
     }
 
     fn is_skip(&self) -> bool {
-        match self {
-            Self::Skip => true,
-            _ => false,
-        }
+        matches!(self, Self::Skip)
     }
 
     fn as_default(&self) -> Option<&Path> {
@@ -125,7 +122,7 @@ impl Parse for FieldAttribute {
 pub struct FieldAttributes(Vec<FieldAttribute>);
 
 impl FieldAttributes {
-    pub fn parse(attrs: &Vec<Attribute>) -> Result<FieldAttributes> {
+    pub fn parse(attrs: &[Attribute]) -> Result<FieldAttributes> {
         let mut attr_vec = vec![];
 
         let filtered = attrs.iter().filter(|attr| is_nuts_bytes_attr(attr));
@@ -138,7 +135,7 @@ impl FieldAttributes {
         Ok(FieldAttributes(attr_vec))
     }
 
-    pub fn map_from_bytes<'a>(&'a self) -> Option<Cow<'a, Path>> {
+    pub fn map_from_bytes(&self) -> Option<Cow<Path>> {
         if let Some(attr) = self
             .0
             .iter()
@@ -159,7 +156,7 @@ impl FieldAttributes {
         }
     }
 
-    pub fn map_to_bytes<'a>(&'a self) -> Option<Cow<'a, Path>> {
+    pub fn map_to_bytes(&self) -> Option<Cow<Path>> {
         if let Some(attr) = self.0.iter().find(|attr| attr.as_map_to_bytes().is_some()) {
             attr.as_map_to_bytes().map(Cow::Borrowed)
         } else {
@@ -177,15 +174,14 @@ impl FieldAttributes {
     }
 
     pub fn is_skip(&self) -> bool {
-        self.0.iter().find(|attr| attr.is_skip()).is_some()
+        self.0.iter().any(|attr| attr.is_skip())
     }
 
     pub fn default(&self) -> Option<&Path> {
         self.0
             .iter()
             .find(|attr| attr.as_default().is_some())
-            .map(|attr| attr.as_default())
-            .flatten()
+            .and_then(|attr| attr.as_default())
     }
 }
 

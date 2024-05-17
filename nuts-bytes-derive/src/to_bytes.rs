@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -65,7 +65,7 @@ pub fn to_bytes_struct(_struct_name: &Ident, data: DataStruct) -> proc_macro2::T
 }
 
 pub fn to_bytes_enum(enum_name: &Ident, data: DataEnum) -> proc_macro2::TokenStream {
-    if data.variants.len() == 0 {
+    if data.variants.is_empty() {
         let span = enum_name.span();
 
         return quote_spanned! {
