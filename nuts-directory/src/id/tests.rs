@@ -51,7 +51,7 @@ fn as_hex() {
 #[test]
 fn to_pathbuf() {
     let id = Id::generate();
-    let path = id.to_pathbuf(&Path::new("foo"));
+    let path = id.to_pathbuf(Path::new("foo"));
 
     assert_eq!(
         format!("{}", path.display()),
@@ -78,7 +78,7 @@ fn from_str_inval_len() {
 #[test]
 fn from_str_inval_char() {
     let mut inval_id = String::from("x");
-    inval_id.extend(ID_SLICE[1..].chars());
+    inval_id.push_str(&ID_SLICE[1..]);
 
     assert_eq!(inval_id.len(), 32);
 

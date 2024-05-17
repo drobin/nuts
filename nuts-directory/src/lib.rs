@@ -199,7 +199,7 @@ impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
     fn release(&mut self, id: Self::Id) -> Result<()> {
         let path = id.to_pathbuf(self.path.as_ref());
 
-        Ok(fs::remove_file(&path)?)
+        Ok(fs::remove_file(path)?)
     }
 
     fn read(&mut self, id: &Id, buf: &mut [u8]) -> Result<usize> {
