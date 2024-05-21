@@ -25,7 +25,6 @@ mod tests;
 
 use nuts_backend::{Binary, Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
 use std::convert::TryInto;
-use std::mem;
 use std::path::Path;
 
 use crate::error::{Error, Result};
@@ -148,13 +147,12 @@ pub struct Settings {
 
 impl Binary for Settings {
     fn from_bytes(bytes: &[u8]) -> Option<Settings> {
-        if bytes.len() == mem::size_of::<u32>() {
-            let bytes = bytes.try_into().unwrap();
-            let bsize = u32::from_be_bytes(bytes);
-
-            Some(Settings { bsize })
-        } else {
-            None
+        match bytes.try_into() {
+            Ok(bytes) => {
+                let bsize = u32::from_be_bytes(bytes);
+                Some(Settings { bsize })
+            }
+            Err(_) => None,
         }
     }
 

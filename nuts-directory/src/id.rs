@@ -32,20 +32,23 @@ use std::str::FromStr;
 use crate::error::{Error, Result};
 
 #[cfg(test)]
-fn rand_bytes() -> [u8; SIZE] {
-    [
+fn rand_bytes() -> Result<[u8; SIZE]> {
+    Ok([
         0xdb, 0x3d, 0x05, 0x23, 0xd4, 0x50, 0x75, 0x30, 0xe8, 0x6d, 0xf9, 0x6a, 0x1b, 0x76, 0xaa,
         0x0c,
-    ]
+    ])
 }
 
 #[cfg(not(test))]
-fn rand_bytes() -> [u8; SIZE] {
+fn rand_bytes() -> Result<[u8; SIZE]> {
     let mut buf = [0; SIZE];
 
-    getrandom::getrandom(&mut buf).unwrap();
+    // std::io::Error implements From<getrandom::Error>
+    // 1. Convert getrandom::Error into std::io::Error
+    // 2. Convert std::io::Error into $crate::error::Error
+    getrandom::getrandom(&mut buf).map_err(Into::<std::io::Error>::into)?;
 
-    buf
+    Ok(buf)
 }
 
 const SIZE: usize = 16;
@@ -83,8 +86,8 @@ impl IdSize for Id {
 }
 
 impl Id {
-    pub(crate) fn generate() -> Id {
-        Id(rand_bytes())
+    pub(crate) fn generate() -> Result<Id> {
+        rand_bytes().map(Id)
     }
 
     pub(crate) fn min() -> Id {
@@ -140,22 +143,20 @@ impl FromStr for Id {
             return Err(Error::InvalidId(s.to_string()));
         }
 
-        let mut id = Id::min();
-        let mut iter = s.chars();
+        let mut id = Id([0; SIZE]);
 
-        for n in id.0.iter_mut() {
-            let b1 = iter
-                .next()
-                .unwrap()
-                .to_digit(16)
-                .map_or_else(|| Err(Error::InvalidId(s.to_string())), |n| Ok(n as u8))?;
-            let b2 = iter
-                .next()
-                .unwrap()
-                .to_digit(16)
-                .map_or_else(|| Err(Error::InvalidId(s.to_string())), |n| Ok(n as u8))?;
+        for (idx, c) in s.chars().enumerate() {
+            if let Some(n) = c.to_digit(16) {
+                let m = idx / 2;
 
-            *n = (b1 << 4) | b2;
+                if idx % 2 == 0 {
+                    id.0[m] |= (n as u8 & 0x0f) << 4;
+                } else {
+                    id.0[m] |= n as u8 & 0x0f;
+                }
+            } else {
+                return Err(Error::InvalidId(s.to_string()));
+            }
         }
 
         Ok(id)

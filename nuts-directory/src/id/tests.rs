@@ -32,7 +32,7 @@ const ID_SLICE: &str = "db3d0523d4507530e86df96a1b76aa0c";
 
 #[test]
 fn generate() {
-    let id = Id::generate();
+    let id = Id::generate().unwrap();
     assert_eq!(id.0, ID);
 }
 
@@ -44,13 +44,13 @@ fn min() {
 
 #[test]
 fn as_hex() {
-    let id = Id::generate();
+    let id = Id::generate().unwrap();
     assert_eq!(id.as_hex(), ID_SLICE);
 }
 
 #[test]
 fn to_pathbuf() {
-    let id = Id::generate();
+    let id = Id::generate().unwrap();
     let path = id.to_pathbuf(Path::new("foo"));
 
     assert_eq!(
@@ -98,7 +98,7 @@ fn de() {
 
 #[test]
 fn ser() {
-    let buf = Id::generate().as_bytes();
+    let buf = Id::generate().unwrap().as_bytes();
 
     assert_eq!(buf, ID);
 }

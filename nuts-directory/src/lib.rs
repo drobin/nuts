@@ -178,7 +178,7 @@ impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
         const MAX: u8 = 3;
 
         for n in 0..MAX {
-            let id = Id::generate();
+            let id = Id::generate()?;
 
             match write_block(self.path.as_ref(), &id, true, false, self.bsize, buf) {
                 Ok(_) => return Ok(id),
