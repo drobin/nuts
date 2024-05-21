@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1] - 2024-05-21
+
+### Fixed
+
+* Fix lints found by `rust-clippy`.
+* Remove unnecessary `unwrap()` calls.
+
 ## [0.6.0] - 2024-05-16
 
 ### Added
@@ -366,3 +373,4 @@ Initial public release.
 [0.4.3]: https://github.com/drobin/nuts/tree/v0.4.3
 [0.5.0]: https://github.com/drobin/nuts/tree/v0.5.0
 [0.6.0]: https://github.com/drobin/nuts/tree/v0.6.0
+[0.6.1]: https://github.com/drobin/nuts/tree/v0.6.1

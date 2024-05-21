@@ -483,7 +483,7 @@ dependencies = [
 
 [[package]]
 name = "nuts-archive"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "chrono",
  "log",
@@ -498,11 +498,11 @@ dependencies = [
 
 [[package]]
 name = "nuts-backend"
-version = "0.6.0"
+version = "0.6.1"
 
 [[package]]
 name = "nuts-bytes"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "nuts-bytes-derive",
  "thiserror",
@@ -510,7 +510,7 @@ dependencies = [
 
 [[package]]
 name = "nuts-bytes-derive"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -519,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "nuts-container"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "log",
  "nuts-backend",
@@ -531,7 +531,7 @@ dependencies = [
 
 [[package]]
 name = "nuts-directory"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "getrandom",
  "log",
@@ -541,7 +541,7 @@ dependencies = [
 
 [[package]]
 name = "nuts-memory"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "nuts-backend",
  "nuts-bytes",
@@ -550,7 +550,7 @@ dependencies = [
 
 [[package]]
 name = "nuts-tool"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -570,7 +570,7 @@ dependencies = [
 
 [[package]]
 name = "nuts-tool-api"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "bson",
  "bytes",
