@@ -23,8 +23,6 @@
 #[cfg(test)]
 mod tests;
 
-use std::convert::TryInto;
-
 use crate::buffer::Buffer;
 use crate::buffer::BufferError;
 use crate::buffer::BufferMut;
@@ -71,7 +69,7 @@ impl Inner {
     }
 
     pub fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Inner, HeaderError> {
-        let magic: [u8; 7] = buf.get_chunk(7)?.try_into().unwrap();
+        let magic = buf.get_array()?;
 
         if magic != MAGIC {
             return Err(HeaderError::InvalidHeader);

@@ -44,14 +44,22 @@ pub enum BufferError {
 macro_rules! get_func {
     ($name:ident, $ty:ty) => {
         fn $name(&mut self) -> Result<$ty, BufferError> {
-            self.get_chunk(mem::size_of::<$ty>())
-                .map(|buf| <$ty>::from_be_bytes(buf.try_into().unwrap()))
+            self.get_array().map(|bytes| <$ty>::from_be_bytes(bytes))
         }
     };
 }
 
 pub trait Buffer: Sized {
     fn get_chunk(&mut self, len: usize) -> Result<&[u8], BufferError>;
+
+    fn get_array<const N: usize>(&mut self) -> Result<[u8; N], BufferError> {
+        let buf = self.get_chunk(N)?;
+
+        buf.try_into().map_err(|_| {
+            // `buf` has not the requested/expected size
+            BufferError::UnexpectedEof
+        })
+    }
 
     get_func!(get_u8, u8);
     get_func!(get_u16, u16);

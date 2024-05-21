@@ -73,9 +73,7 @@ impl PasswordStore {
                 let callback = self.callback.as_ref().ok_or(PasswordError::NoPassword)?;
                 let value = callback().map_err(PasswordError::PasswordCallback)?;
 
-                self.value = Some(value.into());
-
-                Ok(self.value.as_ref().unwrap())
+                Ok(self.value.insert(value.into()))
             }
         }
     }
