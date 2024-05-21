@@ -24,3 +24,5 @@ RUN apt-get -y install libssl3
 RUN apt-get clean
 
 COPY --from=nuts-build /target/release/nuts /target/release/nuts-directory /usr/local/bin/
+
+RUN /usr/local/bin/nuts plugin add directory --path nuts-directory
