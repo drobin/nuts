@@ -136,38 +136,28 @@ impl FieldAttributes {
     }
 
     pub fn map_from_bytes(&self) -> Option<Cow<Path>> {
-        if let Some(attr) = self
-            .0
-            .iter()
-            .find(|attr| attr.as_map_from_bytes().is_some())
-        {
-            attr.as_map_from_bytes().map(Cow::Borrowed)
+        if let Some(path) = self.0.iter().find_map(|attr| attr.as_map_from_bytes()) {
+            Some(Cow::Borrowed(path))
         } else {
             self.0
                 .iter()
-                .find(|attr| attr.as_map().is_some())
-                .map(|attr| {
-                    let mut path = attr.as_map().unwrap().clone();
-
+                .find_map(|attr| attr.as_map().cloned())
+                .map(|mut path| {
                     path.segments.push(format_ident!("from_bytes").into());
-
                     Cow::Owned(path)
                 })
         }
     }
 
     pub fn map_to_bytes(&self) -> Option<Cow<Path>> {
-        if let Some(attr) = self.0.iter().find(|attr| attr.as_map_to_bytes().is_some()) {
-            attr.as_map_to_bytes().map(Cow::Borrowed)
+        if let Some(path) = self.0.iter().find_map(|attr| attr.as_map_to_bytes()) {
+            Some(Cow::Borrowed(path))
         } else {
             self.0
                 .iter()
-                .find(|attr| attr.as_map().is_some())
-                .map(|attr| {
-                    let mut path = attr.as_map().unwrap().clone();
-
+                .find_map(|attr| attr.as_map().cloned())
+                .map(|mut path| {
                     path.segments.push(format_ident!("to_bytes").into());
-
                     Cow::Owned(path)
                 })
         }
