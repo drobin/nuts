@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use log::{debug, error, trace, warn};
 use nuts_archive::{Archive, Group};
 use std::fs::{self, File, Metadata};
@@ -63,17 +63,14 @@ macro_rules! into_utc {
 
 fn changed(metadata: &Metadata) -> DateTime<Utc> {
     if cfg!(unix) {
-        match NaiveDateTime::from_timestamp_opt(metadata.ctime(), 0) {
-            Some(naive) => TimeZone::from_utc_datetime(&Utc, &naive),
-            None => {
-                warn!(
-                    "could not convert epoch ctime {} into naive datetime",
-                    metadata.ctime()
-                );
+        DateTime::from_timestamp(metadata.ctime(), 0).unwrap_or_else(|| {
+            warn!(
+                "could not convert epoch ctime {} into naive datetime",
+                metadata.ctime()
+            );
 
-                Utc::now()
-            }
-        }
+            Utc::now()
+        })
     } else {
         panic!("platform currently not supported");
     }
