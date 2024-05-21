@@ -149,7 +149,7 @@ macro_rules! join_thread {
 pub struct PluginConnection {
     child: Child,
     tx_in: Option<Sender<Request>>,
-    rx_out: Receiver<Response>,
+    rx_out: Option<Receiver<Response>>,
     t_stdin: Option<JoinHandle<Result<(), PluginError>>>,
     t_stdout: Option<JoinHandle<Result<(), PluginError>>>,
     t_stderr: Option<JoinHandle<Result<(), PluginError>>>,
@@ -157,24 +157,39 @@ pub struct PluginConnection {
 
 impl PluginConnection {
     pub(crate) fn new(mut child: Child) -> PluginConnection {
-        let (tx_in, rx_in) = mpsc::channel();
-        let (tx_out, rx_out) = mpsc::channel();
+        let (tx_in, t_stdin) = if let Some(stdin) = child.stdin.take() {
+            let (tx, rx) = mpsc::channel();
+            let thr = thread::spawn(move || stdin_thread(stdin, rx));
 
-        let stdin = child.stdin.take().unwrap();
-        let stdout = child.stdout.take().unwrap();
-        let stderr = child.stderr.take().unwrap();
+            (Some(tx), Some(thr))
+        } else {
+            (None, None)
+        };
 
-        let t_stdin = thread::spawn(move || stdin_thread(stdin, rx_in));
-        let t_stdout = thread::spawn(move || stdout_thread(stdout, tx_out));
-        let t_stderr = thread::spawn(move || stderr_thread(stderr));
+        let (rx_out, t_stdout) = if let Some(stdout) = child.stdout.take() {
+            let (tx, rx) = mpsc::channel();
+            let thr = thread::spawn(move || stdout_thread(stdout, tx));
+
+            (Some(rx), Some(thr))
+        } else {
+            (None, None)
+        };
+
+        let t_stderr = if let Some(stderr) = child.stderr.take() {
+            let thr = thread::spawn(move || stderr_thread(stderr));
+
+            Some(thr)
+        } else {
+            None
+        };
 
         PluginConnection {
             child,
-            tx_in: Some(tx_in),
+            tx_in,
             rx_out,
-            t_stdin: Some(t_stdin),
-            t_stdout: Some(t_stdout),
-            t_stderr: Some(t_stderr),
+            t_stdin,
+            t_stdout,
+            t_stderr,
         }
     }
 
@@ -244,19 +259,17 @@ impl PluginConnection {
     fn handshake(&mut self, request: Request) -> PluginResult<Response> {
         debug!("handshake requested for {:?}", request);
 
-        if let Some(tx) = self.tx_in.as_mut() {
-            tx.send(request)?;
+        let tx = self.tx_in.as_mut().ok_or(PluginError::ChannelClosed)?;
+        let rx = self.rx_out.as_mut().ok_or(PluginError::ChannelClosed)?;
 
-            match self.rx_out.recv() {
-                Ok(response) => Ok(response),
-                Err(err) => {
-                    error!("xxx: {}", err);
-                    self.shutdown();
-                    Err(PluginError::ChannelClosed)
-                }
+        tx.send(request)?;
+
+        match rx.recv() {
+            Ok(response) => Ok(response),
+            Err(_) => {
+                self.shutdown();
+                Err(PluginError::ChannelClosed)
             }
-        } else {
-            Err(PluginError::ChannelClosed)
         }
     }
 
