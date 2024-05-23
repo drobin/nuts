@@ -46,10 +46,7 @@ impl PluginHandler<DirectoryBackend<PathBuf>> for DirectoryPluginInformation {
     type Open = OpenOptions<PathBuf>;
 
     fn plugin_info(&self) -> PluginInfo {
-        PluginInfo {
-            name: "directory".to_string(),
-            version: VERSION.to_string(),
-        }
+        PluginInfo::new("directory", VERSION)
     }
 
     fn info_to_hash(&self, info: Info) -> Option<HashMap<String, String>> {

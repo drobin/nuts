@@ -22,6 +22,7 @@
 
 use log::{debug, error, info, log, trace, warn, Level};
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::io::{BufRead, BufReader};
 use std::panic;
 use std::process::{Child, ChildStderr, ChildStdin, ChildStdout};
@@ -196,22 +197,17 @@ impl PluginConnection {
     pub fn plugin_info(&mut self) -> PluginResult<PluginInfo> {
         let response = self.handshake(Request::PluginInfo)?;
 
-        match response {
-            Response::Ok(OkResponse::Map(map)) => {
-                let name = map
-                    .get("name")
-                    .map(ToString::to_string)
-                    .ok_or(PluginError::InvalidResponse)?;
-                let version = map
-                    .get("version")
-                    .map(ToString::to_string)
-                    .ok_or(PluginError::InvalidResponse)?;
-
-                Ok(PluginInfo { name, version })
-            }
+        let result = match response {
+            Response::Ok(OkResponse::Map(map)) => map.try_into(),
             Response::Ok(_) => Err(PluginError::InvalidResponse),
             Response::Err(err) => Err(PluginError::Response(err)),
+        };
+
+        if result.is_err() {
+            self.shutdown();
         }
+
+        result
     }
 
     handshake_func!(id_string_to_bytes(str: String) -> Vec<u8>, Request::IdToBytes(str), OkResponse::Bytes(bytes) => bytes);

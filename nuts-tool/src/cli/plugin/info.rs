@@ -23,6 +23,7 @@
 use anyhow::{bail, Result};
 use clap::Args;
 use log::debug;
+use nuts_tool_api::tool::Plugin;
 
 use crate::config::PluginConfig;
 use crate::say;
@@ -44,8 +45,13 @@ impl PluginInfoArgs {
         }
 
         let path = config.path(&self.name)?;
+        let plugin = Plugin::new(&path);
+        let info = plugin.info()?;
 
-        say!("path: {}", path.display());
+        say!("path:     {}", path.display());
+        say!("name:     {}", info.name());
+        say!("version:  {}", info.version());
+        say!("revision: {}", info.revision());
 
         Ok(())
     }

@@ -83,8 +83,9 @@ pub trait PluginHandler<B: Backend> {
         let info = self.plugin_info();
 
         Ok([
-            ("name".to_string(), info.name),
-            ("version".to_string(), info.version),
+            ("name".to_string(), info.name().to_string()),
+            ("version".to_string(), info.version().to_string()),
+            ("revision".to_string(), info.revision().to_string()),
         ]
         .into())
     }
@@ -258,8 +259,9 @@ impl<B: Backend, T: PluginHandler<B>> InfoHandler<B, T> {
 
         match args.format {
             Format::Text => {
-                println!("name:    {}", info.name);
-                println!("version: {}", info.version);
+                println!("name:     {}", info.name());
+                println!("version:  {}", info.version());
+                println!("revision: {}", info.revision());
             }
             Format::Bson => {
                 BsonWriter::new(io::stdout()).write(info)?;

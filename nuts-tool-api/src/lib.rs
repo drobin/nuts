@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 mod bson;
+mod info;
 mod msg;
 #[cfg(feature = "plugin")]
 pub mod plugin;
@@ -28,23 +29,13 @@ pub mod plugin;
 pub mod tool;
 
 use log::debug;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, ErrorKind};
 use std::path::PathBuf;
 
 pub use bson::{BsonError, BsonReader, BsonWriter};
+pub use info::{PluginInfo, CURRENT_REVISION};
 pub use msg::{ErrorResponse, OkResponse, Request, Response};
-
-/// Information of a plugin
-#[derive(Debug, Deserialize, Serialize)]
-pub struct PluginInfo {
-    /// Name of the plugin
-    pub name: String,
-
-    /// Version of the plugin
-    pub version: String,
-}
 
 pub fn tool_dir() -> io::Result<PathBuf> {
     match home::home_dir() {
