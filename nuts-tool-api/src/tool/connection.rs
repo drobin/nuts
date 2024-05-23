@@ -110,7 +110,7 @@ fn stderr_thread(stderr: ChildStderr) -> PluginResult<()> {
 }
 
 macro_rules! handshake_func {
-    ($name:ident ( $( $argn:ident : $argt:ty ),* ) -> $ty:ty, $req:expr, $variant:pat => $ret:tt) => {
+    ($name:ident ( $( $argn:ident : $argt:ty ),* ) -> $ty:ty, $req:expr, $variant:pat => $ret:expr) => {
         pub fn $name(&mut self, $($argn: $argt),*) -> PluginResult<$ty> {
             let response = self.handshake($req).map_err(|err| {
                 error!("failed message handshake: {}", err);
@@ -118,7 +118,7 @@ macro_rules! handshake_func {
             })?;
 
             let result = match response {
-                Response::Ok($variant) => Ok($ret),
+                Response::Ok($variant) => $ret,
                 Response::Ok(_) => Err(PluginError::InvalidResponse),
                 Response::Err(err) => Err(PluginError::Response(err)),
             };
@@ -194,37 +194,22 @@ impl PluginConnection {
         }
     }
 
-    pub fn plugin_info(&mut self) -> PluginResult<PluginInfo> {
-        let response = self.handshake(Request::PluginInfo)?;
-
-        let result = match response {
-            Response::Ok(OkResponse::Map(map)) => map.try_into(),
-            Response::Ok(_) => Err(PluginError::InvalidResponse),
-            Response::Err(err) => Err(PluginError::Response(err)),
-        };
-
-        if result.is_err() {
-            self.shutdown();
-        }
-
-        result
-    }
-
-    handshake_func!(id_string_to_bytes(str: String) -> Vec<u8>, Request::IdToBytes(str), OkResponse::Bytes(bytes) => bytes);
-    handshake_func!(id_bytes_to_string(bytes: Vec<u8>) -> String, Request::IdToString(bytes), OkResponse::String(str) => str);
-    handshake_func!(settings() -> Vec<u8>, Request::Settings, OkResponse::Bytes(bytes) => bytes);
-    handshake_func!(id_size() -> usize, Request::IdSize, OkResponse::Usize(num) => num);
-    handshake_func!(block_size() -> u32, Request::BlockSize, OkResponse::U32(num) => num);
-    handshake_func!(open(settings: Vec<u8>) -> (), Request::Open(settings), OkResponse::Void => ());
-    handshake_func!(create(header: Vec<u8>, overwrite: bool) -> (), Request::Create(header, overwrite), OkResponse::Void => ());
-    handshake_func!(info() -> HashMap<String, String>, Request::Info, OkResponse::Map(map) => map);
-    handshake_func!(aquire(bytes: Vec<u8>) -> Vec<u8>, Request::Aquire(bytes), OkResponse::Bytes(bytes) => bytes);
-    handshake_func!(release(id: Vec<u8>) -> (), Request::Release(id), OkResponse::Void => ());
-    handshake_func!(read_header() -> Vec<u8>, Request::ReadHeader, OkResponse::Bytes(bytes) => bytes);
-    handshake_func!(write_header(bytes: Vec<u8>) -> (), Request::WriteHeader(bytes), OkResponse::Void => ());
-    handshake_func!(read(id: Vec<u8>) -> Vec<u8>, Request::Read(id), OkResponse::Bytes(bytes) => bytes);
-    handshake_func!(write(id: Vec<u8>, bytes: Vec<u8>) -> usize, Request::Write(id, bytes), OkResponse::Usize(num) => num);
-    handshake_func!(delete() -> (), Request::Delete, OkResponse::Void => ());
+    handshake_func!(plugin_info() -> PluginInfo, Request::PluginInfo, OkResponse::Map(info) => info.try_into());
+    handshake_func!(id_string_to_bytes(str: String) -> Vec<u8>, Request::IdToBytes(str), OkResponse::Bytes(bytes) => Ok(bytes));
+    handshake_func!(id_bytes_to_string(bytes: Vec<u8>) -> String, Request::IdToString(bytes), OkResponse::String(str) => Ok(str));
+    handshake_func!(settings() -> Vec<u8>, Request::Settings, OkResponse::Bytes(bytes) => Ok(bytes));
+    handshake_func!(id_size() -> usize, Request::IdSize, OkResponse::Usize(num) => Ok(num));
+    handshake_func!(block_size() -> u32, Request::BlockSize, OkResponse::U32(num) => Ok(num));
+    handshake_func!(open(settings: Vec<u8>) -> (), Request::Open(settings), OkResponse::Void => Ok(()));
+    handshake_func!(create(header: Vec<u8>, overwrite: bool) -> (), Request::Create(header, overwrite), OkResponse::Void => Ok(()));
+    handshake_func!(info() -> HashMap<String, String>, Request::Info, OkResponse::Map(map) => Ok(map));
+    handshake_func!(aquire(bytes: Vec<u8>) -> Vec<u8>, Request::Aquire(bytes), OkResponse::Bytes(bytes) => Ok(bytes));
+    handshake_func!(release(id: Vec<u8>) -> (), Request::Release(id), OkResponse::Void => Ok(()));
+    handshake_func!(read_header() -> Vec<u8>, Request::ReadHeader, OkResponse::Bytes(bytes) => Ok(bytes));
+    handshake_func!(write_header(bytes: Vec<u8>) -> (), Request::WriteHeader(bytes), OkResponse::Void => Ok(()));
+    handshake_func!(read(id: Vec<u8>) -> Vec<u8>, Request::Read(id), OkResponse::Bytes(bytes) => Ok(bytes));
+    handshake_func!(write(id: Vec<u8>, bytes: Vec<u8>) -> usize, Request::Write(id, bytes), OkResponse::Usize(num) => Ok(num));
+    handshake_func!(delete() -> (), Request::Delete, OkResponse::Void => Ok(()));
 
     pub fn quit(&mut self) -> PluginResult<()> {
         let response = match self.handshake(Request::Quit) {
