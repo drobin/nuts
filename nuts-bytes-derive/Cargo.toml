@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-bytes-derive"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "Serialization into a binary data format"

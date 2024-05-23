@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2] - 2024-05-23
+
+### Changed
+
+* Update dependencies:
+
+  - `anyhow` 1.0.79 -> 1.0.86
+  - `chrono` 0.4.31 -> 0.4.38
+  - `clap` 4.4.18 -> 4.5.4
+  - `env_logger` 0.10.1 -> 0.10.2
+  - `getrandom` 0.2.12 -> 0.2.15
+  - `log` 0.4.20 -> 0.4.21
+  - `openssl` 0.10.62 -> 0.10.64
+  - `openssl-sys` 0.9.98 -> 0.9.102
+  - `proc-macro2` 1.0.76 -> 1.0.83
+  - `quote` 1.0.35 -> 1.0.36
+  - `serde` 1.0.197 -> 1.0.202
+  - `syn` 2.0.48 -> 2.0.65
+  - `tempfile` 3.9.0 -> 3.10.1
+  - `thiserror` 1.0.56 -> 1.0.61
+  - `toml` 0.8.11 -> 0.8.13
+
+* The data exchange protocol between plugin and `nuts` tool has now a revision,
+  which is now `1`. The revious protocol revision is `0`.
+
 ## [0.6.1] - 2024-05-21
 
 ### Fixed
@@ -374,3 +399,4 @@ Initial public release.
 [0.5.0]: https://github.com/drobin/nuts/tree/v0.5.0
 [0.6.0]: https://github.com/drobin/nuts/tree/v0.6.0
 [0.6.1]: https://github.com/drobin/nuts/tree/v0.6.1
+[0.6.2]: https://github.com/drobin/nuts/tree/v0.6.2
