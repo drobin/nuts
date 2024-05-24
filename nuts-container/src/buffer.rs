@@ -20,6 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#[cfg(test)]
+mod tests;
+
 use std::convert::TryInto;
 use std::mem;
 use std::num::TryFromIntError;
