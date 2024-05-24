@@ -10,11 +10,10 @@ WORKDIR /src
 
 ADD --keep-git-dir=true https://github.com/drobin/nuts.git /src
 
-RUN git fetch --tags
-RUN git checkout "$BRANCH"
+RUN git fetch --tags && git checkout "$BRANCH"
 
 RUN --mount=type=cache,target=/root/.cargo cargo build --features=plugin
-RUN --mount=type=cache,target=/root/.cargo cargo test --features=plugin
+RUN --mount=type=cache,target=/root/.cargo cargo test --all-features
 RUN --mount=type=cache,target=/root/.cargo cargo build --release  --features=plugin
 
 FROM debian:12
