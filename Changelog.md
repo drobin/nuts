@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.3] - 2024-06-03
+
+### Changed
+
+* Strip all binaries in release mode
+* Work on test coverage
+
 ## [0.6.2] - 2024-05-23
 
 ### Changed
@@ -400,3 +407,4 @@ Initial public release.
 [0.6.0]: https://github.com/drobin/nuts/tree/v0.6.0
 [0.6.1]: https://github.com/drobin/nuts/tree/v0.6.1
 [0.6.2]: https://github.com/drobin/nuts/tree/v0.6.2
+[0.6.3]: https://github.com/drobin/nuts/tree/v0.6.3
