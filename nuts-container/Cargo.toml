@@ -42,8 +42,7 @@ debug-plain-keys = []
 [dependencies]
 log = "0.4.21"
 nuts-backend = { path = "../nuts-backend", version = "=0.6.3" }
-openssl = { version = "0.10.64" }
-openssl-sys = { version = "0.9.102" }
+openssl = { version = "0.10.64", features = ["vendored"] }
 thiserror = "1.0.61"
 
 [dev-dependencies]

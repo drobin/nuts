@@ -18,10 +18,6 @@ RUN --mount=type=cache,target=/root/.cargo cargo build --release  --features=plu
 
 FROM debian:12
 
-RUN apt-get -y update
-RUN apt-get -y install libssl3
-RUN apt-get clean
-
 COPY --from=nuts-build /target/release/nuts /target/release/nuts-directory /usr/local/bin/
 
 RUN /usr/local/bin/nuts plugin add directory --path nuts-directory
