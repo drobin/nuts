@@ -28,6 +28,69 @@ use std::fmt;
 use std::io::{Cursor, Read, Write};
 use thiserror::Error;
 
+enum BsonDisplay<'a> {
+    DocRef(&'a bson::Document),
+    BsonRef(&'a bson::Bson),
+}
+
+#[cfg(feature = "debug-condensed")]
+impl<'a> BsonDisplay<'a> {
+    fn as_document(&self) -> Option<&'a bson::Document> {
+        match *self {
+            Self::DocRef(doc) => Some(doc),
+            Self::BsonRef(bson) => bson.as_document(),
+        }
+    }
+
+    fn as_array(&self) -> Option<&'a Vec<bson::Bson>> {
+        match *self {
+            Self::DocRef(_) => None,
+            Self::BsonRef(bson) => bson.as_array(),
+        }
+    }
+}
+
+#[cfg(feature = "debug-condensed")]
+impl<'a> fmt::Display for BsonDisplay<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(doc) = self.as_document() {
+            let mut first = true;
+
+            fmt.write_str("{")?;
+
+            for (key, value) in doc {
+                if first {
+                    first = false;
+                    fmt.write_str(" ")?;
+                } else {
+                    fmt.write_str(", ")?;
+                }
+
+                write!(fmt, "\"{}\": {}", key, Self::BsonRef(value))?;
+            }
+
+            write!(fmt, "{}}}", if !first { " " } else { "" })
+        } else if let Some(arr) = self.as_array() {
+            write!(fmt, "[ <{} bytes> ]", arr.len())
+        } else {
+            match self {
+                Self::DocRef(doc) => fmt::Display::fmt(doc, fmt),
+                Self::BsonRef(bson) => fmt::Display::fmt(bson, fmt),
+            }
+        }
+    }
+}
+
+#[cfg(not(feature = "debug-condensed"))]
+impl<'a> fmt::Display for BsonDisplay<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::DocRef(doc) => fmt::Display::fmt(doc, fmt),
+            Self::BsonRef(bson) => fmt::Display::fmt(bson, fmt),
+        }
+    }
+}
+
 /// Error type used by the [`BsonReader`] and [`BsonWriter`] utilities.
 #[derive(Error, Debug)]
 pub enum BsonError {
@@ -100,7 +163,11 @@ impl<R: Read> BsonReader<R> {
             let mut cursor = Cursor::new(&self.buffer[..]);
             let bson = bson::from_reader(&mut cursor)?;
 
-            trace!("read doc {} bytes: {}", cursor.position(), bson);
+            trace!(
+                "read doc {} bytes: {}",
+                cursor.position(),
+                &BsonDisplay::BsonRef(&bson)
+            );
 
             let value = bson::from_bson(bson)?;
 
@@ -154,7 +221,7 @@ impl<W: Write> BsonWriter<W> {
         debug!("write serialized: {:?}", value);
 
         let doc = bson::to_document(&value)?;
-        trace!("write doc {}", doc);
+        trace!("write doc {}", BsonDisplay::DocRef(&doc));
 
         doc.to_writer(&mut self.target)?;
         self.target.flush()?;

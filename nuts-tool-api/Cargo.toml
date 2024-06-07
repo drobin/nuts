@@ -47,6 +47,10 @@ nuts-backend = { path = "../nuts-backend", version = "=0.6.3", optional = true }
 thiserror = "1.0.61"
 
 [features]
-default = ["plugin"]
+default = ["debug-condensed", "plugin"]
 plugin = ["dep:clap", "dep:env_logger", "dep:nuts-backend"]
 tool = ["dep:nuts-backend"]
+
+# Debug/trace messages are logged without bytes arrays. Instead, number of
+# bytes is logged. This makes the log messages shorter.
+debug-condensed = []

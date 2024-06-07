@@ -74,8 +74,24 @@ macro_rules! as_into_impls {
     };
 }
 
+struct VecDebug<'a>(&'a Vec<u8>);
+
+#[cfg(feature = "debug-condensed")]
+impl<'a> fmt::Debug for VecDebug<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "<{} bytes>", self.0.len())
+    }
+}
+
+#[cfg(not(feature = "debug-condensed"))]
+impl<'a> fmt::Debug for VecDebug<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self.0, fmt)
+    }
+}
+
 /// The request message.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(tag = "op", content = "args", rename_all = "kebab-case")]
 pub enum Request {
     /// Ask for plugin information.
@@ -195,6 +211,41 @@ impl Request {
     as_into_impls!(as_quit + into_quit => Quit);
 }
 
+impl fmt::Debug for Request {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::PluginInfo => write!(fmt, "PluginInfo"),
+            Self::Settings => write!(fmt, "Settings"),
+            Self::IdSize => write!(fmt, "IdSize"),
+            Self::BlockSize => write!(fmt, "BlockSize"),
+            Self::IdToBytes(arg) => fmt.debug_tuple("IdToBytes").field(arg).finish(),
+            Self::IdToString(arg) => fmt.debug_tuple("IdToString").field(&VecDebug(arg)).finish(),
+            Self::Open(arg) => fmt.debug_tuple("Open").field(&VecDebug(arg)).finish(),
+            Self::Create(arg1, arg2) => fmt
+                .debug_tuple("Create")
+                .field(&VecDebug(arg1))
+                .field(arg2)
+                .finish(),
+            Self::Info => write!(fmt, "Info"),
+            Self::Aquire(arg) => fmt.debug_tuple("Aquire").field(&VecDebug(arg)).finish(),
+            Self::Release(arg) => fmt.debug_tuple("Release").field(&VecDebug(arg)).finish(),
+            Self::ReadHeader => write!(fmt, "ReadHeader"),
+            Self::WriteHeader(arg) => fmt
+                .debug_tuple("WriteHeader")
+                .field(&VecDebug(arg))
+                .finish(),
+            Self::Read(arg) => fmt.debug_tuple("Read").field(&VecDebug(arg)).finish(),
+            Self::Write(arg1, arg2) => fmt
+                .debug_tuple("Write")
+                .field(&VecDebug(arg1))
+                .field(&VecDebug(arg2))
+                .finish(),
+            Self::Delete => write!(fmt, "Delete"),
+            Self::Quit => write!(fmt, "Quit"),
+        }
+    }
+}
+
 /// The response message.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "code", content = "args", rename_all = "kebab-case")]
@@ -255,7 +306,7 @@ impl Response {
 /// A successful response.
 ///
 /// This is a container for various return types.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(tag = "type", content = "args", rename_all = "kebab-case")]
 pub enum OkResponse {
     /// A successful response without an attached value.
@@ -275,6 +326,19 @@ pub enum OkResponse {
 
     /// A successful response with an attached [`HashMap`].
     Map(HashMap<String, String>),
+}
+
+impl fmt::Debug for OkResponse {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Void => write!(fmt, "Void"),
+            Self::U32(arg) => fmt.debug_tuple("U32").field(arg).finish(),
+            Self::Usize(arg) => fmt.debug_tuple("Usize").field(arg).finish(),
+            Self::Bytes(arg) => fmt.debug_tuple("Bytes").field(&VecDebug(arg)).finish(),
+            Self::String(arg) => fmt.debug_tuple("String").field(arg).finish(),
+            Self::Map(arg) => fmt.debug_tuple("Map").field(arg).finish(),
+        }
+    }
 }
 
 /// An error response.
