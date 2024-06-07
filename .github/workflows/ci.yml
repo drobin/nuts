@@ -1,4 +1,4 @@
-name: Test
+name: CI
 
 on:
   push:
@@ -11,14 +11,14 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --features=plugin --verbose
     - name: Format
       run: cargo fmt -- --check
+    - name: Build
+      run: cargo build --features=plugin
+    - name: Clippy
+      run: cargo clippy --all-features
     - name: Run tests
-      run: cargo test --all-features --verbose
+      run: cargo test --all-features
