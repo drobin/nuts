@@ -21,10 +21,10 @@
 // IN THE SOFTWARE.
 
 use log::{debug, error, log_enabled, Level};
-use std::env;
 use std::io::{self, BufRead, BufReader, Cursor};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
+use std::{cmp, env};
 
 use crate::bson::BsonReader;
 use crate::tool::connection::PluginConnection;
@@ -58,14 +58,14 @@ impl<'a> Plugin<'a> {
         Plugin(binary)
     }
 
-    pub fn open(&self, name: &str) -> PluginResult<PluginConnection> {
-        let child = self.new_child(Stdio::piped(), &["open", name, "-vvv"])?;
+    pub fn open(&self, name: &str, verbose: u8) -> PluginResult<PluginConnection> {
+        let child = self.new_child(Stdio::piped(), &Self::make_args("open", name, verbose))?;
 
         Ok(PluginConnection::new(child))
     }
 
-    pub fn create(&self, name: &str) -> PluginResult<PluginConnection> {
-        let child = self.new_child(Stdio::piped(), &["create", name, "-vvv"])?;
+    pub fn create(&self, name: &str, verbose: u8) -> PluginResult<PluginConnection> {
+        let child = self.new_child(Stdio::piped(), &Self::make_args("create", name, verbose))?;
 
         Ok(PluginConnection::new(child))
     }
@@ -91,6 +91,15 @@ impl<'a> Plugin<'a> {
 
             Err(PluginError::BadPluginInfo(output.status))
         }
+    }
+
+    fn make_args<'b>(command: &'b str, name: &'b str, verbose: u8) -> Vec<&'b str> {
+        let mut args = vec![command, name];
+
+        let max = cmp::min(verbose, 3);
+        (0..max).for_each(|_| args.push("-v"));
+
+        args
     }
 
     fn new_child(&self, stdin: Stdio, args: &[&str]) -> PluginResult<Child> {

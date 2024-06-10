@@ -69,15 +69,14 @@ pub struct ContainerCreateArgs {
     /// Arguments passed to the plugin
     #[clap(value_name = "PLUGIN ARGS")]
     plugin_args: Vec<String>,
+
+    #[clap(from_global)]
+    verbose: u8,
 }
 
 impl ContainerCreateArgs {
     pub fn run(&self) -> Result<()> {
-        debug!("name: {}", self.name);
-        debug!("plugin: {}", self.plugin);
-        debug!("cipher: {:?}", *self.cipher);
-        debug!("overwrite: {}", self.overwrite);
-        debug!("plugin args: {:?}", self.plugin_args);
+        debug!("args: {:?}", self);
 
         let plugin_config = PluginConfig::load()?;
         let mut container_config = ContainerConfig::load()?;
@@ -92,7 +91,7 @@ impl ContainerCreateArgs {
             self.name
         );
 
-        let backend_options = PluginBackendCreateBuilder::new(plugin, &self.name)?;
+        let backend_options = PluginBackendCreateBuilder::new(plugin, &self.name, self.verbose)?;
         let mut builder = CreateOptionsBuilder::new(*self.cipher)
             .with_password_callback(ask_for_password)
             .with_overwrite(self.overwrite);

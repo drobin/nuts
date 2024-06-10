@@ -22,6 +22,7 @@
 
 use anyhow::Result;
 use clap::Args;
+use log::debug;
 use nuts_archive::Archive;
 
 use crate::cli::open_container;
@@ -43,11 +44,16 @@ pub struct ArchiveInfoArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
+
+    #[clap(from_global)]
+    verbose: u8,
 }
 
 impl ArchiveInfoArgs {
     pub fn run(&self) -> Result<()> {
-        let container = open_container(&self.container)?;
+        debug!("args: {:?}", self);
+
+        let container = open_container(&self.container, self.verbose)?;
         let archive = Archive::open(container)?;
         let info = archive.info();
 

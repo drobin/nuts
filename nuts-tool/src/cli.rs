@@ -94,7 +94,7 @@ impl Commands {
     }
 }
 
-fn open_container(name: &str) -> Result<Container<PluginBackend>> {
+fn open_container(name: &str, verbose: u8) -> Result<Container<PluginBackend>> {
     let container_config = ContainerConfig::load()?;
     let plugin_config = PluginConfig::load()?;
 
@@ -104,7 +104,7 @@ fn open_container(name: &str) -> Result<Container<PluginBackend>> {
     let exe = plugin_config.path(plugin)?;
 
     let plugin = Plugin::new(&exe);
-    let plugin_builder = PluginBackendOpenBuilder::new(plugin, name)?;
+    let plugin_builder = PluginBackendOpenBuilder::new(plugin, name, verbose)?;
 
     let builder = OpenOptionsBuilder::new().with_password_callback(ask_for_password);
     let options = builder.build::<PluginBackend>()?;

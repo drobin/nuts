@@ -105,8 +105,12 @@ impl fmt::Display for PluginId {
 pub struct PluginBackendOpenBuilder;
 
 impl PluginBackendOpenBuilder {
-    pub fn new(plugin: Plugin, name: &str) -> Result<PluginBackendOpenBuilder, PluginError> {
-        setup_connection(plugin.open(name)?)?;
+    pub fn new(
+        plugin: Plugin,
+        name: &str,
+        verbose: u8,
+    ) -> Result<PluginBackendOpenBuilder, PluginError> {
+        setup_connection(plugin.open(name, verbose)?)?;
 
         Ok(PluginBackendOpenBuilder)
     }
@@ -135,8 +139,12 @@ pub struct PluginBackendCreateBuilder {
 }
 
 impl PluginBackendCreateBuilder {
-    pub fn new(plugin: Plugin, name: &str) -> Result<PluginBackendCreateBuilder, PluginError> {
-        setup_connection(plugin.create(name)?)?;
+    pub fn new(
+        plugin: Plugin,
+        name: &str,
+        verbose: u8,
+    ) -> Result<PluginBackendCreateBuilder, PluginError> {
+        setup_connection(plugin.create(name, verbose)?)?;
 
         let settings = with_connection(|conn| conn.settings())?;
 

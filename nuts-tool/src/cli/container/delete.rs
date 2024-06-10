@@ -35,12 +35,17 @@ pub struct ContainerDeleteArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
+
+    #[clap(from_global)]
+    verbose: u8,
 }
 
 impl ContainerDeleteArgs {
     pub fn run(&self) -> Result<()> {
+        debug!("args: {:?}", self);
+
         let path = container_dir_for(&self.container)?;
-        let container = open_container(&self.container)?;
+        let container = open_container(&self.container, self.verbose)?;
         let mut container_config = ContainerConfig::load()?;
 
         debug!("container: {}", self.container);

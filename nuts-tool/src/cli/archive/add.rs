@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -45,6 +45,9 @@ pub struct ArchiveAddArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
+
+    #[clap(from_global)]
+    verbose: u8,
 }
 
 impl ArchiveAddArgs {
@@ -53,9 +56,9 @@ impl ArchiveAddArgs {
             return command.run();
         }
 
-        debug!("container: {}", self.container);
+        debug!("args: {:?}", self);
 
-        let container = open_container(&self.container)?;
+        let container = open_container(&self.container, self.verbose)?;
         let mut archive = Archive::open(container)?;
 
         for path in self.paths.iter() {
@@ -96,14 +99,16 @@ pub struct ArchiveAddFileArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
+
+    #[clap(from_global)]
+    verbose: u8,
 }
 
 impl ArchiveAddFileArgs {
     pub fn run(&self) -> Result<()> {
-        debug!("container: {}", self.container);
-        debug!("name: {}", self.name);
+        debug!("args: {:?}", self);
 
-        let container = open_container(&self.container)?;
+        let container = open_container(&self.container, self.verbose)?;
         let mut archive = Archive::open(container)?;
 
         let block_size = archive.as_ref().block_size() as usize;
@@ -133,14 +138,16 @@ pub struct ArchiveAddDirectoryArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
+
+    #[clap(from_global)]
+    verbose: u8,
 }
 
 impl ArchiveAddDirectoryArgs {
     pub fn run(&self) -> Result<()> {
-        debug!("container: {}", self.container);
-        debug!("name: {}", self.name);
+        debug!("args: {:?}", self);
 
-        let container = open_container(&self.container)?;
+        let container = open_container(&self.container, self.verbose)?;
         let mut archive = Archive::open(container)?;
 
         archive.append_directory(&self.name).build()?;
@@ -160,15 +167,16 @@ pub struct ArchiveAddSymlinkArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
+
+    #[clap(from_global)]
+    verbose: u8,
 }
 
 impl ArchiveAddSymlinkArgs {
     pub fn run(&self) -> Result<()> {
-        debug!("container: {}", self.container);
-        debug!("name: {}", self.name);
-        debug!("target: {}", self.target);
+        debug!("args: {:?}", self);
 
-        let container = open_container(&self.container)?;
+        let container = open_container(&self.container, self.verbose)?;
         let mut archive = Archive::open(container)?;
 
         archive.append_symlink(&self.name, &self.target).build()?;

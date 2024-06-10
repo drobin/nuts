@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -57,15 +57,16 @@ pub struct ContainerWriteArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
+
+    #[clap(from_global)]
+    verbose: u8,
 }
 
 impl ContainerWriteArgs {
     pub fn run(&self) -> Result<()> {
-        debug!("id: {:?}", self.id);
-        debug!("max_bytes: {:?}", self.max_bytes);
-        debug!("container: {}", self.container);
+        debug!("args: {:?}", self);
 
-        let mut container = open_container(&self.container)?;
+        let mut container = open_container(&self.container, self.verbose)?;
 
         let block_size = container.block_size();
         let max_bytes = self.max_bytes.unwrap_or(u64::MAX);

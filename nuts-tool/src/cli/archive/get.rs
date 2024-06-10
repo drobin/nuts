@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -41,13 +41,16 @@ pub struct ArchiveGetArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
+
+    #[clap(from_global)]
+    verbose: u8,
 }
 
 impl ArchiveGetArgs {
     pub fn run(&self) -> Result<()> {
-        debug!("container: {}", self.container);
+        debug!("args: {:?}", self);
 
-        let container = open_container(&self.container)?;
+        let container = open_container(&self.container, self.verbose)?;
         let mut archive = Archive::open(container)?;
 
         let block_size = archive.as_ref().block_size() as usize;
