@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.4] - 2024-06-10
+
+### Changed
+
+* Switch to vendored openssl. The nuts container brings its own `libcrypto` and
+  does not rely on an shared `libcrypto` anymore.
+* Compact debug/trace messages. Compact messages from the nuts-tool/plugin
+  communication by not logging whole byte arrays. Instead only log number by
+  bytes.
+* Debug level of plugin. Adapt verbose level passed to the plugin to the
+  verbose level of the nuts tool. There is no need to enable tracing for the
+  plugin if nuts tool does not enable it.
+
 ## [0.6.3] - 2024-06-03
 
 ### Changed
@@ -408,3 +421,4 @@ Initial public release.
 [0.6.1]: https://github.com/drobin/nuts/tree/v0.6.1
 [0.6.2]: https://github.com/drobin/nuts/tree/v0.6.2
 [0.6.3]: https://github.com/drobin/nuts/tree/v0.6.3
+[0.6.4]: https://github.com/drobin/nuts/tree/v0.6.4
