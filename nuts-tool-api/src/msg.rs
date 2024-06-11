@@ -20,6 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use nuts_backend::Backend;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
@@ -357,9 +358,6 @@ pub enum ErrorResponse {
     /// Could not create an id from its binary representation.
     InvalidIdData,
 
-    /// Could not convert the settings into its binary representation.
-    InvalidSettings,
-
     /// Could not create the settings from its binary representation.
     InvalidSettingsData,
 
@@ -369,12 +367,34 @@ pub enum ErrorResponse {
     /// The header data has an invalid length.
     InvalidHeaderBytes,
 
+    /// The attached backend raised an error.
+    Backend(String),
+
     /// An arbitrary error with the given message occured.
     Message(String),
 }
 
-impl<T: fmt::Display> From<T> for ErrorResponse {
-    fn from(msg: T) -> Self {
-        Self::Message(msg.to_string())
+impl ErrorResponse {
+    pub fn message<T: AsRef<str>>(msg: T) -> ErrorResponse {
+        Self::Message(msg.as_ref().to_string())
+    }
+
+    pub fn backend<B: Backend>(err: B::Err) -> ErrorResponse {
+        Self::Backend(err.to_string())
+    }
+}
+
+impl fmt::Display for ErrorResponse {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::NotApplicable => write!(fmt, "the call is not applicable"),
+            Self::InvalidId => write!(fmt, "could not parse id"),
+            Self::InvalidIdData => write!(fmt, "could not create id"),
+            Self::InvalidSettingsData => write!(fmt, "could not create settings"),
+            Self::InvalidInfo => write!(fmt, "could not collect backend information"),
+            Self::InvalidHeaderBytes => write!(fmt, "invalid header bytes"),
+            Self::Backend(msg) => write!(fmt, "the backend created an error: {}", msg),
+            Self::Message(msg) => write!(fmt, "{}", msg),
+        }
     }
 }

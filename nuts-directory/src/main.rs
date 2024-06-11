@@ -79,7 +79,7 @@ impl PluginHandler<DirectoryBackend<PathBuf>> for DirectoryPluginInformation {
     ) -> Result<HashMap<String, String>, ErrorResponse> {
         match backend.info() {
             Ok(info) => Ok([("block_size".to_string(), info.bsize.to_string())].into()),
-            Err(err) => Err(err.into()),
+            Err(err) => Err(ErrorResponse::backend::<DirectoryBackend<PathBuf>>(err)),
         }
     }
 }

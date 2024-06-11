@@ -36,7 +36,7 @@ pub enum PluginError {
     #[error(transparent)]
     Bson(#[from] BsonError),
 
-    #[error("{0:?}")]
+    #[error("{0}")]
     Response(ErrorResponse),
 
     #[error("invalid response")]

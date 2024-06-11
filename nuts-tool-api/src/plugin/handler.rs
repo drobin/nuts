@@ -101,7 +101,7 @@ pub trait PluginHandler<B: Backend> {
 
                 Ok(<B::Settings as Binary>::as_bytes(&settings))
             }
-            None => Err(ErrorResponse::from("unable to make a create-builder")),
+            None => Err(ErrorResponse::message("unable to make a create-builder")),
         }
     }
 
@@ -111,8 +111,10 @@ pub trait PluginHandler<B: Backend> {
             .ok_or(ErrorResponse::InvalidSettingsData)?;
 
         match self.open_builder(args) {
-            Some(builder) => builder.build(settings).map_err(|err| err.into()),
-            None => Err(ErrorResponse::from("unable to make an open-builder")),
+            Some(builder) => builder
+                .build(settings)
+                .map_err(|err| ErrorResponse::backend::<B>(err)),
+            None => Err(ErrorResponse::message("unable to make an open-builder")),
         }
     }
 
@@ -126,8 +128,10 @@ pub trait PluginHandler<B: Backend> {
         let header = into_header_bytes(header)?;
 
         match self.create_builder(args) {
-            Some(builder) => builder.build(header, overwrite).map_err(|err| err.into()),
-            None => Err(ErrorResponse::from("unable to make a create-builder")),
+            Some(builder) => builder
+                .build(header, overwrite)
+                .map_err(|err| ErrorResponse::backend::<B>(err)),
+            None => Err(ErrorResponse::message("unable to make a create-builder")),
         }
     }
 
@@ -143,7 +147,7 @@ pub trait PluginHandler<B: Backend> {
 
     /// Handles the [`Request::IdToBytes`] command.
     fn handle_id_to_bytes(&self, str: &str) -> Result<Vec<u8>, ErrorResponse> {
-        let id = <B::Id as FromStr>::from_str(str).map_err(|_| ErrorResponse::InvalidIdData)?;
+        let id = <B::Id as FromStr>::from_str(str).map_err(|_| ErrorResponse::InvalidId)?;
 
         Ok(<B::Id as Binary>::as_bytes(&id))
     }
@@ -159,7 +163,7 @@ pub trait PluginHandler<B: Backend> {
     fn handle_info(&self, backend: &B) -> Result<HashMap<String, String>, ErrorResponse> {
         match backend.info() {
             Ok(info) => Ok(self.info_to_hash(info).ok_or(ErrorResponse::InvalidInfo)?),
-            Err(err) => Err(err.into()),
+            Err(err) => Err(ErrorResponse::backend::<B>(err)),
         }
     }
 
@@ -167,7 +171,7 @@ pub trait PluginHandler<B: Backend> {
     fn handle_aquire(&self, backend: &mut B, bytes: &[u8]) -> Result<Vec<u8>, ErrorResponse> {
         match B::aquire(backend, bytes) {
             Ok(id) => Ok(<B::Id as Binary>::as_bytes(&id)),
-            Err(err) => Err(err.into()),
+            Err(err) => Err(ErrorResponse::backend::<B>(err)),
         }
     }
 
@@ -175,7 +179,7 @@ pub trait PluginHandler<B: Backend> {
     fn handle_release(&self, backend: &mut B, id: &[u8]) -> Result<(), ErrorResponse> {
         let id = <B::Id as Binary>::from_bytes(id).ok_or(ErrorResponse::InvalidIdData)?;
 
-        B::release(backend, id).map_err(|err| err.into())
+        B::release(backend, id).map_err(|err| ErrorResponse::backend::<B>(err))
     }
 
     /// Handles the [`Request::ReadHeader`] command.
@@ -187,7 +191,7 @@ pub trait PluginHandler<B: Backend> {
 
         match header.get_header_bytes(&mut bytes) {
             Ok(()) => Ok(bytes.to_vec()),
-            Err(err) => Err(err.into()),
+            Err(err) => Err(ErrorResponse::backend::<B>(err)),
         }
     }
 
@@ -195,7 +199,7 @@ pub trait PluginHandler<B: Backend> {
     fn handle_write_header(&self, backend: &mut B, header: &[u8]) -> Result<(), ErrorResponse> {
         let header = into_header_bytes(header)?;
 
-        B::write_header(backend, &header).map_err(|err| err.into())
+        B::write_header(backend, &header).map_err(|err| ErrorResponse::backend::<B>(err))
     }
 
     /// Handles the [`Request::Read`] command.
@@ -204,7 +208,8 @@ pub trait PluginHandler<B: Backend> {
         let bsize = B::block_size(backend) as usize;
         let mut buf = vec![0; bsize];
 
-        let nread = B::read(backend, &id, &mut buf)?;
+        let nread =
+            B::read(backend, &id, &mut buf).map_err(|err| ErrorResponse::backend::<B>(err))?;
 
         Ok(buf[..nread].to_vec())
     }
@@ -222,7 +227,7 @@ pub trait PluginHandler<B: Backend> {
         let nbytes = cmp::min(bytes.len(), bsize);
         let bytes = &bytes[..nbytes];
 
-        B::write(backend, &id, bytes).map_err(|err| err.into())
+        B::write(backend, &id, bytes).map_err(|err| ErrorResponse::backend::<B>(err))
     }
 
     fn handle_delete(&self, backend: B) -> Result<(), ErrorResponse> {
