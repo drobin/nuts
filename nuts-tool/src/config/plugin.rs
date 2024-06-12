@@ -22,7 +22,7 @@
 
 use anyhow::{anyhow, Result};
 use is_executable::IsExecutable;
-use log::{debug, error};
+use log::{debug, error, trace, warn};
 use nuts_tool_api::tool::Plugin;
 use nuts_tool_api::tool_dir;
 use serde::{Deserialize, Serialize};
@@ -32,6 +32,34 @@ use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use crate::config::load_path;
+
+fn find_in_path(relative: &Path) -> Option<Cow<Path>> {
+    if let Some(path_env) = env::var_os("PATH") {
+        trace!("PATH: {:?}", path_env);
+
+        let abs_path = env::split_paths(&path_env)
+            .map(|path| path.join(relative))
+            .inspect(|path| trace!("testing {}", path.display()))
+            .find(|path| path.exists());
+
+        debug!("absolute path in PATH: {:?}", abs_path);
+
+        abs_path.map(|path| Cow::Owned(path))
+    } else {
+        warn!("no environment variable PATH found");
+        None
+    }
+}
+
+fn make_from_current_exe(relative: &Path) -> Result<Cow<Path>> {
+    let cur_exe = env::current_exe()
+        .map_err(|err| anyhow!("could not detect path of executable: {}", err))?;
+    let path = cur_exe.with_file_name(relative.as_os_str());
+
+    debug!("absolute path from current exe: '{}'", path.display());
+
+    Ok(Cow::Owned(path))
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Inner {
@@ -43,18 +71,10 @@ impl Inner {
         if self.path.is_absolute() {
             Ok(Cow::Borrowed(self.path.as_path()))
         } else {
-            let cur_exe = env::current_exe()
-                .map_err(|err| anyhow!("could not detect path of executable: {}", err))?;
-            let path = cur_exe.with_file_name(self.path.as_os_str());
-
-            debug!(
-                "make absolute path from '{}' & '{}': '{}'",
-                cur_exe.display(),
-                self.path.display(),
-                path.display()
-            );
-
-            Ok(Cow::Owned(path))
+            match find_in_path(&self.path) {
+                Some(path) => Ok(path),
+                None => make_from_current_exe(&self.path),
+            }
         }
     }
 
