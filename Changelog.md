@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.5] - 2024-06-12
+
+### Changed
+
+* Better error messages for plugin communication
+* Evaluation of plugin path. Use `PATH` environment variable to find the plugin
+  executable.
+
 ## [0.6.4] - 2024-06-10
 
 ### Changed
@@ -422,3 +430,4 @@ Initial public release.
 [0.6.2]: https://github.com/drobin/nuts/tree/v0.6.2
 [0.6.3]: https://github.com/drobin/nuts/tree/v0.6.3
 [0.6.4]: https://github.com/drobin/nuts/tree/v0.6.4
+[0.6.5]: https://github.com/drobin/nuts/tree/v0.6.5
