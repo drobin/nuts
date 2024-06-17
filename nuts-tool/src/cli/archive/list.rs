@@ -21,10 +21,10 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
 use clap::{ArgAction, Args};
 use log::debug;
 use nuts_archive::{Archive, Entry, Group};
+use std::cmp;
 use std::fmt::{self, Write};
 
 use crate::backend::PluginBackend;
@@ -32,114 +32,69 @@ use crate::cli::open_container;
 use crate::say;
 use crate::time::TimeFormat;
 
-enum Type {
-    File,
-    Directory,
-    Symlink,
-}
+const SIZE_WIDTH: usize = 9;
 
-impl fmt::Display for Type {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Type::File => fmt.write_char('-'),
-            Type::Directory => fmt.write_char('d'),
-            Type::Symlink => fmt.write_char('l'),
+struct Type<'a>(&'a Entry<'a, PluginBackend>);
+
+impl<'a> fmt::Display for Type<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self.0 {
+            Entry::File(_) => fmt.write_char('-'),
+            Entry::Directory(_) => fmt.write_char('d'),
+            Entry::Symlink(_) => fmt.write_char('l'),
         }
     }
 }
 
-struct Permissions(bool, bool, bool);
+struct Permission<'a>(&'a Entry<'a, PluginBackend>, Group);
 
-impl Permissions {
-    fn from_entry(entry: &Entry<PluginBackend>, group: Group) -> Permissions {
-        Permissions(
-            entry.can_read(group),
-            entry.can_write(group),
-            entry.can_execute(group),
-        )
-    }
-}
-
-impl fmt::Display for Permissions {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.0 {
+impl<'a> fmt::Display for Permission<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        if self.0.can_read(self.1) {
             fmt.write_char('r')?;
         } else {
             fmt.write_char('-')?;
-        }
+        };
 
-        if self.1 {
+        if self.0.can_write(self.1) {
             fmt.write_char('w')?;
         } else {
             fmt.write_char('-')?;
-        }
+        };
 
-        if self.2 {
+        if self.0.can_execute(self.1) {
             fmt.write_char('x')?;
         } else {
             fmt.write_char('-')?;
-        }
+        };
 
         Ok(())
     }
 }
 
-impl<'a> From<&'a Entry<'a, PluginBackend>> for Type {
-    fn from(entry: &'a Entry<'a, PluginBackend>) -> Self {
-        match entry {
-            Entry::File(_) => Type::File,
-            Entry::Directory(_) => Type::Directory,
-            Entry::Symlink(_) => Type::Symlink,
+struct Name<'a>(&'a Entry<'a, PluginBackend>);
+
+impl<'a> fmt::Display for Name<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(symlink) = self.0.as_symlink() {
+            write!(fmt, "{} -> {}", self.0.name(), symlink.target())
+        } else {
+            write!(fmt, "{}", self.0.name())
         }
     }
 }
 
-struct ListEntry {
-    name: String,
-    size: u64,
-    r#type: Type,
-    appended: DateTime<Utc>,
-    created: DateTime<Utc>,
-    changed: DateTime<Utc>,
-    modified: DateTime<Utc>,
-    user_perms: Permissions,
-    group_perms: Permissions,
-    other_perms: Permissions,
+#[derive(Debug)]
+struct PrintLongContext {
+    size_width: usize,
 }
 
-impl<'a> From<&'a Entry<'a, PluginBackend>> for ListEntry {
-    fn from(entry: &Entry<PluginBackend>) -> Self {
-        ListEntry {
-            name: entry.name().to_string(),
-            size: entry.size(),
-            r#type: entry.into(),
-            appended: *entry.appended(),
-            created: *entry.created(),
-            changed: *entry.changed(),
-            modified: *entry.modified(),
-            user_perms: Permissions::from_entry(entry, Group::User),
-            group_perms: Permissions::from_entry(entry, Group::Group),
-            other_perms: Permissions::from_entry(entry, Group::Other),
+impl Default for PrintLongContext {
+    fn default() -> Self {
+        Self {
+            size_width: SIZE_WIDTH,
         }
     }
-}
-
-fn collect_entries(archive: &mut Archive<PluginBackend>) -> Result<Vec<ListEntry>> {
-    let mut vec = vec![];
-    let mut entry_opt = archive.first();
-
-    loop {
-        match entry_opt {
-            Some(Ok(entry)) => {
-                vec.push((&entry).into());
-                entry_opt = entry.next();
-            }
-            Some(Err(err)) => return Err(err.into()),
-            None => break,
-        }
-    }
-
-    Ok(vec)
 }
 
 #[derive(Args, Debug)]
@@ -179,38 +134,36 @@ pub struct ArchiveListArgs {
 }
 
 impl ArchiveListArgs {
-    fn print_short(&self, entries: Vec<ListEntry>) {
-        for entry in entries {
-            say!("{}", entry.name);
-        }
+    fn print_short(&self, entry: &Entry<PluginBackend>) {
+        say!("{}", entry.name());
     }
 
-    fn print_long(&self, entries: Vec<ListEntry>) {
-        let max_size = entries.iter().max_by_key(|e| e.size).map_or(0, |e| e.size);
-        let max_n = max_size.to_string().len();
+    fn print_long(&self, entry: &Entry<PluginBackend>, ctx: &mut PrintLongContext) {
+        let tstamp = if self.appended {
+            entry.appended()
+        } else if self.created {
+            entry.created()
+        } else if self.changed {
+            entry.changed()
+        } else {
+            entry.modified()
+        };
 
-        for entry in entries {
-            let tstamp = if self.appended {
-                entry.appended
-            } else if self.created {
-                entry.created
-            } else if self.changed {
-                entry.changed
-            } else {
-                entry.modified
-            };
+        let size = entry.size().to_string();
 
-            say!(
-                "{}{}{}{} {:>max_n$} {} {}",
-                entry.r#type,
-                entry.user_perms,
-                entry.group_perms,
-                entry.other_perms,
-                entry.size,
-                self.time_format.format(&tstamp, "%d %b %H:%M"),
-                entry.name
-            );
-        }
+        ctx.size_width = cmp::max(ctx.size_width, size.len());
+
+        say!(
+            "{}{}{}{} {:>size_width$} {} {}",
+            Type(entry),
+            Permission(entry, Group::User),
+            Permission(entry, Group::Group),
+            Permission(entry, Group::Other),
+            size,
+            self.time_format.format(&tstamp, "%d %b %H:%M"),
+            Name(entry),
+            size_width = ctx.size_width,
+        );
     }
 
     pub fn run(&self) -> Result<()> {
@@ -219,12 +172,24 @@ impl ArchiveListArgs {
         let container = open_container(&self.container, self.verbose)?;
         let mut archive = Archive::open(container)?;
 
-        let entries = collect_entries(&mut archive)?;
+        let mut entry_opt = archive.first();
+        let mut ctx_opt = None;
 
-        if self.long {
-            self.print_long(entries);
-        } else {
-            self.print_short(entries);
+        loop {
+            match entry_opt {
+                Some(Ok(entry)) => {
+                    if self.long {
+                        let ctx = ctx_opt.get_or_insert_with(Default::default);
+                        self.print_long(&entry, ctx);
+                    } else {
+                        self.print_short(&entry);
+                    }
+
+                    entry_opt = entry.next();
+                }
+                Some(Err(err)) => return Err(err.into()),
+                None => break,
+            }
         }
 
         Ok(())
