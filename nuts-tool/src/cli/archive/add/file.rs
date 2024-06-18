@@ -26,12 +26,17 @@ use log::debug;
 use nuts_archive::Archive;
 use std::io::{self, Read};
 
+use crate::cli::archive::add::{TimestampArgs, TSTAMP_HELP};
 use crate::cli::open_container;
 
 #[derive(Args, Debug)]
+#[clap(after_help(TSTAMP_HELP))]
 pub struct ArchiveAddFileArgs {
     /// Name of the file.
     name: String,
+
+    #[clap(flatten)]
+    timestamps: TimestampArgs,
 
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
@@ -47,9 +52,23 @@ impl ArchiveAddFileArgs {
 
         let container = open_container(&self.container, self.verbose)?;
         let mut archive = Archive::open(container)?;
-
         let block_size = archive.as_ref().block_size() as usize;
-        let mut entry = archive.append_file(&self.name).build()?;
+
+        let mut builder = archive.append_file(&self.name);
+
+        if let Some(created) = self.timestamps.created {
+            builder.set_created(created);
+        }
+
+        if let Some(changed) = self.timestamps.changed {
+            builder.set_changed(changed);
+        }
+
+        if let Some(modified) = self.timestamps.modified {
+            builder.set_modified(modified);
+        }
+
+        let mut entry = builder.build()?;
         let mut buf = vec![0; block_size];
 
         loop {

@@ -25,10 +25,13 @@ pub mod file;
 pub mod symlink;
 
 use anyhow::Result;
-use clap::{Args, Subcommand};
+use chrono::offset::LocalResult;
+use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
+use clap::builder::{TypedValueParser, ValueParserFactory};
+use clap::{value_parser, Arg, Args, Command, Subcommand};
 use log::debug;
 use nuts_archive::Archive;
-use std::io::{self, Read};
+use std::ffi::OsStr;
 use std::path::PathBuf;
 
 use crate::archive::append_recursive;
@@ -36,6 +39,97 @@ use crate::cli::archive::add::dir::ArchiveAddDirectoryArgs;
 use crate::cli::archive::add::file::ArchiveAddFileArgs;
 use crate::cli::archive::add::symlink::ArchiveAddSymlinkArgs;
 use crate::cli::open_container;
+
+const TSTAMP_HELP: &str = "\x1B[1m\x1B[4mTimestamps:\x1B[0m
+
+A <TIMESTAMP> argument is of the form \"YYYY-MM-DDThh:mm:ss[tz]\" where the letters represent the following:
+
+    \x1B[4mYYYY\x1B[0m  Four decimal digits representing the year.
+    \x1B[4mMM\x1B[0m    The month of the year, from 01 to 12.
+    \x1B[4mDD\x1B[0m    the day of the month, from 01 to 31.
+    \x1B[4mhh\x1B[0m    The hour of the day, from 00 to 23.
+    \x1B[4mmm\x1B[0m    The minute of the hour, from 00 to 59.
+    \x1B[4mss\x1B[0m    The second of the minute, from 00 to 60.
+    \x1B[4mtz\x1B[0m    An optional letter Z indicating the time is in UTC. Otherwise, the time is assumed to be in local time.";
+
+fn tstamp_error(cmd: &Command, arg: Option<&Arg>, value: &OsStr) -> clap::Error {
+    use clap::error::{ContextKind, ContextValue, ErrorKind};
+
+    let mut err = clap::Error::new(ErrorKind::ValueValidation).with_cmd(cmd);
+
+    if let Some(a) = arg {
+        err.insert(ContextKind::InvalidArg, ContextValue::String(a.to_string()));
+    }
+
+    err.insert(
+        ContextKind::InvalidValue,
+        ContextValue::String(value.to_string_lossy().to_string()),
+    );
+
+    err
+}
+
+#[derive(Clone, Debug)]
+struct Timestamp;
+
+impl TypedValueParser for Timestamp {
+    type Value = DateTime<Utc>;
+
+    fn parse_ref(
+        &self,
+        cmd: &Command,
+        arg: Option<&Arg>,
+        value: &OsStr,
+    ) -> Result<DateTime<Utc>, clap::Error> {
+        let str_value = value.to_string_lossy();
+
+        let (str_value, utc) = match str_value.strip_suffix("Z") {
+            Some(s) => (s, true),
+            None => (str_value.as_ref(), false),
+        };
+
+        let dt = NaiveDateTime::parse_from_str(&str_value, "%Y-%m-%dT%H:%M:%S")
+            .map_err(|_| tstamp_error(cmd, arg, value))?;
+
+        let dt_utc = if utc {
+            Utc.from_local_datetime(&dt)
+        } else {
+            Local.from_local_datetime(&dt).map(Into::into)
+        };
+
+        match dt_utc {
+            LocalResult::Single(dt) => Ok(dt),
+            LocalResult::Ambiguous(_earliest, latest) => Ok(latest),
+            LocalResult::None => Err(tstamp_error(cmd, arg, value)),
+        }
+    }
+}
+
+impl ValueParserFactory for Timestamp {
+    type Parser = Self;
+
+    fn value_parser() -> Self {
+        Timestamp
+    }
+}
+
+#[derive(Args, Debug)]
+struct TimestampArgs {
+    /// Change the creation time to the specified date time instead of the
+    /// current time of day
+    #[clap(short = 'r', long, value_parser = value_parser!(Timestamp), value_name = "TIMESTAMP")]
+    created: Option<DateTime<Utc>>,
+
+    /// Change the changed time to the specified date time instead of the
+    /// current time of day
+    #[clap(short = 'n', long, value_parser = value_parser!(Timestamp), value_name = "TIMESTAMP")]
+    changed: Option<DateTime<Utc>>,
+
+    /// Change the modified time to the specified date time instead of
+    /// he current time of day
+    #[clap(short = 'm', long, value_parser = value_parser!(Timestamp), value_name = "TIMESTAMP")]
+    modified: Option<DateTime<Utc>>,
+}
 
 #[derive(Args, Debug)]
 // #[clap(group(ArgGroup::new("input").required(true).multiple(false)))]

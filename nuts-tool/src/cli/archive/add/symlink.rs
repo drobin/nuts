@@ -25,15 +25,20 @@ use clap::Args;
 use log::debug;
 use nuts_archive::Archive;
 
+use crate::cli::archive::add::{TimestampArgs, TSTAMP_HELP};
 use crate::cli::open_container;
 
 #[derive(Args, Debug)]
+#[clap(after_help(TSTAMP_HELP))]
 pub struct ArchiveAddSymlinkArgs {
     /// Name of the symlink.
     name: String,
 
     /// Target of the symlink.
     target: String,
+
+    #[clap(flatten)]
+    timestamps: TimestampArgs,
 
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
@@ -50,8 +55,20 @@ impl ArchiveAddSymlinkArgs {
         let container = open_container(&self.container, self.verbose)?;
         let mut archive = Archive::open(container)?;
 
-        archive.append_symlink(&self.name, &self.target).build()?;
+        let mut builder = archive.append_symlink(&self.name, &self.target);
 
-        Ok(())
+        if let Some(created) = self.timestamps.created {
+            builder.set_created(created);
+        }
+
+        if let Some(changed) = self.timestamps.changed {
+            builder.set_changed(changed);
+        }
+
+        if let Some(modified) = self.timestamps.modified {
+            builder.set_modified(modified);
+        }
+
+        builder.build().map_err(Into::into)
     }
 }
