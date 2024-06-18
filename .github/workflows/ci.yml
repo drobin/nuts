@@ -19,6 +19,6 @@ jobs:
     - name: Build
       run: cargo build --features=plugin
     - name: Clippy
-      run: cargo clippy --all-features
+      run: cargo clippy --all-features -- -Dwarnings
     - name: Run tests
       run: cargo test --all-features

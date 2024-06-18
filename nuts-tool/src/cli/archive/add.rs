@@ -83,12 +83,12 @@ impl TypedValueParser for Timestamp {
     ) -> Result<DateTime<Utc>, clap::Error> {
         let str_value = value.to_string_lossy();
 
-        let (str_value, utc) = match str_value.strip_suffix("Z") {
+        let (str_value, utc) = match str_value.strip_suffix('Z') {
             Some(s) => (s, true),
             None => (str_value.as_ref(), false),
         };
 
-        let dt = NaiveDateTime::parse_from_str(&str_value, "%Y-%m-%dT%H:%M:%S")
+        let dt = NaiveDateTime::parse_from_str(str_value, "%Y-%m-%dT%H:%M:%S")
             .map_err(|_| tstamp_error(cmd, arg, value))?;
 
         let dt_utc = if utc {

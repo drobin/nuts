@@ -160,7 +160,7 @@ impl ArchiveListArgs {
             Permission(entry, Group::Group),
             Permission(entry, Group::Other),
             size,
-            self.time_format.format(&tstamp, "%d %b %H:%M"),
+            self.time_format.format(tstamp, "%d %b %H:%M"),
             Name(entry),
             size_width = ctx.size_width,
         );

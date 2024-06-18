@@ -44,7 +44,7 @@ fn find_in_path(relative: &Path) -> Option<Cow<Path>> {
 
         debug!("absolute path in PATH: {:?}", abs_path);
 
-        abs_path.map(|path| Cow::Owned(path))
+        abs_path.map(Cow::Owned)
     } else {
         warn!("no environment variable PATH found");
         None
