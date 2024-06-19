@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.6] - 2024-06-19
+
+### Changed
+
+* `nuts archive list -l`: Displays the target of symlinks
+
+### Added
+
+* `nuts archive add file|directory|symlink`: Define `--created`, `--changed` &
+  `--modified` arguments to be able to setup custom timestamps.
+
 ## [0.6.5] - 2024-06-12
 
 ### Changed
@@ -431,3 +442,4 @@ Initial public release.
 [0.6.3]: https://github.com/drobin/nuts/tree/v0.6.3
 [0.6.4]: https://github.com/drobin/nuts/tree/v0.6.4
 [0.6.5]: https://github.com/drobin/nuts/tree/v0.6.5
+[0.6.6]: https://github.com/drobin/nuts/tree/v0.6.6

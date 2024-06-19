@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-tool"
-version = "0.6.5"
+version = "0.6.6"
 edition = "2018"
 rust-version = "1.66"
 authors = ["Robin Doer <robin@robind.de>"]
@@ -42,10 +42,10 @@ clap = { version = "4.5.4", features = ["cargo", "color", "derive", "env"] }
 colored = "2.1.0"
 env_logger = "0.10.2"
 log = "0.4.21"
-nuts-archive = { path = "../nuts-archive", version = "=0.6.5" }
-nuts-backend = { path = "../nuts-backend", version = "=0.6.5" }
-nuts-container = { path = "../nuts-container", version = "=0.6.5" }
-nuts-tool-api = { path = "../nuts-tool-api", version = "=0.6.5", default-features = false, features = [
+nuts-archive = { path = "../nuts-archive", version = "=0.6.6" }
+nuts-backend = { path = "../nuts-backend", version = "=0.6.6" }
+nuts-container = { path = "../nuts-container", version = "=0.6.6" }
+nuts-tool-api = { path = "../nuts-tool-api", version = "=0.6.6", default-features = false, features = [
     "tool",
 ] }
 rpassword = "7.3.1"
