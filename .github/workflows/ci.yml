@@ -13,6 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    - run: rustup update --no-self-update 1.75
+    - run: rustup component add rustfmt clippy --toolchain 1.75
+    - run: rustup default 1.75
+    - run: rustc --version
     - uses: actions/checkout@v4
     - name: Format
       run: cargo fmt -- --check
