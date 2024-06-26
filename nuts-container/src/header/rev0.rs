@@ -23,7 +23,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::buffer::{Buffer, BufferMut};
+use crate::buffer::{Buffer, BufferMut, FromBuffer, ToBuffer};
 use crate::cipher::Cipher;
 use crate::header::secret::Secret;
 use crate::header::HeaderError;
@@ -42,7 +42,7 @@ impl Data {
         let cipher = Cipher::get_from_buffer(buf)?;
         let iv = buf.get_vec()?;
         let kdf = Kdf::get_from_buffer(buf)?;
-        let secret = Secret::get_from_buffer(buf)?;
+        let secret = Secret::from_buffer(buf)?;
 
         Ok(Data {
             cipher,
@@ -56,7 +56,7 @@ impl Data {
         Cipher::put_into_buffer(&self.cipher, buf)?;
         buf.put_vec(&self.iv)?;
         Kdf::put_into_buffer(&self.kdf, buf)?;
-        Secret::put_into_buffer(&self.secret, buf)?;
+        Secret::to_buffer(&self.secret, buf)?;
 
         Ok(())
     }

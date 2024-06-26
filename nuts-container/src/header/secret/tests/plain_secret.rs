@@ -22,6 +22,7 @@
 
 use std::rc::Rc;
 
+use crate::buffer::{FromBuffer, ToBuffer};
 use crate::cipher::Cipher;
 use crate::digest::Digest;
 use crate::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
@@ -34,13 +35,13 @@ use crate::password::PasswordStore;
 fn ser() {
     let mut buf = vec![];
 
-    plain_secret().put_into_buffer(&mut buf).unwrap();
+    plain_secret().to_buffer(&mut buf).unwrap();
     assert_eq!(buf, PLAIN_SECRET);
 }
 
 #[test]
 fn de() {
-    let out = PlainSecret::get_from_buffer(&mut &PLAIN_SECRET[..]).unwrap();
+    let out = PlainSecret::from_buffer(&mut &PLAIN_SECRET[..]).unwrap();
 
     assert_eq!(out, plain_secret());
 }
@@ -50,7 +51,7 @@ fn de_inval() {
     let mut vec = PLAIN_SECRET.to_vec();
     vec[0] += 1;
 
-    let err = PlainSecret::get_from_buffer(&mut vec.as_slice()).unwrap_err();
+    let err = PlainSecret::from_buffer(&mut vec.as_slice()).unwrap_err();
     assert!(matches!(err, HeaderError::WrongPassword));
 }
 

@@ -22,6 +22,7 @@
 
 use std::rc::Rc;
 
+use crate::buffer::{FromBuffer, ToBuffer};
 use crate::cipher::Cipher;
 use crate::digest::Digest;
 use crate::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
@@ -35,7 +36,7 @@ fn ser_empty() {
     let mut buf = vec![];
     let secret = Secret(vec![]);
 
-    secret.put_into_buffer(&mut buf).unwrap();
+    secret.to_buffer(&mut buf).unwrap();
     assert_eq!(buf, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 }
 
@@ -44,7 +45,7 @@ fn ser() {
     let mut buf = vec![];
     let secret = Secret(vec![1, 2, 3]);
 
-    secret.put_into_buffer(&mut buf).unwrap();
+    secret.to_buffer(&mut buf).unwrap();
     assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]);
 }
 
@@ -52,7 +53,7 @@ fn ser() {
 fn de_empty() {
     let buf = [0, 0, 0, 0, 0, 0, 0, 0];
 
-    let secret = Secret::get_from_buffer(&mut &buf[..]).unwrap();
+    let secret = Secret::from_buffer(&mut &buf[..]).unwrap();
     assert_eq!(secret, []);
 }
 
@@ -60,7 +61,7 @@ fn de_empty() {
 fn de() {
     let buf = [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3];
 
-    let secret = Secret::get_from_buffer(&mut &buf[..]).unwrap();
+    let secret = Secret::from_buffer(&mut &buf[..]).unwrap();
     assert_eq!(secret, [1, 2, 3]);
 }
 

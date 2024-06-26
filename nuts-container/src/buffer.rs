@@ -149,3 +149,13 @@ impl BufferMut for &mut [u8] {
         }
     }
 }
+
+pub trait FromBuffer: Sized {
+    type Error: From<BufferError>;
+
+    fn from_buffer<T: Buffer>(buf: &mut T) -> Result<Self, Self::Error>;
+}
+
+pub trait ToBuffer {
+    fn to_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), BufferError>;
+}
