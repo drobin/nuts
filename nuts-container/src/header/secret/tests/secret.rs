@@ -26,7 +26,7 @@ use crate::buffer::{FromBuffer, ToBuffer};
 use crate::cipher::Cipher;
 use crate::digest::Digest;
 use crate::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
-use crate::header::secret::Secret;
+use crate::header::secret::{PlainSecret, Secret};
 use crate::header::HeaderError;
 use crate::kdf::Kdf;
 use crate::password::PasswordStore;
@@ -72,7 +72,7 @@ fn decrypt_none_valid() {
     let secret = Secret(PLAIN_SECRET.to_vec());
 
     let out = secret
-        .decrypt(&mut store, Cipher::None, &Kdf::None, &[])
+        .decrypt::<PlainSecret>(&mut store, Cipher::None, &Kdf::None, &[])
         .unwrap();
     assert_eq!(out, plain_secret());
 }
@@ -88,7 +88,7 @@ fn decrypt_none_invalid() {
     let secret = Secret(vec);
 
     let err = secret
-        .decrypt(&mut store, Cipher::None, &Kdf::None, &[])
+        .decrypt::<PlainSecret>(&mut store, Cipher::None, &Kdf::None, &[])
         .unwrap_err();
 
     assert!(matches!(err, HeaderError::WrongPassword));
@@ -103,7 +103,7 @@ fn decrypt_some_valid() {
     let kdf = Kdf::pbkdf2(Digest::Sha1, 1, &[0]);
 
     let out = secret
-        .decrypt(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
+        .decrypt::<PlainSecret>(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
         .unwrap();
     assert_eq!(out, plain_secret());
 }
@@ -117,7 +117,7 @@ fn decrypt_some_invalid() {
     let kdf = Kdf::pbkdf2(Digest::Sha1, 1, &[0]);
 
     let err = secret
-        .decrypt(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
+        .decrypt::<PlainSecret>(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
         .unwrap_err();
 
     assert!(matches!(err, HeaderError::WrongPassword));

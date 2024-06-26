@@ -38,22 +38,17 @@ fn generate_magics() -> Result<[u32; 2], ErrorStack> {
     ossl::rand_u32().map(|magic| [magic, magic])
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Secret(Vec<u8>);
-
-impl Secret {
-    #[cfg(test)]
-    pub fn new(vec: Vec<u8>) -> Secret {
-        Secret(vec)
-    }
-
-    pub fn decrypt(
+pub trait Encryptor: ToBuffer + Sized {
+    fn encrypt(
         self,
         store: &mut PasswordStore,
         cipher: Cipher,
         kdf: &Kdf,
         iv: &[u8],
-    ) -> Result<PlainSecret, HeaderError> {
+    ) -> Result<Secret, HeaderError> {
+        let mut pbuf: SecureVec = vec![].into();
+        self.to_buffer(pbuf.deref_mut())?;
+
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;
             kdf.create_key(password)?
@@ -63,18 +58,56 @@ impl Secret {
 
         let mut ctx = CipherContext::new(cipher);
 
-        ctx.copy_from_slice(self.0.len(), &self.0);
+        ctx.copy_from_slice(pbuf.len(), &pbuf);
+        let cbuf = ctx.encrypt(&key, iv)?;
+
+        Ok(Secret(cbuf.to_vec()))
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Secret(Vec<u8>);
+
+impl Secret {
+    #[cfg(test)]
+    pub fn new(vec: Vec<u8>) -> Secret {
+        Secret(vec)
+    }
+
+    pub fn decrypt<T: FromBuffer<Error = HeaderError>>(
+        self,
+        store: &mut PasswordStore,
+        cipher: Cipher,
+        kdf: &Kdf,
+        iv: &[u8],
+    ) -> Result<T, HeaderError> {
+        let key = if cipher.key_len() > 0 {
+            let password = store.value()?;
+            kdf.create_key(password)?
+        } else {
+            vec![].into()
+        };
+
+        let mut ctx = CipherContext::new(cipher);
+
+        ctx.copy_from_slice(self.as_ref().len(), self.as_ref());
 
         let pbuf = ctx.decrypt(&key, iv)?;
-        let plain_secret = PlainSecret::from_buffer(&mut &pbuf[..])?;
+        let plain_secret = T::from_buffer(&mut &pbuf[..])?;
 
         Ok(plain_secret)
     }
 }
 
-impl<T: AsRef<[u8]>> PartialEq<T> for Secret {
-    fn eq(&self, other: &T) -> bool {
-        self.0 == other.as_ref()
+impl AsRef<[u8]> for Secret {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl<const L: usize> PartialEq<[u8; L]> for Secret {
+    fn eq(&self, other: &[u8; L]) -> bool {
+        self.0 == other
     }
 }
 
@@ -118,31 +151,6 @@ impl PlainSecret {
             settings,
         })
     }
-
-    pub fn encrypt(
-        self,
-        store: &mut PasswordStore,
-        cipher: Cipher,
-        kdf: &Kdf,
-        iv: &[u8],
-    ) -> Result<Secret, HeaderError> {
-        let mut pbuf: SecureVec = vec![].into();
-        self.to_buffer(pbuf.deref_mut())?;
-
-        let key = if cipher.key_len() > 0 {
-            let password = store.value()?;
-            kdf.create_key(password)?
-        } else {
-            vec![].into()
-        };
-
-        let mut ctx = CipherContext::new(cipher);
-
-        ctx.copy_from_slice(pbuf.len(), &pbuf);
-        let cbuf = ctx.encrypt(&key, iv)?;
-
-        Ok(Secret(cbuf.to_vec()))
-    }
 }
 
 impl FromBuffer for PlainSecret {
@@ -183,3 +191,5 @@ impl ToBuffer for PlainSecret {
         Ok(())
     }
 }
+
+impl Encryptor for PlainSecret {}

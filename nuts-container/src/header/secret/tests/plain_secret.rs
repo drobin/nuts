@@ -26,7 +26,7 @@ use crate::buffer::{FromBuffer, ToBuffer};
 use crate::cipher::Cipher;
 use crate::digest::Digest;
 use crate::header::secret::tests::{plain_secret, PLAIN_SECRET, SECRET};
-use crate::header::secret::PlainSecret;
+use crate::header::secret::{Encryptor, PlainSecret};
 use crate::header::HeaderError;
 use crate::kdf::Kdf;
 use crate::password::PasswordStore;
