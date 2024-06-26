@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-archive"
-version = "0.6.6"
+version = "0.6.7"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A tar like archive on top of the nuts-container"
@@ -38,14 +38,14 @@ readme = "README.md"
 [dependencies]
 chrono = { version = "0.4.38" }
 log = "0.4.21"
-nuts-backend = { path = "../nuts-backend", version = "=0.6.6" }
-nuts-bytes = { path = "../nuts-bytes", version = "=0.6.6", features = [
+nuts-backend = { path = "../nuts-backend", version = "=0.6.7" }
+nuts-bytes = { path = "../nuts-bytes", version = "=0.6.7", features = [
     "derive",
 ] }
-nuts-container = { path = "../nuts-container", version = "=0.6.6" }
+nuts-container = { path = "../nuts-container", version = "=0.6.7" }
 thiserror = "1.0.61"
 
 [dev-dependencies]
-nuts-directory = { path = "../nuts-directory", version = "=0.6.6" }
-nuts-memory = { path = "../nuts-memory", version = "=0.6.6" }
+nuts-directory = { path = "../nuts-directory", version = "=0.6.7" }
+nuts-memory = { path = "../nuts-memory", version = "=0.6.7" }
 tempfile = "3.10.1"

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.7] - 2024-06-26
+
+### Changed
+
+* Support for size'd arguments: If you have an argument, which specifies a
+  size, then you can either specify it as a number or suffix it with 'k', 'm',
+  'g' to specify kilo-/mega-/giga-bytes.
+
+### Fixed
+
+* `container create`: `--overwrite` argument does not allow overwriting
+
 ## [0.6.6] - 2024-06-19
 
 ### Changed
@@ -443,3 +455,4 @@ Initial public release.
 [0.6.4]: https://github.com/drobin/nuts/tree/v0.6.4
 [0.6.5]: https://github.com/drobin/nuts/tree/v0.6.5
 [0.6.6]: https://github.com/drobin/nuts/tree/v0.6.6
+[0.6.7]: https://github.com/drobin/nuts/tree/v0.6.7
