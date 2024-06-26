@@ -24,7 +24,7 @@ use log::error;
 use nuts_backend::Backend;
 use nuts_directory::{CreateOptions, DirectoryBackend, Info, OpenOptions};
 use nuts_tool_api::plugin::clap_prelude::*;
-use nuts_tool_api::plugin::cli::{CreateArgs, OpenArgs};
+use nuts_tool_api::plugin::cli::{CreateArgs, OpenArgs, SizeArg};
 use nuts_tool_api::plugin::{PluginHandler, PluginRunner};
 use nuts_tool_api::{container_dir_for, ErrorResponse, PluginInfo};
 use std::{collections::HashMap, path::PathBuf, process};
@@ -35,7 +35,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 struct ExtraArgs {
     /// Set the block-size to SIZE
     #[clap(short, long, id = "SIZE", default_value = "512")]
-    block_size: u32,
+    block_size: SizeArg<u32>,
 }
 
 struct DirectoryPluginInformation;
@@ -65,7 +65,7 @@ impl PluginHandler<DirectoryBackend<PathBuf>> for DirectoryPluginInformation {
 
     fn create_builder(&self, args: &CreateArgs<ExtraArgs>) -> Option<CreateOptions<PathBuf>> {
         match container_dir_for(&args.name) {
-            Ok(path) => Some(CreateOptions::for_path(path).with_bsize(args.extra.block_size)),
+            Ok(path) => Some(CreateOptions::for_path(path).with_bsize(*args.extra.block_size)),
             Err(err) => {
                 error!("could not detect container dir for {}: {}", args.name, err);
                 None

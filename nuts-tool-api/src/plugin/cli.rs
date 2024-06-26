@@ -23,6 +23,44 @@
 //! Command line interface for the plugin.
 
 use clap::{crate_version, ArgAction, Args, Parser, Subcommand, ValueEnum};
+use std::convert::{TryFrom, TryInto};
+use std::ops::Deref;
+use std::str::FromStr;
+
+#[derive(Clone, Debug)]
+pub struct SizeArg<T>(T);
+
+impl<T: TryFrom<u64>> FromStr for SizeArg<T> {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, String> {
+        let (num_str, factor) = if let Some(s) = s.strip_suffix('k') {
+            (s, 1024)
+        } else if let Some(s) = s.strip_suffix('m') {
+            (s, 1024 * 1024)
+        } else if let Some(s) = s.strip_suffix('g') {
+            (s, 1024 * 1024 * 1024)
+        } else {
+            (s, 1)
+        };
+
+        if let Ok(n) = num_str.parse::<u64>() {
+            if let Ok(n) = TryInto::<T>::try_into(n * factor) {
+                return Ok(Self(n));
+            }
+        }
+
+        Err("must be a number or a number suffixed with 'k', 'm', 'g'".to_string())
+    }
+}
+
+impl<T> Deref for SizeArg<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.0
+    }
+}
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 pub enum Format {
