@@ -84,9 +84,9 @@ impl ContainerCreateArgs {
         let exe = plugin_config.path(&self.plugin)?;
         let plugin = Plugin::new(&exe);
 
-        let container_add_ok = container_config.add_plugin(&self.name, &self.plugin, false);
+        let ok = container_config.add_plugin(&self.name, &self.plugin, self.overwrite);
         ensure!(
-            container_add_ok,
+            ok,
             "you already have a container with the name {}",
             self.name
         );
