@@ -188,7 +188,7 @@ impl Kdf {
             1 => {
                 let digest = Digest::get_from_buffer(buf)?;
                 let iterations = buf.get_u32()?;
-                let salt = buf.get_vec()?;
+                let salt = buf.get_vec::<8>()?;
 
                 Ok(Kdf::pbkdf2(digest, iterations, &salt))
             }
@@ -207,7 +207,7 @@ impl Kdf {
                 buf.put_u32(1)?;
                 digest.put_into_buffer(buf)?;
                 buf.put_u32(*iterations)?;
-                buf.put_vec(salt.as_slice())?;
+                buf.put_vec::<8>(salt.as_slice())?;
 
                 Ok(())
             }

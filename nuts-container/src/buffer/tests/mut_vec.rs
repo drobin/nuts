@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::buffer::BufferMut;
+use crate::{buffer::BufferMut, BufferError};
 
 #[test]
 fn put_chunk_none() {
@@ -85,29 +85,47 @@ fn put_u64() {
     assert_eq!(vec, [1, 2, 3, 4, 5, 6, 7, 8]);
 }
 
-#[test]
-fn put_usize() {
-    let mut vec = vec![];
+macro_rules! vec_tests {
+    ($mod:ident, $len:literal) => {
+        mod $mod {
+            use crate::buffer::BufferMut;
 
-    vec.put_usize(72_623_859_790_382_856).unwrap();
+            #[test]
+            fn put_vec_empty() {
+                let mut vec = vec![];
 
-    assert_eq!(vec, [1, 2, 3, 4, 5, 6, 7, 8]);
+                vec.put_vec::<$len>(&[]).unwrap();
+
+                assert_eq!(vec, [0; $len]);
+            }
+
+            #[test]
+            fn put_vec() {
+                let mut vec = vec![];
+
+                vec.put_vec::<$len>(&[1, 2, 3]).unwrap();
+
+                assert_eq!(vec[..$len - 1], [0; $len - 1]);
+                assert_eq!(vec[$len - 1..], [3, 1, 2, 3]);
+            }
+        }
+    };
 }
 
+vec_tests!(vec_1, 1);
+vec_tests!(vec_2, 2);
+vec_tests!(vec_3, 3);
+vec_tests!(vec_4, 4);
+vec_tests!(vec_5, 5);
+vec_tests!(vec_6, 6);
+vec_tests!(vec_7, 7);
+vec_tests!(vec_8, 8);
+vec_tests!(vec_9, 9);
+
 #[test]
-fn put_vec_empty() {
+fn put_vec_too_large() {
     let mut vec = vec![];
+    let err = vec.put_vec::<2>(&[1; u16::MAX as usize + 1]).unwrap_err();
 
-    vec.put_vec(&[]).unwrap();
-
-    assert_eq!(vec, [0; 8]);
-}
-
-#[test]
-fn put_vec() {
-    let mut vec = vec![];
-
-    vec.put_vec(&[1, 2, 3]).unwrap();
-
-    assert_eq!(vec, [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]);
+    assert!(matches!(err, BufferError::VecTooLarge));
 }

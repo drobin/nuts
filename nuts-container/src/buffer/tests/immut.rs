@@ -185,70 +185,78 @@ fn get_u64_eof() {
     assert!(matches!(err, BufferError::UnexpectedEof));
 }
 
-#[test]
-fn get_usize() {
-    if cfg!(target_pointer_width = "64") {
-        let mut slice = [1, 2, 3, 4, 5, 6, 7, 8, 9].as_slice();
-        let n = slice.get_usize().unwrap();
+macro_rules! vec_tests {
+    ($mod:ident,$len:literal) => {
+        mod $mod {
 
-        assert_eq!(n, 72_623_859_790_382_856);
-        assert_eq!(slice, [9]);
+            use crate::buffer::{Buffer, BufferError};
+
+            #[test]
+            fn get_vec_eof_len() {
+                let mut slice = [0; $len - 1].as_slice();
+                let err = slice.get_vec::<$len>().unwrap_err();
+
+                assert!(matches!(err, BufferError::UnexpectedEof));
+            }
+
+            #[test]
+            fn get_vec_eof_data() {
+                let mut slice = [0; $len];
+
+                slice[$len - 1] = 1;
+
+                let err = slice.as_slice().get_vec::<$len>().unwrap_err();
+
+                assert!(matches!(err, BufferError::UnexpectedEof));
+            }
+
+            #[test]
+            fn get_vec_empty() {
+                let mut buf = [0; $len + 1];
+
+                buf[$len] = b'x';
+
+                let mut slice = buf.as_slice();
+                let vec = slice.get_vec::<$len>().unwrap();
+
+                assert!(vec.is_empty());
+                assert_eq!(slice, b"x");
+            }
+
+            #[test]
+            fn get_vec() {
+                let mut buf = [0; $len + 4];
+
+                buf[$len - 1..].copy_from_slice(&[3, 1, 2, 3, b'x']);
+
+                let mut slice = buf.as_slice();
+                let vec = slice.get_vec::<$len>().unwrap();
+
+                assert_eq!(vec, [1, 2, 3]);
+                assert_eq!(slice, b"x");
+            }
+        }
+    };
+}
+
+vec_tests!(vec_1, 1);
+vec_tests!(vec_2, 2);
+vec_tests!(vec_3, 3);
+vec_tests!(vec_4, 4);
+vec_tests!(vec_5, 5);
+vec_tests!(vec_6, 6);
+vec_tests!(vec_7, 7);
+vec_tests!(vec_8, 8);
+vec_tests!(vec_9, 9);
+
+#[test]
+fn get_vec_too_large() {
+    if cfg!(target_pointer_width = "64") {
+        let mut slice = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff].as_slice();
+        let err = slice.get_vec::<9>().unwrap_err();
+
+        assert!(matches!(err, BufferError::VecTooLarge));
     } else {
         unimplemented!("test only implemented for x64")
     }
-}
-
-#[test]
-fn get_usize_eof() {
-    if cfg!(target_pointer_width = "64") {
-        let mut slice = [1, 2, 3, 4, 5, 6, 7].as_slice();
-        let err = slice.get_usize().unwrap_err();
-
-        assert_eq!(slice, [1, 2, 3, 4, 5, 6, 7]);
-        assert!(matches!(err, BufferError::UnexpectedEof));
-    } else {
-        unimplemented!("test only implemented for x64")
-    }
-}
-
-#[test]
-fn get_usize_inval() {
-    // test for BufferError::InvalidUsize
-    if !cfg!(target_pointer_width = "64") {
-        unimplemented!("test only implemented for x64")
-    }
-}
-
-#[test]
-fn get_vec_eof_len() {
-    let mut slice = [0; 7].as_slice();
-    let err = slice.get_vec().unwrap_err();
-
-    assert!(matches!(err, BufferError::UnexpectedEof));
-}
-
-#[test]
-fn get_vec_eof_data() {
-    let mut slice = [0, 0, 0, 0, 0, 0, 0, 1].as_slice();
-    let err = slice.get_vec().unwrap_err();
-
-    assert!(matches!(err, BufferError::UnexpectedEof));
-}
-
-#[test]
-fn get_vec_empty() {
-    let mut slice = [0, 0, 0, 0, 0, 0, 0, 0, b'x'].as_slice();
-    let vec = slice.get_vec().unwrap();
-
-    assert!(vec.is_empty());
-    assert_eq!(slice, b"x");
-}
-
-#[test]
-fn get_vec() {
-    let mut slice = [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3, b'x'].as_slice();
-    let vec = slice.get_vec().unwrap();
-
-    assert_eq!(vec, [1, 2, 3]);
-    assert_eq!(slice, b"x");
 }

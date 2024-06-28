@@ -78,7 +78,7 @@ impl FromBuffer for Secret {
     type Error = BufferError;
 
     fn from_buffer<T: Buffer>(buf: &mut T) -> Result<Self, BufferError> {
-        let vec = buf.get_vec()?;
+        let vec = buf.get_vec::<8>()?;
 
         Ok(Secret(vec))
     }
@@ -86,6 +86,6 @@ impl FromBuffer for Secret {
 
 impl ToBuffer for Secret {
     fn to_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), BufferError> {
-        buf.put_vec(&self.0)
+        buf.put_vec::<8>(&self.0)
     }
 }

@@ -103,10 +103,10 @@ impl FromBuffer for PlainSecret {
             return Err(HeaderError::WrongPassword);
         }
 
-        let key = buf.get_vec()?.into();
-        let iv = buf.get_vec()?.into();
-        let userdata = buf.get_vec()?.into();
-        let settings = buf.get_vec()?.into();
+        let key = buf.get_vec::<8>()?.into();
+        let iv = buf.get_vec::<8>()?.into();
+        let userdata = buf.get_vec::<8>()?.into();
+        let settings = buf.get_vec::<8>()?.into();
 
         Ok(PlainSecret {
             magics: [magic1, magic2],
@@ -122,10 +122,10 @@ impl ToBuffer for PlainSecret {
     fn to_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), BufferError> {
         buf.put_u32(self.magics[0])?;
         buf.put_u32(self.magics[1])?;
-        buf.put_vec(&self.key)?;
-        buf.put_vec(&self.iv)?;
-        buf.put_vec(&self.userdata)?;
-        buf.put_vec(&self.settings)?;
+        buf.put_vec::<8>(&self.key)?;
+        buf.put_vec::<8>(&self.iv)?;
+        buf.put_vec::<8>(&self.userdata)?;
+        buf.put_vec::<8>(&self.settings)?;
 
         Ok(())
     }

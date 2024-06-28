@@ -24,8 +24,7 @@
 mod tests;
 
 use std::convert::TryInto;
-use std::mem;
-use std::num::TryFromIntError;
+use std::{cmp, mem};
 use thiserror::Error;
 
 /// Errors while (de-) serializing binary data.
@@ -37,8 +36,8 @@ pub enum BufferError {
     #[error("write zero")]
     WriteZero,
 
-    #[error("invalid usize: {0}")]
-    InvalidUsize(TryFromIntError),
+    #[error("vector too large")]
+    VecTooLarge,
 
     #[error("no {0} at {1}")]
     InvalidIndex(String, u32),
@@ -50,6 +49,16 @@ macro_rules! get_func {
             self.get_array().map(|bytes| <$ty>::from_be_bytes(bytes))
         }
     };
+}
+
+fn safe_shl(n: usize, nshift: u8) -> Option<usize> {
+    const NBITS: u8 = mem::size_of::<usize>() as u8 * 8;
+
+    if n >> (NBITS - nshift) == 0 {
+        Some(n << nshift)
+    } else {
+        None // would lose some data
+    }
 }
 
 pub trait Buffer: Sized {
@@ -69,14 +78,16 @@ pub trait Buffer: Sized {
     get_func!(get_u32, u32);
     get_func!(get_u64, u64);
 
-    fn get_usize(&mut self) -> Result<usize, BufferError> {
-        self.get_u64()?
-            .try_into()
-            .map_err(BufferError::InvalidUsize)
-    }
+    fn get_vec<const L: usize>(&mut self) -> Result<Vec<u8>, BufferError> {
+        let mut len = 0usize;
 
-    fn get_vec(&mut self) -> Result<Vec<u8>, BufferError> {
-        let len = self.get_usize()?;
+        for n in self.get_array::<L>()? {
+            // perform: len << 8 | n
+            match safe_shl(len, 8) {
+                Some(result) => len = result | n as usize,
+                None => return Err(BufferError::VecTooLarge),
+            }
+        }
 
         self.get_chunk(len).map(|buf| buf.to_vec())
     }
@@ -101,12 +112,24 @@ pub trait BufferMut: Sized {
         self.put_chunk(&value.to_be_bytes())
     }
 
-    fn put_usize(&mut self, value: usize) -> Result<(), BufferError> {
-        self.put_u64(value as u64)
-    }
+    fn put_vec<const L: usize>(&mut self, buf: &[u8]) -> Result<(), BufferError> {
+        const U64_LEN: usize = mem::size_of::<u64>();
 
-    fn put_vec(&mut self, buf: &[u8]) -> Result<(), BufferError> {
-        self.put_usize(buf.len()).and_then(|()| self.put_chunk(buf))
+        let mut len_bytes = [0; L];
+        let buf_len_bytes = (buf.len() as u64).to_be_bytes();
+
+        let n = cmp::min(L, U64_LEN);
+        let (unwritten, source) = buf_len_bytes.split_at(U64_LEN - n);
+        let target = &mut len_bytes[L - n..];
+
+        if unwritten.iter().any(|n| *n > 0) {
+            return Err(BufferError::VecTooLarge);
+        }
+
+        target.copy_from_slice(source);
+
+        self.put_chunk(&len_bytes)
+            .and_then(|()| self.put_chunk(buf))
     }
 }
 

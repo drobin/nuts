@@ -40,7 +40,7 @@ pub struct Data {
 impl Data {
     pub fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Data, HeaderError> {
         let cipher = Cipher::get_from_buffer(buf)?;
-        let iv = buf.get_vec()?;
+        let iv = buf.get_vec::<8>()?;
         let kdf = Kdf::get_from_buffer(buf)?;
         let secret = Secret::from_buffer(buf)?;
 
@@ -54,7 +54,7 @@ impl Data {
 
     pub fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), HeaderError> {
         Cipher::put_into_buffer(&self.cipher, buf)?;
-        buf.put_vec(&self.iv)?;
+        buf.put_vec::<8>(&self.iv)?;
         Kdf::put_into_buffer(&self.kdf, buf)?;
         Secret::to_buffer(&self.secret, buf)?;
 

@@ -149,61 +149,71 @@ fn put_u64_eof() {
     assert_eq!(&buf, b"xxxxxxx");
 }
 
-#[test]
-fn put_usize() {
-    let mut buf = [b'x'; 9];
+macro_rules! vec_tests {
+    ($mod:ident, $len:literal) => {
+        mod $mod {
+            use crate::buffer::{BufferError, BufferMut};
 
-    buf.as_mut_slice()
-        .put_usize(72_623_859_790_382_856)
-        .unwrap();
+            #[test]
+            fn put_vec_len_eof() {
+                let mut buf = [b'x'; $len - 1];
+                let err = buf.as_mut_slice().put_vec::<$len>(&[]).unwrap_err();
 
-    assert_eq!(buf, [1, 2, 3, 4, 5, 6, 7, 8, b'x']);
+                assert!(matches!(err, BufferError::WriteZero));
+                assert_eq!(buf, [b'x'; $len - 1]);
+            }
+
+            #[test]
+            fn put_vec_data_eof() {
+                let mut buf = [b'x'; $len + 3 - 1];
+                let err = buf.as_mut_slice().put_vec::<$len>(&[1, 2, 3]).unwrap_err();
+
+                assert!(matches!(err, BufferError::WriteZero));
+                assert_eq!(buf[..$len - 1], [0; $len - 1]);
+                assert_eq!(buf[$len - 1..], [3, b'x', b'x']);
+            }
+
+            #[test]
+            fn put_vec_empty() {
+                let mut buf = [b'x'; $len + 1];
+
+                buf.as_mut_slice().put_vec::<$len>(&[]).unwrap();
+
+                assert_eq!(buf[..$len], [0; $len]);
+                assert_eq!(buf[$len..], [b'x'; 1]);
+            }
+
+            #[test]
+            fn put_vec() {
+                let mut buf = [b'x'; $len + 3 + 1];
+
+                buf.as_mut_slice().put_vec::<$len>(&[1, 2, 3]).unwrap();
+
+                assert_eq!(buf[..$len - 1], [0; $len - 1]);
+                assert_eq!(buf[$len - 1..], [3, 1, 2, 3, b'x']);
+            }
+        }
+    };
 }
 
+vec_tests!(vec_1, 1);
+vec_tests!(vec_2, 2);
+vec_tests!(vec_3, 3);
+vec_tests!(vec_4, 4);
+vec_tests!(vec_5, 5);
+vec_tests!(vec_6, 6);
+vec_tests!(vec_7, 7);
+vec_tests!(vec_8, 8);
+vec_tests!(vec_9, 9);
+
 #[test]
-fn put_usize_eof() {
-    let mut buf = [b'x'; 7];
+fn put_vec_too_large() {
+    let mut buf = [b'x'; u16::MAX as usize + 3 + 1];
     let err = buf
         .as_mut_slice()
-        .put_usize(72_623_859_790_382_856)
+        .put_vec::<2>(&[1; u16::MAX as usize + 1])
         .unwrap_err();
 
-    assert!(matches!(err, BufferError::WriteZero));
-    assert_eq!(&buf, b"xxxxxxx");
-}
-
-#[test]
-fn put_vec_len_eof() {
-    let mut buf = [b'x'; 7];
-    let err = buf.as_mut_slice().put_vec(&[]).unwrap_err();
-
-    assert!(matches!(err, BufferError::WriteZero));
-    assert_eq!(&buf, b"xxxxxxx");
-}
-
-#[test]
-fn put_vec_data_eof() {
-    let mut buf = [b'x'; 10];
-    let err = buf.as_mut_slice().put_vec(&[1, 2, 3]).unwrap_err();
-
-    assert!(matches!(err, BufferError::WriteZero));
-    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, b'x', b'x']);
-}
-
-#[test]
-fn put_vec_empty() {
-    let mut buf = [b'x'; 9];
-
-    buf.as_mut_slice().put_vec(&[]).unwrap();
-
-    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 0, b'x']);
-}
-
-#[test]
-fn put_vec() {
-    let mut buf = [b'x'; 12];
-
-    buf.as_mut_slice().put_vec(&[1, 2, 3]).unwrap();
-
-    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3, b'x']);
+    assert!(matches!(err, BufferError::VecTooLarge));
+    assert_eq!(buf, [b'x'; u16::MAX as usize + 3 + 1]);
 }
