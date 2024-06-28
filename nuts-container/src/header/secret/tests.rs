@@ -20,34 +20,87 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod plain_secret;
-mod secret;
+use std::rc::Rc;
 
-use crate::header::secret::PlainSecret;
+use crate::buffer::{Buffer, FromBuffer, ToBuffer};
+use crate::cipher::Cipher;
+use crate::digest::Digest;
+use crate::header::secret::Secret;
+use crate::header::HeaderError;
+use crate::kdf::Kdf;
+use crate::password::PasswordStore;
 
-// key: AE 18 FF 41 77 79 0F 07 AB 11 E2 F1 8C 87 AD 9A
-// iv: 01010101010101010101010101010101
-const SECRET: [u8; 45] = [
-    0x5c, 0x68, 0x30, 0x8f, 0x47, 0x19, 0xf4, 0x76, 0xf2, 0x72, 0xbc, 0x6, 0x1c, 0xf3, 0x58, 0xca,
-    0x54, 0x2c, 0xca, 0xf8, 0xe6, 0x7d, 0xe1, 0xfb, 0xb4, 0xe1, 0x1c, 0xbe, 0xb7, 0x83, 0x54, 0x3b,
-    0xec, 0x8c, 0xee, 0xac, 0x59, 0x21, 0x58, 0xb3, 0x71, 0x90, 0x41, 0x4c, 0xe4,
-];
+struct SamplePlain(u32);
 
-const PLAIN_SECRET: [u8; 45] = [
-    0x00, 0x00, 0x12, 0x67, // magic1
-    0x00, 0x00, 0x12, 0x67, // magic2
-    0, 0, 0, 0, 0, 0, 0, 2, 1, 2, // key
-    0, 0, 0, 0, 0, 0, 0, 3, 3, 4, 5, // iv
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Some(top-id)
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // settings (empty)
-];
+impl FromBuffer for SamplePlain {
+    type Error = HeaderError;
 
-fn plain_secret() -> PlainSecret {
-    PlainSecret {
-        magics: [4711, 4711],
-        key: vec![1, 2].into(),
-        iv: vec![3, 4, 5].into(),
-        userdata: vec![].into(),
-        settings: vec![].into(),
+    fn from_buffer<T: Buffer>(buf: &mut T) -> Result<SamplePlain, HeaderError> {
+        let n = buf.get_u32()?;
+
+        Ok(SamplePlain(n))
     }
+}
+
+#[test]
+fn ser_empty() {
+    let mut buf = vec![];
+    let secret = Secret(vec![]);
+
+    secret.to_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+}
+
+#[test]
+fn ser() {
+    let mut buf = vec![];
+    let secret = Secret(vec![1, 2, 3]);
+
+    secret.to_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3]);
+}
+
+#[test]
+fn de_empty() {
+    let buf = [0, 0, 0, 0, 0, 0, 0, 0];
+
+    let secret = Secret::from_buffer(&mut &buf[..]).unwrap();
+    assert_eq!(secret, []);
+}
+
+#[test]
+fn de() {
+    let buf = [0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 3];
+
+    let secret = Secret::from_buffer(&mut &buf[..]).unwrap();
+    assert_eq!(secret, [1, 2, 3]);
+}
+
+#[test]
+fn decrypt_none_valid() {
+    let cb = || panic!("callback should never be called");
+    let mut store = PasswordStore::new(Some(Rc::new(cb)));
+    let secret = Secret([0, 0, 0, 1].to_vec());
+
+    let out = secret
+        .decrypt::<SamplePlain>(&mut store, Cipher::None, &Kdf::None, &[])
+        .unwrap();
+    assert_eq!(out.0, 1);
+}
+
+#[test]
+fn decrypt_some_valid() {
+    // key: AE 18 FF 41 77 79 0F 07 AB 11 E2 F1 8C 87 AD 9A
+    // iv: 01010101010101010101010101010101
+
+    let cb = || Ok(vec![1, 2, 3]);
+    let mut store = PasswordStore::new(Some(Rc::new(cb)));
+
+    let secret = Secret([0x5c, 0x68, 0x22, 0xe9].to_vec());
+    let kdf = Kdf::pbkdf2(Digest::Sha1, 1, &[0]);
+
+    let out = secret
+        .decrypt::<SamplePlain>(&mut store, Cipher::Aes128Ctr, &kdf, &[1; 16])
+        .unwrap();
+    assert_eq!(out.0, 1);
 }

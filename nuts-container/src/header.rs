@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 mod inner;
+mod plain_secret;
 mod rev0;
 mod secret;
 
@@ -32,7 +33,7 @@ use thiserror::Error;
 use crate::buffer::BufferError;
 use crate::cipher::{Cipher, CipherError};
 use crate::header::inner::{Inner, Revision};
-use crate::header::secret::{Encryptor, PlainSecret};
+use crate::header::plain_secret::{Encryptor, PlainSecret};
 use crate::kdf::{Kdf, KdfError};
 use crate::options::CreateOptions;
 use crate::ossl;
