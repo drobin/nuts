@@ -33,7 +33,7 @@ use thiserror::Error;
 use crate::buffer::BufferError;
 use crate::cipher::{Cipher, CipherError};
 use crate::header::inner::{Inner, Revision};
-use crate::header::plain_secret::{Encryptor, PlainSecret};
+use crate::header::plain_secret::{Encryptor, PlainSecretRev0};
 use crate::kdf::{Kdf, KdfError};
 use crate::options::CreateOptions;
 use crate::ossl;
@@ -113,7 +113,7 @@ impl Header {
 
         let plain_secret =
             rev0.secret
-                .decrypt::<PlainSecret>(store, rev0.cipher, &rev0.kdf, &rev0.iv)?;
+                .decrypt::<PlainSecretRev0>(store, rev0.cipher, &rev0.kdf, &rev0.iv)?;
 
         let settings =
             B::Settings::from_bytes(&plain_secret.settings).ok_or(HeaderError::InvalidSettings)?;
@@ -136,7 +136,7 @@ impl Header {
         buf: &mut [u8],
         store: &mut PasswordStore,
     ) -> Result<(), HeaderError> {
-        let plain_secret = PlainSecret::generate(
+        let plain_secret = PlainSecretRev0::generate(
             self.key.clone(),
             self.iv.clone(),
             self.userdata.clone(),

@@ -67,7 +67,7 @@ pub trait Encryptor: ToBuffer + Sized {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PlainSecret {
+pub struct PlainSecretRev0 {
     magics: [u32; 2],
     pub key: SecureVec,
     pub iv: SecureVec,
@@ -75,14 +75,14 @@ pub struct PlainSecret {
     pub settings: SecureVec,
 }
 
-impl PlainSecret {
+impl PlainSecretRev0 {
     pub fn generate(
         key: SecureVec,
         iv: SecureVec,
         userdata: SecureVec,
         settings: SecureVec,
-    ) -> Result<PlainSecret, ErrorStack> {
-        Ok(PlainSecret {
+    ) -> Result<PlainSecretRev0, ErrorStack> {
+        Ok(PlainSecretRev0 {
             magics: generate_magics()?,
             key,
             iv,
@@ -92,7 +92,7 @@ impl PlainSecret {
     }
 }
 
-impl FromBuffer for PlainSecret {
+impl FromBuffer for PlainSecretRev0 {
     type Error = HeaderError;
 
     fn from_buffer<T: Buffer>(buf: &mut T) -> Result<Self, HeaderError> {
@@ -108,7 +108,7 @@ impl FromBuffer for PlainSecret {
         let userdata = buf.get_vec::<8>()?.into();
         let settings = buf.get_vec::<8>()?.into();
 
-        Ok(PlainSecret {
+        Ok(PlainSecretRev0 {
             magics: [magic1, magic2],
             key,
             iv,
@@ -118,7 +118,7 @@ impl FromBuffer for PlainSecret {
     }
 }
 
-impl ToBuffer for PlainSecret {
+impl ToBuffer for PlainSecretRev0 {
     fn to_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), BufferError> {
         buf.put_u32(self.magics[0])?;
         buf.put_u32(self.magics[1])?;
@@ -131,4 +131,4 @@ impl ToBuffer for PlainSecret {
     }
 }
 
-impl Encryptor for PlainSecret {}
+impl Encryptor for PlainSecretRev0 {}
