@@ -200,6 +200,11 @@ macro_rules! into_error {
             _ => panic!("invalid error"),
         }
     };
+    ($err:expr, $($path:ident)::+ (2)) => {match $err {
+        $($path)::+(a1, a2) => (a1, a2),
+        _ => panic!("invalid error"),
+    }
+    };
 }
 
 pub(crate) use into_error;

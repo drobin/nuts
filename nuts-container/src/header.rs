@@ -20,9 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-mod inner;
 mod plain_secret;
-mod rev0;
+mod revision;
 mod secret;
 
 use nuts_backend::{Backend, Binary};
@@ -32,8 +31,8 @@ use thiserror::Error;
 
 use crate::buffer::BufferError;
 use crate::cipher::{Cipher, CipherError};
-use crate::header::inner::{Inner, Revision};
 use crate::header::plain_secret::{Encryptor, PlainSecretRev0};
+use crate::header::revision::Revision;
 use crate::kdf::{Kdf, KdfError};
 use crate::options::CreateOptions;
 use crate::ossl;
@@ -108,8 +107,7 @@ impl Header {
         buf: &[u8],
         store: &mut PasswordStore,
     ) -> Result<(Header, B::Settings), HeaderError> {
-        let inner = Inner::get_from_buffer(&mut &buf[..])?;
-        let Revision::Rev0(rev0) = inner.rev;
+        let Revision::Rev0(rev0) = Revision::get_from_buffer(&mut &buf[..])?;
 
         let plain_secret =
             rev0.secret
@@ -147,16 +145,9 @@ impl Header {
         ossl::rand_bytes(&mut iv)?;
 
         let secret = plain_secret.encrypt(store, self.cipher, &self.kdf, &iv)?;
+        let rev0 = Revision::rev0(self.cipher, iv, self.kdf.clone(), secret);
 
-        let rev0 = rev0::Data {
-            cipher: self.cipher,
-            iv,
-            kdf: self.kdf.clone(),
-            secret,
-        };
-        let inner = Inner::new(Revision::Rev0(rev0));
-
-        inner.put_into_buffer(&mut &mut buf[..])?;
+        rev0.put_into_buffer(&mut &mut buf[..])?;
 
         Ok(())
     }

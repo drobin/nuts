@@ -23,11 +23,13 @@
 #[cfg(test)]
 mod tests;
 
-use crate::buffer::{Buffer, BufferMut, FromBuffer, ToBuffer};
+use crate::buffer::{Buffer, BufferError, BufferMut, FromBuffer, ToBuffer};
 use crate::cipher::Cipher;
 use crate::header::secret::Secret;
 use crate::header::HeaderError;
 use crate::kdf::Kdf;
+
+const MAGIC: [u8; 7] = *b"nuts-io";
 
 #[derive(Debug)]
 pub struct Data {
@@ -37,14 +39,14 @@ pub struct Data {
     pub secret: Secret,
 }
 
-impl Data {
-    pub fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Data, HeaderError> {
-        let cipher = Cipher::get_from_buffer(buf)?;
-        let iv = buf.get_vec::<8>()?;
-        let kdf = Kdf::get_from_buffer(buf)?;
-        let secret = Secret::from_buffer(buf)?;
+#[derive(Debug)]
+pub enum Revision {
+    Rev0(Data),
+}
 
-        Ok(Data {
+impl Revision {
+    pub fn rev0(cipher: Cipher, iv: Vec<u8>, kdf: Kdf, secret: Secret) -> Revision {
+        Revision::Rev0(Data {
             cipher,
             iv,
             kdf,
@@ -52,11 +54,39 @@ impl Data {
         })
     }
 
+    pub fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Revision, HeaderError> {
+        let magic = buf.get_array()?;
+
+        if magic != MAGIC {
+            return Err(HeaderError::InvalidHeader);
+        }
+
+        let b = buf.get_u32()?;
+
+        if b != 0 {
+            return Err(BufferError::InvalidIndex("Revision".to_string(), b).into());
+        }
+
+        let data = Data {
+            cipher: Cipher::get_from_buffer(buf)?,
+            iv: buf.get_vec::<8>()?,
+            kdf: Kdf::get_from_buffer(buf)?,
+            secret: Secret::from_buffer(buf)?,
+        };
+
+        Ok(Self::Rev0(data))
+    }
+
     pub fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), HeaderError> {
-        Cipher::put_into_buffer(&self.cipher, buf)?;
-        buf.put_vec::<8>(&self.iv)?;
-        Kdf::put_into_buffer(&self.kdf, buf)?;
-        Secret::to_buffer(&self.secret, buf)?;
+        buf.put_chunk(&MAGIC)?;
+
+        let Revision::Rev0(data) = self;
+
+        buf.put_u32(0)?;
+        Cipher::put_into_buffer(&data.cipher, buf)?;
+        buf.put_vec::<8>(&data.iv)?;
+        Kdf::put_into_buffer(&data.kdf, buf)?;
+        Secret::to_buffer(&data.secret, buf)?;
 
         Ok(())
     }

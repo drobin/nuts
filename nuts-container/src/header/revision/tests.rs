@@ -20,46 +20,40 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use crate::buffer::BufferError;
 use crate::cipher::Cipher;
-use crate::header::inner::{Inner, Revision};
+use crate::header::revision::{Data, Revision};
 use crate::header::secret::Secret;
-use crate::header::{rev0, HeaderError};
+use crate::header::HeaderError;
 use crate::kdf::Kdf;
+use crate::tests::into_error;
+
+const REV0: [u8; 38] = [
+    b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
+    0x00, 0x00, 0x00, 0x00, // revision
+    0x00, 0x00, 0x00, 0x00, // cipher
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
+    0x00, 0x00, 0x00, 0x00, // kdf
+    0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
+];
 
 #[test]
-fn new() {
-    let rev0 = rev0::Data {
-        cipher: Cipher::None,
-        iv: vec![],
-        kdf: Kdf::None,
-        secret: Secret::new(vec![]),
-    };
-    let inner = Inner::new(Revision::Rev0(rev0));
+fn de_inval_revision() {
+    let mut buf = REV0;
 
-    assert_eq!(inner.magic, *b"nuts-io");
-}
+    buf[10] = 1;
 
-#[test]
-fn de_inval_magic() {
-    let buf = *b"xuts-io";
-    let err = Inner::get_from_buffer(&mut &buf[..]).unwrap_err();
+    let err = Revision::get_from_buffer(&mut &buf[..]).unwrap_err();
+    let err = into_error!(err, HeaderError::Buffer);
+    let (str, idx) = into_error!(err, BufferError::InvalidIndex(2));
 
-    assert!(matches!(err, HeaderError::InvalidHeader));
+    assert_eq!(str, "Revision");
+    assert_eq!(idx, 1);
 }
 
 #[test]
 fn de_rev0() {
-    let buf = [
-        b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
-        0x00, 0x00, 0x00, 0x00, // rev0 variant,
-        0x00, 0x00, 0x00, 0x00, // cipher
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
-        0x00, 0x00, 0x00, 0x00, // kdf
-        0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
-    ];
-
-    let inner = Inner::get_from_buffer(&mut &buf[..]).unwrap();
-    let Revision::Rev0(rev0) = inner.rev;
+    let Revision::Rev0(rev0) = Revision::get_from_buffer(&mut &REV0[..]).unwrap();
 
     assert_eq!(rev0.cipher, Cipher::None);
     assert_eq!(rev0.iv, []);
@@ -68,25 +62,26 @@ fn de_rev0() {
 }
 
 #[test]
+fn de_rev0_inval_magic() {
+    let mut buf = REV0;
+
+    buf[0] = b'x';
+
+    let err = Revision::get_from_buffer(&mut &buf[..]).unwrap_err();
+
+    assert!(matches!(err, HeaderError::InvalidHeader));
+}
+
+#[test]
 fn ser_rev0() {
     let mut buf = vec![];
-    let inner = Inner::new(Revision::Rev0(rev0::Data {
+    let inner = Revision::Rev0(Data {
         cipher: Cipher::None,
         iv: vec![],
         kdf: Kdf::None,
         secret: Secret::new(vec![1, 2, 3]),
-    }));
+    });
 
     inner.put_into_buffer(&mut buf).unwrap();
-    assert_eq!(
-        buf,
-        [
-            b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
-            0x00, 0x00, 0x00, 0x00, // rev0 variant,
-            0x00, 0x00, 0x00, 0x00, // cipher
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
-            0x00, 0x00, 0x00, 0x00, // kdf
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
-        ]
-    );
+    assert_eq!(buf, REV0);
 }
