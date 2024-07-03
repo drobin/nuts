@@ -39,9 +39,35 @@ pub struct Data {
     pub secret: Secret,
 }
 
+impl Data {
+    fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Data, HeaderError> {
+        let cipher = Cipher::get_from_buffer(buf)?;
+        let iv = buf.get_vec::<8>()?;
+        let kdf = Kdf::get_from_buffer(buf)?;
+        let secret = Secret::from_buffer(buf)?;
+
+        Ok(Data {
+            cipher,
+            iv,
+            kdf,
+            secret,
+        })
+    }
+
+    fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), HeaderError> {
+        Cipher::put_into_buffer(&self.cipher, buf)?;
+        buf.put_vec::<8>(&self.iv)?;
+        Kdf::put_into_buffer(&self.kdf, buf)?;
+        Secret::to_buffer(&self.secret, buf)?;
+
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
 pub enum Revision {
     Rev0(Data),
+    Rev1(Data),
 }
 
 impl Revision {
@@ -63,31 +89,25 @@ impl Revision {
 
         let b = buf.get_u32()?;
 
-        if b != 0 {
-            return Err(BufferError::InvalidIndex("Revision".to_string(), b).into());
+        match b {
+            0 => Data::get_from_buffer(buf).map(Revision::Rev0),
+            1 => Data::get_from_buffer(buf).map(Revision::Rev1),
+            _ => Err(BufferError::InvalidIndex("Revision".to_string(), b).into()),
         }
-
-        let data = Data {
-            cipher: Cipher::get_from_buffer(buf)?,
-            iv: buf.get_vec::<8>()?,
-            kdf: Kdf::get_from_buffer(buf)?,
-            secret: Secret::from_buffer(buf)?,
-        };
-
-        Ok(Self::Rev0(data))
     }
 
     pub fn put_into_buffer<T: BufferMut>(&self, buf: &mut T) -> Result<(), HeaderError> {
         buf.put_chunk(&MAGIC)?;
 
-        let Revision::Rev0(data) = self;
-
-        buf.put_u32(0)?;
-        Cipher::put_into_buffer(&data.cipher, buf)?;
-        buf.put_vec::<8>(&data.iv)?;
-        Kdf::put_into_buffer(&data.kdf, buf)?;
-        Secret::to_buffer(&data.secret, buf)?;
-
-        Ok(())
+        match self {
+            Revision::Rev0(data) => {
+                buf.put_u32(0)?;
+                data.put_into_buffer(buf)
+            }
+            Revision::Rev1(data) => {
+                buf.put_u32(1)?;
+                data.put_into_buffer(buf)
+            }
+        }
     }
 }
