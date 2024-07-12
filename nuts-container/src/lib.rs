@@ -247,6 +247,7 @@ mod error;
 mod header;
 mod info;
 mod kdf;
+mod migrate;
 mod options;
 mod ossl;
 mod password;
@@ -269,6 +270,7 @@ pub use error::{ContainerResult, Error};
 pub use header::HeaderError;
 pub use info::Info;
 pub use kdf::{Kdf, KdfError};
+pub use migrate::{Migration, MigrationError};
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
 pub use password::PasswordError;
 
