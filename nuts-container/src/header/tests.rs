@@ -27,7 +27,7 @@ use crate::cipher::Cipher;
 use crate::header::Header;
 use crate::kdf::Kdf;
 use crate::migrate::Migration;
-use crate::options::OpenOptionsBuilder;
+use crate::options::{CreateOptionsBuilder, OpenOptionsBuilder};
 use crate::password::PasswordStore;
 
 const REV0: [u8; 77] = [
@@ -68,6 +68,21 @@ impl Migration for SampleMigration {
 }
 
 #[test]
+fn create() {
+    let options = CreateOptionsBuilder::new(Cipher::None)
+        .build::<MemoryBackend>()
+        .unwrap();
+    let header = Header::create(&options).unwrap();
+
+    assert_eq!(header.revision, 1);
+    assert_eq!(header.cipher, Cipher::None);
+    assert_eq!(header.kdf, Kdf::None);
+    assert!(header.key.is_empty());
+    assert!(header.iv.is_empty());
+    assert!(header.top_id.is_none());
+}
+
+#[test]
 fn read_rev0() {
     let options = OpenOptionsBuilder::new()
         .with_migrator(SampleMigration)
@@ -77,6 +92,7 @@ fn read_rev0() {
 
     let (header, _) = Header::read::<MemoryBackend>(&REV0, options, &mut store).unwrap();
 
+    assert_eq!(header.revision, 0);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
     assert!(header.key.is_empty());
@@ -94,6 +110,7 @@ fn read_rev0_migration_not_required() {
 
     let (header, _) = Header::read::<MemoryBackend>(&REV0, options, &mut store).unwrap();
 
+    assert_eq!(header.revision, 0);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
     assert!(header.key.is_empty());
@@ -108,6 +125,7 @@ fn read_rev1() {
 
     let (header, _) = Header::read::<MemoryBackend>(&REV1, options, &mut store).unwrap();
 
+    assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
     assert!(header.key.is_empty());
@@ -120,6 +138,7 @@ fn write() {
     let mut buf = [b'x'; HEADER_MAX_SIZE];
     let mut store = PasswordStore::new(None);
     let header = Header {
+        revision: 1,
         cipher: Cipher::None,
         kdf: Kdf::None,
         key: vec![].into(),

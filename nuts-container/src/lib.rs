@@ -416,6 +416,7 @@ impl<B: Backend> Container<B> {
 
         Ok(Info {
             backend,
+            revision: self.header.revision,
             cipher: self.header.cipher,
             kdf: self.header.kdf.clone(),
             bsize_gross: self.backend.block_size(),

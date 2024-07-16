@@ -31,6 +31,9 @@ pub struct Info<B: Backend> {
     /// Information from the lower backend.
     pub backend: B::Info,
 
+    /// The revision of the header.
+    pub revision: u32,
+
     /// The cipher used for encryption.
     pub cipher: Cipher,
 

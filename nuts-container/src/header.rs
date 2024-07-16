@@ -84,6 +84,7 @@ pub enum HeaderError {
 }
 
 pub struct Header {
+    pub(crate) revision: u32,
     pub(crate) cipher: Cipher,
     pub(crate) kdf: Kdf,
     pub(crate) key: SecureVec,
@@ -103,6 +104,7 @@ impl Header {
         let kdf = options.kdf.build()?;
 
         Ok(Header {
+            revision: 1,
             cipher,
             kdf,
             key: key.into(),
@@ -137,6 +139,7 @@ impl Header {
 
         Ok((
             Header {
+                revision: 0,
                 cipher: data.cipher,
                 kdf: data.kdf,
                 key: plain_secret.key,
@@ -160,6 +163,7 @@ impl Header {
 
         Ok((
             Header {
+                revision: 1,
                 cipher: data.cipher,
                 kdf: data.kdf,
                 key: plain_secret.key,
