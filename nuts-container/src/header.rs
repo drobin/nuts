@@ -23,6 +23,8 @@
 mod plain_secret;
 mod revision;
 mod secret;
+#[cfg(test)]
+mod tests;
 
 use nuts_backend::{Backend, Binary};
 use openssl::error::ErrorStack;
@@ -31,10 +33,12 @@ use thiserror::Error;
 
 use crate::buffer::BufferError;
 use crate::cipher::{Cipher, CipherError};
-use crate::header::plain_secret::{Encryptor, PlainSecretRev0};
-use crate::header::revision::Revision;
+use crate::header::plain_secret::generate_plain_secret;
+use crate::header::plain_secret::{Encryptor, PlainSecretRev0, PlainSecretRev1};
+use crate::header::revision::{Data, Revision};
 use crate::kdf::{Kdf, KdfError};
-use crate::options::CreateOptions;
+use crate::migrate::MigrationError;
+use crate::options::{CreateOptions, OpenOptions};
 use crate::ossl;
 use crate::password::{PasswordError, PasswordStore};
 use crate::svec::SecureVec;
@@ -73,6 +77,10 @@ pub enum HeaderError {
     /// An error in the OpenSSL library occured.
     #[error(transparent)]
     OpenSSL(#[from] ErrorStack),
+
+    /// Errors coming from a migration
+    #[error(transparent)]
+    Migration(#[from] MigrationError),
 }
 
 pub struct Header {
@@ -80,7 +88,7 @@ pub struct Header {
     pub(crate) kdf: Kdf,
     pub(crate) key: SecureVec,
     pub(crate) iv: SecureVec,
-    pub(crate) userdata: SecureVec,
+    pub(crate) top_id: Option<SecureVec>,
 }
 
 impl Header {
@@ -99,30 +107,64 @@ impl Header {
             kdf,
             key: key.into(),
             iv: iv.into(),
-            userdata: vec![].into(),
+            top_id: None,
         })
     }
 
     pub fn read<B: Backend>(
         buf: &[u8],
+        options: OpenOptions,
         store: &mut PasswordStore,
     ) -> Result<(Header, B::Settings), HeaderError> {
-        let Revision::Rev0(rev0) = Revision::get_from_buffer(&mut &buf[..])?;
+        match Revision::get_from_buffer(&mut &buf[..])? {
+            Revision::Rev0(data) => Self::read_rev0::<B>(data, options, store),
+            Revision::Rev1(data) => Self::read_rev1::<B>(data, options, store),
+        }
+    }
 
+    fn read_rev0<B: Backend>(
+        data: Data,
+        options: OpenOptions,
+        store: &mut PasswordStore,
+    ) -> Result<(Header, B::Settings), HeaderError> {
         let plain_secret =
-            rev0.secret
-                .decrypt::<PlainSecretRev0>(store, rev0.cipher, &rev0.kdf, &rev0.iv)?;
+            data.secret
+                .decrypt::<PlainSecretRev0>(store, data.cipher, &data.kdf, &data.iv)?;
+        let settings =
+            B::Settings::from_bytes(&plain_secret.settings).ok_or(HeaderError::InvalidSettings)?;
 
+        let top_id = options.migrator.migrate_rev0(&plain_secret.userdata)?;
+
+        Ok((
+            Header {
+                cipher: data.cipher,
+                kdf: data.kdf,
+                key: plain_secret.key,
+                iv: plain_secret.iv,
+                top_id,
+            },
+            settings,
+        ))
+    }
+
+    fn read_rev1<B: Backend>(
+        data: Data,
+        _options: OpenOptions,
+        store: &mut PasswordStore,
+    ) -> Result<(Header, B::Settings), HeaderError> {
+        let plain_secret =
+            data.secret
+                .decrypt::<PlainSecretRev1>(store, data.cipher, &data.kdf, &data.iv)?;
         let settings =
             B::Settings::from_bytes(&plain_secret.settings).ok_or(HeaderError::InvalidSettings)?;
 
         Ok((
             Header {
-                cipher: rev0.cipher,
-                kdf: rev0.kdf,
+                cipher: data.cipher,
+                kdf: data.kdf,
                 key: plain_secret.key,
                 iv: plain_secret.iv,
-                userdata: plain_secret.userdata,
+                top_id: plain_secret.top_id,
             },
             settings,
         ))
@@ -134,10 +176,10 @@ impl Header {
         buf: &mut [u8],
         store: &mut PasswordStore,
     ) -> Result<(), HeaderError> {
-        let plain_secret = PlainSecretRev0::generate(
+        let plain_secret = generate_plain_secret(
             self.key.clone(),
             self.iv.clone(),
-            self.userdata.clone(),
+            self.top_id.clone(),
             settings.as_bytes().into(),
         )?;
 
@@ -145,11 +187,9 @@ impl Header {
         ossl::rand_bytes(&mut iv)?;
 
         let secret = plain_secret.encrypt(store, self.cipher, &self.kdf, &iv)?;
-        let rev0 = Revision::rev0(self.cipher, iv, self.kdf.clone(), secret);
+        let rev = Revision::latest(self.cipher, iv, self.kdf.clone(), secret);
 
-        rev0.put_into_buffer(&mut &mut buf[..])?;
-
-        Ok(())
+        rev.put_into_buffer(&mut &mut buf[..])
     }
 }
 

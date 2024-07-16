@@ -47,6 +47,21 @@ const REV1: [u8; 38] = [
 ];
 
 #[test]
+fn latest() {
+    let revision = Revision::latest(Cipher::None, vec![1], Kdf::None, Secret::new(vec![2, 3]));
+
+    match revision {
+        Revision::Rev0(_) => panic!("invalid revision"),
+        Revision::Rev1(data) => {
+            assert_eq!(data.cipher, Cipher::None);
+            assert_eq!(data.iv, [1]);
+            assert_eq!(data.kdf, Kdf::None);
+            assert_eq!(data.secret, [2, 3]);
+        }
+    }
+}
+
+#[test]
 fn de_inval_revision() {
     let mut buf = REV0;
 

@@ -377,7 +377,7 @@ impl<B: Backend> Container<B> {
         let callback = options.callback.clone();
         let mut store = PasswordStore::new(callback);
 
-        let (header, settings) = Self::read_header(&mut backend_options, &mut store)?;
+        let (header, settings) = Self::read_header(&mut backend_options, options, &mut store)?;
         let backend = map_err!(backend_options.build(settings))?;
 
         debug!(
@@ -568,6 +568,7 @@ impl<B: Backend> Container<B> {
 
     fn read_header<H: ReceiveHeader<B>>(
         reader: &mut H,
+        options: OpenOptions,
         store: &mut PasswordStore,
     ) -> ContainerResult<(Header, B::Settings), B> {
         let mut buf = [0; HEADER_MAX_SIZE];
@@ -575,7 +576,7 @@ impl<B: Backend> Container<B> {
         match reader.get_header_bytes(&mut buf) {
             Ok(_) => {
                 debug!("got {} header bytes", buf.len());
-                Ok(Header::read::<B>(&buf, store)?)
+                Ok(Header::read::<B>(&buf, options, store)?)
             }
             Err(cause) => Err(Error::Backend(cause)),
         }

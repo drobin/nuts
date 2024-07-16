@@ -110,23 +110,6 @@ pub struct PlainSecretRev0 {
     pub settings: SecureVec,
 }
 
-impl PlainSecretRev0 {
-    pub fn generate(
-        key: SecureVec,
-        iv: SecureVec,
-        userdata: SecureVec,
-        settings: SecureVec,
-    ) -> Result<PlainSecretRev0, ErrorStack> {
-        Ok(PlainSecretRev0 {
-            magics: Magics::generate()?,
-            key,
-            iv,
-            userdata,
-            settings,
-        })
-    }
-}
-
 impl FromBuffer for PlainSecretRev0 {
     type Error = HeaderError;
 
@@ -170,23 +153,6 @@ pub struct PlainSecretRev1 {
     pub settings: SecureVec,
 }
 
-impl PlainSecretRev1 {
-    pub fn generate(
-        key: SecureVec,
-        iv: SecureVec,
-        top_id: Option<SecureVec>,
-        settings: SecureVec,
-    ) -> Result<PlainSecretRev1, ErrorStack> {
-        Ok(PlainSecretRev1 {
-            magics: Magics::generate()?,
-            key,
-            iv,
-            top_id,
-            settings,
-        })
-    }
-}
-
 impl FromBuffer for PlainSecretRev1 {
     type Error = HeaderError;
 
@@ -227,3 +193,18 @@ impl ToBuffer for PlainSecretRev1 {
 }
 
 impl Encryptor for PlainSecretRev1 {}
+
+pub fn generate_plain_secret(
+    key: SecureVec,
+    iv: SecureVec,
+    top_id: Option<SecureVec>,
+    settings: SecureVec,
+) -> Result<PlainSecretRev1, ErrorStack> {
+    Ok(PlainSecretRev1 {
+        magics: Magics::generate()?,
+        key,
+        iv,
+        top_id,
+        settings,
+    })
+}

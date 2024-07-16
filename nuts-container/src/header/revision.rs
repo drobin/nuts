@@ -71,8 +71,8 @@ pub enum Revision {
 }
 
 impl Revision {
-    pub fn rev0(cipher: Cipher, iv: Vec<u8>, kdf: Kdf, secret: Secret) -> Revision {
-        Revision::Rev0(Data {
+    pub fn latest(cipher: Cipher, iv: Vec<u8>, kdf: Kdf, secret: Secret) -> Revision {
+        Revision::Rev1(Data {
             cipher,
             iv,
             kdf,

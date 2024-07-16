@@ -111,24 +111,6 @@ mod rev0 {
         }
     }
 
-    #[test]
-    fn generate() {
-        let plain_secret = PlainSecretRev0::generate(
-            vec![1].into(),
-            vec![2, 3].into(),
-            vec![4, 5, 6].into(),
-            vec![7, 8, 9, 10].into(),
-        )
-        .unwrap();
-
-        assert_eq!(plain_secret.magics.0[0], 0x91C0B2CF);
-        assert_eq!(plain_secret.magics.0[1], 0x91C0B2CF);
-        assert_eq!(*plain_secret.key, [1]);
-        assert_eq!(*plain_secret.iv, [2, 3]);
-        assert_eq!(*plain_secret.userdata, [4, 5, 6]);
-        assert_eq!(*plain_secret.settings, [7, 8, 9, 10]);
-    }
-
     make_tests!(PlainSecretRev0);
 }
 
@@ -178,24 +160,6 @@ mod rev1 {
     }
 
     #[test]
-    fn generate() {
-        let plain_secret = PlainSecretRev1::generate(
-            vec![1].into(),
-            vec![2, 3].into(),
-            Some(vec![4, 5, 6].into()),
-            vec![7, 8, 9, 10].into(),
-        )
-        .unwrap();
-
-        assert_eq!(plain_secret.magics.0[0], 0x91C0B2CF);
-        assert_eq!(plain_secret.magics.0[1], 0x91C0B2CF);
-        assert_eq!(*plain_secret.key, [1]);
-        assert_eq!(*plain_secret.iv, [2, 3]);
-        assert_eq!(*plain_secret.top_id.unwrap(), [4, 5, 6]);
-        assert_eq!(*plain_secret.settings, [7, 8, 9, 10]);
-    }
-
-    #[test]
     fn ser_no_top_id() {
         let mut buf = vec![];
 
@@ -211,4 +175,24 @@ mod rev1 {
     }
 
     make_tests!(PlainSecretRev1);
+}
+
+use crate::header::plain_secret::generate_plain_secret;
+
+#[test]
+fn generate() {
+    let plain_secret = generate_plain_secret(
+        vec![1].into(),
+        vec![2, 3].into(),
+        Some(vec![4, 5, 6].into()),
+        vec![7, 8, 9, 10].into(),
+    )
+    .unwrap();
+
+    assert_eq!(plain_secret.magics.0[0], 0x91C0B2CF);
+    assert_eq!(plain_secret.magics.0[1], 0x91C0B2CF);
+    assert_eq!(*plain_secret.key, [1]);
+    assert_eq!(*plain_secret.iv, [2, 3]);
+    assert_eq!(*plain_secret.top_id.unwrap(), [4, 5, 6]);
+    assert_eq!(*plain_secret.settings, [7, 8, 9, 10]);
 }
