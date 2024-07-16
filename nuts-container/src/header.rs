@@ -83,17 +83,17 @@ pub enum HeaderError {
     Migration(#[from] MigrationError),
 }
 
-pub struct Header {
+pub struct Header<B: Backend> {
     pub(crate) revision: u32,
     pub(crate) cipher: Cipher,
     pub(crate) kdf: Kdf,
     pub(crate) key: SecureVec,
     pub(crate) iv: SecureVec,
-    pub(crate) top_id: Option<SecureVec>,
+    pub(crate) top_id: Option<B::Id>,
 }
 
-impl Header {
-    pub fn create(options: &CreateOptions) -> Result<Header, HeaderError> {
+impl<B: Backend> Header<B> {
+    pub fn create(options: &CreateOptions) -> Result<Header<B>, HeaderError> {
         let cipher = options.cipher;
         let mut key = vec![0; cipher.key_len()];
         let mut iv = vec![0; cipher.iv_len()];
@@ -103,7 +103,7 @@ impl Header {
 
         let kdf = options.kdf.build()?;
 
-        Ok(Header {
+        Ok(Header::<B> {
             revision: 1,
             cipher,
             kdf,
@@ -113,29 +113,33 @@ impl Header {
         })
     }
 
-    pub fn read<B: Backend>(
+    pub fn read(
         buf: &[u8],
         options: OpenOptions,
         store: &mut PasswordStore,
-    ) -> Result<(Header, B::Settings), HeaderError> {
+    ) -> Result<(Header<B>, B::Settings), HeaderError> {
         match Revision::get_from_buffer(&mut &buf[..])? {
-            Revision::Rev0(data) => Self::read_rev0::<B>(data, options, store),
-            Revision::Rev1(data) => Self::read_rev1::<B>(data, options, store),
+            Revision::Rev0(data) => Self::read_rev0(data, options, store),
+            Revision::Rev1(data) => Self::read_rev1(data, options, store),
         }
     }
 
-    fn read_rev0<B: Backend>(
+    fn read_rev0(
         data: Data,
         options: OpenOptions,
         store: &mut PasswordStore,
-    ) -> Result<(Header, B::Settings), HeaderError> {
+    ) -> Result<(Header<B>, B::Settings), HeaderError> {
         let plain_secret =
             data.secret
                 .decrypt::<PlainSecretRev0>(store, data.cipher, &data.kdf, &data.iv)?;
         let settings =
             B::Settings::from_bytes(&plain_secret.settings).ok_or(HeaderError::InvalidSettings)?;
 
-        let top_id = options.migrator.migrate_rev0(&plain_secret.userdata)?;
+        let top_id_vec = options.migrator.migrate_rev0(&plain_secret.userdata)?;
+        let top_id = match top_id_vec {
+            Some(vec) => <B::Id as Binary>::from_bytes(&vec),
+            None => None,
+        };
 
         Ok((
             Header {
@@ -150,16 +154,21 @@ impl Header {
         ))
     }
 
-    fn read_rev1<B: Backend>(
+    fn read_rev1(
         data: Data,
         _options: OpenOptions,
         store: &mut PasswordStore,
-    ) -> Result<(Header, B::Settings), HeaderError> {
+    ) -> Result<(Header<B>, B::Settings), HeaderError> {
         let plain_secret =
             data.secret
                 .decrypt::<PlainSecretRev1>(store, data.cipher, &data.kdf, &data.iv)?;
         let settings =
             B::Settings::from_bytes(&plain_secret.settings).ok_or(HeaderError::InvalidSettings)?;
+
+        let top_id = match plain_secret.top_id {
+            Some(vec) => <B::Id as Binary>::from_bytes(&vec),
+            None => None,
+        };
 
         Ok((
             Header {
@@ -168,22 +177,27 @@ impl Header {
                 kdf: data.kdf,
                 key: plain_secret.key,
                 iv: plain_secret.iv,
-                top_id: plain_secret.top_id,
+                top_id,
             },
             settings,
         ))
     }
 
-    pub fn write<B: Backend>(
+    pub fn write(
         &self,
         settings: B::Settings,
         buf: &mut [u8],
         store: &mut PasswordStore,
     ) -> Result<(), HeaderError> {
+        let top_id_vec = self
+            .top_id
+            .as_ref()
+            .map(|id| <B::Id as Binary>::as_bytes(id).into());
+
         let plain_secret = generate_plain_secret(
             self.key.clone(),
             self.iv.clone(),
-            self.top_id.clone(),
+            top_id_vec,
             settings.as_bytes().into(),
         )?;
 
@@ -197,7 +211,7 @@ impl Header {
     }
 }
 
-impl fmt::Debug for Header {
+impl<B: Backend> fmt::Debug for Header<B> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (key, iv) = if cfg!(feature = "debug-plain-keys") {
             let mut key = String::with_capacity(2 * self.key.len());
@@ -224,6 +238,7 @@ impl fmt::Debug for Header {
             .field("kdf", &self.kdf)
             .field("key", &key)
             .field("iv", &iv)
+            .field("top_id", &self.top_id.as_ref().map(ToString::to_string))
             .finish()
     }
 }

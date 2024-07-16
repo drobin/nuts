@@ -20,7 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_backend::HEADER_MAX_SIZE;
 use nuts_memory::{MemoryBackend, Settings};
 
 use crate::cipher::Cipher;
@@ -30,31 +29,31 @@ use crate::migrate::Migration;
 use crate::options::{CreateOptionsBuilder, OpenOptionsBuilder};
 use crate::password::PasswordStore;
 
-const REV0: [u8; 77] = [
+const REV0: [u8; 79] = [
     b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
     0, 0, 0, 0, // revision
     0, 0, 0, 0, // cipher
     0, 0, 0, 0, 0, 0, 0, 0, // iv
     0, 0, 0, 0, // kdf
-    0, 0, 0, 0, 0, 0, 0, 42, // secret length
+    0, 0, 0, 0, 0, 0, 0, 44, // secret length
     0x91, 0xc0, 0xb2, 0xcf, 0x91, 0xc0, 0xb2, 0xcf, // secret: magics
     0, 0, 0, 0, 0, 0, 0, 0, // secret: key
     0, 0, 0, 0, 0, 0, 0, 0, // secret: iv
-    0, 0, 0, 0, 0, 0, 0, 2, 0x12, 0x67, // secret: userdata
+    0, 0, 0, 0, 0, 0, 0, 4, 0x00, 0x00, 0x12, 0x67, // secret: userdata
     0, 0, 0, 0, 0, 0, 0, 0, // secret: settings
 ];
 
-const REV1: [u8; 50] = [
+const REV1: [u8; 52] = [
     b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
     0, 0, 0, 1, // revision
     0, 0, 0, 0, // cipher
     0, 0, 0, 0, 0, 0, 0, 0, // iv
     0, 0, 0, 0, // kdf
-    0, 0, 0, 0, 0, 0, 0, 15, // secret length
+    0, 0, 0, 0, 0, 0, 0, 17, // secret length
     0x91, 0xc0, 0xb2, 0xcf, 0x91, 0xc0, 0xb2, 0xcf, // secret: magics
     0,    // secret: key
     0,    // secret: iv
-    2, 0x12, 0x67, // secret: top_id
+    4, 0x00, 0x00, 0x12, 0x67, // secret: top_id
     0, 0, // secret: settings
 ];
 
@@ -72,7 +71,7 @@ fn create() {
     let options = CreateOptionsBuilder::new(Cipher::None)
         .build::<MemoryBackend>()
         .unwrap();
-    let header = Header::create(&options).unwrap();
+    let header = Header::<MemoryBackend>::create(&options).unwrap();
 
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
@@ -90,14 +89,14 @@ fn read_rev0() {
         .unwrap();
     let mut store = PasswordStore::new(None);
 
-    let (header, _) = Header::read::<MemoryBackend>(&REV0, options, &mut store).unwrap();
+    let (header, _) = Header::<MemoryBackend>::read(&REV0, options, &mut store).unwrap();
 
     assert_eq!(header.revision, 0);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
     assert!(header.key.is_empty());
     assert!(header.iv.is_empty());
-    assert_eq!(*header.top_id.unwrap(), [0x12, 0x67]);
+    assert_eq!(header.top_id.unwrap().to_string(), "4711");
 }
 
 #[test]
@@ -108,7 +107,7 @@ fn read_rev0_migration_not_required() {
         .unwrap();
     let mut store = PasswordStore::new(None);
 
-    let (header, _) = Header::read::<MemoryBackend>(&REV0, options, &mut store).unwrap();
+    let (header, _) = Header::<MemoryBackend>::read(&REV0, options, &mut store).unwrap();
 
     assert_eq!(header.revision, 0);
     assert_eq!(header.cipher, Cipher::None);
@@ -123,33 +122,30 @@ fn read_rev1() {
     let options = OpenOptionsBuilder::new().build::<MemoryBackend>().unwrap();
     let mut store = PasswordStore::new(None);
 
-    let (header, _) = Header::read::<MemoryBackend>(&REV1, options, &mut store).unwrap();
+    let (header, _) = Header::<MemoryBackend>::read(&REV1, options, &mut store).unwrap();
 
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
     assert!(header.key.is_empty());
     assert!(header.iv.is_empty());
-    assert_eq!(*header.top_id.unwrap(), [0x12, 0x67]);
+    assert_eq!(header.top_id.unwrap().to_string(), "4711");
 }
 
 #[test]
 fn write() {
-    let mut buf = [b'x'; HEADER_MAX_SIZE];
+    let mut buf = [b'x'; REV1.len()];
     let mut store = PasswordStore::new(None);
-    let header = Header {
+    let header = Header::<MemoryBackend> {
         revision: 1,
         cipher: Cipher::None,
         kdf: Kdf::None,
         key: vec![].into(),
         iv: vec![].into(),
-        top_id: Some(vec![0x12, 0x67].into()),
+        top_id: Some("4711".parse().unwrap()),
     };
 
-    header
-        .write::<MemoryBackend>(Settings, &mut buf, &mut store)
-        .unwrap();
+    header.write(Settings, &mut buf, &mut store).unwrap();
 
-    assert_eq!(&buf[..REV1.len()], REV1);
-    assert_eq!(buf[REV1.len()..], [b'x'; HEADER_MAX_SIZE - REV1.len()]);
+    assert_eq!(buf, REV1);
 }

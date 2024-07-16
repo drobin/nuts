@@ -293,7 +293,7 @@ macro_rules! map_err {
 pub struct Container<B: Backend> {
     backend: B,
     store: PasswordStore,
-    header: Header,
+    header: Header<B>,
     ctx: CipherContext,
 }
 
@@ -326,13 +326,13 @@ impl<B: Backend> Container<B> {
         options: CreateOptions,
     ) -> ContainerResult<Container<B>, B> {
         let mut header_bytes = [0; HEADER_MAX_SIZE];
-        let header = Header::create(&options)?;
+        let header = Header::<B>::create(&options)?;
         let settings = backend_options.settings();
 
         let callback = options.callback.clone();
         let mut store = PasswordStore::new(callback);
 
-        header.write::<B>(settings, &mut header_bytes, &mut store)?;
+        header.write(settings, &mut header_bytes, &mut store)?;
 
         let backend = map_err!(backend_options.build(header_bytes, options.overwrite))?;
 
@@ -571,13 +571,13 @@ impl<B: Backend> Container<B> {
         reader: &mut H,
         options: OpenOptions,
         store: &mut PasswordStore,
-    ) -> ContainerResult<(Header, B::Settings), B> {
+    ) -> ContainerResult<(Header<B>, B::Settings), B> {
         let mut buf = [0; HEADER_MAX_SIZE];
 
         match reader.get_header_bytes(&mut buf) {
             Ok(_) => {
                 debug!("got {} header bytes", buf.len());
-                Ok(Header::read::<B>(&buf, options, store)?)
+                Ok(Header::read(&buf, options, store)?)
             }
             Err(cause) => Err(Error::Backend(cause)),
         }
