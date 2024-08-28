@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -28,12 +28,16 @@ pub mod list;
 
 use anyhow::Result;
 use clap::{Args, Subcommand};
+use nuts_archive::{Archive, ArchiveFactory};
+use nuts_container::Container;
 
+use crate::backend::PluginBackend;
 use crate::cli::archive::add::ArchiveAddArgs;
 use crate::cli::archive::create::ArchiveCreateArgs;
 use crate::cli::archive::get::ArchiveGetArgs;
 use crate::cli::archive::info::ArchiveInfoArgs;
 use crate::cli::archive::list::ArchiveListArgs;
+use crate::cli::open_builder;
 
 #[derive(Debug, Args)]
 #[clap(args_conflicts_with_subcommands = true, subcommand_required = true)]
@@ -78,4 +82,10 @@ impl ArchiveCommand {
             Self::List(args) => args.run(),
         }
     }
+}
+
+fn open_archive(name: &str, verbose: u8) -> Result<Archive<PluginBackend>> {
+    let (plugin_builder, options) = open_builder(name, verbose)?;
+
+    Container::open_service::<_, ArchiveFactory>(plugin_builder, options).map_err(|err| err.into())
 }

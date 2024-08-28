@@ -23,9 +23,8 @@
 use anyhow::Result;
 use clap::Args;
 use log::debug;
-use nuts_archive::Archive;
 
-use crate::cli::open_container;
+use crate::cli::archive::open_archive;
 use crate::say;
 use crate::time::TimeFormat;
 
@@ -53,8 +52,7 @@ impl ArchiveInfoArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container, self.verbose)?;
-        let archive = Archive::open(container)?;
+        let archive = open_archive(&self.container, self.verbose)?;
         let info = archive.info();
 
         let created = self.time_format.format(&info.created, "%c");

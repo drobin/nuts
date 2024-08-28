@@ -23,10 +23,9 @@
 use anyhow::Result;
 use clap::Args;
 use log::debug;
-use nuts_archive::Archive;
 
 use crate::cli::archive::add::{TimestampArgs, TSTAMP_HELP};
-use crate::cli::open_container;
+use crate::cli::archive::open_archive;
 
 #[derive(Args, Debug)]
 #[clap(after_help(TSTAMP_HELP))]
@@ -52,9 +51,7 @@ impl ArchiveAddSymlinkArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container, self.verbose)?;
-        let mut archive = Archive::open(container)?;
-
+        let mut archive = open_archive(&self.container, self.verbose)?;
         let mut builder = archive.append_symlink(&self.name, &self.target);
 
         if let Some(created) = self.timestamps.created {

@@ -23,11 +23,10 @@
 use anyhow::Result;
 use clap::{ArgAction, Args};
 use log::debug;
-use nuts_archive::Archive;
 use std::path::PathBuf;
 
 use crate::archive::append_recursive;
-use crate::cli::open_container;
+use crate::cli::archive::open_archive;
 
 #[derive(Args, Debug)]
 pub struct ArchiveCreateArgs {
@@ -53,8 +52,7 @@ impl ArchiveCreateArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container, self.verbose)?;
-        let mut archive = Archive::create(container, self.force)?;
+        let mut archive = open_archive(&self.container, self.verbose)?;
 
         for path in self.paths.iter() {
             append_recursive(&mut archive, path)?;

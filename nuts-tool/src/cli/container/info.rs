@@ -23,22 +23,15 @@
 use anyhow::Result;
 use clap::Args;
 use log::debug;
-use nuts_container::Container;
 use std::cmp;
 
-use crate::backend::PluginBackend;
 use crate::cli::open_container;
 use crate::config::ContainerConfig;
 use crate::format::Format;
 use crate::say;
-use crate::say::is_quiet;
 
 #[derive(Args, Debug)]
 pub struct ContainerInfoArgs {
-    /// If set, displays the userdata of the container
-    #[clap(short, long)]
-    userdata: bool,
-
     /// Specifies the format of the userdata dump
     #[clap(short, long, value_parser, default_value = "raw")]
     format: Format,
@@ -52,7 +45,10 @@ pub struct ContainerInfoArgs {
 }
 
 impl ContainerInfoArgs {
-    fn print_info(&self, container: &Container<PluginBackend>) -> Result<()> {
+    pub fn run(&self) -> Result<()> {
+        debug!("args: {:?}", self);
+
+        let container = open_container(&self.container, self.verbose)?;
         let container_config = ContainerConfig::load()?;
         let plugin = container_config.get_plugin(&self.container).unwrap_or("?");
         let info = container.info()?;
@@ -63,8 +59,9 @@ impl ContainerInfoArgs {
             .iter()
             .fold(key_width, |acc, (key, _)| cmp::max(acc, key.len() + 1));
 
-        say!("{:<key_width$} {}", "plugin:", plugin,);
-        say!("{:<key_width$} {}", "cipher:", info.cipher,);
+        say!("{:<key_width$} {}", "plugin:", plugin);
+        say!("{:<key_width$} {}", "revision:", info.revision);
+        say!("{:<key_width$} {}", "cipher:", info.cipher);
         say!("{:<key_width$} {}", "kdf:", info.kdf.to_string());
         say!("{:<key_width$} {}", "block size (gross):", info.bsize_gross);
         say!("{:<key_width$} {}", "block size (net):", info.bsize_net);
@@ -76,28 +73,5 @@ impl ContainerInfoArgs {
         }
 
         Ok(())
-    }
-
-    fn print_userdata(&self, container: &Container<PluginBackend>) -> Result<()> {
-        if !is_quiet() {
-            let mut writer = self.format.create_writer();
-
-            writer.print(container.userdata())?;
-            writer.flush()?;
-        }
-
-        Ok(())
-    }
-
-    pub fn run(&self) -> Result<()> {
-        debug!("args: {:?}", self);
-
-        let container = open_container(&self.container, self.verbose)?;
-
-        if self.userdata {
-            self.print_userdata(&container)
-        } else {
-            self.print_info(&container)
-        }
     }
 }

@@ -23,9 +23,8 @@
 use anyhow::{anyhow, Result};
 use clap::Args;
 use log::{debug, trace};
-use nuts_archive::Archive;
 
-use crate::cli::open_container;
+use crate::cli::archive::open_archive;
 use crate::format::Format;
 use crate::say::is_quiet;
 
@@ -50,9 +49,7 @@ impl ArchiveGetArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container, self.verbose)?;
-        let mut archive = Archive::open(container)?;
-
+        let mut archive = open_archive(&self.container, self.verbose)?;
         let block_size = archive.as_ref().block_size() as usize;
 
         let entry = match archive.lookup(&self.name) {

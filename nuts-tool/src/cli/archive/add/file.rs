@@ -23,11 +23,10 @@
 use anyhow::Result;
 use clap::Args;
 use log::debug;
-use nuts_archive::Archive;
 use std::io::{self, Read};
 
 use crate::cli::archive::add::{TimestampArgs, TSTAMP_HELP};
-use crate::cli::open_container;
+use crate::cli::archive::open_archive;
 
 #[derive(Args, Debug)]
 #[clap(after_help(TSTAMP_HELP))]
@@ -50,10 +49,8 @@ impl ArchiveAddFileArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container, self.verbose)?;
-        let mut archive = Archive::open(container)?;
+        let mut archive = open_archive(&self.container, self.verbose)?;
         let block_size = archive.as_ref().block_size() as usize;
-
         let mut builder = archive.append_file(&self.name);
 
         if let Some(created) = self.timestamps.created {

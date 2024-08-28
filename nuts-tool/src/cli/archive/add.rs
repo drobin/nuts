@@ -30,7 +30,6 @@ use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 use clap::builder::{TypedValueParser, ValueParserFactory};
 use clap::{value_parser, Arg, Args, Command, Subcommand};
 use log::debug;
-use nuts_archive::Archive;
 use std::ffi::OsStr;
 use std::path::PathBuf;
 
@@ -38,7 +37,7 @@ use crate::archive::append_recursive;
 use crate::cli::archive::add::dir::ArchiveAddDirectoryArgs;
 use crate::cli::archive::add::file::ArchiveAddFileArgs;
 use crate::cli::archive::add::symlink::ArchiveAddSymlinkArgs;
-use crate::cli::open_container;
+use crate::cli::archive::open_archive;
 
 const TSTAMP_HELP: &str = "\x1B[1m\x1B[4mTimestamps:\x1B[0m
 
@@ -159,8 +158,7 @@ impl ArchiveAddArgs {
 
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container, self.verbose)?;
-        let mut archive = Archive::open(container)?;
+        let mut archive = open_archive(&self.container, self.verbose)?;
 
         for path in self.paths.iter() {
             append_recursive(&mut archive, path)?;

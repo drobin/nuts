@@ -23,12 +23,12 @@
 use anyhow::Result;
 use clap::{ArgAction, Args};
 use log::debug;
-use nuts_archive::{Archive, Entry, Group};
+use nuts_archive::{Entry, Group};
 use std::cmp;
 use std::fmt::{self, Write};
 
 use crate::backend::PluginBackend;
-use crate::cli::open_container;
+use crate::cli::archive::open_archive;
 use crate::say;
 use crate::time::TimeFormat;
 
@@ -169,8 +169,7 @@ impl ArchiveListArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container, self.verbose)?;
-        let mut archive = Archive::open(container)?;
+        let mut archive = open_archive(&self.container, self.verbose)?;
 
         let mut entry_opt = archive.first();
         let mut ctx_opt = None;
