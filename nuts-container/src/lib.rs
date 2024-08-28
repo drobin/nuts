@@ -231,11 +231,10 @@
 //!
 //!   * _master-key_: The master-key is used for encryption of the blocks of
 //!     the container.
-//!
-//!   * _userdata_: Any service running on top of the container can store
-//!     individual, arbitrary data in the header. Usually the data are used for
-//!     bootstrapping the service.
-//!
+//!   * _top-id_: The _top-id_ points to some kind of super-block. During
+//!     [service-creation](Container::create_service) the super-block is
+//!     aquired (if requested by the service) and its id (the _top-id_) is
+//!     stored in the _secret_.
 //!   * _settings of the backend_: The backend of the container stores its
 //!     runtime information in the secret. It gets it back when opening the
 //!     backend again. See [`Backend::Settings`] for more information.
@@ -251,6 +250,7 @@ mod migrate;
 mod options;
 mod ossl;
 mod password;
+mod service;
 mod svec;
 #[cfg(test)]
 mod tests;
@@ -274,6 +274,7 @@ pub use kdf::{Kdf, KdfError};
 pub use migrate::{Migration, MigrationError};
 pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
 pub use password::PasswordError;
+pub use service::{Service, ServiceFactory};
 
 macro_rules! map_err {
     ($result:expr) => {
@@ -353,6 +354,57 @@ impl<B: Backend> Container<B> {
         })
     }
 
+    /// Creates a [service](Service) running on top of a container.
+    ///
+    /// Basically, this method performs the following tasks:
+    ///
+    /// 1. It creates a new container with [`Self::create`].
+    /// 2. The super-block is created, if [requested by the service](Service::need_top_id).
+    /// 3. Uses [`ServiceFactory::create`] to create and return the service
+    ///    instance.
+    ///
+    /// This should be the preferred way to create a nuts-service!
+    pub fn create_service<C: Create<B>, F: ServiceFactory<B>>(
+        backend_options: C,
+        options: CreateOptions,
+    ) -> Result<F::Service, F::Err> {
+        let mut container = Self::create(backend_options, options)?;
+
+        if F::Service::need_top_id() {
+            let id = container.aquire()?;
+            container.update_header(|header| header.top_id = Some(id))?;
+        }
+
+        F::create(container)
+    }
+
+    fn inner_open<O: Open<B>>(
+        mut backend_options: O,
+        options: OpenOptions,
+        migrator: Migrator,
+    ) -> ContainerResult<Container<B>, B> {
+        let callback = options.callback.clone();
+        let mut store = PasswordStore::new(callback);
+
+        let (header, settings) = Self::read_header(&mut backend_options, migrator, &mut store)?;
+        let backend = map_err!(backend_options.build(settings))?;
+
+        debug!(
+            "Container opened, backend: {}, header: {:?}",
+            any::type_name::<B>(),
+            header
+        );
+
+        let ctx = CipherContext::new(header.cipher);
+
+        Ok(Container {
+            backend,
+            store,
+            header,
+            ctx,
+        })
+    }
+
     /// Opens an existing container.
     ///
     /// This method expects two arguments:
@@ -372,29 +424,32 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`Error`] type.
     pub fn open<O: Open<B>>(
-        mut backend_options: O,
+        backend_options: O,
         options: OpenOptions,
     ) -> ContainerResult<Container<B>, B> {
-        let callback = options.callback.clone();
-        let mut store = PasswordStore::new(callback);
+        let migrator = Migrator::default();
 
-        let (header, settings) = Self::read_header(&mut backend_options, options, &mut store)?;
-        let backend = map_err!(backend_options.build(settings))?;
+        Self::inner_open(backend_options, options, migrator)
+    }
 
-        debug!(
-            "Container opened, backend: {}, header: {:?}",
-            any::type_name::<B>(),
-            header
-        );
+    /// Opens a [service](Service) running on top of an existing container.
+    ///
+    /// Basically, this method performs the following tasks:
+    ///
+    /// 1. It opens the container with [`Self::open`].
+    /// 2. Uses [`ServiceFactory::open`] to open and return the service
+    ///    instance.
+    ///
+    /// This should be the preferred way to open a nuts-service!
+    pub fn open_service<O: Open<B>, F: ServiceFactory<B>>(
+        backend_options: O,
+        options: OpenOptions,
+    ) -> Result<F::Service, F::Err> {
+        let migration = F::Service::migration();
+        let migrator = Migrator::default().with_migration(migration);
+        let container = Self::inner_open(backend_options, options, migrator)?;
 
-        let ctx = CipherContext::new(header.cipher);
-
-        Ok(Container {
-            backend,
-            store,
-            header,
-            ctx,
-        })
+        F::open(container)
     }
 
     /// Returns the backend of this container.
@@ -425,36 +480,15 @@ impl<B: Backend> Container<B> {
         })
     }
 
-    /// Returns userdata assigned to the container.
+    /// Returns the _top-id_ of the container.
     ///
-    /// Userdata are arbitrary data stored in the (encrypted) header of the
-    /// container. It can be used by a service running on top of a _nuts_
-    /// container to store information about the service itself.
-    pub fn userdata(&self) -> &[u8] {
-        &self.header.userdata
-    }
-
-    /// Updates the userdata.
-    ///
-    /// Assigns a new set of new userdata to the container; any previous
-    /// userdata are overwritten.
-    ///
-    /// # Errors
-    ///
-    /// Errors are listed in the [`Error`] type.
-    pub fn update_userdata(&mut self, userdata: &[u8]) -> ContainerResult<(), B> {
-        let (mut header, settings) = Self::read_header(&mut self.backend, &mut self.store)?;
-        let mut header_bytes = [0; HEADER_MAX_SIZE];
-
-        header.userdata.clear();
-        header.userdata.extend_from_slice(userdata);
-
-        header.write::<B>(settings, &mut header_bytes, &mut self.store)?;
-        map_err!(self.backend.write_header(&header_bytes))?;
-
-        self.header = header;
-
-        Ok(())
+    /// A service (running on top of the container) can use the _top-id_ as a
+    /// starting point or some kind of _super-block_. The _top-id_ is stored
+    /// encrypted in the header of the container. Calling this method will
+    /// neither fetch nor create the _top-id_. It returns an entry, where you
+    /// can decide what to do.
+    pub fn top_id(&mut self) -> Option<&B::Id> {
+        self.header.top_id.as_ref()
     }
 
     /// The (net) block size specifies the number of userdata bytes you can
@@ -582,6 +616,26 @@ impl<B: Backend> Container<B> {
             }
             Err(cause) => Err(Error::Backend(cause)),
         }
+    }
+
+    fn update_header<F: FnOnce(&mut Header<B>)>(&mut self, f: F) -> ContainerResult<(), B> {
+        let migrator = Migrator::default();
+        let (mut header, settings) =
+            Self::read_header(&mut self.backend, migrator, &mut self.store)?;
+        let mut header_bytes = [0; HEADER_MAX_SIZE];
+
+        debug!("header before update: {:?}", header);
+
+        f(&mut header);
+
+        debug!("header after update: {:?}", header);
+
+        header.write(settings, &mut header_bytes, &mut self.store)?;
+        map_err!(self.backend.write_header(&header_bytes))?;
+
+        self.header = header;
+
+        Ok(())
     }
 
     /// Deletes the entire container and all traces.
