@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -22,8 +22,7 @@
 
 use crate::entry::immut::InnerEntry;
 use crate::entry::FULL;
-use crate::tests::setup_container_with_bsize;
-use crate::Archive;
+use crate::tests::setup_archive_with_bsize;
 
 const BYTES: [u8; 224] = [
     0xb9, 0x40, 0xa9, 0xb0, 0x80, 0x80, 0x86, 0xba, 0xe8, 0x58, 0x4a, 0x60, 0xb1, 0xb7, 0xf7, 0x1d,
@@ -53,7 +52,7 @@ macro_rules! mk_test {
     ($name:ident $(, ( $fname:literal, $nbytes:literal ) )* $( -> ( $last_fname:literal, $last_nbytes:literal ) )+ ) => {
         #[test]
         fn $name() {
-            let mut archive = Archive::create(setup_container_with_bsize(FULL as u32), false).unwrap();
+            let mut archive = setup_archive_with_bsize(FULL as u32);
 
             $(
                 let mut entry = archive.append_file($fname).build().unwrap();

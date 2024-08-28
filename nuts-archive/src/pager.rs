@@ -28,7 +28,7 @@ use nuts_bytes::{Reader, Writer};
 use nuts_container::Container;
 use std::ops::Deref;
 
-use crate::error::ArchiveResult;
+use crate::error::{ArchiveResult, Error};
 use crate::id::Id;
 
 pub struct Pager<B: Backend> {
@@ -89,10 +89,12 @@ impl<B: Backend> Pager<B> {
             .map_err(|err| err.into())
     }
 
-    pub fn update_userdata(&mut self, userdata: &[u8]) -> ArchiveResult<(), B> {
-        self.container
-            .update_userdata(userdata)
-            .map_err(|err| err.into())
+    pub fn top_id(&mut self) -> Option<Id<B>> {
+        self.container.top_id().cloned().map(Id::new)
+    }
+
+    pub fn top_id_or_err(&mut self) -> ArchiveResult<Id<B>, B> {
+        self.top_id().ok_or(Error::NoTopId)
     }
 
     fn whiteout(&mut self) {

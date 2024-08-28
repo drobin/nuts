@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -21,21 +21,18 @@
 // IN THE SOFTWARE.
 
 use crate::entry::immut::InnerEntry;
-use crate::tests::setup_container;
-use crate::Archive;
+use crate::tests::setup_archive_with_bsize;
 
 #[test]
 fn empty() {
-    let container = setup_container();
-    let mut archive = Archive::create(container, false).unwrap();
+    let mut archive = setup_archive_with_bsize(512);
 
     assert!(InnerEntry::first(&mut archive.pager, &mut archive.tree).is_none());
 }
 
 #[test]
 fn one_entry() {
-    let container = setup_container();
-    let mut archive = Archive::create(container, false).unwrap();
+    let mut archive = setup_archive_with_bsize(512);
 
     archive.append_file("f1").build().unwrap();
 
@@ -48,8 +45,7 @@ fn one_entry() {
 
 #[test]
 fn two_entries() {
-    let container = setup_container();
-    let mut archive = Archive::create(container, false).unwrap();
+    let mut archive = setup_archive_with_bsize(512);
 
     archive.append_file("f1").build().unwrap();
     archive.append_file("f2").build().unwrap();

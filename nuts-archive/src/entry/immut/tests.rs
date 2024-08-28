@@ -30,13 +30,11 @@ mod symlink;
 use nuts_memory::MemoryBackend;
 
 use crate::entry::FULL;
-use crate::tests::setup_container_with_bsize;
+use crate::tests::setup_archive_with_bsize;
 use crate::Archive;
 
 fn setup_archive(num: u8) -> Archive<MemoryBackend> {
-    let container = setup_container_with_bsize(FULL as u32);
-    let mut archive = Archive::create(container, false).unwrap();
-
+    let mut archive = setup_archive_with_bsize(FULL as u32);
     let mut entry = archive.append_file("f1").build().unwrap();
 
     if num > 0 {

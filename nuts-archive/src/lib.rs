@@ -34,23 +34,20 @@
 //! ## Create a new archive
 //!
 //! ```rust
-//! use nuts_archive::Archive;
+//! use nuts_archive::ArchiveFactory;
 //! use nuts_container::{Cipher, Container, CreateOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend};
 //! use tempfile::{Builder, TempDir};
 //!
-//! // Let's create a container (with a directory backend) in a temporary directory
+//! // Let's create an archive service (with a directory backend) in a temporary directory
 //! let tmp_dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 //! let backend_options = CreateOptions::for_path(tmp_dir);
-//! let contaner_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
+//! let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
 //!     .with_password_callback(|| Ok(b"123".to_vec()))
 //!     .build::<DirectoryBackend<TempDir>>()
 //!     .unwrap();
-//! let container =
-//!     Container::<DirectoryBackend<TempDir>>::create(backend_options, contaner_options).unwrap();
-//!
-//! // Now create an archive inside the container
-//! let archive = Archive::create(container, false).unwrap();
+//! let archive =
+//!     Container::create_service::<_, ArchiveFactory>(backend_options, container_options).unwrap();
 //!
 //! // Fetch some information
 //! let info = archive.info();
@@ -60,7 +57,7 @@
 //!
 //! ## Open an existing archive
 //! ```rust
-//! use nuts_archive::Archive;
+//! use nuts_archive::ArchiveFactory;
 //! use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
 //! use tempfile::{Builder, TempDir};
@@ -75,25 +72,19 @@
 //!         .build::<DirectoryBackend<&TempDir>>()
 //!         .unwrap();
 //!
-//!     let container =
-//!         Container::<DirectoryBackend<&TempDir>>::create(backend_options, contaner_options)
-//!             .unwrap();
-//!     Archive::create(container, false).unwrap();
+//!     Container::create_service::<_, ArchiveFactory>(backend_options, contaner_options).unwrap();
 //!
 //!     dir
 //! };
 //!
-//! // Open the container (with a directory backend) from the temporary directory.
+//! // Open the archive service (with a directory backend) from the temporary directory.
 //! let backend_options = OpenOptions::for_path(tmp_dir);
 //! let container_options = OpenOptionsBuilder::new()
 //!     .with_password_callback(|| Ok(b"123".to_vec()))
 //!     .build::<DirectoryBackend<TempDir>>()
 //!     .unwrap();
-//! let container =
-//!     Container::<DirectoryBackend<TempDir>>::open(backend_options, container_options).unwrap();
-//!
-//! // Open the archive
-//! let archive = Archive::open(container).unwrap();
+//! let archive =
+//!     Container::open_service::<_, ArchiveFactory>(backend_options, container_options).unwrap();
 //!
 //! // Fetch some information
 //! let info = archive.info();
@@ -104,7 +95,7 @@
 //! ## Append an entry at the end of the archive
 //!
 //! ```rust
-//! use nuts_archive::Archive;
+//! use nuts_archive::ArchiveFactory;
 //! use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
 //! use tempfile::{Builder, TempDir};
@@ -119,25 +110,20 @@
 //!         .build::<DirectoryBackend<&TempDir>>()
 //!         .unwrap();
 //!
-//!     let container =
-//!         Container::<DirectoryBackend<&TempDir>>::create(backend_options, contaner_options)
-//!             .unwrap();
-//!     Archive::create(container, false).unwrap();
+//!     Container::create_service::<_, ArchiveFactory>(backend_options, contaner_options).unwrap();
 //!
 //!     dir
 //! };
 //!
-//! // Open the container (with a directory backend) from the temporary directory.
+//! // Open the archive (with a directory backend) from the temporary directory.
 //! let backend_options = OpenOptions::for_path(tmp_dir);
 //! let container_options = OpenOptionsBuilder::new()
 //!     .with_password_callback(|| Ok(b"123".to_vec()))
 //!     .build::<DirectoryBackend<TempDir>>()
 //!     .unwrap();
-//! let container =
-//!     Container::<DirectoryBackend<TempDir>>::open(backend_options, container_options).unwrap();
 //!
-//! // Open the archive
-//! let mut archive = Archive::open(container).unwrap();
+//! let mut archive =
+//!     Container::open_service::<_, ArchiveFactory>(backend_options, container_options).unwrap();
 //!
 //! // Append a new file entry
 //! let mut entry = archive.append_file("sample file").build().unwrap();
@@ -159,7 +145,7 @@
 //! ## Loop through all entries in the archive
 //!
 //! ```rust
-//! use nuts_archive::Archive;
+//! use nuts_archive::ArchiveFactory;
 //! use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
 //! use tempfile::{Builder, TempDir};
@@ -169,30 +155,26 @@
 //!     let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 //!
 //!     let backend_options = CreateOptions::for_path(&dir);
-//!     let contaner_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
+//!     let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
 //!         .with_password_callback(|| Ok(b"123".to_vec()))
 //!         .build::<DirectoryBackend<&TempDir>>()
 //!         .unwrap();
 //!
-//!     let container =
-//!         Container::<DirectoryBackend<&TempDir>>::create(backend_options, contaner_options)
-//!             .unwrap();
-//!     Archive::create(container, false).unwrap();
+//!     Container::create_service::<_, ArchiveFactory>(backend_options, container_options).unwrap();
 //!
 //!     dir
 //! };
 //!
-//! // Open the container (with a directory backend) from the temporary directory.
+//! // Open the archive (with a directory backend) from the temporary directory.
 //! let backend_options = OpenOptions::for_path(tmp_dir);
 //! let container_options = OpenOptionsBuilder::new()
 //!     .with_password_callback(|| Ok(b"123".to_vec()))
 //!     .build::<DirectoryBackend<TempDir>>()
 //!     .unwrap();
-//! let container =
-//!     Container::<DirectoryBackend<TempDir>>::open(backend_options, container_options).unwrap();
 //!
 //! // Open the archive and append some entries
-//! let mut archive = Archive::open(container).unwrap();
+//! let mut archive =
+//!     Container::open_service::<_, ArchiveFactory>(backend_options, container_options).unwrap();
 //!
 //! archive.append_file("f1").build().unwrap();
 //! archive.append_directory("f2").build().unwrap();
@@ -222,18 +204,18 @@ mod error;
 mod header;
 mod id;
 mod magic;
+mod migration;
 mod pager;
 #[cfg(test)]
 mod tests;
 mod tree;
-mod userdata;
 
 use chrono::{DateTime, Utc};
 use id::Id;
 use log::debug;
 use nuts_backend::Backend;
 use nuts_bytes::PutBytesError;
-use nuts_container::Container;
+use nuts_container::{Container, Service, ServiceFactory};
 use std::convert::TryInto;
 
 pub use entry::immut::{DirectoryEntry, Entry, FileEntry, SymlinkEntry};
@@ -243,9 +225,9 @@ pub use error::{ArchiveResult, Error};
 
 use crate::entry::immut::InnerEntry;
 use crate::header::Header;
+use crate::migration::Migration;
 use crate::pager::Pager;
 use crate::tree::Tree;
-use crate::userdata::Userdata;
 
 fn flush_header<B: Backend>(
     pager: &mut Pager<B>,
@@ -310,77 +292,6 @@ pub struct Archive<B: Backend> {
 }
 
 impl<B: Backend> Archive<B> {
-    /// Creates a new archive in `container`.
-    ///
-    /// General initial information about the archive is stored in the
-    /// [user data](Container::userdata) of the container. This means the
-    /// archive can be easily opened again the next time it is
-    /// [loaded](Self::open). This means that no user data is currently allowed
-    /// to be stored in the container, otherwise it could be overwritten.
-    /// Existing user data can be overwritten if the `force` flag is set to
-    /// `true`.
-    ///
-    /// # Errors
-    ///
-    /// If user data of the container could be overwritten, an
-    /// [`Error::OverwriteUserdata`] error will be returned.
-    pub fn create(container: Container<B>, force: bool) -> ArchiveResult<Archive<B>, B> {
-        let mut pager = Pager::new(container);
-        let userdata = Userdata::create(&mut pager, force)?;
-
-        let header = Header::create();
-        let tree = Tree::<B>::new();
-
-        flush_header(&mut pager, &userdata.id, &header, &tree)?;
-
-        let archive = Archive {
-            pager,
-            header_id: userdata.id,
-            header,
-            tree,
-        };
-
-        debug!("archive created, header: {}", archive.header_id);
-
-        Ok(archive)
-    }
-
-    /// Opens an archive from `container`.
-    ///
-    /// The initial information about the archive is loaded from the
-    /// [user data](Container::userdata) of the container.
-    ///
-    /// # Errors
-    ///
-    /// If no user data is stored in the container, an
-    /// [`Error::InvalidUserdata(None)`](Error::InvalidUserdata) error is
-    /// returned; if it does not contain valid archive information, an
-    /// [`Error::InvalidUserdata(Some(...))`](Error::InvalidUserdata) error is
-    /// returned.
-    pub fn open(container: Container<B>) -> ArchiveResult<Archive<B>, B> {
-        let mut pager = Pager::new(container);
-        let userdata = Userdata::load(&mut pager)?;
-
-        let mut reader = pager.read_buf(&userdata.id)?;
-
-        let header = reader.read::<Header>()?;
-
-        header.validate_revision()?;
-
-        let tree = reader.read::<Tree<B>>()?;
-
-        let archive = Archive {
-            pager,
-            header_id: userdata.id,
-            header,
-            tree,
-        };
-
-        debug!("archive opened, header: {}", archive.header_id);
-
-        Ok(archive)
-    }
-
     /// Fetches statistics/information from the archive.
     pub fn info(&self) -> Info {
         Info {
@@ -487,6 +398,70 @@ impl<B: Backend> Archive<B> {
     /// Consumes this `Archive`, returning the underlying [`Container`].
     pub fn into_container(self) -> Container<B> {
         self.pager.into_container()
+    }
+}
+
+impl<B: Backend> Service<B> for Archive<B> {
+    type Migration = Migration<B>;
+
+    fn need_top_id() -> bool {
+        true
+    }
+
+    fn migration() -> Migration<B> {
+        Migration::default()
+    }
+}
+
+#[derive(Default)]
+pub struct ArchiveFactory;
+
+impl<B: Backend> ServiceFactory<B> for ArchiveFactory {
+    type Service = Archive<B>;
+    type Err = Error<B>;
+
+    fn create(container: Container<B>) -> Result<Self::Service, Self::Err> {
+        let mut pager = Pager::new(container);
+        let top_id = pager.top_id_or_err()?;
+
+        let header = Header::create();
+        let tree = Tree::<B>::new();
+
+        flush_header(&mut pager, &top_id, &header, &tree)?;
+
+        let archive = Archive {
+            pager,
+            header_id: top_id,
+            header,
+            tree,
+        };
+
+        debug!("archive created, header: {}", archive.header_id);
+
+        Ok(archive)
+    }
+
+    fn open(container: Container<B>) -> Result<Self::Service, Self::Err> {
+        let mut pager = Pager::new(container);
+        let top_id = pager.top_id_or_err()?;
+
+        let mut reader = pager.read_buf(&top_id)?;
+        let header = reader.read::<Header>()?;
+
+        header.validate_revision()?;
+
+        let tree = reader.read::<Tree<B>>()?;
+
+        let archive = Archive {
+            pager,
+            header_id: top_id,
+            header,
+            tree,
+        };
+
+        debug!("archive opened, header: {}", archive.header_id);
+
+        Ok(archive)
     }
 }
 

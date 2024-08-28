@@ -24,7 +24,7 @@ use nuts_memory::MemoryBackend;
 
 use crate::entry::immut::{InnerEntry, SymlinkEntry};
 use crate::entry::FULL;
-use crate::tests::setup_container_with_bsize;
+use crate::tests::setup_archive_with_bsize;
 use crate::Archive;
 
 const DIGITS: [u8; 10] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -39,8 +39,7 @@ fn load_first(archive: &mut Archive<MemoryBackend>) -> SymlinkEntry<MemoryBacken
 
 #[test]
 fn empty_target() {
-    let container = setup_container_with_bsize(FULL as u32);
-    let mut archive = Archive::create(container, false).unwrap();
+    let mut archive = setup_archive_with_bsize(FULL as u32);
 
     archive.append_symlink("f1", "").build().unwrap();
 
@@ -51,8 +50,7 @@ fn empty_target() {
 
 #[test]
 fn target_half_chunk() {
-    let container = setup_container_with_bsize(FULL as u32);
-    let mut archive = Archive::create(container, false).unwrap();
+    let mut archive = setup_archive_with_bsize(FULL as u32);
 
     let target = (0..32)
         .map(|i| DIGITS[i % 10].to_string())
@@ -71,8 +69,7 @@ fn target_half_chunk() {
 
 #[test]
 fn target_full_chunk() {
-    let container = setup_container_with_bsize(FULL as u32);
-    let mut archive = Archive::create(container, false).unwrap();
+    let mut archive = setup_archive_with_bsize(FULL as u32);
 
     let target = (0..64)
         .map(|i| DIGITS[i % 10].to_string())
@@ -91,8 +88,7 @@ fn target_full_chunk() {
 
 #[test]
 fn target_full_half_chunk() {
-    let container = setup_container_with_bsize(FULL as u32);
-    let mut archive = Archive::create(container, false).unwrap();
+    let mut archive = setup_archive_with_bsize(FULL as u32);
 
     let target =
         (0..64 + 32)

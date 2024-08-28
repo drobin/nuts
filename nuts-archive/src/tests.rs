@@ -23,6 +23,8 @@
 use nuts_container::{Cipher, Container, CreateOptionsBuilder};
 use nuts_memory::MemoryBackend;
 
+use crate::{Archive, ArchiveFactory};
+
 macro_rules! into_error {
     ($err:expr, $($path:ident)::+) => {
         match $err {
@@ -32,13 +34,13 @@ macro_rules! into_error {
     };
 }
 
-pub fn setup_container() -> Container<MemoryBackend> {
-    let backend = MemoryBackend::new();
+pub fn setup_archive_with_bsize(bsize: u32) -> Archive<MemoryBackend> {
+    let backend = MemoryBackend::new_with_bsize(bsize);
     let options = CreateOptionsBuilder::new(Cipher::None)
         .build::<MemoryBackend>()
         .unwrap();
 
-    Container::create(backend, options).unwrap()
+    Container::create_service::<MemoryBackend, ArchiveFactory>(backend, options).unwrap()
 }
 
 pub fn setup_container_with_bsize(bsize: u32) -> Container<MemoryBackend> {

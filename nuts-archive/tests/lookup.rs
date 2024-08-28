@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_archive::Archive;
+use nuts_archive::{Archive, ArchiveFactory};
 use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
 use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
 use tempfile::{Builder, TempDir};
@@ -34,9 +34,7 @@ fn setup_archive() -> TempDir {
         .build::<DirectoryBackend<&TempDir>>()
         .unwrap();
 
-    let container =
-        Container::<DirectoryBackend<&TempDir>>::create(backend_options, contaner_options).unwrap();
-    Archive::create(container, false).unwrap();
+    Container::create_service::<_, ArchiveFactory>(backend_options, contaner_options).unwrap();
 
     tmp_dir
 }
@@ -47,10 +45,8 @@ fn open_archive(dir: TempDir) -> Archive<DirectoryBackend<TempDir>> {
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<TempDir>>()
         .unwrap();
-    let container =
-        Container::<DirectoryBackend<TempDir>>::open(backend_options, container_options).unwrap();
 
-    Archive::open(container).unwrap()
+    Container::open_service::<_, ArchiveFactory>(backend_options, container_options).unwrap()
 }
 
 #[test]

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023 Robin Doer
+// Copyright (c) 2023,2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -24,9 +24,7 @@ macro_rules! make_tests {
     ($setup:ident) => {
         #[test]
         fn no_content() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
-
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             $setup(&mut archive).build().unwrap();
 
             let id = lookup(&mut archive, 0).unwrap().clone();
@@ -41,10 +39,9 @@ macro_rules! make_tests {
 
         #[test]
         fn one_block() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
-
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             let mut entry = $setup(&mut archive).build().unwrap();
+
             assert_eq!(
                 entry.write(&(0..FULL).collect::<Vec<u8>>()).unwrap(),
                 FULL as usize
@@ -66,8 +63,7 @@ macro_rules! make_tests {
 
         #[test]
         fn one_byte_one_block() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             let mut entry = $setup(&mut archive).build().unwrap();
 
             for i in 0..FULL {
@@ -90,8 +86,7 @@ macro_rules! make_tests {
 
         #[test]
         fn one_byte_one_half_blocks() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             let mut entry = $setup(&mut archive).build().unwrap();
 
             for i in 0..FULL + HALF {
@@ -122,8 +117,7 @@ macro_rules! make_tests {
 
         #[test]
         fn one_byte_two_blocks() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             let mut entry = $setup(&mut archive).build().unwrap();
 
             for i in 0..2 * FULL {
@@ -150,8 +144,7 @@ macro_rules! make_tests {
 
         #[test]
         fn two_bytes_one_block() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             let mut entry = $setup(&mut archive).build().unwrap();
 
             for buf in (0..FULL).collect::<Vec<u8>>().chunks(2) {
@@ -175,8 +168,7 @@ macro_rules! make_tests {
 
         #[test]
         fn two_bytes_one_half_blocks() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             let mut entry = $setup(&mut archive).build().unwrap();
 
             for buf in (0..FULL + HALF + 1).collect::<Vec<u8>>().chunks(2) {
@@ -208,8 +200,7 @@ macro_rules! make_tests {
 
         #[test]
         fn two_bytes_two_blocks() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             let mut entry = $setup(&mut archive).build().unwrap();
 
             for buf in (0..2 * FULL).collect::<Vec<u8>>().chunks(2) {
@@ -237,8 +228,7 @@ macro_rules! make_tests {
 
         #[test]
         fn three_bytes_one_block() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             let mut entry = $setup(&mut archive).build().unwrap();
 
             for buf in (0..FULL - 1).collect::<Vec<u8>>().chunks(3) {
@@ -264,8 +254,7 @@ macro_rules! make_tests {
 
         #[test]
         fn three_bytes_one_half_blocks() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             let mut entry = $setup(&mut archive).build().unwrap();
 
             for buf in (0..FULL - 1).collect::<Vec<u8>>().chunks(3) {
@@ -304,8 +293,7 @@ macro_rules! make_tests {
 
         #[test]
         fn three_bytes_two_blocks() {
-            let container = setup_container_with_bsize(FULL as u32);
-            let mut archive = Archive::create(container, false).unwrap();
+            let mut archive = setup_archive_with_bsize(FULL as u32);
             let mut entry = $setup(&mut archive).build().unwrap();
 
             for buf in (0..FULL - 1).collect::<Vec<u8>>().chunks(3) {
@@ -351,8 +339,7 @@ mod inner {
     use crate::entry::r#mut::tests::{lookup, setup_inner_builder};
     use crate::entry::Inner;
     use crate::entry::{FULL, HALF};
-    use crate::tests::setup_container_with_bsize;
-    use crate::Archive;
+    use crate::tests::setup_archive_with_bsize;
 
     make_tests!(setup_inner_builder);
 }
@@ -361,8 +348,7 @@ mod file {
     use crate::entry::r#mut::tests::{lookup, setup_file_builder};
     use crate::entry::Inner;
     use crate::entry::{FULL, HALF};
-    use crate::tests::setup_container_with_bsize;
-    use crate::Archive;
+    use crate::tests::setup_archive_with_bsize;
 
     make_tests!(setup_file_builder);
 }

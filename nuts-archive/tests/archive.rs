@@ -22,23 +22,20 @@
 
 #[test]
 fn create() {
-    use nuts_archive::Archive;
+    use nuts_archive::ArchiveFactory;
     use nuts_container::{Cipher, Container, CreateOptionsBuilder};
     use nuts_directory::{CreateOptions, DirectoryBackend};
     use tempfile::{Builder, TempDir};
 
-    // Let's create a container (with a directory backend) in a temporary directory
+    // Let's create an archive service (with a directory backend) in a temporary directory
     let tmp_dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
     let backend_options = CreateOptions::for_path(tmp_dir);
-    let contaner_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
+    let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<TempDir>>()
         .unwrap();
-    let container =
-        Container::<DirectoryBackend<TempDir>>::create(backend_options, contaner_options).unwrap();
-
-    // Now create an archive inside the container
-    let archive = Archive::create(container, false).unwrap();
+    let archive =
+        Container::create_service::<_, ArchiveFactory>(backend_options, container_options).unwrap();
 
     // Fetch some information
     let info = archive.info();
@@ -48,7 +45,7 @@ fn create() {
 
 #[test]
 fn open() {
-    use nuts_archive::Archive;
+    use nuts_archive::ArchiveFactory;
     use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
     use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
     use tempfile::{Builder, TempDir};
@@ -63,25 +60,19 @@ fn open() {
             .build::<DirectoryBackend<&TempDir>>()
             .unwrap();
 
-        let container =
-            Container::<DirectoryBackend<&TempDir>>::create(backend_options, contaner_options)
-                .unwrap();
-        Archive::create(container, false).unwrap();
+        Container::create_service::<_, ArchiveFactory>(backend_options, contaner_options).unwrap();
 
         dir
     };
 
-    // Open the container (with a directory backend) from the temporary directory.
+    // Open the archive service (with a directory backend) from the temporary directory.
     let backend_options = OpenOptions::for_path(tmp_dir);
     let container_options = OpenOptionsBuilder::new()
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<TempDir>>()
         .unwrap();
-    let container =
-        Container::<DirectoryBackend<TempDir>>::open(backend_options, container_options).unwrap();
-
-    // Open the archive
-    let archive = Archive::open(container).unwrap();
+    let archive =
+        Container::open_service::<_, ArchiveFactory>(backend_options, container_options).unwrap();
 
     // Fetch some information
     let info = archive.info();
@@ -91,7 +82,7 @@ fn open() {
 
 #[test]
 fn append() {
-    use nuts_archive::Archive;
+    use nuts_archive::ArchiveFactory;
     use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
     use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
     use tempfile::{Builder, TempDir};
@@ -106,25 +97,20 @@ fn append() {
             .build::<DirectoryBackend<&TempDir>>()
             .unwrap();
 
-        let container =
-            Container::<DirectoryBackend<&TempDir>>::create(backend_options, contaner_options)
-                .unwrap();
-        Archive::create(container, false).unwrap();
+        Container::create_service::<_, ArchiveFactory>(backend_options, contaner_options).unwrap();
 
         dir
     };
 
-    // Open the container (with a directory backend) from the temporary directory.
+    // Open the archive (with a directory backend) from the temporary directory.
     let backend_options = OpenOptions::for_path(tmp_dir);
     let container_options = OpenOptionsBuilder::new()
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<TempDir>>()
         .unwrap();
-    let container =
-        Container::<DirectoryBackend<TempDir>>::open(backend_options, container_options).unwrap();
 
-    // Open the archive
-    let mut archive = Archive::open(container).unwrap();
+    let mut archive =
+        Container::open_service::<_, ArchiveFactory>(backend_options, container_options).unwrap();
 
     // Append a new file entry
     let mut entry = archive.append_file("sample file").build().unwrap();
@@ -145,7 +131,7 @@ fn append() {
 
 #[test]
 fn scan() {
-    use nuts_archive::Archive;
+    use nuts_archive::ArchiveFactory;
     use nuts_container::{Cipher, Container, CreateOptionsBuilder, OpenOptionsBuilder};
     use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
     use tempfile::{Builder, TempDir};
@@ -155,30 +141,26 @@ fn scan() {
         let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 
         let backend_options = CreateOptions::for_path(&dir);
-        let contaner_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
+        let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
             .with_password_callback(|| Ok(b"123".to_vec()))
             .build::<DirectoryBackend<&TempDir>>()
             .unwrap();
 
-        let container =
-            Container::<DirectoryBackend<&TempDir>>::create(backend_options, contaner_options)
-                .unwrap();
-        Archive::create(container, false).unwrap();
+        Container::create_service::<_, ArchiveFactory>(backend_options, container_options).unwrap();
 
         dir
     };
 
-    // Open the container (with a directory backend) from the temporary directory.
+    // Open the archive (with a directory backend) from the temporary directory.
     let backend_options = OpenOptions::for_path(tmp_dir);
     let container_options = OpenOptionsBuilder::new()
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<TempDir>>()
         .unwrap();
-    let container =
-        Container::<DirectoryBackend<TempDir>>::open(backend_options, container_options).unwrap();
 
     // Open the archive and append some entries
-    let mut archive = Archive::open(container).unwrap();
+    let mut archive =
+        Container::open_service::<_, ArchiveFactory>(backend_options, container_options).unwrap();
 
     archive.append_file("f1").build().unwrap();
     archive.append_directory("f2").build().unwrap();

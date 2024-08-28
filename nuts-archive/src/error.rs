@@ -23,7 +23,7 @@
 use nuts_backend::Backend;
 use thiserror::Error;
 
-use crate::{header::HeaderMagicError, userdata::UserdataMagicError};
+use crate::header::HeaderMagicError;
 
 /// Error type of this library.
 #[derive(Debug, Error)]
@@ -36,23 +36,14 @@ pub enum Error<B: Backend> {
     #[error(transparent)]
     Container(#[from] nuts_container::Error<B>),
 
-    /// Tried to overwrite an existing
-    /// [userdata record](nuts_container::Container::userdata).
-    #[error("the container is not empty")]
-    OverwriteUserdata,
-
     /// The revision of the archive is not supported anymore. You can open the
     /// archive till the given version.
     #[error("unsupported revision: {0}, latest supported version is {1}")]
     UnsupportedRevision(u16, String),
 
-    /// The [userdata record](nuts_container::Container::userdata) of the
-    /// container does not refer to an archive:
-    ///
-    /// * The userdata record is empty, the container has no attached service.
-    /// * Another service is attached to the container.
-    #[error("the container {}", if .0.is_some() { "is empty" } else { "does not have an archive" })]
-    InvalidUserdata(Option<nuts_bytes::Error>),
+    /// The service requires a top-id but the container does not provide it.
+    #[error("no top-id available")]
+    NoTopId,
 
     /// Could not parse the header of the archive.
     #[error("could not parse the header of the archive")]
@@ -90,8 +81,6 @@ impl<B: Backend> From<nuts_bytes::Error> for Error<B> {
             nuts_bytes::Error::Custom(cust) => {
                 if cust.is::<HeaderMagicError>() {
                     Error::InvalidHeader(cause)
-                } else if cust.is::<UserdataMagicError>() {
-                    Error::InvalidUserdata(Some(cause))
                 } else {
                     Error::Bytes(cause)
                 }

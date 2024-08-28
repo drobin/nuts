@@ -22,13 +22,11 @@
 
 use crate::entry::r#mut::tests::{lookup, setup_directory_builder};
 use crate::entry::{Inner, FULL};
-use crate::tests::setup_container_with_bsize;
-use crate::Archive;
+use crate::tests::setup_archive_with_bsize;
 
 #[test]
 fn ok() {
-    let container = setup_container_with_bsize(FULL as u32);
-    let mut archive = Archive::create(container, false).unwrap();
+    let mut archive = setup_archive_with_bsize(FULL as u32);
 
     setup_directory_builder(&mut archive).build().unwrap();
 
