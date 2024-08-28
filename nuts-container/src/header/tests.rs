@@ -25,8 +25,8 @@ use nuts_memory::{MemoryBackend, Settings};
 use crate::cipher::Cipher;
 use crate::header::Header;
 use crate::kdf::Kdf;
-use crate::migrate::Migration;
-use crate::options::{CreateOptionsBuilder, OpenOptionsBuilder};
+use crate::migrate::{Migration, Migrator};
+use crate::options::CreateOptionsBuilder;
 use crate::password::PasswordStore;
 
 const REV0: [u8; 79] = [
@@ -66,6 +66,14 @@ impl Migration for SampleMigration {
     }
 }
 
+struct NoopMigration;
+
+impl Migration for NoopMigration {
+    fn migrate_rev0(&self, _userdata: &[u8]) -> Result<Vec<u8>, String> {
+        unreachable!()
+    }
+}
+
 #[test]
 fn create() {
     let options = CreateOptionsBuilder::new(Cipher::None)
@@ -83,13 +91,10 @@ fn create() {
 
 #[test]
 fn read_rev0() {
-    let options = OpenOptionsBuilder::new()
-        .with_migrator(SampleMigration)
-        .build::<MemoryBackend>()
-        .unwrap();
+    let migrator = Migrator::default().with_migration(SampleMigration);
     let mut store = PasswordStore::new(None);
 
-    let (header, _) = Header::<MemoryBackend>::read(&REV0, options, &mut store).unwrap();
+    let (header, _) = Header::<MemoryBackend>::read(&REV0, migrator, &mut store).unwrap();
 
     assert_eq!(header.revision, 0);
     assert_eq!(header.cipher, Cipher::None);
@@ -101,13 +106,10 @@ fn read_rev0() {
 
 #[test]
 fn read_rev0_migration_not_required() {
-    let options = OpenOptionsBuilder::new()
-        .with_migration_required(false)
-        .build::<MemoryBackend>()
-        .unwrap();
+    let migrator = Migrator::default();
     let mut store = PasswordStore::new(None);
 
-    let (header, _) = Header::<MemoryBackend>::read(&REV0, options, &mut store).unwrap();
+    let (header, _) = Header::<MemoryBackend>::read(&REV0, migrator, &mut store).unwrap();
 
     assert_eq!(header.revision, 0);
     assert_eq!(header.cipher, Cipher::None);
@@ -119,10 +121,10 @@ fn read_rev0_migration_not_required() {
 
 #[test]
 fn read_rev1() {
-    let options = OpenOptionsBuilder::new().build::<MemoryBackend>().unwrap();
+    let migrator = Migrator::default().with_migration(NoopMigration);
     let mut store = PasswordStore::new(None);
 
-    let (header, _) = Header::<MemoryBackend>::read(&REV1, options, &mut store).unwrap();
+    let (header, _) = Header::<MemoryBackend>::read(&REV1, migrator, &mut store).unwrap();
 
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);

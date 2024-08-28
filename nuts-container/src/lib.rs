@@ -256,6 +256,7 @@ mod svec;
 mod tests;
 
 use log::debug;
+use migrate::Migrator;
 use nuts_backend::{Backend, Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
 use std::{any, cmp};
 
@@ -569,7 +570,7 @@ impl<B: Backend> Container<B> {
 
     fn read_header<H: ReceiveHeader<B>>(
         reader: &mut H,
-        options: OpenOptions,
+        migrator: Migrator,
         store: &mut PasswordStore,
     ) -> ContainerResult<(Header<B>, B::Settings), B> {
         let mut buf = [0; HEADER_MAX_SIZE];
@@ -577,7 +578,7 @@ impl<B: Backend> Container<B> {
         match reader.get_header_bytes(&mut buf) {
             Ok(_) => {
                 debug!("got {} header bytes", buf.len());
-                Ok(Header::read(&buf, options, store)?)
+                Ok(Header::read(&buf, migrator, store)?)
             }
             Err(cause) => Err(Error::Backend(cause)),
         }

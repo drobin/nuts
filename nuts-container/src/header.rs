@@ -37,8 +37,8 @@ use crate::header::plain_secret::generate_plain_secret;
 use crate::header::plain_secret::{Encryptor, PlainSecretRev0, PlainSecretRev1};
 use crate::header::revision::{Data, Revision};
 use crate::kdf::{Kdf, KdfError};
-use crate::migrate::MigrationError;
-use crate::options::{CreateOptions, OpenOptions};
+use crate::migrate::{MigrationError, Migrator};
+use crate::options::CreateOptions;
 use crate::ossl;
 use crate::password::{PasswordError, PasswordStore};
 use crate::svec::SecureVec;
@@ -115,18 +115,18 @@ impl<B: Backend> Header<B> {
 
     pub fn read(
         buf: &[u8],
-        options: OpenOptions,
+        migrator: Migrator,
         store: &mut PasswordStore,
     ) -> Result<(Header<B>, B::Settings), HeaderError> {
         match Revision::get_from_buffer(&mut &buf[..])? {
-            Revision::Rev0(data) => Self::read_rev0(data, options, store),
-            Revision::Rev1(data) => Self::read_rev1(data, options, store),
+            Revision::Rev0(data) => Self::read_rev0(data, migrator, store),
+            Revision::Rev1(data) => Self::read_rev1(data, migrator, store),
         }
     }
 
     fn read_rev0(
         data: Data,
-        options: OpenOptions,
+        migrator: Migrator,
         store: &mut PasswordStore,
     ) -> Result<(Header<B>, B::Settings), HeaderError> {
         let plain_secret =
@@ -135,7 +135,7 @@ impl<B: Backend> Header<B> {
         let settings =
             B::Settings::from_bytes(&plain_secret.settings).ok_or(HeaderError::InvalidSettings)?;
 
-        let top_id_vec = options.migrator.migrate_rev0(&plain_secret.userdata)?;
+        let top_id_vec = migrator.migrate_rev0(&plain_secret.userdata)?;
         let top_id = match top_id_vec {
             Some(vec) => <B::Id as Binary>::from_bytes(&vec),
             None => None,
@@ -156,7 +156,7 @@ impl<B: Backend> Header<B> {
 
     fn read_rev1(
         data: Data,
-        _options: OpenOptions,
+        _migrator: Migrator,
         store: &mut PasswordStore,
     ) -> Result<(Header<B>, B::Settings), HeaderError> {
         let plain_secret =
