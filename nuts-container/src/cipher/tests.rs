@@ -22,11 +22,13 @@
 
 mod aes128_ctr;
 mod aes128_gcm;
+mod aes192_ctr;
+mod aes256_ctr;
 mod bytes;
 mod none;
 mod string;
 
-const KEY: [u8; 16] = [b'x'; 16];
+const KEY: [u8; 32] = [b'x'; 32];
 const IV: [u8; 16] = [b'y'; 16];
 
 macro_rules! ctx_test {
@@ -36,6 +38,8 @@ macro_rules! ctx_test {
             use crate::cipher::tests::{IV, KEY};
             use crate::cipher::CipherContext;
 
+            let key_len = Cipher::$cipher.key_len();
+
             let input = [$($input),*];
             let expected = [$($expected),*];
 
@@ -43,7 +47,7 @@ macro_rules! ctx_test {
 
             ctx.copy_from_slice($num, &input);
 
-            let output = ctx.$method(&KEY, &IV).unwrap();
+            let output = ctx.$method(&KEY[..key_len], &IV).unwrap();
 
             assert_eq!(output, expected);
         }

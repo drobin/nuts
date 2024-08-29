@@ -24,6 +24,8 @@ use crate::cipher::{Cipher, CipherContext, CipherError};
 
 use super::{ctx_test, IV, KEY};
 
+const KEY_LEN: usize = 16;
+
 #[test]
 fn block_size() {
     assert_eq!(Cipher::Aes128Gcm.block_size(), 1);
@@ -31,7 +33,7 @@ fn block_size() {
 
 #[test]
 fn key_len() {
-    assert_eq!(Cipher::Aes128Gcm.key_len(), 16);
+    assert_eq!(Cipher::Aes128Gcm.key_len(), KEY_LEN);
 }
 
 #[test]
@@ -55,7 +57,7 @@ fn ctx_decrypt_inval_key() {
         ],
     );
 
-    let err = ctx.decrypt(&KEY[..15], &IV).unwrap_err();
+    let err = ctx.decrypt(&KEY[..KEY_LEN - 1], &IV).unwrap_err();
     assert!(matches!(err, CipherError::InvalidKey));
 }
 
@@ -70,7 +72,7 @@ fn ctx_decrypt_inval_iv() {
         ],
     );
 
-    let err = ctx.decrypt(&KEY, &IV[..11]).unwrap_err();
+    let err = ctx.decrypt(&KEY[..KEY_LEN], &IV[..11]).unwrap_err();
     assert!(matches!(err, CipherError::InvalidIv));
 }
 
@@ -85,7 +87,7 @@ fn ctx_decrypt_not_trustworthy() {
         ],
     );
 
-    let err = ctx.decrypt(&KEY, &IV).unwrap_err();
+    let err = ctx.decrypt(&KEY[..KEY_LEN], &IV).unwrap_err();
     assert!(matches!(err, CipherError::NotTrustworthy));
 }
 
@@ -117,7 +119,7 @@ fn ctx_encrypt_inval_key() {
 
     ctx.copy_from_slice(3, &[1, 2, 3]);
 
-    let err = ctx.encrypt(&KEY[..15], &IV).unwrap_err();
+    let err = ctx.encrypt(&KEY[..KEY_LEN - 1], &IV).unwrap_err();
     assert!(matches!(err, CipherError::InvalidKey));
 }
 
@@ -127,7 +129,7 @@ fn ctx_encrypt_inval_iv() {
 
     ctx.copy_from_slice(3, &[1, 2, 3]);
 
-    let err = ctx.encrypt(&KEY, &IV[..11]).unwrap_err();
+    let err = ctx.encrypt(&KEY[..KEY_LEN], &IV[..11]).unwrap_err();
     assert!(matches!(err, CipherError::InvalidIv));
 }
 

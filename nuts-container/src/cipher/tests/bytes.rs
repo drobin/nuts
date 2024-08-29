@@ -42,6 +42,24 @@ fn de_aes128_ctr() {
 }
 
 #[test]
+fn de_aes192_ctr() {
+    let buf = [0x00, 0x00, 0x00, 0x03];
+    assert_eq!(
+        Cipher::get_from_buffer(&mut &buf[..]).unwrap(),
+        Cipher::Aes192Ctr
+    );
+}
+
+#[test]
+fn de_aes256_ctr() {
+    let buf = [0x00, 0x00, 0x00, 0x04];
+    assert_eq!(
+        Cipher::get_from_buffer(&mut &buf[..]).unwrap(),
+        Cipher::Aes256Ctr
+    );
+}
+
+#[test]
 fn de_aes128_gcm() {
     let buf = [0x00, 0x00, 0x00, 0x02];
     assert_eq!(
@@ -60,10 +78,10 @@ fn de_eof() {
 
 #[test]
 fn de_invalid() {
-    let buf = [0x00, 0x00, 0x00, 0x03];
+    let buf = [0x00, 0x00, 0x00, 0x05];
     let err = Cipher::get_from_buffer(&mut &buf[..]).unwrap_err();
 
-    assert_eq!(err.to_string(), "no Cipher at 3");
+    assert_eq!(err.to_string(), "no Cipher at 5");
 }
 
 #[test]
@@ -80,6 +98,22 @@ fn ser_aes128_ctr() {
 
     Cipher::Aes128Ctr.put_into_buffer(&mut buf).unwrap();
     assert_eq!(buf, [0x00, 0x00, 0x00, 0x01]);
+}
+
+#[test]
+fn ser_aes192_ctr() {
+    let mut buf = vec![];
+
+    Cipher::Aes192Ctr.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x03]);
+}
+
+#[test]
+fn ser_aes256_ctr() {
+    let mut buf = vec![];
+
+    Cipher::Aes256Ctr.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x04]);
 }
 
 #[test]

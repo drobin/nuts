@@ -70,6 +70,12 @@ pub enum Cipher {
     /// AES with a 128-bit key in CTR mode
     Aes128Ctr,
 
+    /// AES with a 192-bit key in CTR mode
+    Aes192Ctr,
+
+    /// AES with a 256-bit key in CTR mode
+    Aes256Ctr,
+
     /// AES with a 128-bit key in GCM mode
     Aes128Gcm,
 }
@@ -112,7 +118,7 @@ impl Cipher {
     pub fn tag_size(&self) -> u32 {
         match self {
             Cipher::None => 0,
-            Cipher::Aes128Ctr => 0,
+            Cipher::Aes128Ctr | Cipher::Aes192Ctr | Cipher::Aes256Ctr => 0,
             Cipher::Aes128Gcm => 16,
         }
     }
@@ -124,6 +130,8 @@ impl Cipher {
             0 => Ok(Cipher::None),
             1 => Ok(Cipher::Aes128Ctr),
             2 => Ok(Cipher::Aes128Gcm),
+            3 => Ok(Cipher::Aes192Ctr),
+            4 => Ok(Cipher::Aes256Ctr),
             _ => Err(BufferError::InvalidIndex("Cipher".to_string(), b)),
         }
     }
@@ -133,6 +141,8 @@ impl Cipher {
             Cipher::None => 0,
             Cipher::Aes128Ctr => 1,
             Cipher::Aes128Gcm => 2,
+            Cipher::Aes192Ctr => 3,
+            Cipher::Aes256Ctr => 4,
         };
 
         buf.put_u32(b)
@@ -142,6 +152,8 @@ impl Cipher {
         match self {
             Cipher::None => None,
             Cipher::Aes128Ctr => Some(ossl_cipher::Cipher::aes_128_ctr()),
+            Cipher::Aes192Ctr => Some(ossl_cipher::Cipher::aes_192_ctr()),
+            Cipher::Aes256Ctr => Some(ossl_cipher::Cipher::aes_256_ctr()),
             Cipher::Aes128Gcm => Some(ossl_cipher::Cipher::aes_128_gcm()),
         }
     }
@@ -152,6 +164,8 @@ impl fmt::Display for Cipher {
         let s = match self {
             Cipher::None => "none",
             Cipher::Aes128Ctr => "aes128-ctr",
+            Cipher::Aes192Ctr => "aes192-ctr",
+            Cipher::Aes256Ctr => "aes256-ctr",
             Cipher::Aes128Gcm => "aes128-gcm",
         };
 
@@ -166,6 +180,8 @@ impl FromStr for Cipher {
         match str {
             "none" => Ok(Cipher::None),
             "aes128-ctr" => Ok(Cipher::Aes128Ctr),
+            "aes192-ctr" => Ok(Cipher::Aes192Ctr),
+            "aes256-ctr" => Ok(Cipher::Aes256Ctr),
             "aes128-gcm" => Ok(Cipher::Aes128Gcm),
             _ => Err(()),
         }

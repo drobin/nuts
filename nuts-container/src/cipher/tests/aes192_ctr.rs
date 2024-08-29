@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022-2024 Robin Doer
+// Copyright (c) 2024 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -24,31 +24,31 @@ use crate::cipher::{Cipher, CipherContext, CipherError};
 
 use super::{ctx_test, IV, KEY};
 
-const KEY_LEN: usize = 16;
+const KEY_LEN: usize = 24;
 
 #[test]
 fn block_size() {
-    assert_eq!(Cipher::Aes128Ctr.block_size(), 1);
+    assert_eq!(Cipher::Aes192Ctr.block_size(), 1);
 }
 
 #[test]
 fn key_len() {
-    assert_eq!(Cipher::Aes128Ctr.key_len(), KEY_LEN);
+    assert_eq!(Cipher::Aes192Ctr.key_len(), KEY_LEN);
 }
 
 #[test]
 fn iv_len() {
-    assert_eq!(Cipher::Aes128Ctr.iv_len(), 16);
+    assert_eq!(Cipher::Aes192Ctr.iv_len(), 16);
 }
 
 #[test]
 fn tag_size() {
-    assert_eq!(Cipher::Aes128Ctr.tag_size(), 0);
+    assert_eq!(Cipher::Aes192Ctr.tag_size(), 0);
 }
 
 #[test]
 fn ctx_decrypt_inval_key() {
-    let mut ctx = CipherContext::new(Cipher::Aes128Ctr);
+    let mut ctx = CipherContext::new(Cipher::Aes192Ctr);
 
     ctx.copy_from_slice(3, &[146, 140, 10]);
 
@@ -58,7 +58,7 @@ fn ctx_decrypt_inval_key() {
 
 #[test]
 fn ctx_decrypt_inval_iv() {
-    let mut ctx = CipherContext::new(Cipher::Aes128Ctr);
+    let mut ctx = CipherContext::new(Cipher::Aes192Ctr);
 
     ctx.copy_from_slice(3, &[146, 140, 10]);
 
@@ -66,21 +66,21 @@ fn ctx_decrypt_inval_iv() {
     assert!(matches!(err, CipherError::InvalidIv));
 }
 
-ctx_test!(ctx_decrypt_3_1, Aes128Ctr.decrypt, 3, [146, 140, 10] -> [1, 2, 3]);
-ctx_test!(ctx_decrypt_3_2, Aes128Ctr.decrypt, 2, [146, 140, 10] -> [1, 2]);
-ctx_test!(ctx_decrypt_3_3, Aes128Ctr.decrypt, 4, [146, 140, 10] -> [1, 2, 3, 195]);
-ctx_test!(ctx_decrypt_2_1, Aes128Ctr.decrypt, 2, [146, 140] -> [1, 2]);
-ctx_test!(ctx_decrypt_2_2, Aes128Ctr.decrypt, 1, [146, 140] -> [1]);
-ctx_test!(ctx_decrypt_2_3, Aes128Ctr.decrypt, 3, [146, 140] -> [1, 2, 9]);
-ctx_test!(ctx_decrypt_1_1, Aes128Ctr.decrypt, 1, [146] -> [1]);
-ctx_test!(ctx_decrypt_1_2, Aes128Ctr.decrypt, 0, [146] -> []);
-ctx_test!(ctx_decrypt_1_3, Aes128Ctr.decrypt, 2, [146] -> [1, 142]);
-ctx_test!(ctx_decrypt_0_1, Aes128Ctr.decrypt, 0, [] -> []);
-ctx_test!(ctx_decrypt_0_2, Aes128Ctr.decrypt, 1, [] -> [147]);
+ctx_test!(ctx_decrypt_3_1, Aes192Ctr.decrypt, 3, [85, 128, 31] -> [1, 2, 3]);
+ctx_test!(ctx_decrypt_3_2, Aes192Ctr.decrypt, 2, [85, 128, 31] -> [1, 2]);
+ctx_test!(ctx_decrypt_3_3, Aes192Ctr.decrypt, 4, [85, 128, 31] -> [1, 2, 3, 242]);
+ctx_test!(ctx_decrypt_2_1, Aes192Ctr.decrypt, 2, [85, 128] -> [1, 2]);
+ctx_test!(ctx_decrypt_2_2, Aes192Ctr.decrypt, 1, [85, 128] -> [1]);
+ctx_test!(ctx_decrypt_2_3, Aes192Ctr.decrypt, 3, [85, 128] -> [1, 2, 28]);
+ctx_test!(ctx_decrypt_1_1, Aes192Ctr.decrypt, 1, [85] -> [1]);
+ctx_test!(ctx_decrypt_1_2, Aes192Ctr.decrypt, 0, [85] -> []);
+ctx_test!(ctx_decrypt_1_3, Aes192Ctr.decrypt, 2, [85] -> [1, 130]);
+ctx_test!(ctx_decrypt_0_1, Aes192Ctr.decrypt, 0, [] -> []);
+ctx_test!(ctx_decrypt_0_2, Aes192Ctr.decrypt, 1, [] -> [84]);
 
 #[test]
 fn ctx_encrypt_inval_key() {
-    let mut ctx = CipherContext::new(Cipher::Aes128Ctr);
+    let mut ctx = CipherContext::new(Cipher::Aes192Ctr);
 
     ctx.copy_from_slice(3, &[1, 2, 3]);
 
@@ -90,7 +90,7 @@ fn ctx_encrypt_inval_key() {
 
 #[test]
 fn ctx_encrypt_inval_iv() {
-    let mut ctx = CipherContext::new(Cipher::Aes128Ctr);
+    let mut ctx = CipherContext::new(Cipher::Aes192Ctr);
 
     ctx.copy_from_slice(3, &[1, 2, 3]);
 
@@ -98,14 +98,14 @@ fn ctx_encrypt_inval_iv() {
     assert!(matches!(err, CipherError::InvalidIv));
 }
 
-ctx_test!(ctx_encrypt_3_1, Aes128Ctr.encrypt, 3, [1, 2, 3] -> [146, 140, 10]);
-ctx_test!(ctx_encrypt_3_2, Aes128Ctr.encrypt, 2, [1, 2, 3] -> [146, 140]);
-ctx_test!(ctx_encrypt_3_3, Aes128Ctr.encrypt, 4, [1, 2, 3] -> [146, 140, 10, 195]);
-ctx_test!(ctx_encrypt_2_1, Aes128Ctr.encrypt, 2, [1, 2] -> [146, 140]);
-ctx_test!(ctx_encrypt_2_2, Aes128Ctr.encrypt, 1, [1, 2] -> [146]);
-ctx_test!(ctx_encrypt_2_3, Aes128Ctr.encrypt, 3, [1, 2] -> [146, 140, 9]);
-ctx_test!(ctx_encrypt_1_1, Aes128Ctr.encrypt, 1, [1] -> [146]);
-ctx_test!(ctx_encrypt_1_2, Aes128Ctr.encrypt, 0, [1] -> []);
-ctx_test!(ctx_encrypt_1_3, Aes128Ctr.encrypt, 2, [1] -> [146, 142]);
-ctx_test!(ctx_encrypt_0_1, Aes128Ctr.encrypt, 0, [] -> []);
-ctx_test!(ctx_encrypt_0_2, Aes128Ctr.encrypt, 1, [] -> [147]);
+ctx_test!(ctx_encrypt_3_1, Aes192Ctr.encrypt, 3, [1, 2, 3] -> [85, 128, 31]);
+ctx_test!(ctx_encrypt_3_2, Aes192Ctr.encrypt, 2, [1, 2, 3] -> [85, 128]);
+ctx_test!(ctx_encrypt_3_3, Aes192Ctr.encrypt, 4, [1, 2, 3] -> [85, 128, 31, 242]);
+ctx_test!(ctx_encrypt_2_1, Aes192Ctr.encrypt, 2, [1, 2] -> [85, 128]);
+ctx_test!(ctx_encrypt_2_2, Aes192Ctr.encrypt, 1, [1, 2] -> [85]);
+ctx_test!(ctx_encrypt_2_3, Aes192Ctr.encrypt, 3, [1, 2] -> [85, 128, 28]);
+ctx_test!(ctx_encrypt_1_1, Aes192Ctr.encrypt, 1, [1] -> [85]);
+ctx_test!(ctx_encrypt_1_2, Aes192Ctr.encrypt, 0, [1] -> []);
+ctx_test!(ctx_encrypt_1_3, Aes192Ctr.encrypt, 2, [1] -> [85, 130]);
+ctx_test!(ctx_encrypt_0_1, Aes192Ctr.encrypt, 0, [] -> []);
+ctx_test!(ctx_encrypt_0_2, Aes192Ctr.encrypt, 1, [] -> [84]);

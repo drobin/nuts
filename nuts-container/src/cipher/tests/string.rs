@@ -33,6 +33,16 @@ fn from_str_aes128_ctr() {
 }
 
 #[test]
+fn from_str_aes192_ctr() {
+    assert_eq!("aes192-ctr".parse::<Cipher>().unwrap(), Cipher::Aes192Ctr);
+}
+
+#[test]
+fn from_str_aes256_ctr() {
+    assert_eq!("aes256-ctr".parse::<Cipher>().unwrap(), Cipher::Aes256Ctr);
+}
+
+#[test]
 fn from_str_aes128_gcm() {
     assert_eq!("aes128-gcm".parse::<Cipher>().unwrap(), Cipher::Aes128Gcm);
 }
@@ -50,6 +60,16 @@ fn to_string_none() {
 #[test]
 fn to_string_aes128_ctr() {
     assert_eq!(Cipher::Aes128Ctr.to_string(), "aes128-ctr");
+}
+
+#[test]
+fn to_string_aes192_ctr() {
+    assert_eq!(Cipher::Aes192Ctr.to_string(), "aes192-ctr");
+}
+
+#[test]
+fn to_string_aes256_ctr() {
+    assert_eq!(Cipher::Aes256Ctr.to_string(), "aes256-ctr");
 }
 
 #[test]
