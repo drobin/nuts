@@ -69,6 +69,24 @@ fn de_aes128_gcm() {
 }
 
 #[test]
+fn de_aes192_gcm() {
+    let buf = [0x00, 0x00, 0x00, 0x05];
+    assert_eq!(
+        Cipher::get_from_buffer(&mut &buf[..]).unwrap(),
+        Cipher::Aes192Gcm
+    );
+}
+
+#[test]
+fn de_aes256_gcm() {
+    let buf = [0x00, 0x00, 0x00, 0x06];
+    assert_eq!(
+        Cipher::get_from_buffer(&mut &buf[..]).unwrap(),
+        Cipher::Aes256Gcm
+    );
+}
+
+#[test]
 fn de_eof() {
     let buf = [0x00, 0x00, 0x00];
     let err = Cipher::get_from_buffer(&mut &buf[..]).unwrap_err();
@@ -78,10 +96,10 @@ fn de_eof() {
 
 #[test]
 fn de_invalid() {
-    let buf = [0x00, 0x00, 0x00, 0x05];
+    let buf = [0x00, 0x00, 0x00, 0x07];
     let err = Cipher::get_from_buffer(&mut &buf[..]).unwrap_err();
 
-    assert_eq!(err.to_string(), "no Cipher at 5");
+    assert_eq!(err.to_string(), "no Cipher at 7");
 }
 
 #[test]
@@ -122,6 +140,22 @@ fn ser_aes128_gcm() {
 
     Cipher::Aes128Gcm.put_into_buffer(&mut buf).unwrap();
     assert_eq!(buf, [0x00, 0x00, 0x00, 0x02]);
+}
+
+#[test]
+fn ser_aes192_gcm() {
+    let mut buf = vec![];
+
+    Cipher::Aes192Gcm.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x05]);
+}
+
+#[test]
+fn ser_aes256_gcm() {
+    let mut buf = vec![];
+
+    Cipher::Aes256Gcm.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x06]);
 }
 
 #[test]

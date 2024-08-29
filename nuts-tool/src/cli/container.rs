@@ -47,6 +47,8 @@ use crate::cli::container::release::ContainerReleaseArgs;
 use crate::cli::container::write::ContainerWriteArgs;
 
 const AES128_GCM: &str = "aes128-gcm";
+const AES192_GCM: &str = "aes192-gcm";
+const AES256_GCM: &str = "aes256-gcm";
 const AES128_CTR: &str = "aes128-ctr";
 const AES192_CTR: &str = "aes192-ctr";
 const AES256_CTR: &str = "aes256-ctr";
@@ -73,6 +75,8 @@ impl ValueEnum for CliCipher {
     fn value_variants<'a>() -> &'a [Self] {
         &[
             CliCipher(Cipher::Aes128Gcm),
+            CliCipher(Cipher::Aes192Gcm),
+            CliCipher(Cipher::Aes256Gcm),
             CliCipher(Cipher::Aes192Ctr),
             CliCipher(Cipher::Aes256Ctr),
             CliCipher(Cipher::Aes128Ctr),
@@ -87,6 +91,8 @@ impl ValueEnum for CliCipher {
             Cipher::Aes192Ctr => AES192_CTR,
             Cipher::Aes256Ctr => AES256_CTR,
             Cipher::Aes128Gcm => AES128_GCM,
+            Cipher::Aes192Gcm => AES192_GCM,
+            Cipher::Aes256Gcm => AES256_GCM,
         };
 
         Some(PossibleValue::new(value))

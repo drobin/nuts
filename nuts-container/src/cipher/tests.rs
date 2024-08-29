@@ -23,7 +23,9 @@
 mod aes128_ctr;
 mod aes128_gcm;
 mod aes192_ctr;
+mod aes192_gcm;
 mod aes256_ctr;
+mod aes256_gcm;
 mod bytes;
 mod none;
 mod string;

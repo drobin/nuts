@@ -48,6 +48,16 @@ fn from_str_aes128_gcm() {
 }
 
 #[test]
+fn from_str_aes192_gcm() {
+    assert_eq!("aes192-gcm".parse::<Cipher>().unwrap(), Cipher::Aes192Gcm);
+}
+
+#[test]
+fn from_str_aes256_gcm() {
+    assert_eq!("aes256-gcm".parse::<Cipher>().unwrap(), Cipher::Aes256Gcm);
+}
+
+#[test]
 fn from_str_invalid() {
     "xxx".parse::<Cipher>().unwrap_err();
 }
@@ -75,4 +85,14 @@ fn to_string_aes256_ctr() {
 #[test]
 fn to_string_aes128_gcm() {
     assert_eq!(Cipher::Aes128Gcm.to_string(), "aes128-gcm");
+}
+
+#[test]
+fn to_string_aes192_gcm() {
+    assert_eq!(Cipher::Aes192Gcm.to_string(), "aes192-gcm");
+}
+
+#[test]
+fn to_string_aes256_gcm() {
+    assert_eq!(Cipher::Aes256Gcm.to_string(), "aes256-gcm");
 }
