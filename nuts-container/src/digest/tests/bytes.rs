@@ -34,6 +34,46 @@ fn de_sha1() {
 }
 
 #[test]
+fn de_sha224() {
+    let buf = [0x00, 0x00, 0x00, 0x01];
+
+    assert_eq!(
+        Digest::get_from_buffer(&mut &buf[..]).unwrap(),
+        Digest::Sha224
+    );
+}
+
+#[test]
+fn de_sha256() {
+    let buf = [0x00, 0x00, 0x00, 0x02];
+
+    assert_eq!(
+        Digest::get_from_buffer(&mut &buf[..]).unwrap(),
+        Digest::Sha256
+    );
+}
+
+#[test]
+fn de_sha384() {
+    let buf = [0x00, 0x00, 0x00, 0x03];
+
+    assert_eq!(
+        Digest::get_from_buffer(&mut &buf[..]).unwrap(),
+        Digest::Sha384
+    );
+}
+
+#[test]
+fn de_sha512() {
+    let buf = [0x00, 0x00, 0x00, 0x04];
+
+    assert_eq!(
+        Digest::get_from_buffer(&mut &buf[..]).unwrap(),
+        Digest::Sha512
+    );
+}
+
+#[test]
 fn de_eof() {
     let buf = [0x00, 0x00, 0x00];
     let err = Digest::get_from_buffer(&mut &buf[..]).unwrap_err();
@@ -43,10 +83,10 @@ fn de_eof() {
 
 #[test]
 fn de_invalid() {
-    let buf = [0x00, 0x00, 0x00, 0x01];
+    let buf = [0x00, 0x00, 0x00, 0x05];
     let err = Digest::get_from_buffer(&mut &buf[..]).unwrap_err();
 
-    assert_eq!(err.to_string(), "no Digest at 1");
+    assert_eq!(err.to_string(), "no Digest at 5");
 }
 
 #[test]
@@ -55,6 +95,38 @@ fn ser_sha1() {
 
     Digest::Sha1.put_into_buffer(&mut buf).unwrap();
     assert_eq!(buf, [0x00, 0x00, 0x00, 0x00]);
+}
+
+#[test]
+fn ser_sha224() {
+    let mut buf = vec![];
+
+    Digest::Sha224.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x01]);
+}
+
+#[test]
+fn ser_sha256() {
+    let mut buf = vec![];
+
+    Digest::Sha256.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x02]);
+}
+
+#[test]
+fn ser_sha384() {
+    let mut buf = vec![];
+
+    Digest::Sha384.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x03]);
+}
+
+#[test]
+fn ser_sha512() {
+    let mut buf = vec![];
+
+    Digest::Sha512.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, [0x00, 0x00, 0x00, 0x04]);
 }
 
 #[test]

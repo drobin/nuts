@@ -28,8 +28,48 @@ fn size_sha1() {
 }
 
 #[test]
+fn size_sha224() {
+    assert_eq!(Digest::Sha224.size(), 28);
+}
+
+#[test]
+fn size_sha256() {
+    assert_eq!(Digest::Sha256.size(), 32);
+}
+
+#[test]
+fn size_sha384() {
+    assert_eq!(Digest::Sha384.size(), 48);
+}
+
+#[test]
+fn size_sha512() {
+    assert_eq!(Digest::Sha512.size(), 64);
+}
+
+#[test]
 fn from_str_sha1() {
     assert_eq!("sha1".parse::<Digest>().unwrap(), Digest::Sha1);
+}
+
+#[test]
+fn from_str_sha224() {
+    assert_eq!("sha224".parse::<Digest>().unwrap(), Digest::Sha224);
+}
+
+#[test]
+fn from_str_sha256() {
+    assert_eq!("sha256".parse::<Digest>().unwrap(), Digest::Sha256);
+}
+
+#[test]
+fn from_str_sha384() {
+    assert_eq!("sha384".parse::<Digest>().unwrap(), Digest::Sha384);
+}
+
+#[test]
+fn from_str_sha512() {
+    assert_eq!("sha512".parse::<Digest>().unwrap(), Digest::Sha512);
 }
 
 #[test]
@@ -40,4 +80,24 @@ fn from_str_invalid() {
 #[test]
 fn to_string_sha1() {
     assert_eq!(Digest::Sha1.to_string(), "sha1");
+}
+
+#[test]
+fn to_string_sha224() {
+    assert_eq!(Digest::Sha224.to_string(), "sha224");
+}
+
+#[test]
+fn to_string_sha256() {
+    assert_eq!(Digest::Sha256.to_string(), "sha256");
+}
+
+#[test]
+fn to_string_sha384() {
+    assert_eq!(Digest::Sha384.to_string(), "sha384");
+}
+
+#[test]
+fn to_string_sha512() {
+    assert_eq!(Digest::Sha512.to_string(), "sha512");
 }
