@@ -56,7 +56,7 @@ pub struct ContainerCreateArgs {
     ///
     /// For PBKDF2: pbkdf2[:[<DIGEST>]:[<ITERATIONS>]:[<SALT_LENGTH>]]
     ///
-    /// Selects PBKDF2 with the given digest (default: sha1),
+    /// Selects PBKDF2 with the given digest (default: sha256),
     /// the given number of iterations (default: 65536) and salt
     /// length (default: 16).
     #[clap(short, long, value_parser)]

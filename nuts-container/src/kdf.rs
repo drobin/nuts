@@ -304,7 +304,7 @@ fn parse_none(v: &[&str]) -> Result<Kdf, ParseKdfNoneError> {
 }
 
 fn parse_pbkdf2(v: &[&str]) -> Result<Kdf, ParseKdfPbkdf2Error> {
-    const DEFAULT_DIGEST: Digest = Digest::Sha1;
+    const DEFAULT_DIGEST: Digest = Digest::Sha256;
     const DEFAULT_ITERATIONS: u32 = 65536;
     const DEFAULT_SALT_LEN: u32 = 16;
 

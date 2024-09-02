@@ -70,7 +70,7 @@ impl CreateOptionsBuilder {
         let kdf = if cipher == Cipher::None {
             KdfBuilder::Kdf(Kdf::None)
         } else {
-            KdfBuilder::Pbkdf2(Digest::Sha1, 65536, 16)
+            KdfBuilder::Pbkdf2(Digest::Sha256, 65536, 16)
         };
 
         CreateOptionsBuilder(CreateOptions {

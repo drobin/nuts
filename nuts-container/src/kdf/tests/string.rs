@@ -61,7 +61,7 @@ fn from_str_pbkdf2_no_args() {
     assert_eq!(
         kdf,
         Kdf::Pbkdf2 {
-            digest: Digest::Sha1,
+            digest: Digest::Sha256,
             iterations: 65536,
             salt: RND[..16].to_vec()
         }
@@ -89,7 +89,7 @@ fn from_str_pbkdf2_default_digest() {
     assert_eq!(
         kdf,
         Kdf::Pbkdf2 {
-            digest: Digest::Sha1,
+            digest: Digest::Sha256,
             iterations: 1,
             salt: RND[..2].to_vec()
         }
