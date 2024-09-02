@@ -46,7 +46,7 @@ impl Secret {
     ) -> Result<T, HeaderError> {
         let key = if cipher.key_len() > 0 {
             let password = store.value()?;
-            kdf.create_key(password)?
+            kdf.create_key(password, cipher.key_len())?
         } else {
             vec![].into()
         };

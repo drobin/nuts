@@ -25,6 +25,16 @@ use crate::kdf::Kdf;
 use crate::tests::RND;
 
 #[test]
+fn is_none() {
+    assert!(!Kdf::pbkdf2(Digest::Sha1, 5, &[1, 2, 3]).is_none());
+}
+
+#[test]
+fn is_pbkdf2() {
+    assert!(Kdf::pbkdf2(Digest::Sha1, 5, &[1, 2, 3]).is_pbkdf2());
+}
+
+#[test]
 fn ok() {
     match Kdf::pbkdf2(Digest::Sha1, 5, &[1, 2, 3]) {
         Kdf::Pbkdf2 {
@@ -85,7 +95,19 @@ fn create_key_empty_password() {
         iterations: 1,
         salt: vec![1, 2, 3],
     }
-    .create_key(b"")
+    .create_key(b"", 0)
+    .unwrap();
+}
+
+#[test]
+#[should_panic(expected = "invalid password, cannot be empty")]
+fn create_key_empty_password_min_len() {
+    Kdf::Pbkdf2 {
+        digest: Digest::Sha1,
+        iterations: 1,
+        salt: vec![1, 2, 3],
+    }
+    .create_key(b"", 40)
     .unwrap();
 }
 
@@ -97,7 +119,19 @@ fn create_key_empty_salt() {
         iterations: 1,
         salt: vec![],
     }
-    .create_key(b"123")
+    .create_key(b"123", 0)
+    .unwrap();
+}
+
+#[test]
+#[should_panic(expected = "invalid salt, cannot be empty")]
+fn create_key_empty_salt_min_len() {
+    Kdf::Pbkdf2 {
+        digest: Digest::Sha1,
+        iterations: 1,
+        salt: vec![],
+    }
+    .create_key(b"123", 40)
     .unwrap();
 }
 
@@ -108,13 +142,33 @@ fn create_key() {
         iterations: 1,
         salt: vec![1, 2, 3],
     }
-    .create_key(b"123")
+    .create_key(b"123", 0)
     .unwrap();
 
     assert_eq!(
         *wkey,
         vec![
             96, 23, 159, 91, 244, 187, 88, 88, 95, 129, 91, 252, 136, 14, 242, 207, 92, 3, 153, 56
+        ]
+    );
+}
+
+#[test]
+fn create_key_min_len() {
+    let wkey = Kdf::Pbkdf2 {
+        digest: Digest::Sha1,
+        iterations: 1,
+        salt: vec![1, 2, 3],
+    }
+    .create_key(b"123", 40)
+    .unwrap();
+
+    assert_eq!(
+        *wkey,
+        vec![
+            96, 23, 159, 91, 244, 187, 88, 88, 95, 129, 91, 252, 136, 14, 242, 207, 92, 3, 153, 56,
+            159, 230, 186, 49, 251, 28, 245, 142, 70, 116, 156, 198, 209, 111, 247, 255, 216, 59,
+            170, 138
         ]
     );
 }

@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use log::{debug, trace};
 use openssl::error::ErrorStack;
 use openssl::pkcs5::pbkdf2_hmac;
 use std::fmt;
@@ -72,6 +73,30 @@ pub enum Kdf {
 }
 
 impl Kdf {
+    /// Tests whether this is a [`None`](Self::None) kdf.
+    pub fn is_none(&self) -> bool {
+        match self {
+            Kdf::None => true,
+            Kdf::Pbkdf2 {
+                digest: _,
+                iterations: _,
+                salt: _,
+            } => false,
+        }
+    }
+
+    /// Tests whether this is a [`Pbkdf2`](Self::Pbkdf2) kdf.
+    pub fn is_pbkdf2(&self) -> bool {
+        match self {
+            Kdf::None => false,
+            Kdf::Pbkdf2 {
+                digest: _,
+                iterations: _,
+                salt: _,
+            } => true,
+        }
+    }
+
     /// Creates a `Kdf` instance for the PBKDF2 algorithm.
     ///
     /// The `digest`, `iterations` and the `salt` values are used to customize
@@ -154,7 +179,7 @@ impl Kdf {
         })
     }
 
-    pub(crate) fn create_key(&self, password: &[u8]) -> Result<SecureVec, KdfError> {
+    fn create_key_internal(&self, password: &[u8]) -> Result<SecureVec, KdfError> {
         match self {
             Kdf::None => Ok(vec![].into()),
             Kdf::Pbkdf2 {
@@ -178,6 +203,26 @@ impl Kdf {
                 Ok(key.into())
             }
         }
+    }
+
+    pub(crate) fn create_key(
+        &self,
+        password: &[u8],
+        min_len: usize,
+    ) -> Result<SecureVec, KdfError> {
+        let mut key = self.create_key_internal(password)?;
+
+        // ignore min_len for None
+        while !self.is_none() && key.len() < min_len {
+            let xxx = self.create_key_internal(&key)?;
+            key.extend(xxx.as_ref());
+
+            trace!("create_key (step): len = {}", key.len());
+        }
+
+        debug!("create_key: min_len = {}, len = {}", min_len, key.len());
+
+        Ok(key)
     }
 
     pub(crate) fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Kdf, BufferError> {

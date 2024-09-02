@@ -23,14 +23,37 @@
 use crate::kdf::Kdf;
 
 #[test]
+fn is_none() {
+    assert!(Kdf::None.is_none());
+}
+
+#[test]
+fn is_pbkdf2() {
+    assert!(!Kdf::None.is_pbkdf2());
+}
+
+#[test]
 fn create_key_empty_password() {
-    let key = Kdf::None.create_key(b"").unwrap();
+    let key = Kdf::None.create_key(b"", 0).unwrap();
+    assert_eq!(*key, []);
+}
+
+#[test]
+fn create_key_empty_password_min_len() {
+    let key = Kdf::None.create_key(b"", 10).unwrap();
     assert_eq!(*key, []);
 }
 
 #[test]
 fn create_key() {
-    let key = Kdf::None.create_key(b"123").unwrap();
+    let key = Kdf::None.create_key(b"123", 0).unwrap();
+
+    assert_eq!(*key, []);
+}
+
+#[test]
+fn create_key_min_len() {
+    let key = Kdf::None.create_key(b"123", 10).unwrap();
 
     assert_eq!(*key, []);
 }
