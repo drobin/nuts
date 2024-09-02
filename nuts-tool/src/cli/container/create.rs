@@ -28,7 +28,7 @@ use nuts_tool_api::tool::Plugin;
 
 use crate::backend::{PluginBackend, PluginBackendCreateBuilder};
 use crate::cli::ask_for_password;
-use crate::cli::container::{CliCipher, AES128_GCM};
+use crate::cli::container::{CliCipher, AES256_GCM};
 use crate::config::{ContainerConfig, PluginConfig};
 
 #[derive(Args, Debug)]
@@ -41,7 +41,7 @@ pub struct ContainerCreateArgs {
     plugin: String,
 
     /// Sets the cipher to CIPHER.
-    #[clap(short, long, value_parser = value_parser!(CliCipher), default_value = AES128_GCM)]
+    #[clap(short, long, value_parser = value_parser!(CliCipher), default_value = AES256_GCM)]
     cipher: CliCipher,
 
     /// Specifies the key derivation function.
