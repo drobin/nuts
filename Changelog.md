@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2024-09-03
+
+### Changed
+
+* Header of container refactored. Removed userdata, added top-id.
+  Define a migration to migrate top-id out of the userdata.
+
+### Added
+
+* Add some ciphers: aes192-ctr, aes256-ctr, es192-gcm, aes256-gcm
+* Add some digests: sha224, sha256, sha284, sha512
+
 ## [0.6.8] - 2024-07-31
 
 ### Fixed
@@ -463,3 +475,4 @@ Initial public release.
 [0.6.6]: https://github.com/drobin/nuts/tree/v0.6.6
 [0.6.7]: https://github.com/drobin/nuts/tree/v0.6.7
 [0.6.8]: https://github.com/drobin/nuts/tree/v0.6.8
+[0.7.0]: https://github.com/drobin/nuts/tree/v0.7.0

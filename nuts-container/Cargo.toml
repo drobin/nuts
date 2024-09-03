@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-container"
-version = "0.6.8"
+version = "0.7.0"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A secure storage library"
@@ -41,9 +41,9 @@ debug-plain-keys = []
 
 [dependencies]
 log = "0.4.21"
-nuts-backend = { path = "../nuts-backend", version = "=0.6.8" }
+nuts-backend = { path = "../nuts-backend", version = "=0.7.0" }
 openssl = { version = "0.10.66", features = ["vendored"] }
 thiserror = "1.0.61"
 
 [dev-dependencies]
-nuts-memory = { path = "../nuts-memory", version = "=0.6.8" }
+nuts-memory = { path = "../nuts-memory", version = "=0.7.0" }
