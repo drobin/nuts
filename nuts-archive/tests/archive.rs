@@ -50,11 +50,12 @@ fn open() {
     use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
     use tempfile::{Builder, TempDir};
 
-    // This will create an empty archive in a temporary directory.
-    let tmp_dir = {
-        let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
+    let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 
-        let backend_options = CreateOptions::for_path(&dir);
+    {
+        // This will create an empty archive in a temporary directory.
+
+        let backend_options = CreateOptions::for_path(dir.path().to_owned());
         let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
             .with_password_callback(|| Ok(b"123".to_vec()))
             .build::<DirectoryBackend<&TempDir>>()
@@ -62,12 +63,10 @@ fn open() {
         let container = Container::create(backend_options, container_options).unwrap();
 
         Container::create_service::<ArchiveFactory>(container).unwrap();
-
-        dir
-    };
+    }
 
     // Open the archive service (with a directory backend) from the temporary directory.
-    let backend_options = OpenOptions::for_path(tmp_dir);
+    let backend_options = OpenOptions::for_path(dir);
     let container_options = OpenOptionsBuilder::new()
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<TempDir>>()
@@ -88,11 +87,12 @@ fn append() {
     use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
     use tempfile::{Builder, TempDir};
 
-    // This will create an empty archive in a temporary directory.
-    let tmp_dir = {
-        let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
+    let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 
-        let backend_options = CreateOptions::for_path(&dir);
+    {
+        // This will create an empty archive in a temporary directory.
+
+        let backend_options = CreateOptions::for_path(dir.path().to_owned());
         let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
             .with_password_callback(|| Ok(b"123".to_vec()))
             .build::<DirectoryBackend<&TempDir>>()
@@ -100,12 +100,10 @@ fn append() {
         let container = Container::create(backend_options, container_options).unwrap();
 
         Container::create_service::<ArchiveFactory>(container).unwrap();
-
-        dir
-    };
+    }
 
     // Open the archive (with a directory backend) from the temporary directory.
-    let backend_options = OpenOptions::for_path(tmp_dir);
+    let backend_options = OpenOptions::for_path(dir);
     let container_options = OpenOptionsBuilder::new()
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<TempDir>>()
@@ -138,11 +136,12 @@ fn scan() {
     use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
     use tempfile::{Builder, TempDir};
 
-    // This will create an empty archive in a temporary directory.
-    let tmp_dir = {
-        let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
+    let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 
-        let backend_options = CreateOptions::for_path(&dir);
+    {
+        // This will create an empty archive in a temporary directory.
+
+        let backend_options = CreateOptions::for_path(dir.path().to_owned());
         let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
             .with_password_callback(|| Ok(b"123".to_vec()))
             .build::<DirectoryBackend<&TempDir>>()
@@ -150,12 +149,10 @@ fn scan() {
         let container = Container::create(backend_options, container_options).unwrap();
 
         Container::create_service::<ArchiveFactory>(container).unwrap();
-
-        dir
-    };
+    }
 
     // Open the archive (with a directory backend) from the temporary directory.
-    let backend_options = OpenOptions::for_path(tmp_dir);
+    let backend_options = OpenOptions::for_path(dir);
     let container_options = OpenOptionsBuilder::new()
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<TempDir>>()

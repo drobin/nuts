@@ -89,12 +89,14 @@ impl<B: Backend> Pager<B> {
             .map_err(|err| err.into())
     }
 
-    pub fn top_id(&mut self) -> Option<Id<B>> {
-        self.container.top_id().cloned().map(Id::new)
+    pub fn top_id(&mut self) -> ArchiveResult<Option<Id<B>>, B> {
+        let id = self.container.top_id()?.map(|id| Id::new(id.into_owned()));
+
+        Ok(id)
     }
 
     pub fn top_id_or_err(&mut self) -> ArchiveResult<Id<B>, B> {
-        self.top_id().ok_or(Error::NoTopId)
+        self.top_id()?.ok_or(Error::NoTopId)
     }
 
     fn whiteout(&mut self) {

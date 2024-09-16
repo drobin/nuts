@@ -256,12 +256,13 @@ mod svec;
 mod tests;
 
 use log::debug;
-use migrate::Migrator;
 use nuts_backend::{Backend, Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
+use std::borrow::Cow;
 use std::{any, cmp};
 
 use crate::cipher::CipherContext;
 use crate::header::Header;
+use crate::migrate::Migrator;
 use crate::password::PasswordStore;
 
 pub use buffer::BufferError;
@@ -295,7 +296,7 @@ macro_rules! map_err {
 pub struct Container<B: Backend> {
     backend: B,
     store: PasswordStore,
-    header: Header<B>,
+    header: Header<'static, B>,
     ctx: CipherContext,
 }
 
@@ -328,13 +329,13 @@ impl<B: Backend> Container<B> {
         options: CreateOptions,
     ) -> ContainerResult<Container<B>, B> {
         let mut header_bytes = [0; HEADER_MAX_SIZE];
-        let header = Header::<B>::create(&options)?;
         let settings = backend_options.settings();
+        let header = Header::create(&options, settings)?;
 
         let callback = options.callback.clone();
         let mut store = PasswordStore::new(callback);
 
-        header.write(settings, &mut header_bytes, &mut store)?;
+        header.write(&mut header_bytes, &mut store)?;
 
         let backend = map_err!(backend_options.build(header_bytes, options.overwrite))?;
 
@@ -344,7 +345,7 @@ impl<B: Backend> Container<B> {
             header
         );
 
-        let ctx = CipherContext::new(header.cipher);
+        let ctx = CipherContext::new(header.cipher());
 
         Ok(Container {
             backend,
@@ -368,7 +369,7 @@ impl<B: Backend> Container<B> {
     ) -> Result<F::Service, F::Err> {
         if F::Service::need_top_id() {
             let id = container.aquire()?;
-            container.update_header(|header| header.top_id = Some(id))?;
+            container.update_header(|header| header.set_top_id(id))?;
         }
 
         F::create(container)
@@ -377,12 +378,13 @@ impl<B: Backend> Container<B> {
     fn inner_open<O: Open<B>>(
         mut backend_options: O,
         options: OpenOptions,
-        migrator: Migrator,
+        migrator: Migrator<'static>,
     ) -> ContainerResult<Container<B>, B> {
         let callback = options.callback.clone();
         let mut store = PasswordStore::new(callback);
 
-        let (header, settings) = Self::read_header(&mut backend_options, migrator, &mut store)?;
+        let header = Self::read_header(&mut backend_options, migrator, &mut store)?;
+        let settings = header.settings().clone();
         let backend = map_err!(backend_options.build(settings))?;
 
         debug!(
@@ -391,7 +393,7 @@ impl<B: Backend> Container<B> {
             header
         );
 
-        let ctx = CipherContext::new(header.cipher);
+        let ctx = CipherContext::new(header.cipher());
 
         Ok(Container {
             backend,
@@ -468,9 +470,9 @@ impl<B: Backend> Container<B> {
 
         Ok(Info {
             backend,
-            revision: self.header.revision,
-            cipher: self.header.cipher,
-            kdf: self.header.kdf.clone(),
+            revision: self.header.revision(),
+            cipher: self.header.cipher(),
+            kdf: self.header.kdf().clone(),
             bsize_gross: self.backend.block_size(),
             bsize_net: self.block_size(),
         })
@@ -483,8 +485,8 @@ impl<B: Backend> Container<B> {
     /// encrypted in the header of the container. Calling this method will
     /// neither fetch nor create the _top-id_. It returns an entry, where you
     /// can decide what to do.
-    pub fn top_id(&mut self) -> Option<&B::Id> {
-        self.header.top_id.as_ref()
+    pub fn top_id(&self) -> ContainerResult<Option<Cow<B::Id>>, B> {
+        self.header.top_id().map_err(Into::into)
     }
 
     /// The (net) block size specifies the number of userdata bytes you can
@@ -498,7 +500,7 @@ impl<B: Backend> Container<B> {
     pub fn block_size(&self) -> u32 {
         self.backend
             .block_size()
-            .saturating_sub(self.header.cipher.tag_size())
+            .saturating_sub(self.header.cipher().tag_size())
     }
 
     /// Aquires a new block in the backend.
@@ -515,8 +517,8 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`Error`] type.
     pub fn aquire(&mut self) -> ContainerResult<B::Id, B> {
-        let key = &self.header.key;
-        let iv = &self.header.iv;
+        let key = self.header.key();
+        let iv = self.header.iv();
 
         self.ctx.copy_from_slice(self.block_size() as usize, &[]);
         let ctext = self.ctx.encrypt(key, iv)?;
@@ -557,8 +559,8 @@ impl<B: Backend> Container<B> {
         let ctext = self.ctx.inp_mut(self.backend.block_size() as usize);
         map_err!(self.backend.read(id, ctext))?;
 
-        let key = &self.header.key;
-        let iv = &self.header.iv;
+        let key = self.header.key();
+        let iv = self.header.iv();
 
         let ptext = self.ctx.decrypt(key, iv)?;
 
@@ -590,8 +592,8 @@ impl<B: Backend> Container<B> {
     pub fn write(&mut self, id: &B::Id, buf: &[u8]) -> ContainerResult<usize, B> {
         let len = self.ctx.copy_from_slice(self.block_size() as usize, buf);
 
-        let key = &self.header.key;
-        let iv = &self.header.iv;
+        let key = self.header.key();
+        let iv = self.header.iv();
 
         let ctext = self.ctx.encrypt(key, iv)?;
 
@@ -600,9 +602,9 @@ impl<B: Backend> Container<B> {
 
     fn read_header<H: ReceiveHeader<B>>(
         reader: &mut H,
-        migrator: Migrator,
+        migrator: Migrator<'static>,
         store: &mut PasswordStore,
-    ) -> ContainerResult<(Header<B>, B::Settings), B> {
+    ) -> ContainerResult<Header<'static, B>, B> {
         let mut buf = [0; HEADER_MAX_SIZE];
 
         match reader.get_header_bytes(&mut buf) {
@@ -616,8 +618,7 @@ impl<B: Backend> Container<B> {
 
     fn update_header<F: FnOnce(&mut Header<B>)>(&mut self, f: F) -> ContainerResult<(), B> {
         let migrator = Migrator::default();
-        let (mut header, settings) =
-            Self::read_header(&mut self.backend, migrator, &mut self.store)?;
+        let mut header = Self::read_header(&mut self.backend, migrator, &mut self.store)?;
         let mut header_bytes = [0; HEADER_MAX_SIZE];
 
         debug!("header before update: {:?}", header);
@@ -626,7 +627,7 @@ impl<B: Backend> Container<B> {
 
         debug!("header after update: {:?}", header);
 
-        header.write(settings, &mut header_bytes, &mut self.store)?;
+        header.write(&mut header_bytes, &mut self.store)?;
         map_err!(self.backend.write_header(&header_bytes))?;
 
         self.header = header;

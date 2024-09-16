@@ -28,7 +28,7 @@ use tempfile::{Builder, TempDir};
 fn setup_archive() -> TempDir {
     let tmp_dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 
-    let backend_options = CreateOptions::for_path(&tmp_dir);
+    let backend_options = CreateOptions::for_path(tmp_dir.path().to_owned());
     let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<&TempDir>>()

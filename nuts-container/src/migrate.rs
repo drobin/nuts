@@ -23,6 +23,7 @@
 #[cfg(test)]
 mod tests;
 
+use std::fmt;
 use thiserror::Error;
 
 use crate::svec::SecureVec;
@@ -65,5 +66,13 @@ impl<'a> Migrator<'a> {
         } else {
             Ok(None)
         }
+    }
+}
+
+impl<'a> fmt::Debug for Migrator<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_tuple("Migrator")
+            .field(&self.0.as_ref().map(|_| "..."))
+            .finish()
     }
 }

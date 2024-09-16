@@ -62,11 +62,12 @@
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
 //! use tempfile::{Builder, TempDir};
 //!
-//! // This will create an empty archive in a temporary directory.
-//! let tmp_dir = {
-//!     let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
+//! let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 //!
-//!     let backend_options = CreateOptions::for_path(&dir);
+//! {
+//!     // This will create an empty archive in a temporary directory.
+//!
+//!     let backend_options = CreateOptions::for_path(dir.path().to_owned());
 //!     let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
 //!         .with_password_callback(|| Ok(b"123".to_vec()))
 //!         .build::<DirectoryBackend<&TempDir>>()
@@ -74,12 +75,10 @@
 //!     let container = Container::create(backend_options, container_options).unwrap();
 //!
 //!     Container::create_service::<ArchiveFactory>(container).unwrap();
-//!
-//!     dir
-//! };
+//! }
 //!
 //! // Open the archive service (with a directory backend) from the temporary directory.
-//! let backend_options = OpenOptions::for_path(tmp_dir);
+//! let backend_options = OpenOptions::for_path(dir);
 //! let container_options = OpenOptionsBuilder::new()
 //!     .with_password_callback(|| Ok(b"123".to_vec()))
 //!     .build::<DirectoryBackend<TempDir>>()
@@ -101,11 +100,12 @@
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
 //! use tempfile::{Builder, TempDir};
 //!
-//! // This will create an empty archive in a temporary directory.
-//! let tmp_dir = {
-//!     let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
+//! let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 //!
-//!     let backend_options = CreateOptions::for_path(&dir);
+//! {
+//!     // This will create an empty archive in a temporary directory.
+//!
+//!     let backend_options = CreateOptions::for_path(dir.path().to_owned());
 //!     let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
 //!         .with_password_callback(|| Ok(b"123".to_vec()))
 //!         .build::<DirectoryBackend<&TempDir>>()
@@ -113,12 +113,10 @@
 //!     let container = Container::create(backend_options, container_options).unwrap();
 //!
 //!     Container::create_service::<ArchiveFactory>(container).unwrap();
-//!
-//!     dir
-//! };
+//! }
 //!
 //! // Open the archive (with a directory backend) from the temporary directory.
-//! let backend_options = OpenOptions::for_path(tmp_dir);
+//! let backend_options = OpenOptions::for_path(dir);
 //! let container_options = OpenOptionsBuilder::new()
 //!     .with_password_callback(|| Ok(b"123".to_vec()))
 //!     .build::<DirectoryBackend<TempDir>>()
@@ -152,11 +150,12 @@
 //! use nuts_directory::{CreateOptions, DirectoryBackend, OpenOptions};
 //! use tempfile::{Builder, TempDir};
 //!
-//! // This will create an empty archive in a temporary directory.
-//! let tmp_dir = {
-//!     let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
+//! let dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 //!
-//!     let backend_options = CreateOptions::for_path(&dir);
+//! {
+//!     // This will create an empty archive in a temporary directory.
+//!
+//!     let backend_options = CreateOptions::for_path(dir.path().to_owned());
 //!     let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
 //!         .with_password_callback(|| Ok(b"123".to_vec()))
 //!         .build::<DirectoryBackend<&TempDir>>()
@@ -164,12 +163,10 @@
 //!     let container = Container::create(backend_options, container_options).unwrap();
 //!
 //!     Container::create_service::<ArchiveFactory>(container).unwrap();
-//!
-//!     dir
-//! };
+//! }
 //!
 //! // Open the archive (with a directory backend) from the temporary directory.
-//! let backend_options = OpenOptions::for_path(tmp_dir);
+//! let backend_options = OpenOptions::for_path(dir);
 //! let container_options = OpenOptionsBuilder::new()
 //!     .with_password_callback(|| Ok(b"123".to_vec()))
 //!     .build::<DirectoryBackend<TempDir>>()
@@ -404,7 +401,7 @@ impl<B: Backend> Archive<B> {
     }
 }
 
-impl<B: Backend> Service<B> for Archive<B> {
+impl<B: Backend + 'static> Service<B> for Archive<B> {
     type Migration = Migration<B>;
 
     fn need_top_id() -> bool {
@@ -419,7 +416,7 @@ impl<B: Backend> Service<B> for Archive<B> {
 #[derive(Default)]
 pub struct ArchiveFactory;
 
-impl<B: Backend> ServiceFactory<B> for ArchiveFactory {
+impl<B: Backend + 'static> ServiceFactory<B> for ArchiveFactory {
     type Service = Archive<B>;
     type Err = Error<B>;
 

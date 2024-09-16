@@ -22,19 +22,19 @@
 
 mod plain_secret;
 mod revision;
-mod secret;
 #[cfg(test)]
 mod tests;
 
 use nuts_backend::{Backend, Binary};
 use openssl::error::ErrorStack;
-use std::fmt::{self, Write as FmtWrite};
+use plain_secret::PlainSecret;
+use std::borrow::Cow;
+use std::fmt;
+use std::ops::DerefMut;
 use thiserror::Error;
 
-use crate::buffer::BufferError;
-use crate::cipher::{Cipher, CipherError};
-use crate::header::plain_secret::generate_plain_secret;
-use crate::header::plain_secret::{Encryptor, PlainSecretRev0, PlainSecretRev1};
+use crate::buffer::{BufferError, ToBuffer};
+use crate::cipher::{Cipher, CipherContext, CipherError};
 use crate::header::revision::{Data, Revision};
 use crate::kdf::{Kdf, KdfError};
 use crate::migrate::{MigrationError, Migrator};
@@ -70,6 +70,10 @@ pub enum HeaderError {
     #[error("invalid settings")]
     InvalidSettings,
 
+    /// Invalid top-id, could not parse top-id from header.
+    #[error("invalid top-id")]
+    InvalidTopId,
+
     /// Error while (de-) serializing binary data.
     #[error(transparent)]
     Buffer(#[from] BufferError),
@@ -83,17 +87,19 @@ pub enum HeaderError {
     Migration(#[from] MigrationError),
 }
 
-pub struct Header<B: Backend> {
-    pub(crate) revision: u32,
-    pub(crate) cipher: Cipher,
-    pub(crate) kdf: Kdf,
-    pub(crate) key: SecureVec,
-    pub(crate) iv: SecureVec,
-    pub(crate) top_id: Option<B::Id>,
+pub struct Header<'a, B: Backend> {
+    revision: u32,
+    migrator: Migrator<'a>,
+    cipher: Cipher,
+    kdf: Kdf,
+    data: PlainSecret<B>,
 }
 
-impl<B: Backend> Header<B> {
-    pub fn create(options: &CreateOptions) -> Result<Header<B>, HeaderError> {
+impl<'a, B: Backend> Header<'a, B> {
+    pub fn create(
+        options: &CreateOptions,
+        settings: B::Settings,
+    ) -> Result<Header<'a, B>, HeaderError> {
         let cipher = options.cipher;
         let mut key = vec![0; cipher.key_len()];
         let mut iv = vec![0; cipher.iv_len()];
@@ -102,22 +108,22 @@ impl<B: Backend> Header<B> {
         ossl::rand_bytes(&mut iv)?;
 
         let kdf = options.kdf.build()?;
+        let plain_secret = PlainSecret::create_latest(key.into(), iv.into(), settings)?;
 
-        Ok(Header::<B> {
+        Ok(Header {
             revision: 1,
+            migrator: Migrator::default(),
             cipher,
             kdf,
-            key: key.into(),
-            iv: iv.into(),
-            top_id: None,
+            data: plain_secret,
         })
     }
 
     pub fn read(
         buf: &[u8],
-        migrator: Migrator,
+        migrator: Migrator<'a>,
         store: &mut PasswordStore,
-    ) -> Result<(Header<B>, B::Settings), HeaderError> {
+    ) -> Result<Header<'a, B>, HeaderError> {
         match Revision::get_from_buffer(&mut &buf[..])? {
             Revision::Rev0(data) => Self::read_rev0(data, migrator, store),
             Revision::Rev1(data) => Self::read_rev1(data, migrator, store),
@@ -126,119 +132,148 @@ impl<B: Backend> Header<B> {
 
     fn read_rev0(
         data: Data,
-        migrator: Migrator,
+        migrator: Migrator<'a>,
         store: &mut PasswordStore,
-    ) -> Result<(Header<B>, B::Settings), HeaderError> {
-        let plain_secret =
-            data.secret
-                .decrypt::<PlainSecretRev0>(store, data.cipher, &data.kdf, &data.iv)?;
-        let settings =
-            B::Settings::from_bytes(&plain_secret.settings).ok_or(HeaderError::InvalidSettings)?;
+    ) -> Result<Header<'a, B>, HeaderError> {
+        let key = Self::create_key(data.cipher, &data.kdf, store)?;
+        let mut ctx = Self::prepare_cipher_ctx(data.cipher, &data.secret);
 
-        let top_id_vec = migrator.migrate_rev0(&plain_secret.userdata)?;
-        let top_id = match top_id_vec {
-            Some(vec) => <B::Id as Binary>::from_bytes(&vec),
-            None => None,
-        };
+        let pbuf = ctx.decrypt(&key, &data.iv)?;
+        let plain_secret = PlainSecret::from_buffer_rev0(&mut &pbuf[..])?;
 
-        Ok((
-            Header {
-                revision: 0,
-                cipher: data.cipher,
-                kdf: data.kdf,
-                key: plain_secret.key,
-                iv: plain_secret.iv,
-                top_id,
-            },
-            settings,
-        ))
+        Ok(Header {
+            revision: 0,
+            migrator,
+            cipher: data.cipher,
+            kdf: data.kdf,
+            data: plain_secret,
+        })
     }
 
     fn read_rev1(
         data: Data,
-        _migrator: Migrator,
+        migrator: Migrator<'a>,
         store: &mut PasswordStore,
-    ) -> Result<(Header<B>, B::Settings), HeaderError> {
-        let plain_secret =
-            data.secret
-                .decrypt::<PlainSecretRev1>(store, data.cipher, &data.kdf, &data.iv)?;
-        let settings =
-            B::Settings::from_bytes(&plain_secret.settings).ok_or(HeaderError::InvalidSettings)?;
+    ) -> Result<Header<'a, B>, HeaderError> {
+        let key = Self::create_key(data.cipher, &data.kdf, store)?;
+        let mut ctx = Self::prepare_cipher_ctx(data.cipher, &data.secret);
 
-        let top_id = match plain_secret.top_id {
-            Some(vec) => <B::Id as Binary>::from_bytes(&vec),
-            None => None,
-        };
+        let pbuf = ctx.decrypt(&key, &data.iv)?;
+        let plain_secret = PlainSecret::from_buffer_rev1(&mut &pbuf[..])?;
 
-        Ok((
-            Header {
-                revision: 1,
-                cipher: data.cipher,
-                kdf: data.kdf,
-                key: plain_secret.key,
-                iv: plain_secret.iv,
-                top_id,
-            },
-            settings,
-        ))
+        Ok(Header {
+            revision: 1,
+            migrator,
+            cipher: data.cipher,
+            kdf: data.kdf,
+            data: plain_secret,
+        })
     }
 
-    pub fn write(
-        &self,
-        settings: B::Settings,
-        buf: &mut [u8],
-        store: &mut PasswordStore,
-    ) -> Result<(), HeaderError> {
-        let top_id_vec = self
-            .top_id
-            .as_ref()
-            .map(|id| <B::Id as Binary>::as_bytes(id).into());
-
-        let plain_secret = generate_plain_secret(
-            self.key.clone(),
-            self.iv.clone(),
-            top_id_vec,
-            settings.as_bytes().into(),
-        )?;
-
+    pub fn write(&self, buf: &mut [u8], store: &mut PasswordStore) -> Result<(), HeaderError> {
         let mut iv = vec![0; self.cipher.iv_len()];
         ossl::rand_bytes(&mut iv)?;
 
-        let secret = plain_secret.encrypt(store, self.cipher, &self.kdf, &iv)?;
-        let rev = Revision::latest(self.cipher, iv, self.kdf.clone(), secret);
+        let mut pbuf: SecureVec = vec![].into();
+        self.data.to_buffer(pbuf.deref_mut())?;
+
+        let key = Self::create_key(self.cipher, &self.kdf, store)?;
+        let mut ctx = Self::prepare_cipher_ctx(self.cipher, &pbuf);
+
+        let cbuf = ctx.encrypt(&key, &iv)?;
+        let secret = cbuf.to_vec();
+
+        let rev = match self.data {
+            PlainSecret::Rev0(_) => Revision::new_rev0(self.cipher, iv, self.kdf.clone(), secret),
+            PlainSecret::Rev1(_) => Revision::new_rev1(self.cipher, iv, self.kdf.clone(), secret),
+        };
 
         rev.put_into_buffer(&mut &mut buf[..])
     }
+
+    pub fn revision(&self) -> u32 {
+        self.revision
+    }
+
+    pub fn cipher(&self) -> Cipher {
+        self.cipher
+    }
+
+    pub fn kdf(&self) -> &Kdf {
+        &self.kdf
+    }
+
+    pub fn settings(&self) -> &B::Settings {
+        match &self.data {
+            PlainSecret::Rev0(rev0) => &rev0.settings,
+            PlainSecret::Rev1(rev1) => &rev1.settings,
+        }
+    }
+
+    pub fn key(&self) -> &[u8] {
+        match &self.data {
+            PlainSecret::Rev0(rev0) => &rev0.key,
+            PlainSecret::Rev1(rev1) => &rev1.key,
+        }
+    }
+
+    pub fn iv(&self) -> &[u8] {
+        match &self.data {
+            PlainSecret::Rev0(rev0) => &rev0.iv,
+            PlainSecret::Rev1(rev1) => &rev1.iv,
+        }
+    }
+
+    pub fn top_id(&'a self) -> Result<Option<Cow<'a, B::Id>>, HeaderError> {
+        match &self.data {
+            PlainSecret::Rev0(rev0) => match self.migrator.migrate_rev0(&rev0.userdata)? {
+                Some(vec) => match <B::Id as Binary>::from_bytes(&vec) {
+                    Some(id) => Ok(Some(Cow::Owned(id))),
+                    None => Err(HeaderError::InvalidTopId),
+                },
+                None => Ok(None),
+            },
+            PlainSecret::Rev1(rev1) => Ok(rev1.top_id.as_ref().map(Cow::Borrowed)),
+        }
+    }
+
+    pub fn set_top_id(&mut self, id: B::Id) {
+        match &mut self.data {
+            PlainSecret::Rev0(_) => panic!("storing a top-id into a rev0 header is not supported"),
+            PlainSecret::Rev1(rev1) => rev1.top_id = Some(id),
+        }
+    }
+
+    fn prepare_cipher_ctx(cipher: Cipher, input: &[u8]) -> CipherContext {
+        let mut ctx = CipherContext::new(cipher);
+
+        ctx.copy_from_slice(input.len(), input);
+
+        ctx
+    }
+
+    fn create_key(
+        cipher: Cipher,
+        kdf: &Kdf,
+        store: &mut PasswordStore,
+    ) -> Result<SecureVec, HeaderError> {
+        if cipher.key_len() > 0 {
+            let password = store.value()?;
+            Ok(kdf.create_key(password, cipher.key_len())?)
+        } else {
+            Ok(vec![].into())
+        }
+    }
 }
 
-impl<B: Backend> fmt::Debug for Header<B> {
+impl<'a, B: Backend> fmt::Debug for Header<'a, B> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (key, iv) = if cfg!(feature = "debug-plain-keys") {
-            let mut key = String::with_capacity(2 * self.key.len());
-            let mut iv = String::with_capacity(2 * self.iv.len());
-
-            for n in self.key.iter() {
-                write!(key, "{:02x}", n)?;
-            }
-
-            for n in self.iv.iter() {
-                write!(iv, "{:02x}", n)?;
-            }
-
-            (key, iv)
-        } else {
-            (
-                format!("<{} bytes>", self.key.len()),
-                format!("<{} bytes>", self.iv.len()),
-            )
-        };
-
         fmt.debug_struct("Header")
+            .field("revision", &self.revision)
+            .field("migrator", &self.migrator)
             .field("cipher", &self.cipher)
             .field("kdf", &self.kdf)
-            .field("key", &key)
-            .field("iv", &iv)
-            .field("top_id", &self.top_id.as_ref().map(ToString::to_string))
+            .field("data", &self.data)
             .finish()
     }
 }

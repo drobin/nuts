@@ -33,7 +33,7 @@ use crate::Container;
 /// [`Container::create_service`].
 pub trait Service<B: Backend> {
     /// The migration assiciated with this service.
-    type Migration: Migration;
+    type Migration: Migration + 'static;
 
     /// Returns `true` if the service requires a top-id.
     ///

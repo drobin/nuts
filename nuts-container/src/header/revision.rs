@@ -23,20 +23,19 @@
 #[cfg(test)]
 mod tests;
 
-use crate::buffer::{Buffer, BufferError, BufferMut, FromBuffer, ToBuffer};
+use crate::buffer::{Buffer, BufferError, BufferMut};
 use crate::cipher::Cipher;
-use crate::header::secret::Secret;
 use crate::header::HeaderError;
 use crate::kdf::Kdf;
 
 const MAGIC: [u8; 7] = *b"nuts-io";
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Data {
     pub cipher: Cipher,
     pub iv: Vec<u8>,
     pub kdf: Kdf,
-    pub secret: Secret,
+    pub secret: Vec<u8>,
 }
 
 impl Data {
@@ -44,7 +43,7 @@ impl Data {
         let cipher = Cipher::get_from_buffer(buf)?;
         let iv = buf.get_vec::<8>()?;
         let kdf = Kdf::get_from_buffer(buf)?;
-        let secret = Secret::from_buffer(buf)?;
+        let secret = buf.get_vec::<8>()?;
 
         Ok(Data {
             cipher,
@@ -58,7 +57,7 @@ impl Data {
         Cipher::put_into_buffer(&self.cipher, buf)?;
         buf.put_vec::<8>(&self.iv)?;
         Kdf::put_into_buffer(&self.kdf, buf)?;
-        Secret::to_buffer(&self.secret, buf)?;
+        buf.put_vec::<8>(&self.secret)?;
 
         Ok(())
     }
@@ -71,13 +70,26 @@ pub enum Revision {
 }
 
 impl Revision {
-    pub fn latest(cipher: Cipher, iv: Vec<u8>, kdf: Kdf, secret: Secret) -> Revision {
-        Revision::Rev1(Data {
+    pub fn new_rev0(cipher: Cipher, iv: Vec<u8>, kdf: Kdf, secret: Vec<u8>) -> Revision {
+        let data = Data {
             cipher,
             iv,
             kdf,
             secret,
-        })
+        };
+
+        Revision::Rev0(data)
+    }
+
+    pub fn new_rev1(cipher: Cipher, iv: Vec<u8>, kdf: Kdf, secret: Vec<u8>) -> Revision {
+        let data = Data {
+            cipher,
+            iv,
+            kdf,
+            secret,
+        };
+
+        Revision::Rev1(data)
     }
 
     pub fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Revision, HeaderError> {

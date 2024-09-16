@@ -23,7 +23,6 @@
 use crate::buffer::BufferError;
 use crate::cipher::Cipher;
 use crate::header::revision::{Data, Revision};
-use crate::header::secret::Secret;
 use crate::header::HeaderError;
 use crate::kdf::Kdf;
 use crate::tests::into_error;
@@ -47,18 +46,31 @@ const REV1: [u8; 38] = [
 ];
 
 #[test]
-fn latest() {
-    let revision = Revision::latest(Cipher::None, vec![1], Kdf::None, Secret::new(vec![2, 3]));
+fn new_rev0() {
+    let revision = Revision::new_rev0(Cipher::None, vec![1], Kdf::None, vec![2, 3]);
 
-    match revision {
-        Revision::Rev0(_) => panic!("invalid revision"),
-        Revision::Rev1(data) => {
-            assert_eq!(data.cipher, Cipher::None);
-            assert_eq!(data.iv, [1]);
-            assert_eq!(data.kdf, Kdf::None);
-            assert_eq!(data.secret, [2, 3]);
-        }
-    }
+    let expected = Data {
+        cipher: Cipher::None,
+        iv: vec![1],
+        kdf: Kdf::None,
+        secret: vec![2, 3],
+    };
+
+    assert!(matches!(revision, Revision::Rev0(data) if data == expected));
+}
+
+#[test]
+fn new_rev1() {
+    let revision = Revision::new_rev1(Cipher::None, vec![1], Kdf::None, vec![2, 3]);
+
+    let expected = Data {
+        cipher: Cipher::None,
+        iv: vec![1],
+        kdf: Kdf::None,
+        secret: vec![2, 3],
+    };
+
+    assert!(matches!(revision, Revision::Rev1(data) if data == expected));
 }
 
 #[test]
@@ -106,7 +118,7 @@ fn ser_rev0() {
         cipher: Cipher::None,
         iv: vec![],
         kdf: Kdf::None,
-        secret: Secret::new(vec![1, 2, 3]),
+        secret: vec![1, 2, 3],
     });
 
     inner.put_into_buffer(&mut buf).unwrap();
@@ -144,7 +156,7 @@ fn ser_rev1() {
         cipher: Cipher::None,
         iv: vec![],
         kdf: Kdf::None,
-        secret: Secret::new(vec![1, 2, 3]),
+        secret: vec![1, 2, 3],
     });
 
     inner.put_into_buffer(&mut buf).unwrap();
