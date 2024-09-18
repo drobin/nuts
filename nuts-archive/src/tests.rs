@@ -40,7 +40,8 @@ pub fn setup_archive_with_bsize(bsize: u32) -> Archive<MemoryBackend> {
         .build::<MemoryBackend>()
         .unwrap();
 
-    Container::create_service::<MemoryBackend, ArchiveFactory>(backend, options).unwrap()
+    let container = Container::create(backend, options).unwrap();
+    Container::create_service::<ArchiveFactory>(container).unwrap()
 }
 
 pub fn setup_container_with_bsize(bsize: u32) -> Container<MemoryBackend> {

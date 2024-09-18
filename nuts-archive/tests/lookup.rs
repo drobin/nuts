@@ -29,12 +29,13 @@ fn setup_archive() -> TempDir {
     let tmp_dir = Builder::new().prefix("nuts-archive").tempdir().unwrap();
 
     let backend_options = CreateOptions::for_path(&tmp_dir);
-    let contaner_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
+    let container_options = CreateOptionsBuilder::new(Cipher::Aes128Gcm)
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<&TempDir>>()
         .unwrap();
+    let container = Container::create(backend_options, container_options).unwrap();
 
-    Container::create_service::<_, ArchiveFactory>(backend_options, contaner_options).unwrap();
+    Container::create_service::<ArchiveFactory>(container).unwrap();
 
     tmp_dir
 }

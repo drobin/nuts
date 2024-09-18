@@ -354,22 +354,18 @@ impl<B: Backend> Container<B> {
         })
     }
 
-    /// Creates a [service](Service) running on top of a container.
+    /// Creates a [service](Service) running on top of the given `container`.
     ///
     /// Basically, this method performs the following tasks:
     ///
-    /// 1. It creates a new container with [`Self::create`].
-    /// 2. The super-block is created, if [requested by the service](Service::need_top_id).
-    /// 3. Uses [`ServiceFactory::create`] to create and return the service
+    /// 1. The super-block is created, if [requested by the service](Service::need_top_id).
+    /// 2. Uses [`ServiceFactory::create`] to create and return the service
     ///    instance.
     ///
     /// This should be the preferred way to create a nuts-service!
-    pub fn create_service<C: Create<B>, F: ServiceFactory<B>>(
-        backend_options: C,
-        options: CreateOptions,
+    pub fn create_service<F: ServiceFactory<B>>(
+        mut container: Container<B>,
     ) -> Result<F::Service, F::Err> {
-        let mut container = Self::create(backend_options, options)?;
-
         if F::Service::need_top_id() {
             let id = container.aquire()?;
             container.update_header(|header| header.top_id = Some(id))?;
