@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-backend"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A secure storage library"

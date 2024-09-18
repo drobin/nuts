@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.1] - 2024-09-18
+
+### Fixed
+
+* Fix `nuts archive create` invocation.
+
 ## [0.7.0] - 2024-09-03
 
 ### Changed
@@ -476,3 +482,4 @@ Initial public release.
 [0.6.7]: https://github.com/drobin/nuts/tree/v0.6.7
 [0.6.8]: https://github.com/drobin/nuts/tree/v0.6.8
 [0.7.0]: https://github.com/drobin/nuts/tree/v0.7.0
+[0.7.1]: https://github.com/drobin/nuts/tree/v0.7.1
