@@ -375,13 +375,31 @@ impl<B: Backend> Container<B> {
         F::create(container)
     }
 
-    fn inner_open<O: Open<B>>(
+    /// Opens an existing container.
+    ///
+    /// This method expects two arguments:
+    ///
+    /// 1. `backend_options`, which is a type that implements the [`Open`]
+    ///    trait. It acts as a builder for a concrete [`Backend`] instance.
+    /// 2. `options`, which is a builder of this `Container`. A
+    ///    [`OpenOptions`] instance can be created with the
+    ///    [`OpenOptionsBuilder`] utility.
+    ///
+    /// If encryption is turned on for the container, you will be asked for a
+    /// password over the
+    /// [password callback](OpenOptionsBuilder::with_password_callback). The
+    /// returned password is then used to decrypt the secure part of the header.
+    ///
+    /// # Errors
+    ///
+    /// Errors are listed in the [`Error`] type.
+    pub fn open<O: Open<B>>(
         mut backend_options: O,
         options: OpenOptions,
-        migrator: Migrator<'static>,
     ) -> ContainerResult<Container<B>, B> {
         let callback = options.callback.clone();
         let mut store = PasswordStore::new(callback);
+        let migrator = Migrator::default();
 
         let header = Self::read_header(&mut backend_options, migrator, &mut store)?;
         let settings = header.settings().clone();
@@ -403,49 +421,19 @@ impl<B: Backend> Container<B> {
         })
     }
 
-    /// Opens an existing container.
-    ///
-    /// This method expects two arguments:
-    ///
-    /// 1. `backend_options`, which is a type that implements the [`Open`]
-    ///    trait. It acts as a builder for a concrete [`Backend`] instance.
-    /// 2. `options`, which is a builder of this `Container`. A
-    ///    [`OpenOptions`] instance can be created with the
-    ///    [`OpenOptionsBuilder`] utility.
-    ///
-    /// If encryption is turned on for the container, you will be asked for a
-    /// password over the
-    /// [password callback](OpenOptionsBuilder::with_password_callback). The
-    /// returned password is then used to decrypt the secure part of the header.
-    ///
-    /// # Errors
-    ///
-    /// Errors are listed in the [`Error`] type.
-    pub fn open<O: Open<B>>(
-        backend_options: O,
-        options: OpenOptions,
-    ) -> ContainerResult<Container<B>, B> {
-        let migrator = Migrator::default();
-
-        Self::inner_open(backend_options, options, migrator)
-    }
-
     /// Opens a [service](Service) running on top of an existing container.
     ///
-    /// Basically, this method performs the following tasks:
-    ///
-    /// 1. It opens the container with [`Self::open`].
-    /// 2. Uses [`ServiceFactory::open`] to open and return the service
-    ///    instance.
+    /// Basically, this method uses [`ServiceFactory::open`] to open and return
+    /// the service instance.
     ///
     /// This should be the preferred way to open a nuts-service!
-    pub fn open_service<O: Open<B>, F: ServiceFactory<B>>(
-        backend_options: O,
-        options: OpenOptions,
+    pub fn open_service<F: ServiceFactory<B>>(
+        mut container: Container<B>,
     ) -> Result<F::Service, F::Err> {
         let migration = F::Service::migration();
         let migrator = Migrator::default().with_migration(migration);
-        let container = Self::inner_open(backend_options, options, migrator)?;
+
+        container.header.set_migrator(migrator);
 
         F::open(container)
     }

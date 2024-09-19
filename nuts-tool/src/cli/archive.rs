@@ -37,7 +37,7 @@ use crate::cli::archive::create::ArchiveCreateArgs;
 use crate::cli::archive::get::ArchiveGetArgs;
 use crate::cli::archive::info::ArchiveInfoArgs;
 use crate::cli::archive::list::ArchiveListArgs;
-use crate::cli::open_builder;
+use crate::cli::open_container;
 
 #[derive(Debug, Args)]
 #[clap(args_conflicts_with_subcommands = true, subcommand_required = true)]
@@ -85,7 +85,7 @@ impl ArchiveCommand {
 }
 
 fn open_archive(name: &str, verbose: u8) -> Result<Archive<PluginBackend>> {
-    let (plugin_builder, options) = open_builder(name, verbose)?;
+    let container = open_container(name, verbose)?;
 
-    Container::open_service::<_, ArchiveFactory>(plugin_builder, options).map_err(|err| err.into())
+    Container::open_service::<ArchiveFactory>(container).map_err(|err| err.into())
 }

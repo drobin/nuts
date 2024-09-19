@@ -46,8 +46,9 @@ fn open_archive(dir: TempDir) -> Archive<DirectoryBackend<TempDir>> {
         .with_password_callback(|| Ok(b"123".to_vec()))
         .build::<DirectoryBackend<TempDir>>()
         .unwrap();
+    let container = Container::open(backend_options, container_options).unwrap();
 
-    Container::open_service::<_, ArchiveFactory>(backend_options, container_options).unwrap()
+    Container::open_service::<ArchiveFactory>(container).unwrap()
 }
 
 #[test]

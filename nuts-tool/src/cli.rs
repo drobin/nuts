@@ -29,7 +29,7 @@ use anyhow::Result;
 use clap::{crate_version, ArgAction, Parser, Subcommand};
 use env_logger::Builder;
 use log::LevelFilter;
-use nuts_container::{Container, OpenOptions, OpenOptionsBuilder};
+use nuts_container::{Container, OpenOptionsBuilder};
 use nuts_tool_api::tool::Plugin;
 use rpassword::prompt_password;
 
@@ -94,7 +94,7 @@ impl Commands {
     }
 }
 
-fn open_builder(name: &str, verbose: u8) -> Result<(PluginBackendOpenBuilder, OpenOptions)> {
+fn open_container(name: &str, verbose: u8) -> Result<Container<PluginBackend>> {
     let container_config = ContainerConfig::load()?;
     let plugin_config = PluginConfig::load()?;
 
@@ -108,12 +108,6 @@ fn open_builder(name: &str, verbose: u8) -> Result<(PluginBackendOpenBuilder, Op
 
     let builder = OpenOptionsBuilder::new().with_password_callback(ask_for_password);
     let options = builder.build::<PluginBackend>()?;
-
-    Ok((plugin_builder, options))
-}
-
-fn open_container(name: &str, verbose: u8) -> Result<Container<PluginBackend>> {
-    let (plugin_builder, options) = open_builder(name, verbose)?;
 
     Container::open(plugin_builder, options).map_err(|err| err.into())
 }

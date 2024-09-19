@@ -244,6 +244,10 @@ impl<'a, B: Backend> Header<'a, B> {
         }
     }
 
+    pub fn set_migrator(&mut self, migrator: Migrator<'a>) {
+        self.migrator = migrator;
+    }
+
     fn prepare_cipher_ctx(cipher: Cipher, input: &[u8]) -> CipherContext {
         let mut ctx = CipherContext::new(cipher);
 
