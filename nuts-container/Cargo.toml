@@ -47,3 +47,4 @@ thiserror = "1.0.61"
 
 [dev-dependencies]
 nuts-memory = { path = "../nuts-memory", version = "=0.7.1" }
+nuts-directory = { path = "../nuts-directory", version = "=0.7.1" }

@@ -521,6 +521,7 @@ version = "0.7.1"
 dependencies = [
  "log",
  "nuts-backend",
+ "nuts-directory",
  "nuts-memory",
  "openssl",
  "thiserror",

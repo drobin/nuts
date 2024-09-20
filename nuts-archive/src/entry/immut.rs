@@ -101,6 +101,20 @@ impl<'a, B: Backend> Entry<'a, B> {
         }
     }
 
+    /// Returns a mutable reference to the inner [`FileEntry`] instance if this
+    /// entry represents a file.
+    ///
+    /// If this entry is a file then a reference to the inner [`FileEntry`]
+    /// wrapped into a [`Some`] is returned. If this is not a file [`None`] is
+    /// returned.
+    pub fn as_file_mut(&mut self) -> Option<&mut FileEntry<'a, B>> {
+        match self {
+            Entry::File(value) => Some(value),
+            Entry::Directory(_) => None,
+            Entry::Symlink(_) => None,
+        }
+    }
+
     /// Returns the inner [`FileEntry`] instance if this entry represents a
     /// file.
     ///
