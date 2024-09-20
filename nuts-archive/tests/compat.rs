@@ -99,3 +99,52 @@ make_test!(
 );
 
 // no compatibility tests for 0.7.0 - creation of archive is broken here
+
+make_test!(
+    compat_0_7_1_none,
+    "0.7.1-none",
+    None,
+    "206f9e91ac3296f3563752361054fed8"
+);
+
+make_test!(
+    compat_0_7_1_aes128_ctr,
+    "0.7.1-aes128ctr",
+    Aes128Ctr,
+    "ec6f5f40e9d57d10904012cb2a6346f6"
+);
+
+make_test!(
+    compat_0_7_1_aes192_ctr,
+    "0.7.1-aes192ctr",
+    Aes192Ctr,
+    "b57de7da43a2a9ab2b725e336b3889fe"
+);
+
+make_test!(
+    compat_0_7_1_aes256_ctr,
+    "0.7.1-aes256ctr",
+    Aes256Ctr,
+    "99be9f6d09fdb9caf0d883883f547b72"
+);
+
+make_test!(
+    compat_0_7_1_aes128_gcm,
+    "0.7.1-aes128gcm",
+    Aes128Gcm,
+    "dae99bab892feb7b9e0eac8c7c7048a3"
+);
+
+make_test!(
+    compat_0_7_1_aes192_gcm,
+    "0.7.1-aes192gcm",
+    Aes192Gcm,
+    "e7da7461db40a382732ccd0b1d76e23e"
+);
+
+make_test!(
+    compat_0_7_1_aes256_gcm,
+    "0.7.1-aes256gcm",
+    Aes256Gcm,
+    "4b9cba4e31af1c86ded4408c00b888c3"
+);

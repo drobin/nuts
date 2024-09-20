@@ -266,3 +266,150 @@ make_test!(
         assert_eq!(info.bsize_net, 496);
     }
 );
+
+make_test!(
+    compat_0_7_1_none,
+    "0.7.1-none",
+    b"0.7.1\n\0\0",
+    "e440cadb70f8e8b3fe52b53e36be7612",
+    |info| {
+        assert_eq!(info.backend.bsize, 512);
+        assert_eq!(info.revision, 1);
+        assert_eq!(info.cipher, Cipher::None);
+        assert_eq!(info.kdf, Kdf::None);
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 512);
+    }
+);
+
+make_test!(
+    compat_0_7_1_aes128ctr,
+    "0.7.1-aes128ctr",
+    b"0.7.1\n\0\0",
+    "6bfb3d41da711efd13780b498657922b",
+    |info| {
+        assert_eq!(info.backend.bsize, 512);
+        assert_eq!(info.revision, 1);
+        assert_eq!(info.cipher, Cipher::Aes128Ctr);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 512);
+    }
+);
+
+make_test!(
+    compat_0_7_1_aes192ctr,
+    "0.7.1-aes192ctr",
+    b"0.7.1\n\0\0",
+    "acd5e6310276f718a33dc07c72b855d7",
+    |info| {
+        assert_eq!(info.backend.bsize, 512);
+        assert_eq!(info.revision, 1);
+        assert_eq!(info.cipher, Cipher::Aes192Ctr);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 512);
+    }
+);
+
+make_test!(
+    compat_0_7_1_aes256ctr,
+    "0.7.1-aes256ctr",
+    b"0.7.1\n\0\0",
+    "721120637f214072815cb3a6ad79dfc7",
+    |info| {
+        assert_eq!(info.backend.bsize, 512);
+        assert_eq!(info.revision, 1);
+        assert_eq!(info.cipher, Cipher::Aes256Ctr);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 512);
+    }
+);
+
+make_test!(
+    compat_0_7_1_aes128gcm,
+    "0.7.1-aes128gcm",
+    b"0.7.1\n\0\0",
+    "188c8473568c11609122401442a42a3b",
+    |info| {
+        assert_eq!(info.backend.bsize, 512);
+        assert_eq!(info.revision, 1);
+        assert_eq!(info.cipher, Cipher::Aes128Gcm);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 496);
+    }
+);
+
+make_test!(
+    compat_0_7_1_aes192gcm,
+    "0.7.1-aes192gcm",
+    b"0.7.1\n\0\0",
+    "a909410e74242a797169251e28e22069",
+    |info| {
+        assert_eq!(info.backend.bsize, 512);
+        assert_eq!(info.revision, 1);
+        assert_eq!(info.cipher, Cipher::Aes192Gcm);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 496);
+    }
+);
+
+make_test!(
+    compat_0_7_1_aes256gcm,
+    "0.7.1-aes256gcm",
+    b"0.7.1\n\0\0",
+    "a939d78fea253434b5011ca7ba41beb0",
+    |info| {
+        assert_eq!(info.backend.bsize, 512);
+        assert_eq!(info.revision, 1);
+        assert_eq!(info.cipher, Cipher::Aes256Gcm);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 496);
+    }
+);
