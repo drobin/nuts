@@ -97,3 +97,5 @@ make_test!(
     Aes128Gcm,
     "a258a48284da174ae87850f25d6921f0"
 );
+
+// no compatibility tests for 0.7.0 - creation of archive is broken here
