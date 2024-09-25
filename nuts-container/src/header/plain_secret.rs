@@ -29,6 +29,7 @@ use std::fmt::{self, Write};
 
 use crate::buffer::{Buffer, BufferError, BufferMut, ToBuffer};
 use crate::header::HeaderError;
+use crate::migrate::Migrator;
 use crate::ossl;
 use crate::svec::SecureVec;
 
@@ -105,6 +106,21 @@ pub struct PlainRev0<B: Backend> {
     pub iv: SecureVec,
     pub userdata: SecureVec,
     pub settings: B::Settings,
+    pub top_id: Option<B::Id>, // transient, migrated from userdata attribute
+}
+
+impl<B: Backend> PlainRev0<B> {
+    pub fn migrate(&mut self, migrator: &Migrator) -> Result<(), HeaderError> {
+        self.top_id = match migrator.migrate_rev0(&self.userdata)? {
+            Some(vec) => match <B::Id as Binary>::from_bytes(&vec) {
+                Some(id) => Some(id),
+                None => return Err(HeaderError::InvalidTopId),
+            },
+            None => None,
+        };
+
+        Ok(())
+    }
 }
 
 impl<B: Backend> PartialEq for PlainRev0<B> {
@@ -117,6 +133,7 @@ impl<B: Backend> PartialEq for PlainRev0<B> {
             && self.iv == other.iv
             && self.userdata == other.userdata
             && lhs_settings_bytes == rhs_settings_bytes
+            && self.top_id == other.top_id
     }
 }
 
@@ -130,6 +147,7 @@ impl<B: Backend> fmt::Debug for PlainRev0<B> {
             .field("iv", &iv)
             .field("userdata", &self.userdata)
             .field("settings", &self.settings.as_bytes())
+            .field("top_id", &self.top_id.as_ref().map(ToString::to_string))
             .finish()
     }
 }
@@ -191,6 +209,7 @@ impl<B: Backend> PlainSecret<B> {
             iv,
             userdata,
             settings,
+            top_id: None,
         }))
     }
 

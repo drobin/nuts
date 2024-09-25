@@ -22,16 +22,14 @@
 
 use nuts_backend::Binary;
 use nuts_memory::{MemoryBackend, Settings};
-use std::borrow::Cow;
 
 use crate::cipher::Cipher;
 use crate::header::plain_secret::{PlainRev0, PlainRev1, PlainSecret};
 use crate::header::Header;
 use crate::kdf::Kdf;
-use crate::migrate::{Migration, Migrator};
+use crate::migrate::Migrator;
 use crate::options::CreateOptionsBuilder;
 use crate::password::PasswordStore;
-use crate::{HeaderError, MigrationError};
 
 const REV0: [u8; 79] = [
     b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
@@ -61,13 +59,14 @@ const REV1: [u8; 52] = [
     0, 0, // secret: settings
 ];
 
-fn rev0_plain_secret() -> PlainRev0<MemoryBackend> {
+fn rev0_plain_secret(top_id: Option<&str>) -> PlainRev0<MemoryBackend> {
     PlainRev0 {
         magics: 0x91c0b2cf.into(),
         key: vec![].into(),
         iv: vec![].into(),
         userdata: vec![0x00, 0x00, 0x12, 0x67].into(),
         settings: Settings,
+        top_id: top_id.map(|id| id.parse().unwrap()),
     }
 }
 
@@ -81,8 +80,8 @@ fn rev1_plain_secret(top_id: Option<&str>) -> PlainRev1<MemoryBackend> {
     }
 }
 
-fn rev0() -> PlainSecret<MemoryBackend> {
-    PlainSecret::<MemoryBackend>::Rev0(rev0_plain_secret())
+fn rev0(top_id: Option<&str>) -> PlainSecret<MemoryBackend> {
+    PlainSecret::<MemoryBackend>::Rev0(rev0_plain_secret(top_id))
 }
 
 fn rev1(top_id: Option<&str>) -> PlainSecret<MemoryBackend> {
@@ -96,23 +95,6 @@ fn header(data: PlainSecret<MemoryBackend>) -> Header<'static, MemoryBackend> {
         cipher: Cipher::None,
         kdf: Kdf::None,
         data,
-    }
-}
-
-struct SampleMigration;
-
-impl Migration for SampleMigration {
-    fn migrate_rev0(&self, userdata: &[u8]) -> Result<Vec<u8>, String> {
-        assert_eq!(userdata, [0x00, 0x00, 0x12, 0x67]);
-        Ok(userdata.to_vec())
-    }
-}
-
-struct ErrMigration;
-
-impl Migration for ErrMigration {
-    fn migrate_rev0(&self, _userdata: &[u8]) -> Result<Vec<u8>, String> {
-        Err("foo".to_string())
     }
 }
 
@@ -139,7 +121,7 @@ fn read_rev0() {
     assert_eq!(header.revision, 0);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
-    assert_eq!(header.data, rev0());
+    assert_eq!(header.data, rev0(None));
 }
 
 #[test]
@@ -160,7 +142,7 @@ fn write_rev0() {
     let mut buf = [b'x'; REV0.len()];
     let mut store = PasswordStore::new(None);
 
-    let header = header(rev0());
+    let header = header(rev0(None));
 
     header.write(&mut buf, &mut store).unwrap();
 
@@ -181,7 +163,7 @@ fn write_rev1() {
 
 #[test]
 fn settings_rev0() {
-    let header = header(rev0());
+    let header = header(rev0(None));
 
     assert_eq!(header.settings().as_bytes(), Settings.as_bytes());
 }
@@ -197,7 +179,7 @@ fn settings_rev1() {
 fn key_rev0() {
     let rev0 = PlainRev0 {
         key: vec![1, 2, 3].into(),
-        ..rev0_plain_secret()
+        ..rev0_plain_secret(None)
     };
     let header = header(PlainSecret::Rev0(rev0));
 
@@ -219,7 +201,7 @@ fn key_rev1() {
 fn iv_rev0() {
     let rev0 = PlainRev0 {
         iv: vec![1, 2, 3].into(),
-        ..rev0_plain_secret()
+        ..rev0_plain_secret(None)
     };
     let header = header(PlainSecret::Rev0(rev0));
 
@@ -238,61 +220,39 @@ fn iv_rev1() {
 }
 
 #[test]
-fn top_id_rev0_no_migrator() {
-    let header = header(rev0());
+fn top_id_rev0_none() {
+    let header = header(rev0(None));
 
-    assert!(header.top_id().unwrap().is_none());
+    assert!(header.top_id().is_none());
 }
 
 #[test]
-fn top_id_rev0_migrated() {
-    let mut header = header(rev0());
+fn top_id_rev0_some() {
+    let header = header(rev0(Some("4711")));
+    let top_id = header.top_id().unwrap();
 
-    header.migrator = Migrator::default().with_migration(SampleMigration);
-
-    let top_id = header.top_id().unwrap().unwrap();
-
-    assert!(matches!(top_id, Cow::Owned(_)));
-    assert_eq!(top_id.as_ref().to_string(), "4711");
-}
-
-#[test]
-fn top_id_rev0_inval() {
-    // FIXME Id of MemoryBackend is always valid
-}
-
-#[test]
-fn top_id_rev0_err() {
-    let mut header = header(rev0());
-
-    header.migrator = Migrator::default().with_migration(ErrMigration);
-
-    let err = header.top_id().unwrap_err();
-
-    assert!(matches!(err, HeaderError::Migration(cause)
-        if matches!(cause, MigrationError::Rev0(ref msg) if msg == "foo")));
+    assert_eq!(top_id.to_string(), "4711");
 }
 
 #[test]
 fn top_id_rev1_none() {
     let header = header(rev1(None));
 
-    assert!(header.top_id().unwrap().is_none());
+    assert!(header.top_id().is_none());
 }
 
 #[test]
 fn top_id_rev1_some() {
     let header = header(rev1(Some("4711")));
-    let top_id = header.top_id().unwrap().unwrap();
+    let top_id = header.top_id().unwrap();
 
-    assert!(matches!(top_id, Cow::Borrowed(_)));
-    assert_eq!(top_id.as_ref().to_string(), "4711");
+    assert_eq!(top_id.to_string(), "4711");
 }
 
 #[test]
 #[should_panic(expected = "storing a top-id into a rev0 header is not supported")]
 fn set_top_id_rev0() {
-    header(rev0()).set_top_id("4711".parse().unwrap());
+    header(rev0(None)).set_top_id("4711".parse().unwrap());
 }
 
 #[test]
@@ -301,5 +261,5 @@ fn set_top_id_rev1() {
 
     header.set_top_id("4711".parse().unwrap());
 
-    assert_eq!(header.top_id().unwrap().unwrap().to_string(), "4711");
+    assert_eq!(header.top_id().unwrap().to_string(), "4711");
 }

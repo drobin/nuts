@@ -257,7 +257,6 @@ mod tests;
 
 use log::debug;
 use nuts_backend::{Backend, Create, Open, ReceiveHeader, HEADER_MAX_SIZE};
-use std::borrow::Cow;
 use std::{any, cmp};
 
 use crate::cipher::CipherContext;
@@ -401,9 +400,11 @@ impl<B: Backend> Container<B> {
         let mut store = PasswordStore::new(callback);
         let migrator = Migrator::default();
 
-        let header = Self::read_header(&mut backend_options, migrator, &mut store)?;
+        let mut header = Self::read_header(&mut backend_options, migrator, &mut store)?;
         let settings = header.settings().clone();
         let backend = map_err!(backend_options.build(settings))?;
+
+        header.migrate()?;
 
         debug!(
             "Container opened, backend: {}, header: {:?}",
@@ -434,6 +435,7 @@ impl<B: Backend> Container<B> {
         let migrator = Migrator::default().with_migration(migration);
 
         container.header.set_migrator(migrator);
+        container.header.migrate().map_err(Error::<B>::Header)?;
 
         F::open(container)
     }
@@ -473,8 +475,8 @@ impl<B: Backend> Container<B> {
     /// encrypted in the header of the container. Calling this method will
     /// neither fetch nor create the _top-id_. It returns an entry, where you
     /// can decide what to do.
-    pub fn top_id(&self) -> ContainerResult<Option<Cow<B::Id>>, B> {
-        self.header.top_id().map_err(Into::into)
+    pub fn top_id(&self) -> Option<&B::Id> {
+        self.header.top_id()
     }
 
     /// The (net) block size specifies the number of userdata bytes you can

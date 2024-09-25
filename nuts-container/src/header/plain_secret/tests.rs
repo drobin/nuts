@@ -25,13 +25,14 @@ use nuts_memory::{MemoryBackend, Settings};
 use crate::buffer::ToBuffer;
 use crate::header::plain_secret::{Magics, PlainRev0, PlainRev1, PlainSecret};
 use crate::header::HeaderError;
+use crate::migrate::{Migration, MigrationError, Migrator};
 
-const REV0: [u8; 45] = [
+const REV0: [u8; 49] = [
     0x00, 0x00, 0x12, 0x67, // magic1
     0x00, 0x00, 0x12, 0x67, // magic2
     0, 0, 0, 0, 0, 0, 0, 2, 1, 2, // key
     0, 0, 0, 0, 0, 0, 0, 3, 3, 4, 5, // iv
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Some(top-id)
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x12, 0x67, // userdata
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // settings (empty)
 ];
 
@@ -58,8 +59,9 @@ fn rev0() -> PlainRev0<MemoryBackend> {
         magics: Magics([4711, 4711]),
         key: vec![1, 2].into(),
         iv: vec![3, 4, 5].into(),
-        userdata: vec![].into(),
+        userdata: vec![0x00, 0x00, 0x12, 0x67].into(),
         settings: Settings,
+        top_id: None,
     }
 }
 
@@ -77,6 +79,23 @@ fn rev1_no_top_id() -> PlainRev1<MemoryBackend> {
     PlainRev1 {
         top_id: None,
         ..rev1()
+    }
+}
+
+struct SampleMigration;
+
+impl Migration for SampleMigration {
+    fn migrate_rev0(&self, userdata: &[u8]) -> Result<Vec<u8>, String> {
+        assert_eq!(userdata, [0x00, 0x00, 0x12, 0x67]);
+        Ok(userdata.to_vec())
+    }
+}
+
+struct ErrMigration;
+
+impl Migration for ErrMigration {
+    fn migrate_rev0(&self, _userdata: &[u8]) -> Result<Vec<u8>, String> {
+        Err("foo".to_string())
     }
 }
 
@@ -109,17 +128,16 @@ fn from_buffer_rev0_inval() {
     let mut vec = REV0.to_vec();
     vec[0] += 1;
 
-    match PlainSecret::<MemoryBackend>::from_buffer_rev0(&mut vec.as_slice()) {
-        Ok(_) => panic!("unexpected result"),
-        Err(err) => assert!(matches!(err, HeaderError::WrongPassword)),
-    }
+    let err = PlainSecret::<MemoryBackend>::from_buffer_rev0(&mut &vec[..]).unwrap_err();
+
+    assert!(matches!(err, HeaderError::WrongPassword));
 }
 
 #[test]
 fn from_buffer_rev1() {
     let out = PlainSecret::<MemoryBackend>::from_buffer_rev1(&mut &REV1[..]).unwrap();
 
-    assert!(matches!(out,PlainSecret::Rev1(data) if data == rev1()));
+    assert!(matches!(out, PlainSecret::Rev1(data) if data == rev1()));
 }
 
 #[test]
@@ -164,4 +182,40 @@ fn to_buffer_rev1_no_top_id() {
         .to_buffer(&mut buf)
         .unwrap();
     assert_eq!(buf, REV1_NO_TOP_ID);
+}
+
+#[test]
+fn migrate_rev0_no_migrator() {
+    let migrator = Migrator::default();
+    let mut rev0 = rev0();
+
+    rev0.migrate(&migrator).unwrap();
+
+    assert!(rev0.top_id.is_none());
+}
+
+#[test]
+fn migrate_rev0_migrated() {
+    let migrator = Migrator::default().with_migration(SampleMigration);
+    let mut rev0 = rev0();
+
+    rev0.migrate(&migrator).unwrap();
+
+    assert_eq!(rev0.top_id.unwrap().to_string(), "4711");
+}
+
+#[test]
+fn migrate_rev0_inval_migration() {
+    // FIXME Id of MemoryBackend is always valid
+}
+
+#[test]
+fn migrate_rev0_err_migration() {
+    let migrator = Migrator::default().with_migration(ErrMigration);
+    let mut rev0 = rev0();
+
+    let err = rev0.migrate(&migrator).unwrap_err();
+
+    assert!(matches!(err, HeaderError::Migration(cause)
+        if matches!(cause, MigrationError::Rev0(ref msg) if msg == "foo")));
 }

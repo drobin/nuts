@@ -25,10 +25,9 @@ mod revision;
 #[cfg(test)]
 mod tests;
 
-use nuts_backend::{Backend, Binary};
+use nuts_backend::Backend;
 use openssl::error::ErrorStack;
 use plain_secret::PlainSecret;
-use std::borrow::Cow;
 use std::fmt;
 use std::ops::DerefMut;
 use thiserror::Error;
@@ -191,6 +190,14 @@ impl<'a, B: Backend> Header<'a, B> {
         rev.put_into_buffer(&mut &mut buf[..])
     }
 
+    pub fn migrate(&mut self) -> Result<(), HeaderError> {
+        if let PlainSecret::Rev0(rev0) = &mut self.data {
+            rev0.migrate(&self.migrator)
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn revision(&self) -> u32 {
         self.revision
     }
@@ -224,16 +231,10 @@ impl<'a, B: Backend> Header<'a, B> {
         }
     }
 
-    pub fn top_id(&'a self) -> Result<Option<Cow<'a, B::Id>>, HeaderError> {
+    pub fn top_id(&self) -> Option<&B::Id> {
         match &self.data {
-            PlainSecret::Rev0(rev0) => match self.migrator.migrate_rev0(&rev0.userdata)? {
-                Some(vec) => match <B::Id as Binary>::from_bytes(&vec) {
-                    Some(id) => Ok(Some(Cow::Owned(id))),
-                    None => Err(HeaderError::InvalidTopId),
-                },
-                None => Ok(None),
-            },
-            PlainSecret::Rev1(rev1) => Ok(rev1.top_id.as_ref().map(Cow::Borrowed)),
+            PlainSecret::Rev0(rev0) => rev0.top_id.as_ref(),
+            PlainSecret::Rev1(rev1) => rev1.top_id.as_ref(),
         }
     }
 
