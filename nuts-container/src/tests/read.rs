@@ -68,9 +68,9 @@ macro_rules! read_tests {
 
             let err = container.read(&id, &mut []).unwrap_err();
 
-            let err = into_error!(err, Error::Backend);
-            let err_id = into_error!(err, MemoryError::NoSuchId);
-            assert_eq!(err_id, id);
+            assert!(matches!(err, Error::Backend(cause)
+                if matches!(cause, MemoryError::NoSuchId(err_id)
+                    if err_id == id)));
         }
     };
 }
@@ -78,7 +78,7 @@ macro_rules! read_tests {
 mod none {
     use nuts_memory::{Error as MemoryError, Id, MemoryBackend};
 
-    use crate::tests::{into_error, RND};
+    use crate::tests::RND;
     use crate::{Cipher, Container, CreateOptionsBuilder, Error};
 
     fn setup_container() -> (Container<MemoryBackend>, Id) {
@@ -100,8 +100,7 @@ mod none {
 mod aes128_ctr {
     use nuts_memory::{Error as MemoryError, Id, MemoryBackend};
 
-    use crate::tests::CTEXT_AES128_CTR;
-    use crate::tests::{into_error, RND};
+    use crate::tests::{CTEXT_AES128_CTR, RND};
     use crate::{Cipher, Container, CreateOptionsBuilder, Digest, Error, Kdf};
 
     fn setup_container() -> (Container<MemoryBackend>, Id) {
@@ -125,8 +124,7 @@ mod aes128_ctr {
 mod aes128_gcm {
     use nuts_memory::{Error as MemoryError, Id, MemoryBackend};
 
-    use crate::tests::CTEXT_AES128_GCM;
-    use crate::tests::{into_error, RND};
+    use crate::tests::{CTEXT_AES128_GCM, RND};
     use crate::{Cipher, CipherError, Container, CreateOptionsBuilder, Digest, Error, Kdf};
 
     fn setup_container(data: &[u8]) -> (Container<MemoryBackend>, Id) {

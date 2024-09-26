@@ -25,7 +25,6 @@ use crate::cipher::Cipher;
 use crate::header::revision::{Data, Revision};
 use crate::header::HeaderError;
 use crate::kdf::Kdf;
-use crate::tests::into_error;
 
 const REV0: [u8; 38] = [
     b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
@@ -80,11 +79,9 @@ fn de_inval_revision() {
     buf[10] = 2;
 
     let err = Revision::get_from_buffer(&mut &buf[..]).unwrap_err();
-    let err = into_error!(err, HeaderError::Buffer);
-    let (str, idx) = into_error!(err, BufferError::InvalidIndex(2));
-
-    assert_eq!(str, "Revision");
-    assert_eq!(idx, 2);
+    assert!(matches!(err, HeaderError::Buffer(ref cause)
+            if matches!(cause, BufferError::InvalidIndex(str, idx)
+                if str == "Revision" && *idx == 2)));
 }
 
 #[test]

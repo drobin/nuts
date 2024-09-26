@@ -27,7 +27,6 @@ use nuts_memory::MemoryBackend;
 use crate::error::Error;
 use crate::header::{Header, HeaderMagicError};
 use crate::magic::MAGIC;
-use crate::tests::into_error;
 
 #[test]
 fn ser() {
@@ -79,9 +78,10 @@ fn de_inval_magic() {
     );
 
     let err: Error<MemoryBackend> = reader.read::<Header>().unwrap_err().into();
-    let err = into_error!(err, Error::InvalidHeader);
-    let err = into_error!(err, nuts_bytes::Error::Custom);
-    assert!(err.is::<HeaderMagicError>());
+
+    assert!(matches!(err, Error::InvalidHeader(ref cause)
+            if matches!(cause, nuts_bytes::Error::Custom(cause2)
+                if cause2.is::<HeaderMagicError>())));
 }
 
 #[test]

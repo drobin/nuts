@@ -22,7 +22,7 @@
 
 use crate::id::Id;
 use crate::pager::Pager;
-use crate::tests::{into_error, setup_container_with_bsize};
+use crate::tests::setup_container_with_bsize;
 
 #[test]
 fn read() {
@@ -44,8 +44,8 @@ fn read() {
     assert_eq!(reader.read::<u32>().unwrap(), 3);
 
     let err = reader.read::<u32>().unwrap_err();
-    let err = into_error!(err, nuts_bytes::Error::TakeBytes);
-    assert!(matches!(err, nuts_bytes::TakeBytesError::Eof));
+    assert!(matches!(err, nuts_bytes::Error::TakeBytes(cause)
+            if matches!(cause, nuts_bytes::TakeBytesError::Eof)));
 }
 
 #[test]
@@ -61,8 +61,8 @@ fn write() {
     assert_eq!(writer.write(&3u32).unwrap(), 4);
 
     let err = writer.write(&4u32).unwrap_err();
-    let err = into_error!(err, nuts_bytes::Error::PutBytes);
-    assert!(matches!(err, nuts_bytes::PutBytesError::NoSpace));
+    assert!(matches!(err, nuts_bytes::Error::PutBytes(cause)
+        if matches!(cause, nuts_bytes::PutBytesError::NoSpace)));
 
     pager.write_buf(&id).unwrap();
 

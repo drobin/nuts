@@ -25,7 +25,7 @@ use nuts_memory::{Id, MemoryBackend};
 
 use crate::error::Error;
 use crate::pager::Pager;
-use crate::tests::{into_error, setup_container_with_bsize};
+use crate::tests::setup_container_with_bsize;
 use crate::tree::node::Node;
 
 #[test]
@@ -76,8 +76,7 @@ fn load_inval_node() {
     pager.write(&id, &writer.into_target()).unwrap();
 
     let err = Node::new().load(&id, &mut pager).unwrap_err();
-    let err_id = into_error!(err, Error::InvalidNode);
-    assert_eq!(err_id, *id.as_ref());
+    assert!(matches!(err, Error::InvalidNode(err_id) if err_id == *id.as_ref()));
 }
 
 #[test]

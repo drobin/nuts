@@ -21,13 +21,12 @@
 
 use crate::digest::Digest;
 use crate::kdf::{Kdf, ParseKdfError, ParseKdfNoneError, ParseKdfPbkdf2Error};
-use crate::tests::{into_error, RND};
+use crate::tests::RND;
 
 #[test]
 fn from_str_invalid() {
     let err = "xxx".parse::<Kdf>().unwrap_err();
-    let str = into_error!(err, ParseKdfError::Unknown);
-    assert_eq!(str, "xxx");
+    assert!(matches!(err, ParseKdfError::Unknown(str) if str == "xxx"));
 }
 
 #[test]
@@ -38,19 +37,18 @@ fn from_str_none() {
 #[test]
 fn from_str_none_inval_args() {
     let err = "none:xxx".parse::<Kdf>().unwrap_err();
-    let err = into_error!(err, ParseKdfError::None);
-    #[allow(unreachable_patterns)]
-    let num = into_error!(err, ParseKdfNoneError::InvalidNumberOfArguments);
-    assert_eq!(num, 1);
+    assert!(matches!(err, ParseKdfError::None(cause)
+            if matches!(cause, ParseKdfNoneError::InvalidNumberOfArguments(num)
+                if num == 1)));
 }
 
 #[test]
 fn from_str_pbkdf2_inval_args() {
     for (str, args) in [("pbkdf2::", 2), ("pbkdf2::::", 4)] {
         let err = str.parse::<Kdf>().unwrap_err();
-        let err = into_error!(err, ParseKdfError::Pbkdf2);
-        let num = into_error!(err, ParseKdfPbkdf2Error::InvalidNumberOfArguments);
-        assert_eq!(num, args);
+        assert!(matches!(err, ParseKdfError::Pbkdf2(cause)
+                if matches!(cause, ParseKdfPbkdf2Error::InvalidNumberOfArguments(num)
+                    if num == args)));
     }
 }
 

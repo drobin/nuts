@@ -23,7 +23,6 @@
 use std::rc::Rc;
 
 use crate::password::{PasswordError, PasswordStore};
-use crate::tests::into_error;
 
 #[test]
 fn with_value() {
@@ -43,8 +42,7 @@ fn error_from_callback() {
     let mut store = PasswordStore::new(Some(Rc::new(|| Err(String::from("some error")))));
 
     let err = store.value().unwrap_err();
-    let msg = into_error!(err, PasswordError::PasswordCallback);
-    assert_eq!(msg, "some error");
+    assert!(matches!(err, PasswordError::PasswordCallback(msg) if msg == "some error"));
 }
 
 #[test]
