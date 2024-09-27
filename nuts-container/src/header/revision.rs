@@ -23,7 +23,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::buffer::{Buffer, BufferError, BufferMut};
+use crate::buffer::{Buffer, BufferMut};
 use crate::cipher::Cipher;
 use crate::header::HeaderError;
 use crate::kdf::Kdf;
@@ -104,7 +104,7 @@ impl Revision {
         match b {
             0 => Data::get_from_buffer(buf).map(Revision::Rev0),
             1 => Data::get_from_buffer(buf).map(Revision::Rev1),
-            _ => Err(BufferError::InvalidIndex("Revision".to_string(), b).into()),
+            _ => Err(HeaderError::UnknownRevision(b)),
         }
     }
 

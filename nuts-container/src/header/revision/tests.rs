@@ -20,7 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::buffer::BufferError;
 use crate::cipher::Cipher;
 use crate::header::revision::{Data, Revision};
 use crate::header::HeaderError;
@@ -79,9 +78,8 @@ fn de_inval_revision() {
     buf[10] = 2;
 
     let err = Revision::get_from_buffer(&mut &buf[..]).unwrap_err();
-    assert!(matches!(err, HeaderError::Buffer(ref cause)
-            if matches!(cause, BufferError::InvalidIndex(str, idx)
-                if str == "Revision" && *idx == 2)));
+
+    assert!(matches!(err, HeaderError::UnknownRevision(rev) if rev == 2));
 }
 
 #[test]

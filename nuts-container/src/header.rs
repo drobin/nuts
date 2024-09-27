@@ -67,6 +67,10 @@ pub enum HeaderError {
     #[error("invalid header revision, expected {0} but got {1}")]
     InvalidRevision(u32, u32),
 
+    /// Unknown header revision (from the future)
+    #[error("unknown header revision {0}")]
+    UnknownRevision(u32),
+
     /// Invalid header, could not validate magic
     #[error("invalid header")]
     InvalidHeader,
