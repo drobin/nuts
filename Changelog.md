@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.2] - 2024-09-27
+
+### Fixed
+
+* Ensure that you are on the latest revision if a service is created
+* Do not allow to read a header with a future revision
+
+### Changed
+
+* Refactoring: do not auto-migrate header revision on write
+* Adapt `Container::open_service` semantics to `Container::create_service`
+
+### Added
+
+* Implement some compatibility tests
+
 ## [0.7.1] - 2024-09-18
 
 ### Fixed
@@ -483,3 +499,4 @@ Initial public release.
 [0.6.8]: https://github.com/drobin/nuts/tree/v0.6.8
 [0.7.0]: https://github.com/drobin/nuts/tree/v0.7.0
 [0.7.1]: https://github.com/drobin/nuts/tree/v0.7.1
+[0.7.2]: https://github.com/drobin/nuts/tree/v0.7.2
