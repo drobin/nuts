@@ -23,7 +23,7 @@
 use nuts_memory::{MemoryBackend, Settings};
 
 use crate::buffer::ToBuffer;
-use crate::header::plain_secret::{Magics, PlainRev0, PlainRev1, PlainSecret};
+use crate::header::plain_secret::{Magics, PlainRev0, PlainRev1, PlainRev2, PlainSecret};
 use crate::header::HeaderError;
 use crate::migrate::{Migration, MigrationError, Migrator};
 
@@ -46,6 +46,24 @@ const REV1: [u8; 22] = [
 ];
 
 const REV1_NO_TOP_ID: [u8; 18] = [
+    0x00, 0x00, 0x12, 0x67, // magic1
+    0x00, 0x00, 0x12, 0x67, // magic2
+    2, 1, 2, // key
+    3, 3, 4, 5, // iv
+    0, // top-id
+    0, 0, // settings
+];
+
+const REV2: [u8; 22] = [
+    0x00, 0x00, 0x12, 0x67, // magic1
+    0x00, 0x00, 0x12, 0x67, // magic2
+    2, 1, 2, // key
+    3, 3, 4, 5, // iv
+    4, 0, 0, 2, 154, // top-id
+    0, 0, // settings
+];
+
+const REV2_NO_TOP_ID: [u8; 18] = [
     0x00, 0x00, 0x12, 0x67, // magic1
     0x00, 0x00, 0x12, 0x67, // magic2
     2, 1, 2, // key
@@ -82,6 +100,23 @@ fn rev1_no_top_id() -> PlainRev1<MemoryBackend> {
     }
 }
 
+fn rev2() -> PlainRev2<MemoryBackend> {
+    PlainRev2 {
+        magics: Magics([4711, 4711]),
+        key: vec![1, 2].into(),
+        iv: vec![3, 4, 5].into(),
+        top_id: Some("666".parse().unwrap()),
+        settings: Settings,
+    }
+}
+
+fn rev2_no_top_id() -> PlainRev2<MemoryBackend> {
+    PlainRev2 {
+        top_id: None,
+        ..rev2()
+    }
+}
+
 struct SampleMigration;
 
 impl Migration for SampleMigration {
@@ -101,11 +136,11 @@ impl Migration for ErrMigration {
 
 #[test]
 fn create_latest() {
-    let plain_secret =
+    let (revision, plain_secret) =
         PlainSecret::<MemoryBackend>::create_latest(vec![1].into(), vec![2, 3].into(), Settings)
             .unwrap();
 
-    let expected = PlainRev1::<MemoryBackend> {
+    let expected = PlainRev2::<MemoryBackend> {
         magics: Magics([0x91C0B2CF; 2]),
         key: vec![1].into(),
         iv: vec![2, 3].into(),
@@ -113,7 +148,8 @@ fn create_latest() {
         settings: Settings,
     };
 
-    assert!(matches!(plain_secret, PlainSecret::Rev1(data) if data == expected));
+    assert_eq!(revision, 2);
+    assert!(matches!(plain_secret, PlainSecret::Rev2(data) if data == expected));
 }
 
 #[test]
@@ -159,6 +195,31 @@ fn from_buffer_rev1_inval() {
 }
 
 #[test]
+fn from_buffer_rev2() {
+    let out = PlainSecret::<MemoryBackend>::from_buffer_rev2(&mut &REV2[..]).unwrap();
+
+    assert!(matches!(out, PlainSecret::Rev2(data) if data == rev2()));
+}
+
+#[test]
+fn from_buffer_rev2_no_top_id() {
+    let out = PlainSecret::from_buffer_rev2(&mut &REV2_NO_TOP_ID[..]).unwrap();
+
+    assert!(matches!(out, PlainSecret::Rev2(data) if data == rev2_no_top_id()));
+}
+
+#[test]
+fn from_buffer_rev2_inval() {
+    let mut vec = REV2.to_vec();
+    vec[0] += 1;
+
+    match PlainSecret::<MemoryBackend>::from_buffer_rev2(&mut vec.as_slice()) {
+        Ok(_) => panic!("unexpected result"),
+        Err(err) => assert!(matches!(err, HeaderError::WrongPassword)),
+    }
+}
+
+#[test]
 fn to_buffer_rev0() {
     let mut buf = vec![];
 
@@ -182,6 +243,24 @@ fn to_buffer_rev1_no_top_id() {
         .to_buffer(&mut buf)
         .unwrap();
     assert_eq!(buf, REV1_NO_TOP_ID);
+}
+
+#[test]
+fn to_buffer_rev2() {
+    let mut buf = vec![];
+
+    PlainSecret::Rev2(rev2()).to_buffer(&mut buf).unwrap();
+    assert_eq!(buf, REV2);
+}
+
+#[test]
+fn to_buffer_rev2_no_top_id() {
+    let mut buf = vec![];
+
+    PlainSecret::Rev2(rev2_no_top_id())
+        .to_buffer(&mut buf)
+        .unwrap();
+    assert_eq!(buf, REV2_NO_TOP_ID);
 }
 
 #[test]

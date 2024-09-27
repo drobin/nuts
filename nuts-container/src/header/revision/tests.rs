@@ -43,6 +43,15 @@ const REV1: [u8; 38] = [
     0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
 ];
 
+const REV2: [u8; 38] = [
+    b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
+    0x00, 0x00, 0x00, 0x02, // revision
+    0x00, 0x00, 0x00, 0x00, // cipher
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // iv,
+    0x00, 0x00, 0x00, 0x00, // kdf
+    0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x03, 1, 2, 3, // secret
+];
+
 #[test]
 fn new_rev0() {
     let revision = Revision::new_rev0(Cipher::None, vec![1], Kdf::None, vec![2, 3]);
@@ -72,14 +81,28 @@ fn new_rev1() {
 }
 
 #[test]
+fn new_rev2() {
+    let revision = Revision::new_rev2(Cipher::None, vec![1], Kdf::None, vec![2, 3]);
+
+    let expected = Data {
+        cipher: Cipher::None,
+        iv: vec![1],
+        kdf: Kdf::None,
+        secret: vec![2, 3],
+    };
+
+    assert!(matches!(revision, Revision::Rev2(data) if data == expected));
+}
+
+#[test]
 fn de_inval_revision() {
     let mut buf = REV0;
 
-    buf[10] = 2;
+    buf[10] = 3;
 
     let err = Revision::get_from_buffer(&mut &buf[..]).unwrap_err();
 
-    assert!(matches!(err, HeaderError::UnknownRevision(rev) if rev == 2));
+    assert!(matches!(err, HeaderError::UnknownRevision(rev) if rev == 3));
 }
 
 #[test]
@@ -92,6 +115,7 @@ fn de_rev0() {
             assert_eq!(rev0.secret, [1, 2, 3]);
         }
         Revision::Rev1(_) => panic!("invalid revision"),
+        Revision::Rev2(_) => panic!("invalid revision"),
     }
 }
 
@@ -130,6 +154,7 @@ fn de_rev1() {
             assert_eq!(rev1.kdf, Kdf::None);
             assert_eq!(rev1.secret, [1, 2, 3]);
         }
+        Revision::Rev2(_) => panic!("invalid revision"),
     }
 }
 
@@ -156,4 +181,43 @@ fn ser_rev1() {
 
     inner.put_into_buffer(&mut buf).unwrap();
     assert_eq!(buf, REV1);
+}
+
+#[test]
+fn de_rev2() {
+    match Revision::get_from_buffer(&mut &REV2[..]).unwrap() {
+        Revision::Rev0(_) => panic!("invalid revision"),
+        Revision::Rev1(_) => panic!("invalid revision"),
+        Revision::Rev2(rev2) => {
+            assert_eq!(rev2.cipher, Cipher::None);
+            assert_eq!(rev2.iv, []);
+            assert_eq!(rev2.kdf, Kdf::None);
+            assert_eq!(rev2.secret, [1, 2, 3]);
+        }
+    }
+}
+
+#[test]
+fn de_rev2_inval_magic() {
+    let mut buf = REV2;
+
+    buf[0] = b'x';
+
+    let err = Revision::get_from_buffer(&mut &buf[..]).unwrap_err();
+
+    assert!(matches!(err, HeaderError::InvalidHeader));
+}
+
+#[test]
+fn ser_rev2() {
+    let mut buf = vec![];
+    let inner = Revision::Rev2(Data {
+        cipher: Cipher::None,
+        iv: vec![],
+        kdf: Kdf::None,
+        secret: vec![1, 2, 3],
+    });
+
+    inner.put_into_buffer(&mut buf).unwrap();
+    assert_eq!(buf, REV2);
 }

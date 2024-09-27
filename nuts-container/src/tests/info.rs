@@ -35,7 +35,7 @@ fn none() {
         container.info().unwrap(),
         Info {
             backend: (),
-            revision: 1,
+            revision: 2,
             cipher: Cipher::None,
             kdf: Kdf::None,
             bsize_gross: 512,
@@ -58,7 +58,7 @@ fn aes128_ctr() {
         container.info().unwrap(),
         Info {
             backend: (),
-            revision: 1,
+            revision: 2,
             cipher: Cipher::Aes128Ctr,
             kdf,
             bsize_gross: 512,
@@ -81,7 +81,7 @@ fn aes128_gcm() {
         container.info().unwrap(),
         Info {
             backend: (),
-            revision: 1,
+            revision: 2,
             cipher: Cipher::Aes128Gcm,
             kdf,
             bsize_gross: 512,

@@ -114,7 +114,7 @@ fn create_inval_revision() {
 
     assert!(matches!(err.0, Error::Header(cause)
         if matches!(cause,HeaderError::InvalidRevision(expected, got)
-            if expected == 1 && got == 0)));
+            if expected == 2 && got == 0)));
 }
 
 #[test]

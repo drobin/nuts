@@ -24,7 +24,7 @@ use nuts_backend::Binary;
 use nuts_memory::{MemoryBackend, Settings};
 
 use crate::cipher::Cipher;
-use crate::header::plain_secret::{PlainRev0, PlainRev1, PlainSecret};
+use crate::header::plain_secret::{PlainRev0, PlainRev1, PlainRev2, PlainSecret};
 use crate::header::{Header, HeaderError};
 use crate::kdf::Kdf;
 use crate::migrate::Migrator;
@@ -59,6 +59,20 @@ const REV1: [u8; 52] = [
     0, 0, // secret: settings
 ];
 
+const REV2: [u8; 52] = [
+    b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
+    0, 0, 0, 2, // revision
+    0, 0, 0, 0, // cipher
+    0, 0, 0, 0, 0, 0, 0, 0, // iv
+    0, 0, 0, 0, // kdf
+    0, 0, 0, 0, 0, 0, 0, 17, // secret length
+    0x91, 0xc0, 0xb2, 0xcf, 0x91, 0xc0, 0xb2, 0xcf, // secret: magics
+    0,    // secret: key
+    0,    // secret: iv
+    4, 0x00, 0x00, 0x12, 0x67, // secret: top_id
+    0, 0, // secret: settings
+];
+
 fn rev0_plain_secret(top_id: Option<&str>) -> PlainRev0<MemoryBackend> {
     PlainRev0 {
         magics: 0x91c0b2cf.into(),
@@ -80,12 +94,26 @@ fn rev1_plain_secret(top_id: Option<&str>) -> PlainRev1<MemoryBackend> {
     }
 }
 
+fn rev2_plain_secret(top_id: Option<&str>) -> PlainRev2<MemoryBackend> {
+    PlainRev2 {
+        magics: 0x91c0b2cf.into(),
+        key: vec![].into(),
+        iv: vec![].into(),
+        top_id: top_id.map(|id| id.parse().unwrap()),
+        settings: Settings,
+    }
+}
+
 fn rev0(top_id: Option<&str>) -> PlainSecret<MemoryBackend> {
     PlainSecret::<MemoryBackend>::Rev0(rev0_plain_secret(top_id))
 }
 
 fn rev1(top_id: Option<&str>) -> PlainSecret<MemoryBackend> {
     PlainSecret::<MemoryBackend>::Rev1(rev1_plain_secret(top_id))
+}
+
+fn rev2(top_id: Option<&str>) -> PlainSecret<MemoryBackend> {
+    PlainSecret::<MemoryBackend>::Rev2(rev2_plain_secret(top_id))
 }
 
 fn header(data: PlainSecret<MemoryBackend>) -> Header<'static, MemoryBackend> {
@@ -105,10 +133,10 @@ fn create() {
         .unwrap();
     let header = Header::<MemoryBackend>::create(&options, Settings).unwrap();
 
-    assert_eq!(header.revision, 1);
+    assert_eq!(header.revision, 2);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
-    assert_eq!(header.data, rev1(None));
+    assert_eq!(header.data, rev2(None));
 }
 
 #[test]
@@ -138,6 +166,19 @@ fn read_rev1() {
 }
 
 #[test]
+fn read_rev2() {
+    let migrator = Migrator::default();
+    let mut store = PasswordStore::new(None);
+
+    let header = Header::<MemoryBackend>::read(&REV2, migrator, &mut store).unwrap();
+
+    assert_eq!(header.revision, 2);
+    assert_eq!(header.cipher, Cipher::None);
+    assert_eq!(header.kdf, Kdf::None);
+    assert_eq!(header.data, rev2(Some("4711")));
+}
+
+#[test]
 fn write_rev0() {
     let mut buf = [b'x'; REV0.len()];
     let mut store = PasswordStore::new(None);
@@ -162,6 +203,18 @@ fn write_rev1() {
 }
 
 #[test]
+fn write_rev2() {
+    let mut buf = [b'x'; REV2.len()];
+    let mut store = PasswordStore::new(None);
+
+    let header = header(rev2(Some("4711")));
+
+    header.write(&mut buf, &mut store).unwrap();
+
+    assert_eq!(buf, REV2);
+}
+
+#[test]
 fn latest_revision_or_err_rev0() {
     let header = Header {
         revision: 0,
@@ -171,14 +224,27 @@ fn latest_revision_or_err_rev0() {
     let err = header.latest_revision_or_err().unwrap_err();
 
     assert!(matches!(err, HeaderError::InvalidRevision(expected, got)
-        if expected == 1 && got == 0))
+        if expected == 2 && got == 0))
 }
 
 #[test]
 fn latest_revision_or_err_rev1() {
     let header = Header {
         revision: 1,
-        ..header(rev0(None))
+        ..header(rev1(None))
+    };
+
+    let err = header.latest_revision_or_err().unwrap_err();
+
+    assert!(matches!(err, HeaderError::InvalidRevision(expected, got)
+        if expected == 2 && got == 1))
+}
+
+#[test]
+fn latest_revision_or_err_rev2() {
+    let header = Header {
+        revision: 2,
+        ..header(rev2(None))
     };
 
     header.latest_revision_or_err().unwrap();
@@ -194,6 +260,13 @@ fn settings_rev0() {
 #[test]
 fn settings_rev1() {
     let header = header(rev1(None));
+
+    assert_eq!(header.settings().as_bytes(), Settings.as_bytes());
+}
+
+#[test]
+fn settings_rev2() {
+    let header = header(rev2(None));
 
     assert_eq!(header.settings().as_bytes(), Settings.as_bytes());
 }
@@ -221,6 +294,17 @@ fn key_rev1() {
 }
 
 #[test]
+fn key_rev2() {
+    let rev2 = PlainRev2 {
+        key: vec![1, 2, 3].into(),
+        ..rev2_plain_secret(None)
+    };
+    let header = header(PlainSecret::Rev2(rev2));
+
+    assert_eq!(header.key(), [1, 2, 3]);
+}
+
+#[test]
 fn iv_rev0() {
     let rev0 = PlainRev0 {
         iv: vec![1, 2, 3].into(),
@@ -238,6 +322,17 @@ fn iv_rev1() {
         ..rev1_plain_secret(None)
     };
     let header = header(PlainSecret::Rev1(rev1));
+
+    assert_eq!(header.iv(), [1, 2, 3]);
+}
+
+#[test]
+fn iv_rev2() {
+    let rev2 = PlainRev2 {
+        iv: vec![1, 2, 3].into(),
+        ..rev2_plain_secret(None)
+    };
+    let header = header(PlainSecret::Rev2(rev2));
 
     assert_eq!(header.iv(), [1, 2, 3]);
 }
@@ -273,14 +368,35 @@ fn top_id_rev1_some() {
 }
 
 #[test]
+fn top_id_rev2_none() {
+    let header = header(rev2(None));
+
+    assert!(header.top_id().is_none());
+}
+
+#[test]
+fn top_id_rev2_some() {
+    let header = header(rev2(Some("4711")));
+    let top_id = header.top_id().unwrap();
+
+    assert_eq!(top_id.to_string(), "4711");
+}
+
+#[test]
 #[should_panic(expected = "storing a top-id into a rev0 header is not supported")]
 fn set_top_id_rev0() {
     header(rev0(None)).set_top_id("4711".parse().unwrap());
 }
 
 #[test]
+#[should_panic(expected = "storing a top-id into a rev1 header is not supported")]
 fn set_top_id_rev1() {
-    let mut header = header(rev1(None));
+    header(rev1(None)).set_top_id("4711".parse().unwrap());
+}
+
+#[test]
+fn set_top_id_rev2() {
+    let mut header = header(rev2(None));
 
     header.set_top_id("4711".parse().unwrap());
 

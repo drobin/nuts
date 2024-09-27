@@ -187,10 +187,46 @@ impl<B: Backend> fmt::Debug for PlainRev1<B> {
     }
 }
 
+pub struct PlainRev2<B: Backend> {
+    pub magics: Magics,
+    pub key: SecureVec,
+    pub iv: SecureVec,
+    pub top_id: Option<B::Id>,
+    pub settings: B::Settings,
+}
+
+impl<B: Backend> PartialEq for PlainRev2<B> {
+    fn eq(&self, other: &PlainRev2<B>) -> bool {
+        let lhs_settings_bytes = self.settings.as_bytes();
+        let rhs_settings_bytes = other.settings.as_bytes();
+
+        self.magics == other.magics
+            && self.key == other.key
+            && self.iv == other.iv
+            && self.top_id == other.top_id
+            && lhs_settings_bytes == rhs_settings_bytes
+    }
+}
+
+impl<B: Backend> fmt::Debug for PlainRev2<B> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let (key, iv) = fmt_key_iv(&self.key, &self.iv)?;
+
+        fmt.debug_struct("PlainRev1")
+            .field("magics", &self.magics)
+            .field("key", &key)
+            .field("iv", &iv)
+            .field("top_id", &self.top_id.as_ref().map(ToString::to_string))
+            .field("settings", &self.settings.as_bytes())
+            .finish()
+    }
+}
+
 #[derive(PartialEq)]
 pub enum PlainSecret<B: Backend> {
     Rev0(PlainRev0<B>),
     Rev1(PlainRev1<B>),
+    Rev2(PlainRev2<B>),
 }
 
 impl<B: Backend> PlainSecret<B> {
@@ -237,18 +273,44 @@ impl<B: Backend> PlainSecret<B> {
         }))
     }
 
+    pub fn from_buffer_rev2<T: Buffer>(buf: &mut T) -> Result<PlainSecret<B>, HeaderError> {
+        let magics = Magics::get_and_validate(buf)?;
+        let key = buf.get_vec::<1>()?.into();
+        let iv = buf.get_vec::<1>()?.into();
+        let top_id_bytes: SecureVec = buf.get_vec::<1>()?.into();
+        let settings_bytes: SecureVec = buf.get_vec::<2>()?.into();
+
+        let top_id = if !top_id_bytes.is_empty() {
+            Some(Binary::from_bytes(&top_id_bytes).ok_or(HeaderError::InvalidTopId)?)
+        } else {
+            None
+        };
+
+        let settings = Binary::from_bytes(&settings_bytes).ok_or(HeaderError::InvalidSettings)?;
+
+        Ok(PlainSecret::Rev2(PlainRev2 {
+            magics,
+            key,
+            iv,
+            top_id,
+            settings,
+        }))
+    }
+
     pub fn create_latest(
         key: SecureVec,
         iv: SecureVec,
         settings: B::Settings,
-    ) -> Result<PlainSecret<B>, ErrorStack> {
-        Ok(Self::Rev1(PlainRev1 {
+    ) -> Result<(u32, PlainSecret<B>), ErrorStack> {
+        let rev = Self::Rev2(PlainRev2 {
             magics: Magics::generate()?,
             key,
             iv,
             top_id: None,
             settings,
-        }))
+        });
+
+        Ok((2, rev))
     }
 }
 
@@ -274,6 +336,18 @@ impl<B: Backend> ToBuffer for PlainSecret<B> {
 
                 buf.put_vec::<2>(&rev1.settings.as_bytes())?;
             }
+            PlainSecret::Rev2(rev2) => {
+                rev2.magics.put(buf)?;
+                buf.put_vec::<1>(&rev2.key)?;
+                buf.put_vec::<1>(&rev2.iv)?;
+
+                match rev2.top_id.as_ref() {
+                    Some(id) => buf.put_vec::<1>(&id.as_bytes())?,
+                    None => buf.put_vec::<1>(&[])?,
+                }
+
+                buf.put_vec::<2>(&rev2.settings.as_bytes())?;
+            }
         }
 
         Ok(())
@@ -285,6 +359,7 @@ impl<B: Backend> fmt::Debug for PlainSecret<B> {
         match self {
             Self::Rev0(rev0) => fmt.debug_tuple("Rev0").field(rev0).finish(),
             Self::Rev1(rev1) => fmt.debug_tuple("Rev1").field(rev1).finish(),
+            Self::Rev2(rev2) => fmt.debug_tuple("Rev2").field(rev2).finish(),
         }
     }
 }

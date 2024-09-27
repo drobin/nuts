@@ -39,6 +39,15 @@ pub struct Data {
 }
 
 impl Data {
+    fn new(cipher: Cipher, iv: Vec<u8>, kdf: Kdf, secret: Vec<u8>) -> Data {
+        Data {
+            cipher,
+            iv,
+            kdf,
+            secret,
+        }
+    }
+
     fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Data, HeaderError> {
         let cipher = Cipher::get_from_buffer(buf)?;
         let iv = buf.get_vec::<8>()?;
@@ -67,29 +76,20 @@ impl Data {
 pub enum Revision {
     Rev0(Data),
     Rev1(Data),
+    Rev2(Data),
 }
 
 impl Revision {
     pub fn new_rev0(cipher: Cipher, iv: Vec<u8>, kdf: Kdf, secret: Vec<u8>) -> Revision {
-        let data = Data {
-            cipher,
-            iv,
-            kdf,
-            secret,
-        };
-
-        Revision::Rev0(data)
+        Revision::Rev0(Data::new(cipher, iv, kdf, secret))
     }
 
     pub fn new_rev1(cipher: Cipher, iv: Vec<u8>, kdf: Kdf, secret: Vec<u8>) -> Revision {
-        let data = Data {
-            cipher,
-            iv,
-            kdf,
-            secret,
-        };
+        Revision::Rev1(Data::new(cipher, iv, kdf, secret))
+    }
 
-        Revision::Rev1(data)
+    pub fn new_rev2(cipher: Cipher, iv: Vec<u8>, kdf: Kdf, secret: Vec<u8>) -> Revision {
+        Revision::Rev2(Data::new(cipher, iv, kdf, secret))
     }
 
     pub fn get_from_buffer<T: Buffer>(buf: &mut T) -> Result<Revision, HeaderError> {
@@ -104,6 +104,7 @@ impl Revision {
         match b {
             0 => Data::get_from_buffer(buf).map(Revision::Rev0),
             1 => Data::get_from_buffer(buf).map(Revision::Rev1),
+            2 => Data::get_from_buffer(buf).map(Revision::Rev2),
             _ => Err(HeaderError::UnknownRevision(b)),
         }
     }
@@ -118,6 +119,10 @@ impl Revision {
             }
             Revision::Rev1(data) => {
                 buf.put_u32(1)?;
+                data.put_into_buffer(buf)
+            }
+            Revision::Rev2(data) => {
+                buf.put_u32(2)?;
                 data.put_into_buffer(buf)
             }
         }

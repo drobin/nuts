@@ -42,7 +42,7 @@ use crate::ossl;
 use crate::password::{PasswordError, PasswordStore};
 use crate::svec::SecureVec;
 
-const LATEST_REVISION: u32 = 1;
+const LATEST_REVISION: u32 = 2;
 
 /// Header related errors.
 #[derive(Debug, Error)]
@@ -117,10 +117,10 @@ impl<'a, B: Backend> Header<'a, B> {
         ossl::rand_bytes(&mut iv)?;
 
         let kdf = options.kdf.build()?;
-        let plain_secret = PlainSecret::create_latest(key.into(), iv.into(), settings)?;
+        let (revision, plain_secret) = PlainSecret::create_latest(key.into(), iv.into(), settings)?;
 
         Ok(Header {
-            revision: 1,
+            revision,
             migrator: Migrator::default(),
             cipher,
             kdf,
@@ -136,6 +136,7 @@ impl<'a, B: Backend> Header<'a, B> {
         match Revision::get_from_buffer(&mut &buf[..])? {
             Revision::Rev0(data) => Self::read_rev0(data, migrator, store),
             Revision::Rev1(data) => Self::read_rev1(data, migrator, store),
+            Revision::Rev2(data) => Self::read_rev2(data, migrator, store),
         }
     }
 
@@ -179,6 +180,26 @@ impl<'a, B: Backend> Header<'a, B> {
         })
     }
 
+    fn read_rev2(
+        data: Data,
+        migrator: Migrator<'a>,
+        store: &mut PasswordStore,
+    ) -> Result<Header<'a, B>, HeaderError> {
+        let key = Self::create_key(data.cipher, &data.kdf, store)?;
+        let mut ctx = Self::prepare_cipher_ctx(data.cipher, &data.secret);
+
+        let pbuf = ctx.decrypt(&key, &data.iv)?;
+        let plain_secret = PlainSecret::from_buffer_rev2(&mut &pbuf[..])?;
+
+        Ok(Header {
+            revision: 2,
+            migrator,
+            cipher: data.cipher,
+            kdf: data.kdf,
+            data: plain_secret,
+        })
+    }
+
     pub fn write(&self, buf: &mut [u8], store: &mut PasswordStore) -> Result<(), HeaderError> {
         let mut iv = vec![0; self.cipher.iv_len()];
         ossl::rand_bytes(&mut iv)?;
@@ -195,6 +216,7 @@ impl<'a, B: Backend> Header<'a, B> {
         let rev = match self.data {
             PlainSecret::Rev0(_) => Revision::new_rev0(self.cipher, iv, self.kdf.clone(), secret),
             PlainSecret::Rev1(_) => Revision::new_rev1(self.cipher, iv, self.kdf.clone(), secret),
+            PlainSecret::Rev2(_) => Revision::new_rev2(self.cipher, iv, self.kdf.clone(), secret),
         };
 
         rev.put_into_buffer(&mut &mut buf[..])
@@ -232,6 +254,7 @@ impl<'a, B: Backend> Header<'a, B> {
         match &self.data {
             PlainSecret::Rev0(rev0) => &rev0.settings,
             PlainSecret::Rev1(rev1) => &rev1.settings,
+            PlainSecret::Rev2(rev2) => &rev2.settings,
         }
     }
 
@@ -239,6 +262,7 @@ impl<'a, B: Backend> Header<'a, B> {
         match &self.data {
             PlainSecret::Rev0(rev0) => &rev0.key,
             PlainSecret::Rev1(rev1) => &rev1.key,
+            PlainSecret::Rev2(rev2) => &rev2.key,
         }
     }
 
@@ -246,6 +270,7 @@ impl<'a, B: Backend> Header<'a, B> {
         match &self.data {
             PlainSecret::Rev0(rev0) => &rev0.iv,
             PlainSecret::Rev1(rev1) => &rev1.iv,
+            PlainSecret::Rev2(rev2) => &rev2.iv,
         }
     }
 
@@ -253,13 +278,15 @@ impl<'a, B: Backend> Header<'a, B> {
         match &self.data {
             PlainSecret::Rev0(rev0) => rev0.top_id.as_ref(),
             PlainSecret::Rev1(rev1) => rev1.top_id.as_ref(),
+            PlainSecret::Rev2(rev2) => rev2.top_id.as_ref(),
         }
     }
 
     pub fn set_top_id(&mut self, id: B::Id) {
         match &mut self.data {
             PlainSecret::Rev0(_) => panic!("storing a top-id into a rev0 header is not supported"),
-            PlainSecret::Rev1(rev1) => rev1.top_id = Some(id),
+            PlainSecret::Rev1(_) => panic!("storing a top-id into a rev1 header is not supported"),
+            PlainSecret::Rev2(rev2) => rev2.top_id = Some(id),
         }
     }
 
