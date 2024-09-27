@@ -42,6 +42,8 @@ use crate::ossl;
 use crate::password::{PasswordError, PasswordStore};
 use crate::svec::SecureVec;
 
+const LATEST_REVISION: u32 = 1;
+
 /// Header related errors.
 #[derive(Debug, Error)]
 pub enum HeaderError {
@@ -60,6 +62,10 @@ pub enum HeaderError {
     /// The password is wrong.
     #[error("the password is wrong")]
     WrongPassword,
+
+    /// Invalid header revision
+    #[error("invalid header revision, expected {0} but got {1}")]
+    InvalidRevision(u32, u32),
 
     /// Invalid header, could not validate magic
     #[error("invalid header")]
@@ -200,6 +206,14 @@ impl<'a, B: Backend> Header<'a, B> {
 
     pub fn revision(&self) -> u32 {
         self.revision
+    }
+
+    pub fn latest_revision_or_err(&self) -> Result<(), HeaderError> {
+        if self.revision == LATEST_REVISION {
+            Ok(())
+        } else {
+            Err(HeaderError::InvalidRevision(LATEST_REVISION, self.revision))
+        }
     }
 
     pub fn cipher(&self) -> Cipher {

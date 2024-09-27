@@ -366,6 +366,13 @@ impl<B: Backend> Container<B> {
     pub fn create_service<F: ServiceFactory<B>>(
         mut container: Container<B>,
     ) -> Result<F::Service, F::Err> {
+        // ensure that you are on the current revision
+        container
+            .header
+            .latest_revision_or_err()
+            .map_err(Error::<B>::Header)?;
+
+        // aquire top-id (if requested)
         if F::Service::need_top_id() {
             let id = container.aquire()?;
             container.update_header(|header| header.set_top_id(id))?;

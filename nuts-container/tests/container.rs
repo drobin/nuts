@@ -49,6 +49,75 @@ fn create() {
 }
 
 #[test]
+fn create_inval_revision() {
+    use nuts_container::*;
+    use nuts_directory::{DirectoryBackend, OpenOptions};
+    use std::path::PathBuf;
+    use thiserror::Error;
+
+    #[derive(Debug, Error)]
+    #[error(transparent)]
+    struct SampleError(#[from] Error<DirectoryBackend<PathBuf>>);
+
+    #[derive(Debug)]
+    struct SampleService;
+
+    impl Migration for SampleService {
+        fn migrate_rev0(&self, _userdata: &[u8]) -> Result<Vec<u8>, String> {
+            unimplemented!()
+        }
+    }
+
+    impl Service<DirectoryBackend<PathBuf>> for SampleService {
+        type Migration = Self;
+
+        fn need_top_id() -> bool {
+            false
+        }
+
+        fn migration() -> Self {
+            Self
+        }
+    }
+
+    impl ServiceFactory<DirectoryBackend<PathBuf>> for SampleService {
+        type Service = Self;
+        type Err = SampleError;
+
+        fn create(
+            _container: Container<DirectoryBackend<PathBuf>>,
+        ) -> Result<Self::Service, Self::Err> {
+            unimplemented!()
+        }
+
+        fn open(
+            _container: Container<DirectoryBackend<PathBuf>>,
+        ) -> Result<Self::Service, Self::Err> {
+            unimplemented!()
+        }
+    }
+
+    const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
+
+    // you need a rev0-container
+    let path: PathBuf = [MANIFEST_DIR, "data", "0.6.8-none"].iter().collect();
+    let backend_options = OpenOptions::for_path(path);
+    let container_options = OpenOptionsBuilder::new()
+        .build::<DirectoryBackend<PathBuf>>()
+        .unwrap();
+
+    let container = Container::open(backend_options, container_options).unwrap();
+
+    assert_eq!(container.info().unwrap().revision, 0);
+
+    let err = Container::create_service::<SampleService>(container).unwrap_err();
+
+    assert!(matches!(err.0, Error::Header(cause)
+        if matches!(cause,HeaderError::InvalidRevision(expected, got)
+            if expected == 1 && got == 0)));
+}
+
+#[test]
 fn open() {
     use nuts_container::*;
     use nuts_memory::MemoryBackend;

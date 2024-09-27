@@ -25,7 +25,7 @@ use nuts_memory::{MemoryBackend, Settings};
 
 use crate::cipher::Cipher;
 use crate::header::plain_secret::{PlainRev0, PlainRev1, PlainSecret};
-use crate::header::Header;
+use crate::header::{Header, HeaderError};
 use crate::kdf::Kdf;
 use crate::migrate::Migrator;
 use crate::options::CreateOptionsBuilder;
@@ -159,6 +159,29 @@ fn write_rev1() {
     header.write(&mut buf, &mut store).unwrap();
 
     assert_eq!(buf, REV1);
+}
+
+#[test]
+fn latest_revision_or_err_rev0() {
+    let header = Header {
+        revision: 0,
+        ..header(rev0(None))
+    };
+
+    let err = header.latest_revision_or_err().unwrap_err();
+
+    assert!(matches!(err, HeaderError::InvalidRevision(expected, got)
+        if expected == 1 && got == 0))
+}
+
+#[test]
+fn latest_revision_or_err_rev1() {
+    let header = Header {
+        revision: 1,
+        ..header(rev0(None))
+    };
+
+    header.latest_revision_or_err().unwrap();
 }
 
 #[test]
