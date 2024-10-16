@@ -40,4 +40,5 @@ nuts-backend = { path = "../nuts-backend", version = "=0.7.2" }
 nuts-bytes = { path = "../nuts-bytes", version = "=0.7.2", features = [
     "derive",
 ] }
+serde = { version = "1.0.202", features = ["derive"] }
 thiserror = "1.0.61"

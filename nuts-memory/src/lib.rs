@@ -32,6 +32,7 @@
 
 use nuts_backend::{Backend, Binary, Create, IdSize, Open, ReceiveHeader, HEADER_MAX_SIZE};
 use nuts_bytes::{FromBytes, ToBytes};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -39,6 +40,27 @@ use std::num::ParseIntError;
 use std::str::FromStr;
 use std::{cmp, fmt, mem};
 use thiserror::Error;
+
+pub fn deserialize_header<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<[u8; HEADER_MAX_SIZE]>, D::Error> {
+    let value: Option<Vec<u8>> = Deserialize::deserialize(deserializer)?;
+
+    match value {
+        Some(vec) => match vec.try_into() {
+            Ok(buf) => Ok(Some(buf)),
+            Err(_) => Err(serde::de::Error::custom("header has an invalid size")),
+        },
+        None => Ok(None),
+    }
+}
+
+pub fn serialize_header<S: Serializer>(
+    value: &Option<[u8; HEADER_MAX_SIZE]>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    Serialize::serialize(&value.map(|buf| buf.to_vec()), serializer)
+}
 
 /// Error used by the memory backend.
 #[derive(Debug, Error)]
@@ -117,10 +139,14 @@ impl Binary for Settings {
 /// The [`Backend`] implementation itself.
 ///
 /// See the [module](crate) documentation for details.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct MemoryBackend {
     bsize: u32,
     blocks: HashMap<u32, Vec<u8>>,
+    #[serde(
+        deserialize_with = "deserialize_header",
+        serialize_with = "serialize_header"
+    )]
     header: Option<[u8; HEADER_MAX_SIZE]>,
 }
 

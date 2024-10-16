@@ -543,6 +543,7 @@ version = "0.7.2"
 dependencies = [
  "nuts-backend",
  "nuts-bytes",
+ "serde",
  "thiserror",
 ]
 
