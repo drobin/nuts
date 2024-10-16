@@ -74,7 +74,7 @@ const REV2: [u8; 56] = [
     0, 0, // secret: settings
 ];
 
-fn rev0_plain_secret(top_id: Option<&str>) -> PlainRev0<MemoryBackend> {
+fn rev0() -> PlainRev0<MemoryBackend> {
     PlainRev0 {
         magics: 0x91c0b2cf.into(),
         key: vec![].into(),
@@ -82,41 +82,29 @@ fn rev0_plain_secret(top_id: Option<&str>) -> PlainRev0<MemoryBackend> {
         userdata: vec![0x00, 0x00, 0x12, 0x67].into(),
         settings: Settings,
         sid: None,
-        top_id: top_id.map(|id| id.parse().unwrap()),
+        top_id: None,
     }
 }
 
-fn rev1_plain_secret(top_id: Option<&str>) -> PlainRev1<MemoryBackend> {
+fn rev1() -> PlainRev1<MemoryBackend> {
     PlainRev1 {
         magics: 0x91c0b2cf.into(),
         key: vec![].into(),
         iv: vec![].into(),
-        top_id: top_id.map(|id| id.parse().unwrap()),
+        top_id: None,
         settings: Settings,
     }
 }
 
-fn rev2_plain_secret(top_id: Option<&str>) -> PlainRev2<MemoryBackend> {
+fn rev2() -> PlainRev2<MemoryBackend> {
     PlainRev2 {
         magics: 0x91c0b2cf.into(),
         key: vec![].into(),
         iv: vec![].into(),
         sid: None,
-        top_id: top_id.map(|id| id.parse().unwrap()),
+        top_id: None,
         settings: Settings,
     }
-}
-
-fn rev0(top_id: Option<&str>) -> PlainSecret<MemoryBackend> {
-    PlainSecret::<MemoryBackend>::Rev0(rev0_plain_secret(top_id))
-}
-
-fn rev1(top_id: Option<&str>) -> PlainSecret<MemoryBackend> {
-    PlainSecret::<MemoryBackend>::Rev1(rev1_plain_secret(top_id))
-}
-
-fn rev2(top_id: Option<&str>) -> PlainSecret<MemoryBackend> {
-    PlainSecret::<MemoryBackend>::Rev2(rev2_plain_secret(top_id))
 }
 
 fn header(data: PlainSecret<MemoryBackend>) -> Header<'static, MemoryBackend> {
@@ -139,7 +127,7 @@ fn create() {
     assert_eq!(header.revision, 2);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
-    assert_eq!(header.data, rev2(None));
+    assert_eq!(header.data, PlainSecret::Rev2(rev2()));
 }
 
 #[test]
@@ -152,7 +140,7 @@ fn read_rev0() {
     assert_eq!(header.revision, 0);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
-    assert_eq!(header.data, rev0(None));
+    assert_eq!(header.data, PlainSecret::Rev0(rev0()));
 }
 
 #[test]
@@ -165,7 +153,13 @@ fn read_rev1() {
     assert_eq!(header.revision, 1);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
-    assert_eq!(header.data, rev1(Some("4711")));
+    assert_eq!(
+        header.data,
+        PlainSecret::Rev1(PlainRev1 {
+            top_id: Some("4711".parse().unwrap()),
+            ..rev1()
+        })
+    );
 }
 
 #[test]
@@ -175,15 +169,17 @@ fn read_rev2() {
 
     let header = Header::<MemoryBackend>::read(&REV2, migrator, &mut store).unwrap();
 
-    let expected_data = PlainSecret::Rev2(PlainRev2 {
-        sid: Some(666),
-        ..rev2_plain_secret(Some("4711"))
-    });
-
     assert_eq!(header.revision, 2);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
-    assert_eq!(header.data, expected_data);
+    assert_eq!(
+        header.data,
+        PlainSecret::Rev2(PlainRev2 {
+            top_id: Some("4711".parse().unwrap()),
+            sid: Some(666),
+            ..rev2()
+        })
+    );
 }
 
 #[test]
@@ -191,7 +187,7 @@ fn write_rev0() {
     let mut buf = [b'x'; REV0.len()];
     let mut store = PasswordStore::new(None);
 
-    let header = header(rev0(None));
+    let header = header(PlainSecret::Rev0(rev0()));
 
     header.write(&mut buf, &mut store).unwrap();
 
@@ -203,7 +199,10 @@ fn write_rev1() {
     let mut buf = [b'x'; REV1.len()];
     let mut store = PasswordStore::new(None);
 
-    let header = header(rev1(Some("4711")));
+    let header = header(PlainSecret::Rev1(PlainRev1 {
+        top_id: Some("4711".parse().unwrap()),
+        ..rev1()
+    }));
 
     header.write(&mut buf, &mut store).unwrap();
 
@@ -216,8 +215,9 @@ fn write_rev2() {
     let mut store = PasswordStore::new(None);
 
     let header = header(PlainSecret::Rev2(PlainRev2 {
+        top_id: Some("4711".parse().unwrap()),
         sid: Some(666),
-        ..rev2_plain_secret(Some("4711"))
+        ..rev2()
     }));
 
     header.write(&mut buf, &mut store).unwrap();
@@ -229,7 +229,7 @@ fn write_rev2() {
 fn latest_revision_or_err_rev0() {
     let header = Header {
         revision: 0,
-        ..header(rev0(None))
+        ..header(PlainSecret::Rev0(rev0()))
     };
 
     let err = header.latest_revision_or_err().unwrap_err();
@@ -242,7 +242,7 @@ fn latest_revision_or_err_rev0() {
 fn latest_revision_or_err_rev1() {
     let header = Header {
         revision: 1,
-        ..header(rev1(None))
+        ..header(PlainSecret::Rev1(rev1()))
     };
 
     let err = header.latest_revision_or_err().unwrap_err();
@@ -255,7 +255,7 @@ fn latest_revision_or_err_rev1() {
 fn latest_revision_or_err_rev2() {
     let header = Header {
         revision: 2,
-        ..header(rev2(None))
+        ..header(PlainSecret::Rev2(rev2()))
     };
 
     header.latest_revision_or_err().unwrap();
@@ -263,106 +263,98 @@ fn latest_revision_or_err_rev2() {
 
 #[test]
 fn settings_rev0() {
-    let header = header(rev0(None));
+    let header = header(PlainSecret::Rev0(rev0()));
 
     assert_eq!(header.settings().as_bytes(), Settings.as_bytes());
 }
 
 #[test]
 fn settings_rev1() {
-    let header = header(rev1(None));
+    let header = header(PlainSecret::Rev1(rev1()));
 
     assert_eq!(header.settings().as_bytes(), Settings.as_bytes());
 }
 
 #[test]
 fn settings_rev2() {
-    let header = header(rev2(None));
+    let header = header(PlainSecret::Rev2(rev2()));
 
     assert_eq!(header.settings().as_bytes(), Settings.as_bytes());
 }
 
 #[test]
 fn key_rev0() {
-    let rev0 = PlainRev0 {
+    let header = header(PlainSecret::Rev0(PlainRev0 {
         key: vec![1, 2, 3].into(),
-        ..rev0_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev0(rev0));
+        ..rev0()
+    }));
 
     assert_eq!(header.key(), [1, 2, 3]);
 }
 
 #[test]
 fn key_rev1() {
-    let rev1 = PlainRev1 {
+    let header = header(PlainSecret::Rev1(PlainRev1 {
         key: vec![1, 2, 3].into(),
-        ..rev1_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev1(rev1));
+        ..rev1()
+    }));
 
     assert_eq!(header.key(), [1, 2, 3]);
 }
 
 #[test]
 fn key_rev2() {
-    let rev2 = PlainRev2 {
+    let header = header(PlainSecret::Rev2(PlainRev2 {
         key: vec![1, 2, 3].into(),
-        ..rev2_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev2(rev2));
+        ..rev2()
+    }));
 
     assert_eq!(header.key(), [1, 2, 3]);
 }
 
 #[test]
 fn iv_rev0() {
-    let rev0 = PlainRev0 {
+    let header = header(PlainSecret::Rev0(PlainRev0 {
         iv: vec![1, 2, 3].into(),
-        ..rev0_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev0(rev0));
+        ..rev0()
+    }));
 
     assert_eq!(header.iv(), [1, 2, 3]);
 }
 
 #[test]
 fn iv_rev1() {
-    let rev1 = PlainRev1 {
+    let header = header(PlainSecret::Rev1(PlainRev1 {
         iv: vec![1, 2, 3].into(),
-        ..rev1_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev1(rev1));
+        ..rev1()
+    }));
 
     assert_eq!(header.iv(), [1, 2, 3]);
 }
 
 #[test]
 fn iv_rev2() {
-    let rev2 = PlainRev2 {
+    let header = header(PlainSecret::Rev2(PlainRev2 {
         iv: vec![1, 2, 3].into(),
-        ..rev2_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev2(rev2));
+        ..rev2()
+    }));
 
     assert_eq!(header.iv(), [1, 2, 3]);
 }
 
 #[test]
 fn accept_sid_for_create_rev0_none() {
-    let rev0 = rev0_plain_secret(None);
-    let header = header(PlainSecret::Rev0(rev0));
+    let header = header(PlainSecret::Rev0(rev0()));
 
     header.accept_sid_for_create().unwrap();
 }
 
 #[test]
 fn accept_sid_for_create_rev0_some() {
-    let rev0 = PlainRev0 {
+    let header = header(PlainSecret::Rev0(PlainRev0 {
         sid: Some(666),
-        ..rev0_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev0(rev0));
+        ..rev0()
+    }));
 
     let err = header.accept_sid_for_create().unwrap_err();
 
@@ -372,27 +364,24 @@ fn accept_sid_for_create_rev0_some() {
 
 #[test]
 fn accept_sid_for_create_rev1_none() {
-    let rev1 = rev1_plain_secret(None);
-    let header = header(PlainSecret::Rev1(rev1));
+    let header = header(PlainSecret::Rev1(rev1()));
 
     header.accept_sid_for_create().unwrap();
 }
 
 #[test]
 fn accept_sid_for_create_rev2_none() {
-    let rev2 = rev2_plain_secret(None);
-    let header = header(PlainSecret::Rev2(rev2));
+    let header = header(PlainSecret::Rev2(rev2()));
 
     header.accept_sid_for_create().unwrap();
 }
 
 #[test]
 fn accept_sid_for_create_rev2_some() {
-    let rev2 = PlainRev2 {
+    let header = header(PlainSecret::Rev2(PlainRev2 {
         sid: Some(666),
-        ..rev2_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev2(rev2));
+        ..rev2()
+    }));
 
     let err = header.accept_sid_for_create().unwrap_err();
 
@@ -402,8 +391,7 @@ fn accept_sid_for_create_rev2_some() {
 
 #[test]
 fn accept_sid_for_open_rev0_none() {
-    let rev0 = rev0_plain_secret(None);
-    let header = header(PlainSecret::Rev0(rev0));
+    let header = header(PlainSecret::Rev0(rev0()));
 
     let err = header.accept_sid_for_open(666).unwrap_err();
 
@@ -413,22 +401,20 @@ fn accept_sid_for_open_rev0_none() {
 
 #[test]
 fn accept_sid_for_open_rev0_some_eq() {
-    let rev0 = PlainRev0 {
+    let header = header(PlainSecret::Rev0(PlainRev0 {
         sid: Some(666),
-        ..rev0_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev0(rev0));
+        ..rev0()
+    }));
 
     header.accept_sid_for_open(666).unwrap();
 }
 
 #[test]
 fn accept_sid_for_open_rev0_some_neq() {
-    let rev0 = PlainRev0 {
+    let header = header(PlainSecret::Rev0(PlainRev0 {
         sid: Some(4711),
-        ..rev0_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev0(rev0));
+        ..rev0()
+    }));
 
     let err = header.accept_sid_for_open(666).unwrap_err();
 
@@ -438,15 +424,14 @@ fn accept_sid_for_open_rev0_some_neq() {
 
 #[test]
 fn accept_sid_for_open_rev1() {
-    let header = header(rev1(None));
+    let header = header(PlainSecret::Rev1(rev1()));
 
     header.accept_sid_for_open(666).unwrap();
 }
 
 #[test]
 fn accept_sid_for_open_rev2_none() {
-    let rev2 = rev2_plain_secret(None);
-    let header = header(PlainSecret::Rev2(rev2));
+    let header = header(PlainSecret::Rev2(rev2()));
 
     let err = header.accept_sid_for_open(666).unwrap_err();
 
@@ -456,22 +441,20 @@ fn accept_sid_for_open_rev2_none() {
 
 #[test]
 fn accept_sid_for_open_rev2_some_eq() {
-    let rev2 = PlainRev2 {
+    let header = header(PlainSecret::Rev2(PlainRev2 {
         sid: Some(666),
-        ..rev2_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev2(rev2));
+        ..rev2()
+    }));
 
     header.accept_sid_for_open(666).unwrap();
 }
 
 #[test]
 fn accept_sid_for_open_rev2_some_neq() {
-    let rev2 = PlainRev2 {
+    let header = header(PlainSecret::Rev2(PlainRev2 {
         sid: Some(4711),
-        ..rev2_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev2(rev2));
+        ..rev2()
+    }));
 
     let err = header.accept_sid_for_open(666).unwrap_err();
 
@@ -482,30 +465,30 @@ fn accept_sid_for_open_rev2_some_neq() {
 #[test]
 #[should_panic(expected = "storing a sid into a rev0 header is not supported")]
 fn set_sid_rev0() {
-    header(rev0(None)).set_sid(666).unwrap();
+    header(PlainSecret::Rev0(rev0())).set_sid(666).unwrap();
 }
 
 #[test]
 #[should_panic(expected = "storing a sid into a rev0 header is not supported")]
 fn set_sid_rev0_inval() {
-    header(rev0(None)).set_sid(0).unwrap();
+    header(PlainSecret::Rev0(rev0())).set_sid(0).unwrap();
 }
 
 #[test]
 #[should_panic(expected = "storing a sid into a rev1 header is not supported")]
 fn set_sid_rev1() {
-    header(rev1(None)).set_sid(666).unwrap();
+    header(PlainSecret::Rev1(rev1())).set_sid(666).unwrap();
 }
 
 #[test]
 #[should_panic(expected = "storing a sid into a rev1 header is not supported")]
 fn set_sid_rev1_inval() {
-    header(rev1(None)).set_sid(0).unwrap();
+    header(PlainSecret::Rev1(rev1())).set_sid(0).unwrap();
 }
 
 #[test]
 fn set_sid_rev2() {
-    let mut header = header(rev2(None));
+    let mut header = header(PlainSecret::Rev2(rev2()));
 
     header.set_sid(666).unwrap();
 
@@ -514,7 +497,7 @@ fn set_sid_rev2() {
 
 #[test]
 fn set_sid_rev2_inval() {
-    let mut header = header(rev2(None));
+    let mut header = header(PlainSecret::Rev2(rev2()));
     let err = header.set_sid(0).unwrap_err();
 
     assert!(matches!(err, HeaderError::InvalidSid));
@@ -522,44 +505,51 @@ fn set_sid_rev2_inval() {
 
 #[test]
 fn top_id_rev0_none() {
-    let header = header(rev0(None));
+    let header = header(PlainSecret::Rev0(rev0()));
 
     assert!(header.top_id().is_none());
 }
 
 #[test]
 fn top_id_rev0_some() {
-    let header = header(rev0(Some("4711")));
-    let top_id = header.top_id().unwrap();
+    let header = header(PlainSecret::Rev0(PlainRev0 {
+        top_id: Some("4711".parse().unwrap()),
+        ..rev0()
+    }));
 
-    assert_eq!(top_id.to_string(), "4711");
+    assert_eq!(header.top_id().unwrap().to_string(), "4711");
 }
 
 #[test]
 fn top_id_rev1_none() {
-    let header = header(rev1(None));
+    let header = header(PlainSecret::Rev1(rev1()));
 
     assert!(header.top_id().is_none());
 }
 
 #[test]
 fn top_id_rev1_some() {
-    let header = header(rev1(Some("4711")));
-    let top_id = header.top_id().unwrap();
+    let header = header(PlainSecret::Rev1(PlainRev1 {
+        top_id: Some("4711".parse().unwrap()),
+        ..rev1()
+    }));
 
-    assert_eq!(top_id.to_string(), "4711");
+    assert_eq!(header.top_id().unwrap().to_string(), "4711");
 }
 
 #[test]
 fn top_id_rev2_none() {
-    let header = header(rev2(None));
+    let header = header(PlainSecret::Rev2(rev2()));
 
     assert!(header.top_id().is_none());
 }
 
 #[test]
 fn top_id_rev2_some() {
-    let header = header(rev2(Some("4711")));
+    let header = header(PlainSecret::Rev2(PlainRev2 {
+        top_id: Some("4711".parse().unwrap()),
+        ..rev2()
+    }));
     let top_id = header.top_id().unwrap();
 
     assert_eq!(top_id.to_string(), "4711");
@@ -568,18 +558,18 @@ fn top_id_rev2_some() {
 #[test]
 #[should_panic(expected = "storing a top-id into a rev0 header is not supported")]
 fn set_top_id_rev0() {
-    header(rev0(None)).set_top_id("4711".parse().unwrap());
+    header(PlainSecret::Rev0(rev0())).set_top_id("4711".parse().unwrap());
 }
 
 #[test]
 #[should_panic(expected = "storing a top-id into a rev1 header is not supported")]
 fn set_top_id_rev1() {
-    header(rev1(None)).set_top_id("4711".parse().unwrap());
+    header(PlainSecret::Rev1(rev1())).set_top_id("4711".parse().unwrap());
 }
 
 #[test]
 fn set_top_id_rev2() {
-    let mut header = header(rev2(None));
+    let mut header = header(PlainSecret::Rev2(rev2()));
 
     header.set_top_id("4711".parse().unwrap());
 
