@@ -20,6 +20,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+use nuts_memory::MemoryBackend;
+
 mod common;
 
 #[test]
@@ -53,66 +55,16 @@ fn create() {
 #[test]
 fn create_inval_revision() {
     use nuts_container::*;
-    use nuts_directory::{DirectoryBackend, OpenOptions};
-    use std::path::PathBuf;
-    use thiserror::Error;
+    use std::fs::File;
 
-    #[derive(Debug, Error)]
-    #[error(transparent)]
-    struct SampleError(#[from] Error<DirectoryBackend<PathBuf>>);
-
-    #[derive(Debug)]
-    struct SampleService;
-
-    impl Migration for SampleService {
-        fn migrate_rev0(&self, _userdata: &[u8]) -> Result<(u32, Vec<u8>), String> {
-            unimplemented!()
-        }
-    }
-
-    impl Service<DirectoryBackend<PathBuf>> for SampleService {
-        type Migration = Self;
-
-        fn sid() -> u32 {
-            666
-        }
-
-        fn need_top_id() -> bool {
-            false
-        }
-
-        fn migration() -> Self {
-            Self
-        }
-    }
-
-    impl ServiceFactory<DirectoryBackend<PathBuf>> for SampleService {
-        type Service = Self;
-        type Err = SampleError;
-
-        fn create(
-            _container: Container<DirectoryBackend<PathBuf>>,
-        ) -> Result<Self::Service, Self::Err> {
-            unimplemented!()
-        }
-
-        fn open(
-            _container: Container<DirectoryBackend<PathBuf>>,
-        ) -> Result<Self::Service, Self::Err> {
-            unimplemented!()
-        }
-    }
-
-    const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
+    use crate::common::{fixture_path, SampleService};
 
     // you need a rev0-container
-    let path: PathBuf = [MANIFEST_DIR, "data", "0.6.8-none"].iter().collect();
-    let backend_options = OpenOptions::for_path(path);
-    let container_options = OpenOptionsBuilder::new()
-        .build::<DirectoryBackend<PathBuf>>()
-        .unwrap();
+    let path = fixture_path("0.6.8-none.json");
+    let backend: MemoryBackend = serde_json::from_reader(File::open(path).unwrap()).unwrap();
 
-    let container = Container::open(backend_options, container_options).unwrap();
+    let options = OpenOptionsBuilder::new().build::<MemoryBackend>().unwrap();
+    let container = Container::open(backend, options).unwrap();
 
     assert_eq!(container.info().unwrap().revision, 0);
 

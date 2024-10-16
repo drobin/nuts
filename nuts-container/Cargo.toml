@@ -47,6 +47,4 @@ thiserror = "1.0.61"
 
 [dev-dependencies]
 nuts-memory = { path = "../nuts-memory", version = "=0.7.2" }
-nuts-directory = { path = "../nuts-directory", version = "=0.7.2" }
-serde = "1.0.202"
 serde_json = { version = "1.0.128", features = ["std"] }

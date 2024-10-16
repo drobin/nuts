@@ -521,10 +521,8 @@ version = "0.7.2"
 dependencies = [
  "log",
  "nuts-backend",
- "nuts-directory",
  "nuts-memory",
  "openssl",
- "serde",
  "serde_json",
  "thiserror",
 ]

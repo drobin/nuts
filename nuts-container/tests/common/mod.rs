@@ -22,7 +22,19 @@
 
 use nuts_container::{Container, Error, Migration, Service, ServiceFactory};
 use nuts_memory::MemoryBackend;
+use std::path::PathBuf;
 use thiserror::Error;
+
+const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
+
+#[allow(dead_code)]
+pub fn fixture_password() -> Result<Vec<u8>, String> {
+    Ok(b"sample".to_vec())
+}
+
+pub fn fixture_path(name: &str) -> PathBuf {
+    [MANIFEST_DIR, "data", name].iter().collect()
+}
 
 #[derive(Debug, Error)]
 #[error(transparent)]
@@ -40,6 +52,7 @@ impl Migration for SampleMigration {
 pub struct SampleService(Container<MemoryBackend>);
 
 impl SampleService {
+    #[allow(dead_code)]
     pub fn into_container(self) -> Container<MemoryBackend> {
         self.0
     }

@@ -20,19 +20,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+mod common;
+
 use nuts_container::{Cipher, Container, Digest, Kdf, OpenOptionsBuilder};
 use nuts_memory::MemoryBackend;
-use std::{fs::File, path::PathBuf};
+use std::fs::File;
 
-const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
-
-fn password() -> Result<Vec<u8>, String> {
-    Ok(b"sample".to_vec())
-}
-
-fn fixture_path(name: &str) -> PathBuf {
-    [MANIFEST_DIR, "data", name].iter().collect()
-}
+use crate::common::{fixture_password, fixture_path};
 
 // #[test]
 // fn create_test_data() {
@@ -72,7 +66,7 @@ macro_rules! make_test {
             let backend: MemoryBackend = serde_json::from_reader(file).unwrap();
 
             let options = OpenOptionsBuilder::new()
-                .with_password_callback(password)
+                .with_password_callback(fixture_password)
                 .build::<MemoryBackend>()
                 .unwrap();
 
