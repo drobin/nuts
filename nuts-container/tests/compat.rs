@@ -21,8 +21,8 @@
 // IN THE SOFTWARE.
 
 use nuts_container::{Cipher, Container, Digest, Kdf, OpenOptionsBuilder};
-use nuts_directory::{DirectoryBackend, OpenOptions};
-use std::path::PathBuf;
+use nuts_memory::MemoryBackend;
+use std::{fs::File, path::PathBuf};
 
 const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -30,28 +30,60 @@ fn password() -> Result<Vec<u8>, String> {
     Ok(b"sample".to_vec())
 }
 
-fn data_dir(name: &str) -> PathBuf {
+fn fixture_path(name: &str) -> PathBuf {
     [MANIFEST_DIR, "data", name].iter().collect()
 }
 
+// #[test]
+// fn create_test_data() {
+//     const VERSION: &[u8] = b"0.7.3";
+
+//     for (path, cipher) in [
+//         ("0.7.3-none.json", Cipher::None),
+//         ("0.7.3-aes128ctr.json", Cipher::Aes128Ctr),
+//         ("0.7.3-aes128gcm.json", Cipher::Aes128Gcm),
+//         ("0.7.3-aes192ctr.json", Cipher::Aes192Ctr),
+//         ("0.7.3-aes192gcm.json", Cipher::Aes192Gcm),
+//         ("0.7.3-aes256ctr.json", Cipher::Aes256Ctr),
+//         ("0.7.3-aes256gcm.json", Cipher::Aes256Gcm),
+//     ] {
+//         let options = nuts_container::CreateOptionsBuilder::new(cipher)
+//             .with_password_callback(password)
+//             .build::<MemoryBackend>()
+//             .unwrap();
+
+//         let mut container = Container::create(MemoryBackend::new(), options).unwrap();
+//         let id = container.aquire().unwrap();
+
+//         container.write(&id, VERSION).unwrap();
+
+//         let backend = container.into_backend();
+//         let file = File::create(fixture_path(path)).unwrap();
+
+//         serde_json::to_writer(file, &backend).unwrap();
+//     }
+// }
+
 macro_rules! make_test {
-    ($name:ident, $path:literal, $version:literal, $id:literal, | $info:ident | $assert_info:block) => {
+    ($name:ident, $path:literal, $version:literal, | $info:ident | $assert_info:block) => {
         #[test]
         fn $name() {
-            let backend_options = OpenOptions::for_path(data_dir($path));
-            let container_options = OpenOptionsBuilder::new()
+            let file = File::open(fixture_path($path)).unwrap();
+            let backend: MemoryBackend = serde_json::from_reader(file).unwrap();
+
+            let options = OpenOptionsBuilder::new()
                 .with_password_callback(password)
-                .build::<DirectoryBackend<PathBuf>>()
+                .build::<MemoryBackend>()
                 .unwrap();
 
-            let mut container = Container::open(backend_options, container_options).unwrap();
+            let mut container = Container::open(backend, options).unwrap();
 
             assert!(container.top_id().is_none());
 
             let $info = container.info().unwrap();
             $assert_info
 
-            let id = $id.parse().unwrap();
+            let id = "1".parse().unwrap();
             let mut buf = [0; 8];
             let n = container.read(&id, &mut buf).unwrap();
 
@@ -63,11 +95,9 @@ macro_rules! make_test {
 
 make_test!(
     compat_0_6_8_none,
-    "0.6.8-none",
-    b"0.6.8\n\0\0",
-    "ef6a70398d3c4ae8813c4832ce191df5",
+    "0.6.8-none.json",
+    b"0.6.8\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 0);
         assert_eq!(info.cipher, Cipher::None);
         assert_eq!(info.kdf, Kdf::None);
@@ -78,11 +108,9 @@ make_test!(
 
 make_test!(
     compat_0_6_8_aes128_ctr,
-    "0.6.8-aes128ctr",
-    b"0.6.8\n\0\0",
-    "7fa14f6895f307961b70ff5a6256e9e2",
+    "0.6.8-aes128ctr.json",
+    b"0.6.8\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 0);
         assert_eq!(info.cipher, Cipher::Aes128Ctr);
         assert!(matches!(
@@ -100,11 +128,9 @@ make_test!(
 
 make_test!(
     compat_0_6_8_aes128_gcm,
-    "0.6.8-aes128gcm",
-    b"0.6.8\n\0\0",
-    "ea9743995df9d8032c5c251b316a22ac",
+    "0.6.8-aes128gcm.json",
+    b"0.6.8\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 0);
         assert_eq!(info.cipher, Cipher::Aes128Gcm);
         assert!(matches!(
@@ -122,11 +148,9 @@ make_test!(
 
 make_test!(
     compat_0_7_0_none,
-    "0.7.0-none",
-    b"0.7.0\n\0\0",
-    "145c587e3873b12f4b33922dff045c26",
+    "0.7.0-none.json",
+    b"0.7.0\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::None);
         assert_eq!(info.kdf, Kdf::None);
@@ -137,11 +161,9 @@ make_test!(
 
 make_test!(
     compat_0_7_0_aes128ctr,
-    "0.7.0-aes128ctr",
-    b"0.7.0\n\0\0",
-    "c05c8d16a71fb5d6beb34b0adaad06e3",
+    "0.7.0-aes128ctr.json",
+    b"0.7.0\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes128Ctr);
         assert!(matches!(
@@ -159,11 +181,9 @@ make_test!(
 
 make_test!(
     compat_0_7_0_aes192ctr,
-    "0.7.0-aes192ctr",
-    b"0.7.0\n\0\0",
-    "1de4d5f8f73593a27d724d80a7dc4936",
+    "0.7.0-aes192ctr.json",
+    b"0.7.0\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes192Ctr);
         assert!(matches!(
@@ -181,11 +201,9 @@ make_test!(
 
 make_test!(
     compat_0_7_0_aes256ctr,
-    "0.7.0-aes256ctr",
-    b"0.7.0\n\0\0",
-    "380fbd27e4776fe51a7506c4f840d164",
+    "0.7.0-aes256ctr.json",
+    b"0.7.0\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes256Ctr);
         assert!(matches!(
@@ -203,11 +221,9 @@ make_test!(
 
 make_test!(
     compat_0_7_0_aes128gcm,
-    "0.7.0-aes128gcm",
-    b"0.7.0\n\0\0",
-    "b4ea7edf6c853a90615dacdb557b0b73",
+    "0.7.0-aes128gcm.json",
+    b"0.7.0\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes128Gcm);
         assert!(matches!(
@@ -225,11 +241,9 @@ make_test!(
 
 make_test!(
     compat_0_7_0_aes192gcm,
-    "0.7.0-aes192gcm",
-    b"0.7.0\n\0\0",
-    "b1cc2a74dae5c9d1dacfa220222f8cdf",
+    "0.7.0-aes192gcm.json",
+    b"0.7.0\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes192Gcm);
         assert!(matches!(
@@ -247,11 +261,9 @@ make_test!(
 
 make_test!(
     compat_0_7_0_aes256gcm,
-    "0.7.0-aes256gcm",
-    b"0.7.0\n\0\0",
-    "a8ad28de13a7a6fefe53322c12cd5276",
+    "0.7.0-aes256gcm.json",
+    b"0.7.0\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes256Gcm);
         assert!(matches!(
@@ -269,11 +281,9 @@ make_test!(
 
 make_test!(
     compat_0_7_1_none,
-    "0.7.1-none",
-    b"0.7.1\n\0\0",
-    "e440cadb70f8e8b3fe52b53e36be7612",
+    "0.7.1-none.json",
+    b"0.7.1\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::None);
         assert_eq!(info.kdf, Kdf::None);
@@ -284,11 +294,9 @@ make_test!(
 
 make_test!(
     compat_0_7_1_aes128ctr,
-    "0.7.1-aes128ctr",
-    b"0.7.1\n\0\0",
-    "6bfb3d41da711efd13780b498657922b",
+    "0.7.1-aes128ctr.json",
+    b"0.7.1\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes128Ctr);
         assert!(matches!(
@@ -306,11 +314,9 @@ make_test!(
 
 make_test!(
     compat_0_7_1_aes192ctr,
-    "0.7.1-aes192ctr",
-    b"0.7.1\n\0\0",
-    "acd5e6310276f718a33dc07c72b855d7",
+    "0.7.1-aes192ctr.json",
+    b"0.7.1\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes192Ctr);
         assert!(matches!(
@@ -328,11 +334,9 @@ make_test!(
 
 make_test!(
     compat_0_7_1_aes256ctr,
-    "0.7.1-aes256ctr",
-    b"0.7.1\n\0\0",
-    "721120637f214072815cb3a6ad79dfc7",
+    "0.7.1-aes256ctr.json",
+    b"0.7.1\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes256Ctr);
         assert!(matches!(
@@ -350,11 +354,9 @@ make_test!(
 
 make_test!(
     compat_0_7_1_aes128gcm,
-    "0.7.1-aes128gcm",
-    b"0.7.1\n\0\0",
-    "188c8473568c11609122401442a42a3b",
+    "0.7.1-aes128gcm.json",
+    b"0.7.1\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes128Gcm);
         assert!(matches!(
@@ -372,11 +374,9 @@ make_test!(
 
 make_test!(
     compat_0_7_1_aes192gcm,
-    "0.7.1-aes192gcm",
-    b"0.7.1\n\0\0",
-    "a909410e74242a797169251e28e22069",
+    "0.7.1-aes192gcm.json",
+    b"0.7.1\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
         assert_eq!(info.cipher, Cipher::Aes192Gcm);
         assert!(matches!(
@@ -394,12 +394,143 @@ make_test!(
 
 make_test!(
     compat_0_7_1_aes256gcm,
-    "0.7.1-aes256gcm",
-    b"0.7.1\n\0\0",
-    "a939d78fea253434b5011ca7ba41beb0",
+    "0.7.1-aes256gcm.json",
+    b"0.7.1\0\0\0",
     |info| {
-        assert_eq!(info.backend.bsize, 512);
         assert_eq!(info.revision, 1);
+        assert_eq!(info.cipher, Cipher::Aes256Gcm);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 496);
+    }
+);
+
+make_test!(
+    compat_0_7_3_none,
+    "0.7.3-none.json",
+    b"0.7.3\0\0\0",
+    |info| {
+        assert_eq!(info.revision, 2);
+        assert_eq!(info.cipher, Cipher::None);
+        assert_eq!(info.kdf, Kdf::None);
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 512);
+    }
+);
+
+make_test!(
+    compat_0_7_3_aes128ctr,
+    "0.7.3-aes128ctr.json",
+    b"0.7.3\0\0\0",
+    |info| {
+        assert_eq!(info.revision, 2);
+        assert_eq!(info.cipher, Cipher::Aes128Ctr);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 512);
+    }
+);
+
+make_test!(
+    compat_0_7_3_aes192ctr,
+    "0.7.3-aes192ctr.json",
+    b"0.7.3\0\0\0",
+    |info| {
+        assert_eq!(info.revision, 2);
+        assert_eq!(info.cipher, Cipher::Aes192Ctr);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 512);
+    }
+);
+
+make_test!(
+    compat_0_7_3_aes256ctr,
+    "0.7.3-aes256ctr.json",
+    b"0.7.3\0\0\0",
+    |info| {
+        assert_eq!(info.revision, 2);
+        assert_eq!(info.cipher, Cipher::Aes256Ctr);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 512);
+    }
+);
+
+make_test!(
+    compat_0_7_3_aes128gcm,
+    "0.7.3-aes128gcm.json",
+    b"0.7.3\0\0\0",
+    |info| {
+        assert_eq!(info.revision, 2);
+        assert_eq!(info.cipher, Cipher::Aes128Gcm);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 496);
+    }
+);
+
+make_test!(
+    compat_0_7_3_aes192gcm,
+    "0.7.3-aes192gcm.json",
+    b"0.7.3\0\0\0",
+    |info| {
+        assert_eq!(info.revision, 2);
+        assert_eq!(info.cipher, Cipher::Aes192Gcm);
+        assert!(matches!(
+            info.kdf,
+            Kdf::Pbkdf2 {
+                digest,
+                iterations,
+                salt
+            } if digest == Digest::Sha256 && iterations == 65536 && salt.len() == 16
+        ));
+        assert_eq!(info.bsize_gross, 512);
+        assert_eq!(info.bsize_net, 496);
+    }
+);
+
+make_test!(
+    compat_0_7_3_aes256gcm,
+    "0.7.3-aes256gcm.json",
+    b"0.7.3\0\0\0",
+    |info| {
+        assert_eq!(info.revision, 2);
         assert_eq!(info.cipher, Cipher::Aes256Gcm);
         assert!(matches!(
             info.kdf,
