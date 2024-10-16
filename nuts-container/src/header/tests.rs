@@ -349,82 +349,134 @@ fn iv_rev2() {
 }
 
 #[test]
-fn can_accept_sid_rev0_none() {
+fn accept_sid_for_create_rev0_none() {
     let rev0 = rev0_plain_secret(None);
     let header = header(PlainSecret::Rev0(rev0));
 
-    let err = header.can_accept_sid(666).unwrap_err();
-
-    assert!(matches!(err, HeaderError::UnexpectedSid(expected, got)
-        if expected == 666 && got.is_none()));
+    header.accept_sid_for_create().unwrap();
 }
 
 #[test]
-fn can_accept_sid_rev0_some_eq() {
+fn accept_sid_for_create_rev0_some() {
     let rev0 = PlainRev0 {
         sid: Some(666),
         ..rev0_plain_secret(None)
     };
     let header = header(PlainSecret::Rev0(rev0));
 
-    header.can_accept_sid(666).unwrap();
+    let err = header.accept_sid_for_create().unwrap_err();
+
+    assert!(matches!(err,HeaderError::UnexpectedSid { expected, got }
+        if expected.is_none() && got == Some(666)));
 }
 
 #[test]
-fn can_accept_sid_rev0_some_neq() {
-    let rev0 = PlainRev0 {
-        sid: Some(4711),
-        ..rev0_plain_secret(None)
-    };
-    let header = header(PlainSecret::Rev0(rev0));
+fn accept_sid_for_create_rev1_none() {
+    let rev1 = rev1_plain_secret(None);
+    let header = header(PlainSecret::Rev1(rev1));
 
-    let err = header.can_accept_sid(666).unwrap_err();
-
-    assert!(matches!(err, HeaderError::UnexpectedSid(expected, got)
-        if expected == 666 && got == Some(4711)));
+    header.accept_sid_for_create().unwrap();
 }
 
 #[test]
-fn can_accept_sid_rev1() {
-    let header = header(rev1(None));
-
-    header.can_accept_sid(666).unwrap();
-}
-
-#[test]
-fn can_accept_sid_rev2_none() {
+fn accept_sid_for_create_rev2_none() {
     let rev2 = rev2_plain_secret(None);
     let header = header(PlainSecret::Rev2(rev2));
 
-    let err = header.can_accept_sid(666).unwrap_err();
-
-    assert!(matches!(err, HeaderError::UnexpectedSid(expected, got)
-        if expected == 666 && got.is_none()));
+    header.accept_sid_for_create().unwrap();
 }
 
 #[test]
-fn can_accept_sid_rev2_some_eq() {
+fn accept_sid_for_create_rev2_some() {
     let rev2 = PlainRev2 {
         sid: Some(666),
         ..rev2_plain_secret(None)
     };
     let header = header(PlainSecret::Rev2(rev2));
 
-    header.can_accept_sid(666).unwrap();
+    let err = header.accept_sid_for_create().unwrap_err();
+
+    assert!(matches!(err,HeaderError::UnexpectedSid { expected, got }
+        if expected.is_none() && got == Some(666)));
 }
 
 #[test]
-fn can_accept_sid_rev2_some_neq() {
+fn accept_sid_for_open_rev0_none() {
+    let rev0 = rev0_plain_secret(None);
+    let header = header(PlainSecret::Rev0(rev0));
+
+    let err = header.accept_sid_for_open(666).unwrap_err();
+
+    assert!(matches!(err, HeaderError::UnexpectedSid{expected, got}
+        if expected == Some(666) && got.is_none()));
+}
+
+#[test]
+fn accept_sid_for_open_rev0_some_eq() {
+    let rev0 = PlainRev0 {
+        sid: Some(666),
+        ..rev0_plain_secret(None)
+    };
+    let header = header(PlainSecret::Rev0(rev0));
+
+    header.accept_sid_for_open(666).unwrap();
+}
+
+#[test]
+fn accept_sid_for_open_rev0_some_neq() {
+    let rev0 = PlainRev0 {
+        sid: Some(4711),
+        ..rev0_plain_secret(None)
+    };
+    let header = header(PlainSecret::Rev0(rev0));
+
+    let err = header.accept_sid_for_open(666).unwrap_err();
+
+    assert!(matches!(err, HeaderError::UnexpectedSid{expected, got}
+        if expected == Some(666) && got == Some(4711)));
+}
+
+#[test]
+fn accept_sid_for_open_rev1() {
+    let header = header(rev1(None));
+
+    header.accept_sid_for_open(666).unwrap();
+}
+
+#[test]
+fn accept_sid_for_open_rev2_none() {
+    let rev2 = rev2_plain_secret(None);
+    let header = header(PlainSecret::Rev2(rev2));
+
+    let err = header.accept_sid_for_open(666).unwrap_err();
+
+    assert!(matches!(err, HeaderError::UnexpectedSid{expected, got}
+        if expected == Some(666) && got.is_none()));
+}
+
+#[test]
+fn accept_sid_for_open_rev2_some_eq() {
+    let rev2 = PlainRev2 {
+        sid: Some(666),
+        ..rev2_plain_secret(None)
+    };
+    let header = header(PlainSecret::Rev2(rev2));
+
+    header.accept_sid_for_open(666).unwrap();
+}
+
+#[test]
+fn accept_sid_for_open_rev2_some_neq() {
     let rev2 = PlainRev2 {
         sid: Some(4711),
         ..rev2_plain_secret(None)
     };
     let header = header(PlainSecret::Rev2(rev2));
 
-    let err = header.can_accept_sid(666).unwrap_err();
+    let err = header.accept_sid_for_open(666).unwrap_err();
 
-    assert!(matches!(err, HeaderError::UnexpectedSid(expected, got)
-        if expected == 666 && got == Some(4711)));
+    assert!(matches!(err, HeaderError::UnexpectedSid{expected, got}
+        if expected == Some(666) && got == Some(4711)));
 }
 
 #[test]

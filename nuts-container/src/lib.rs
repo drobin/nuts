@@ -372,6 +372,12 @@ impl<B: Backend> Container<B> {
             .latest_revision_or_err()
             .map_err(Error::<B>::Header)?;
 
+        // ensure that the container does not already have a service
+        container
+            .header
+            .accept_sid_for_create()
+            .map_err(Error::<B>::Header)?;
+
         // aquire top-id (if requested)
         let top_id = if F::Service::need_top_id() {
             Some(container.aquire()?)
@@ -456,7 +462,7 @@ impl<B: Backend> Container<B> {
         container.header.migrate().map_err(Error::<B>::Header)?;
         container
             .header
-            .can_accept_sid(F::Service::sid())
+            .accept_sid_for_open(F::Service::sid())
             .map_err(Error::Header)?;
 
         F::open(container)

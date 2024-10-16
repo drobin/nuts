@@ -81,8 +81,13 @@ pub enum HeaderError {
     InvalidSid,
 
     /// Unexpected service identifier (sid)
-    #[error("unexpected sid, expected {0} but got {}", .1.map_or_else(|| "none".to_string(), |n| n.to_string()))]
-    UnexpectedSid(u32, Option<u32>),
+    #[error("unexpected sid, expected {} but got {}",
+        .expected.map_or_else(|| "none".to_string(), |n| n.to_string()),
+        .got.map_or_else(|| "none".to_string(), |n| n.to_string()))]
+    UnexpectedSid {
+        expected: Option<u32>,
+        got: Option<u32>,
+    },
 
     /// Invalid settings, could not parse backend settings from header.
     #[error("invalid settings")]
@@ -283,7 +288,24 @@ impl<'a, B: Backend> Header<'a, B> {
         }
     }
 
-    pub fn can_accept_sid(&self, sid: u32) -> Result<(), HeaderError> {
+    pub fn accept_sid_for_create(&self) -> Result<(), HeaderError> {
+        let sid_opt = match &self.data {
+            PlainSecret::Rev0(rev0) => rev0.sid,
+            PlainSecret::Rev1(_) => None,
+            PlainSecret::Rev2(rev2) => rev2.sid,
+        };
+
+        if sid_opt.is_none() {
+            Ok(())
+        } else {
+            Err(HeaderError::UnexpectedSid {
+                expected: None,
+                got: sid_opt,
+            })
+        }
+    }
+
+    pub fn accept_sid_for_open(&self, sid: u32) -> Result<(), HeaderError> {
         let accecpt = |header_sid| match header_sid {
             Some(hsid) if hsid == sid => {
                 debug!("sid {} match", sid);
@@ -293,7 +315,10 @@ impl<'a, B: Backend> Header<'a, B> {
             _ => {
                 error!("sid mismatch, sid: {}, header sid: {:?}", sid, header_sid);
 
-                Err(HeaderError::UnexpectedSid(sid, header_sid))
+                Err(HeaderError::UnexpectedSid {
+                    expected: Some(sid),
+                    got: header_sid,
+                })
             }
         };
 
