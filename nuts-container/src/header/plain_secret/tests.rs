@@ -54,20 +54,32 @@ const REV1_NO_TOP_ID: [u8; 18] = [
     0, 0, // settings
 ];
 
-const REV2: [u8; 22] = [
+const REV2_SID: [u8; 22] = [
     0x00, 0x00, 0x12, 0x67, // magic1
     0x00, 0x00, 0x12, 0x67, // magic2
     2, 1, 2, // key
     3, 3, 4, 5, // iv
+    0, 0, 0x12, 0x67, // sid
+    0,    // top-id
+    0, 0, // settings
+];
+
+const REV2_TOP_ID: [u8; 26] = [
+    0x00, 0x00, 0x12, 0x67, // magic1
+    0x00, 0x00, 0x12, 0x67, // magic2
+    2, 1, 2, // key
+    3, 3, 4, 5, // iv
+    0, 0, 0, 0, // sid
     4, 0, 0, 2, 154, // top-id
     0, 0, // settings
 ];
 
-const REV2_NO_TOP_ID: [u8; 18] = [
+const REV2_NONE: [u8; 22] = [
     0x00, 0x00, 0x12, 0x67, // magic1
     0x00, 0x00, 0x12, 0x67, // magic2
     2, 1, 2, // key
     3, 3, 4, 5, // iv
+    0, 0, 0, 0, // sid
     0, // top-id
     0, 0, // settings
 ];
@@ -79,6 +91,7 @@ fn rev0() -> PlainRev0<MemoryBackend> {
         iv: vec![3, 4, 5].into(),
         userdata: vec![0x00, 0x00, 0x12, 0x67].into(),
         settings: Settings,
+        sid: None,
         top_id: None,
     }
 }
@@ -100,36 +113,30 @@ fn rev1_no_top_id() -> PlainRev1<MemoryBackend> {
     }
 }
 
-fn rev2() -> PlainRev2<MemoryBackend> {
+fn rev2(sid: Option<u32>, top_id: Option<&str>) -> PlainRev2<MemoryBackend> {
     PlainRev2 {
         magics: Magics([4711, 4711]),
         key: vec![1, 2].into(),
         iv: vec![3, 4, 5].into(),
-        top_id: Some("666".parse().unwrap()),
+        sid,
+        top_id: top_id.map(|id| id.parse().unwrap()),
         settings: Settings,
-    }
-}
-
-fn rev2_no_top_id() -> PlainRev2<MemoryBackend> {
-    PlainRev2 {
-        top_id: None,
-        ..rev2()
     }
 }
 
 struct SampleMigration;
 
 impl Migration for SampleMigration {
-    fn migrate_rev0(&self, userdata: &[u8]) -> Result<Vec<u8>, String> {
+    fn migrate_rev0(&self, userdata: &[u8]) -> Result<(u32, Vec<u8>), String> {
         assert_eq!(userdata, [0x00, 0x00, 0x12, 0x67]);
-        Ok(userdata.to_vec())
+        Ok((666, userdata.to_vec()))
     }
 }
 
 struct ErrMigration;
 
 impl Migration for ErrMigration {
-    fn migrate_rev0(&self, _userdata: &[u8]) -> Result<Vec<u8>, String> {
+    fn migrate_rev0(&self, _userdata: &[u8]) -> Result<(u32, Vec<u8>), String> {
         Err("foo".to_string())
     }
 }
@@ -144,6 +151,7 @@ fn create_latest() {
         magics: Magics([0x91C0B2CF; 2]),
         key: vec![1].into(),
         iv: vec![2, 3].into(),
+        sid: None,
         top_id: None,
         settings: Settings,
     };
@@ -195,22 +203,29 @@ fn from_buffer_rev1_inval() {
 }
 
 #[test]
-fn from_buffer_rev2() {
-    let out = PlainSecret::<MemoryBackend>::from_buffer_rev2(&mut &REV2[..]).unwrap();
+fn from_buffer_rev2_sid() {
+    let out = PlainSecret::<MemoryBackend>::from_buffer_rev2(&mut &REV2_SID[..]).unwrap();
 
-    assert!(matches!(out, PlainSecret::Rev2(data) if data == rev2()));
+    assert!(matches!(out, PlainSecret::Rev2(data) if data == rev2(Some(4711), None)));
 }
 
 #[test]
-fn from_buffer_rev2_no_top_id() {
-    let out = PlainSecret::from_buffer_rev2(&mut &REV2_NO_TOP_ID[..]).unwrap();
+fn from_buffer_rev2_top_id() {
+    let out = PlainSecret::<MemoryBackend>::from_buffer_rev2(&mut &REV2_TOP_ID[..]).unwrap();
 
-    assert!(matches!(out, PlainSecret::Rev2(data) if data == rev2_no_top_id()));
+    assert!(matches!(out, PlainSecret::Rev2(data) if data == rev2(None, Some("666"))));
+}
+
+#[test]
+fn from_buffer_rev2_none() {
+    let out = PlainSecret::from_buffer_rev2(&mut &REV2_NONE[..]).unwrap();
+
+    assert!(matches!(out, PlainSecret::Rev2(data) if data == rev2(None, None)));
 }
 
 #[test]
 fn from_buffer_rev2_inval() {
-    let mut vec = REV2.to_vec();
+    let mut vec = REV2_NONE.to_vec();
     vec[0] += 1;
 
     match PlainSecret::<MemoryBackend>::from_buffer_rev2(&mut vec.as_slice()) {
@@ -246,21 +261,33 @@ fn to_buffer_rev1_no_top_id() {
 }
 
 #[test]
-fn to_buffer_rev2() {
+fn to_buffer_rev2_sid() {
     let mut buf = vec![];
 
-    PlainSecret::Rev2(rev2()).to_buffer(&mut buf).unwrap();
-    assert_eq!(buf, REV2);
+    PlainSecret::Rev2(rev2(Some(4711), None))
+        .to_buffer(&mut buf)
+        .unwrap();
+    assert_eq!(buf, REV2_SID);
 }
 
 #[test]
-fn to_buffer_rev2_no_top_id() {
+fn to_buffer_rev2_top_id() {
     let mut buf = vec![];
 
-    PlainSecret::Rev2(rev2_no_top_id())
+    PlainSecret::Rev2(rev2(None, Some("666")))
         .to_buffer(&mut buf)
         .unwrap();
-    assert_eq!(buf, REV2_NO_TOP_ID);
+    assert_eq!(buf, REV2_TOP_ID);
+}
+
+#[test]
+fn to_buffer_rev2_none() {
+    let mut buf = vec![];
+
+    PlainSecret::Rev2(rev2(None, None))
+        .to_buffer(&mut buf)
+        .unwrap();
+    assert_eq!(buf, REV2_NONE);
 }
 
 #[test]

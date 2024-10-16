@@ -373,10 +373,21 @@ impl<B: Backend> Container<B> {
             .map_err(Error::<B>::Header)?;
 
         // aquire top-id (if requested)
-        if F::Service::need_top_id() {
-            let id = container.aquire()?;
-            container.update_header(|header| header.set_top_id(id))?;
-        }
+        let top_id = if F::Service::need_top_id() {
+            Some(container.aquire()?)
+        } else {
+            None
+        };
+
+        container.update_header(|header| {
+            header.set_sid(F::Service::sid())?;
+
+            if let Some(id) = top_id {
+                header.set_top_id(id);
+            }
+
+            Ok(())
+        })?;
 
         F::create(container)
     }
@@ -443,6 +454,10 @@ impl<B: Backend> Container<B> {
 
         container.header.set_migrator(migrator);
         container.header.migrate().map_err(Error::<B>::Header)?;
+        container
+            .header
+            .can_accept_sid(F::Service::sid())
+            .map_err(Error::Header)?;
 
         F::open(container)
     }
@@ -613,14 +628,17 @@ impl<B: Backend> Container<B> {
         }
     }
 
-    fn update_header<F: FnOnce(&mut Header<B>)>(&mut self, f: F) -> ContainerResult<(), B> {
+    fn update_header<F: FnOnce(&mut Header<B>) -> Result<(), HeaderError>>(
+        &mut self,
+        f: F,
+    ) -> ContainerResult<(), B> {
         let migrator = Migrator::default();
         let mut header = Self::read_header(&mut self.backend, migrator, &mut self.store)?;
         let mut header_bytes = [0; HEADER_MAX_SIZE];
 
         debug!("header before update: {:?}", header);
 
-        f(&mut header);
+        f(&mut header)?;
 
         debug!("header after update: {:?}", header);
 

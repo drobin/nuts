@@ -45,7 +45,7 @@ pub trait Migration {
     ///
     /// On success the extracted `top-id` should be returned, otherwise return
     /// an error-description.
-    fn migrate_rev0(&self, userdata: &[u8]) -> Result<Vec<u8>, String>;
+    fn migrate_rev0(&self, userdata: &[u8]) -> Result<(u32, Vec<u8>), String>;
 }
 
 #[derive(Default)]
@@ -57,10 +57,13 @@ impl<'a> Migrator<'a> {
         self
     }
 
-    pub fn migrate_rev0(&self, userdata: &[u8]) -> Result<Option<SecureVec>, MigrationError> {
+    pub fn migrate_rev0(
+        &self,
+        userdata: &[u8],
+    ) -> Result<Option<(u32, SecureVec)>, MigrationError> {
         if let Some(migration) = self.0.as_ref() {
             match migration.migrate_rev0(userdata) {
-                Ok(top_id) => Ok(Some(top_id.into())),
+                Ok((sid, top_id)) => Ok(Some((sid, top_id.into()))),
                 Err(err) => Err(MigrationError::Rev0(err)),
             }
         } else {

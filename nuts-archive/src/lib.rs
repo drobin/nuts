@@ -230,6 +230,8 @@ use crate::migration::Migration;
 use crate::pager::Pager;
 use crate::tree::Tree;
 
+const SID: u32 = 0x61 << 24 | 0x72 << 16 | 0x63 << 8 | 0x68; // "arch"
+
 fn flush_header<B: Backend>(
     pager: &mut Pager<B>,
     id: &Id<B>,
@@ -404,6 +406,10 @@ impl<B: Backend> Archive<B> {
 
 impl<B: Backend + 'static> Service<B> for Archive<B> {
     type Migration = Migration<B>;
+
+    fn sid() -> u32 {
+        SID
+    }
 
     fn need_top_id() -> bool {
         true

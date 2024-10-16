@@ -66,6 +66,10 @@ fn fmt_key_iv(key: &[u8], iv: &[u8]) -> Result<(String, String), fmt::Error> {
 // - userdata field removed
 // - top_id field inserted
 // - decrease vec lengths from 8 to 1, settings from 8 to 2
+//
+// * rev 2
+//
+// - sid inserted
 
 #[derive(Debug, PartialEq)]
 pub struct Magics([u32; 2]);
@@ -106,18 +110,20 @@ pub struct PlainRev0<B: Backend> {
     pub iv: SecureVec,
     pub userdata: SecureVec,
     pub settings: B::Settings,
+    pub sid: Option<u32>,      // transient, migrated from userdata attribute
     pub top_id: Option<B::Id>, // transient, migrated from userdata attribute
 }
 
 impl<B: Backend> PlainRev0<B> {
     pub fn migrate(&mut self, migrator: &Migrator) -> Result<(), HeaderError> {
-        self.top_id = match migrator.migrate_rev0(&self.userdata)? {
-            Some(vec) => match <B::Id as Binary>::from_bytes(&vec) {
-                Some(id) => Some(id),
+        if let Some((sid, top_id_bytes)) = migrator.migrate_rev0(&self.userdata)? {
+            self.sid = Some(sid);
+
+            match <B::Id as Binary>::from_bytes(&top_id_bytes) {
+                Some(id) => self.top_id = Some(id),
                 None => return Err(HeaderError::InvalidTopId),
-            },
-            None => None,
-        };
+            }
+        }
 
         Ok(())
     }
@@ -133,6 +139,7 @@ impl<B: Backend> PartialEq for PlainRev0<B> {
             && self.iv == other.iv
             && self.userdata == other.userdata
             && lhs_settings_bytes == rhs_settings_bytes
+            && self.sid == other.sid
             && self.top_id == other.top_id
     }
 }
@@ -147,6 +154,7 @@ impl<B: Backend> fmt::Debug for PlainRev0<B> {
             .field("iv", &iv)
             .field("userdata", &self.userdata)
             .field("settings", &self.settings.as_bytes())
+            .field("sid", &self.sid)
             .field("top_id", &self.top_id.as_ref().map(ToString::to_string))
             .finish()
     }
@@ -191,6 +199,7 @@ pub struct PlainRev2<B: Backend> {
     pub magics: Magics,
     pub key: SecureVec,
     pub iv: SecureVec,
+    pub sid: Option<u32>,
     pub top_id: Option<B::Id>,
     pub settings: B::Settings,
 }
@@ -203,6 +212,7 @@ impl<B: Backend> PartialEq for PlainRev2<B> {
         self.magics == other.magics
             && self.key == other.key
             && self.iv == other.iv
+            && self.sid == other.sid
             && self.top_id == other.top_id
             && lhs_settings_bytes == rhs_settings_bytes
     }
@@ -216,6 +226,7 @@ impl<B: Backend> fmt::Debug for PlainRev2<B> {
             .field("magics", &self.magics)
             .field("key", &key)
             .field("iv", &iv)
+            .field("sid", &self.sid)
             .field("top_id", &self.top_id.as_ref().map(ToString::to_string))
             .field("settings", &self.settings.as_bytes())
             .finish()
@@ -245,6 +256,7 @@ impl<B: Backend> PlainSecret<B> {
             iv,
             userdata,
             settings,
+            sid: None,
             top_id: None,
         }))
     }
@@ -277,8 +289,11 @@ impl<B: Backend> PlainSecret<B> {
         let magics = Magics::get_and_validate(buf)?;
         let key = buf.get_vec::<1>()?.into();
         let iv = buf.get_vec::<1>()?.into();
+        let sid_raw = buf.get_u32()?;
         let top_id_bytes: SecureVec = buf.get_vec::<1>()?.into();
         let settings_bytes: SecureVec = buf.get_vec::<2>()?.into();
+
+        let sid = if sid_raw > 0 { Some(sid_raw) } else { None };
 
         let top_id = if !top_id_bytes.is_empty() {
             Some(Binary::from_bytes(&top_id_bytes).ok_or(HeaderError::InvalidTopId)?)
@@ -292,6 +307,7 @@ impl<B: Backend> PlainSecret<B> {
             magics,
             key,
             iv,
+            sid,
             top_id,
             settings,
         }))
@@ -306,6 +322,7 @@ impl<B: Backend> PlainSecret<B> {
             magics: Magics::generate()?,
             key,
             iv,
+            sid: None,
             top_id: None,
             settings,
         });
@@ -340,6 +357,11 @@ impl<B: Backend> ToBuffer for PlainSecret<B> {
                 rev2.magics.put(buf)?;
                 buf.put_vec::<1>(&rev2.key)?;
                 buf.put_vec::<1>(&rev2.iv)?;
+
+                match rev2.sid {
+                    Some(n) => buf.put_u32(n)?,
+                    None => buf.put_u32(0)?,
+                }
 
                 match rev2.top_id.as_ref() {
                     Some(id) => buf.put_vec::<1>(&id.as_bytes())?,

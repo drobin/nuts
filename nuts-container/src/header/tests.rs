@@ -59,16 +59,17 @@ const REV1: [u8; 52] = [
     0, 0, // secret: settings
 ];
 
-const REV2: [u8; 52] = [
+const REV2: [u8; 56] = [
     b'n', b'u', b't', b's', b'-', b'i', b'o', // magic
     0, 0, 0, 2, // revision
     0, 0, 0, 0, // cipher
     0, 0, 0, 0, 0, 0, 0, 0, // iv
     0, 0, 0, 0, // kdf
-    0, 0, 0, 0, 0, 0, 0, 17, // secret length
+    0, 0, 0, 0, 0, 0, 0, 21, // secret length
     0x91, 0xc0, 0xb2, 0xcf, 0x91, 0xc0, 0xb2, 0xcf, // secret: magics
     0,    // secret: key
     0,    // secret: iv
+    0x00, 0x00, 0x02, 0x9a, // secret: sid
     4, 0x00, 0x00, 0x12, 0x67, // secret: top_id
     0, 0, // secret: settings
 ];
@@ -80,6 +81,7 @@ fn rev0_plain_secret(top_id: Option<&str>) -> PlainRev0<MemoryBackend> {
         iv: vec![].into(),
         userdata: vec![0x00, 0x00, 0x12, 0x67].into(),
         settings: Settings,
+        sid: None,
         top_id: top_id.map(|id| id.parse().unwrap()),
     }
 }
@@ -99,6 +101,7 @@ fn rev2_plain_secret(top_id: Option<&str>) -> PlainRev2<MemoryBackend> {
         magics: 0x91c0b2cf.into(),
         key: vec![].into(),
         iv: vec![].into(),
+        sid: None,
         top_id: top_id.map(|id| id.parse().unwrap()),
         settings: Settings,
     }
@@ -172,10 +175,15 @@ fn read_rev2() {
 
     let header = Header::<MemoryBackend>::read(&REV2, migrator, &mut store).unwrap();
 
+    let expected_data = PlainSecret::Rev2(PlainRev2 {
+        sid: Some(666),
+        ..rev2_plain_secret(Some("4711"))
+    });
+
     assert_eq!(header.revision, 2);
     assert_eq!(header.cipher, Cipher::None);
     assert_eq!(header.kdf, Kdf::None);
-    assert_eq!(header.data, rev2(Some("4711")));
+    assert_eq!(header.data, expected_data);
 }
 
 #[test]
@@ -207,7 +215,10 @@ fn write_rev2() {
     let mut buf = [b'x'; REV2.len()];
     let mut store = PasswordStore::new(None);
 
-    let header = header(rev2(Some("4711")));
+    let header = header(PlainSecret::Rev2(PlainRev2 {
+        sid: Some(666),
+        ..rev2_plain_secret(Some("4711"))
+    }));
 
     header.write(&mut buf, &mut store).unwrap();
 
@@ -335,6 +346,126 @@ fn iv_rev2() {
     let header = header(PlainSecret::Rev2(rev2));
 
     assert_eq!(header.iv(), [1, 2, 3]);
+}
+
+#[test]
+fn can_accept_sid_rev0_none() {
+    let rev0 = rev0_plain_secret(None);
+    let header = header(PlainSecret::Rev0(rev0));
+
+    let err = header.can_accept_sid(666).unwrap_err();
+
+    assert!(matches!(err, HeaderError::UnexpectedSid(expected, got)
+        if expected == 666 && got.is_none()));
+}
+
+#[test]
+fn can_accept_sid_rev0_some_eq() {
+    let rev0 = PlainRev0 {
+        sid: Some(666),
+        ..rev0_plain_secret(None)
+    };
+    let header = header(PlainSecret::Rev0(rev0));
+
+    header.can_accept_sid(666).unwrap();
+}
+
+#[test]
+fn can_accept_sid_rev0_some_neq() {
+    let rev0 = PlainRev0 {
+        sid: Some(4711),
+        ..rev0_plain_secret(None)
+    };
+    let header = header(PlainSecret::Rev0(rev0));
+
+    let err = header.can_accept_sid(666).unwrap_err();
+
+    assert!(matches!(err, HeaderError::UnexpectedSid(expected, got)
+        if expected == 666 && got == Some(4711)));
+}
+
+#[test]
+fn can_accept_sid_rev1() {
+    let header = header(rev1(None));
+
+    header.can_accept_sid(666).unwrap();
+}
+
+#[test]
+fn can_accept_sid_rev2_none() {
+    let rev2 = rev2_plain_secret(None);
+    let header = header(PlainSecret::Rev2(rev2));
+
+    let err = header.can_accept_sid(666).unwrap_err();
+
+    assert!(matches!(err, HeaderError::UnexpectedSid(expected, got)
+        if expected == 666 && got.is_none()));
+}
+
+#[test]
+fn can_accept_sid_rev2_some_eq() {
+    let rev2 = PlainRev2 {
+        sid: Some(666),
+        ..rev2_plain_secret(None)
+    };
+    let header = header(PlainSecret::Rev2(rev2));
+
+    header.can_accept_sid(666).unwrap();
+}
+
+#[test]
+fn can_accept_sid_rev2_some_neq() {
+    let rev2 = PlainRev2 {
+        sid: Some(4711),
+        ..rev2_plain_secret(None)
+    };
+    let header = header(PlainSecret::Rev2(rev2));
+
+    let err = header.can_accept_sid(666).unwrap_err();
+
+    assert!(matches!(err, HeaderError::UnexpectedSid(expected, got)
+        if expected == 666 && got == Some(4711)));
+}
+
+#[test]
+#[should_panic(expected = "storing a sid into a rev0 header is not supported")]
+fn set_sid_rev0() {
+    header(rev0(None)).set_sid(666).unwrap();
+}
+
+#[test]
+#[should_panic(expected = "storing a sid into a rev0 header is not supported")]
+fn set_sid_rev0_inval() {
+    header(rev0(None)).set_sid(0).unwrap();
+}
+
+#[test]
+#[should_panic(expected = "storing a sid into a rev1 header is not supported")]
+fn set_sid_rev1() {
+    header(rev1(None)).set_sid(666).unwrap();
+}
+
+#[test]
+#[should_panic(expected = "storing a sid into a rev1 header is not supported")]
+fn set_sid_rev1_inval() {
+    header(rev1(None)).set_sid(0).unwrap();
+}
+
+#[test]
+fn set_sid_rev2() {
+    let mut header = header(rev2(None));
+
+    header.set_sid(666).unwrap();
+
+    assert!(matches!(header.data, PlainSecret::Rev2(rev2) if rev2.sid == Some(666)));
+}
+
+#[test]
+fn set_sid_rev2_inval() {
+    let mut header = header(rev2(None));
+    let err = header.set_sid(0).unwrap_err();
+
+    assert!(matches!(err, HeaderError::InvalidSid));
 }
 
 #[test]

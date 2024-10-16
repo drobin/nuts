@@ -27,11 +27,12 @@ use std::marker::PhantomData;
 
 use crate::id::Id;
 use crate::magic::{Magic, MAGIC};
+use crate::SID;
 
 pub struct Migration<B>(PhantomData<B>);
 
 impl<B: Backend> nuts_container::Migration for Migration<B> {
-    fn migrate_rev0(&self, userdata: &[u8]) -> Result<Vec<u8>, String> {
+    fn migrate_rev0(&self, userdata: &[u8]) -> Result<(u32, Vec<u8>), String> {
         let mut reader = Reader::new(userdata);
 
         debug!("migrating top-id from userdata");
@@ -53,7 +54,7 @@ impl<B: Backend> nuts_container::Migration for Migration<B> {
         match reader.read::<Id<B>>() {
             Ok(id) => {
                 debug!("top-id: {}", id);
-                Ok(id.as_bytes())
+                Ok((SID, id.as_bytes()))
             }
             Err(err) => Err(format!("failed to read id from userdata: {}", err)),
         }

@@ -35,6 +35,16 @@ pub trait Service<B: Backend> {
     /// The migration assiciated with this service.
     type Migration: Migration + 'static;
 
+    /// The service identifier.
+    ///
+    /// This is a number that identifies the service, which must be greater
+    /// than `0`.
+    ///
+    /// The sid is stored in the header of the container. When opening a
+    /// service the stored sid must match with this sid, otherwise the open
+    /// attempt is rejected.
+    fn sid() -> u32;
+
     /// Returns `true` if the service requires a top-id.
     ///
     /// If a top-id is required, a top-id is aquired and stored in the header

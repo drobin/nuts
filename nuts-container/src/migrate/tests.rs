@@ -25,15 +25,15 @@ use crate::migrate::{Migration, MigrationError, Migrator};
 struct OkSample;
 
 impl Migration for OkSample {
-    fn migrate_rev0(&self, userdata: &[u8]) -> Result<Vec<u8>, String> {
-        Ok(userdata.to_vec())
+    fn migrate_rev0(&self, userdata: &[u8]) -> Result<(u32, Vec<u8>), String> {
+        Ok((666, userdata.to_vec()))
     }
 }
 
 struct ErrSample;
 
 impl Migration for ErrSample {
-    fn migrate_rev0(&self, _userdata: &[u8]) -> Result<Vec<u8>, String> {
+    fn migrate_rev0(&self, _userdata: &[u8]) -> Result<(u32, Vec<u8>), String> {
         Err("xxx".to_string())
     }
 }
@@ -42,8 +42,9 @@ impl Migration for ErrSample {
 fn rev0_assigned_ok() {
     let migrator = Migrator::default().with_migration(OkSample);
 
-    let top_id = migrator.migrate_rev0(&[1, 2, 3]).unwrap().unwrap();
+    let (sid, top_id) = migrator.migrate_rev0(&[1, 2, 3]).unwrap().unwrap();
 
+    assert_eq!(sid, 666);
     assert_eq!(*top_id, [1, 2, 3]);
 }
 

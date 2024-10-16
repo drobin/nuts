@@ -63,13 +63,17 @@ fn create_inval_revision() {
     struct SampleService;
 
     impl Migration for SampleService {
-        fn migrate_rev0(&self, _userdata: &[u8]) -> Result<Vec<u8>, String> {
+        fn migrate_rev0(&self, _userdata: &[u8]) -> Result<(u32, Vec<u8>), String> {
             unimplemented!()
         }
     }
 
     impl Service<DirectoryBackend<PathBuf>> for SampleService {
         type Migration = Self;
+
+        fn sid() -> u32 {
+            666
+        }
 
         fn need_top_id() -> bool {
             false

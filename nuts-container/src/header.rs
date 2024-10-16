@@ -25,6 +25,7 @@ mod revision;
 #[cfg(test)]
 mod tests;
 
+use log::{debug, error};
 use nuts_backend::Backend;
 use openssl::error::ErrorStack;
 use plain_secret::PlainSecret;
@@ -74,6 +75,14 @@ pub enum HeaderError {
     /// Invalid header, could not validate magic
     #[error("invalid header")]
     InvalidHeader,
+
+    /// Invalid service identifeir (sid)
+    #[error("invalid sid")]
+    InvalidSid,
+
+    /// Unexpected service identifier (sid)
+    #[error("unexpected sid, expected {0} but got {}", .1.map_or_else(|| "none".to_string(), |n| n.to_string()))]
+    UnexpectedSid(u32, Option<u32>),
 
     /// Invalid settings, could not parse backend settings from header.
     #[error("invalid settings")]
@@ -271,6 +280,51 @@ impl<'a, B: Backend> Header<'a, B> {
             PlainSecret::Rev0(rev0) => &rev0.iv,
             PlainSecret::Rev1(rev1) => &rev1.iv,
             PlainSecret::Rev2(rev2) => &rev2.iv,
+        }
+    }
+
+    pub fn can_accept_sid(&self, sid: u32) -> Result<(), HeaderError> {
+        let accecpt = |header_sid| match header_sid {
+            Some(hsid) if hsid == sid => {
+                debug!("sid {} match", sid);
+
+                Ok(())
+            }
+            _ => {
+                error!("sid mismatch, sid: {}, header sid: {:?}", sid, header_sid);
+
+                Err(HeaderError::UnexpectedSid(sid, header_sid))
+            }
+        };
+
+        match &self.data {
+            PlainSecret::Rev0(rev0) => accecpt(rev0.sid),
+            PlainSecret::Rev1(_) => {
+                // There is no way to identify a rev 1 service. This is the reason we
+                // put the sid (service identifier) into the header.
+                // Assume that the service rejects invalid data from its super-block.
+                // It's ok to say ok here.
+
+                debug!("rev1 has no sid, say ok");
+
+                Ok(())
+            }
+            PlainSecret::Rev2(rev2) => accecpt(rev2.sid),
+        }
+    }
+
+    pub fn set_sid(&mut self, sid: u32) -> Result<(), HeaderError> {
+        match &mut self.data {
+            PlainSecret::Rev0(_) => panic!("storing a sid into a rev0 header is not supported"),
+            PlainSecret::Rev1(_) => panic!("storing a sid into a rev1 header is not supported"),
+            PlainSecret::Rev2(rev2) => {
+                if sid > 0 {
+                    rev2.sid = Some(sid);
+                    Ok(())
+                } else {
+                    Err(HeaderError::InvalidSid)
+                }
+            }
         }
     }
 
