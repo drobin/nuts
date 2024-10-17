@@ -490,6 +490,7 @@ dependencies = [
  "nuts-container",
  "nuts-directory",
  "nuts-memory",
+ "serde_json",
  "tempfile",
  "thiserror",
 ]

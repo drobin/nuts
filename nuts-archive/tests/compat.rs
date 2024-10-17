@@ -22,7 +22,8 @@
 
 use nuts_archive::ArchiveFactory;
 use nuts_container::{Cipher, Container, OpenOptionsBuilder};
-use nuts_directory::{DirectoryBackend, OpenOptions};
+use nuts_memory::MemoryBackend;
+use std::fs::File;
 use std::path::PathBuf;
 
 const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
@@ -31,20 +32,55 @@ fn password() -> Result<Vec<u8>, String> {
     Ok(b"sample".to_vec())
 }
 
-fn data_dir(name: &str) -> PathBuf {
+fn fixture_path(name: &str) -> PathBuf {
     [MANIFEST_DIR, "data", name].iter().collect()
 }
 
+// #[test]
+// fn create_test_data() {
+//     for (path, cipher) in [
+//         ("0.7.3-none.json", Cipher::None),
+//         ("0.7.3-aes128ctr.json", Cipher::Aes128Ctr),
+//         ("0.7.3-aes128gcm.json", Cipher::Aes128Gcm),
+//         ("0.7.3-aes192ctr.json", Cipher::Aes192Ctr),
+//         ("0.7.3-aes192gcm.json", Cipher::Aes192Gcm),
+//         ("0.7.3-aes256ctr.json", Cipher::Aes256Ctr),
+//         ("0.7.3-aes256gcm.json", Cipher::Aes256Gcm),
+//     ] {
+//         let options = nuts_container::CreateOptionsBuilder::new(cipher)
+//             .with_password_callback(password)
+//             .build::<MemoryBackend>()
+//             .unwrap();
+
+//         let container = Container::create(MemoryBackend::new(), options).unwrap();
+//         let mut archive = Container::create_service::<ArchiveFactory>(container).unwrap();
+
+//         let mut entry = archive.append_file("f1").build().unwrap();
+//         entry.write_all(b"content of f1").unwrap();
+
+//         archive.append_directory("f2").build().unwrap();
+
+//         archive.append_symlink("f3", "f1").build().unwrap();
+
+//         let backend = archive.into_container().into_backend();
+//         let file = File::create(fixture_path(path)).unwrap();
+
+//         serde_json::to_writer(file, &backend).unwrap();
+//     }
+// }
+
 macro_rules! make_test {
-    ($name:ident, $path:literal, $cipher:ident, $top_id:literal) => {
+    ($name:ident, $path:literal, $cipher:ident) => {
         #[test]
         fn $name() {
-            let backend_options = OpenOptions::for_path(data_dir($path));
-            let container_options = OpenOptionsBuilder::new()
+            let file = File::open(fixture_path($path)).unwrap();
+            let backend: MemoryBackend = serde_json::from_reader(file).unwrap();
+
+            let options = OpenOptionsBuilder::new()
                 .with_password_callback(password)
-                .build::<DirectoryBackend<PathBuf>>()
+                .build::<MemoryBackend>()
                 .unwrap();
-            let container = Container::open(backend_options, container_options).unwrap();
+            let container = Container::open(backend, options).unwrap();
 
             let mut archive = Container::open_service::<ArchiveFactory>(container).unwrap();
             let container = archive.as_ref();
@@ -53,14 +89,14 @@ macro_rules! make_test {
             assert_eq!(cipher, Cipher::$cipher);
 
             let top_id = container.top_id().unwrap();
-            assert_eq!(top_id.to_string(), $top_id);
+            assert_eq!(top_id.to_string(), "1");
 
             let mut entry = archive.first().unwrap().unwrap();
             assert!(entry.is_file());
             assert_eq!(entry.name(), "f1");
             assert_eq!(
                 entry.as_file_mut().unwrap().read_vec().unwrap(),
-                b"content of f1\n"
+                b"content of f1"
             );
 
             let entry = entry.next().unwrap().unwrap();
@@ -77,74 +113,30 @@ macro_rules! make_test {
     };
 }
 
-make_test!(
-    compat_0_6_8_none,
-    "0.6.8-none",
-    None,
-    "882d2bd07e91ce63c2e5f8ec28d31158"
-);
+make_test!(compat_0_6_8_none, "0.6.8-none.json", None);
+make_test!(compat_0_6_8_aes128_ctr, "0.6.8-aes128ctr.json", Aes128Ctr);
+make_test!(compat_0_6_8_aes128_gcm, "0.6.8-aes128gcm.json", Aes128Gcm);
 
-make_test!(
-    compat_0_6_8_aes128_ctr,
-    "0.6.8-aes128ctr",
-    Aes128Ctr,
-    "0bccd7957a975a879946bb009f9d9998"
-);
+make_test!(compat_0_7_0_none, "0.7.0-none.json", None);
+make_test!(compat_0_7_0_aes128_ctr, "0.7.0-aes128ctr.json", Aes128Ctr);
+make_test!(compat_0_7_0_aes192_ctr, "0.7.0-aes192ctr.json", Aes192Ctr);
+make_test!(compat_0_7_0_aes256_ctr, "0.7.0-aes256ctr.json", Aes256Ctr);
+make_test!(compat_0_7_0_aes128_gcm, "0.7.0-aes128gcm.json", Aes128Gcm);
+make_test!(compat_0_7_0_aes192_gcm, "0.7.0-aes192gcm.json", Aes192Gcm);
+make_test!(compat_0_7_0_aes256_gcm, "0.7.0-aes256gcm.json", Aes256Gcm);
 
-make_test!(
-    compat_0_6_8_aes128_gcm,
-    "0.6.8-aes128gcm",
-    Aes128Gcm,
-    "a258a48284da174ae87850f25d6921f0"
-);
+make_test!(compat_0_7_1_none, "0.7.1-none.json", None);
+make_test!(compat_0_7_1_aes128_ctr, "0.7.1-aes128ctr.json", Aes128Ctr);
+make_test!(compat_0_7_1_aes192_ctr, "0.7.1-aes192ctr.json", Aes192Ctr);
+make_test!(compat_0_7_1_aes256_ctr, "0.7.1-aes256ctr.json", Aes256Ctr);
+make_test!(compat_0_7_1_aes128_gcm, "0.7.1-aes128gcm.json", Aes128Gcm);
+make_test!(compat_0_7_1_aes192_gcm, "0.7.1-aes192gcm.json", Aes192Gcm);
+make_test!(compat_0_7_1_aes256_gcm, "0.7.1-aes256gcm.json", Aes256Gcm);
 
-// no compatibility tests for 0.7.0 - creation of archive is broken here
-
-make_test!(
-    compat_0_7_1_none,
-    "0.7.1-none",
-    None,
-    "206f9e91ac3296f3563752361054fed8"
-);
-
-make_test!(
-    compat_0_7_1_aes128_ctr,
-    "0.7.1-aes128ctr",
-    Aes128Ctr,
-    "ec6f5f40e9d57d10904012cb2a6346f6"
-);
-
-make_test!(
-    compat_0_7_1_aes192_ctr,
-    "0.7.1-aes192ctr",
-    Aes192Ctr,
-    "b57de7da43a2a9ab2b725e336b3889fe"
-);
-
-make_test!(
-    compat_0_7_1_aes256_ctr,
-    "0.7.1-aes256ctr",
-    Aes256Ctr,
-    "99be9f6d09fdb9caf0d883883f547b72"
-);
-
-make_test!(
-    compat_0_7_1_aes128_gcm,
-    "0.7.1-aes128gcm",
-    Aes128Gcm,
-    "dae99bab892feb7b9e0eac8c7c7048a3"
-);
-
-make_test!(
-    compat_0_7_1_aes192_gcm,
-    "0.7.1-aes192gcm",
-    Aes192Gcm,
-    "e7da7461db40a382732ccd0b1d76e23e"
-);
-
-make_test!(
-    compat_0_7_1_aes256_gcm,
-    "0.7.1-aes256gcm",
-    Aes256Gcm,
-    "4b9cba4e31af1c86ded4408c00b888c3"
-);
+make_test!(compat_0_7_3_none, "0.7.3-none.json", None);
+make_test!(compat_0_7_3_aes128_ctr, "0.7.3-aes128ctr.json", Aes128Ctr);
+make_test!(compat_0_7_3_aes192_ctr, "0.7.3-aes192ctr.json", Aes192Ctr);
+make_test!(compat_0_7_3_aes256_ctr, "0.7.3-aes256ctr.json", Aes256Ctr);
+make_test!(compat_0_7_3_aes128_gcm, "0.7.3-aes128gcm.json", Aes128Gcm);
+make_test!(compat_0_7_3_aes192_gcm, "0.7.3-aes192gcm.json", Aes192Gcm);
+make_test!(compat_0_7_3_aes256_gcm, "0.7.3-aes256gcm.json", Aes256Gcm);
