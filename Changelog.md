@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.3] - 2024-10-17
+
+### Changed
+
+* Put a sid (service identifier) into the header of the container. This
+  identifies the service running on top of the container.
+
+### Fixed
+
+* Cannot overwrite a service in a container.
+
 ## [0.7.2] - 2024-09-27
 
 ### Fixed
@@ -500,3 +511,4 @@ Initial public release.
 [0.7.0]: https://github.com/drobin/nuts/tree/v0.7.0
 [0.7.1]: https://github.com/drobin/nuts/tree/v0.7.1
 [0.7.2]: https://github.com/drobin/nuts/tree/v0.7.2
+[0.7.3]: https://github.com/drobin/nuts/tree/v0.7.3
