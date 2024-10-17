@@ -20,6 +20,10 @@ The following encryption algorithms are supported:
 
 * AES128-GCM
 * AES128-CTR
+* AES192-GCM
+* AES192-CTR
+* AES256-GCM
+* AES256-CTR
 * None (which basically disables encryption)
 
 The actual key used for encryption of the blocks (and further information) is
