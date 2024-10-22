@@ -40,6 +40,11 @@ pub struct ContainerDeleteArgs {
     #[clap(short, long, action = ArgAction::SetTrue)]
     yes: bool,
 
+    /// Enforces the deletion. Removes the container without connecting to it.
+    /// Note that depending on the backend, data may remain.
+    #[clap(short, long, action = ArgAction::SetTrue)]
+    force: bool,
+
     #[clap(from_global)]
     verbose: u8,
 }
@@ -54,7 +59,6 @@ impl ContainerDeleteArgs {
         }
 
         let path = container_dir_for(&self.container)?;
-        let container = open_container(&self.container, self.verbose)?;
         let mut container_config = ContainerConfig::load()?;
 
         debug!("container: {}", self.container);
@@ -64,7 +68,10 @@ impl ContainerDeleteArgs {
             say_warn!("container {} not configured", self.container);
         }
 
-        container.delete();
+        if !self.force {
+            let container = open_container(&self.container, self.verbose)?;
+            container.delete();
+        }
 
         if path.exists() {
             fs::remove_dir_all(path)?;
