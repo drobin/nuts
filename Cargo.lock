@@ -564,6 +564,7 @@ dependencies = [
  "nuts-container",
  "nuts-tool-api",
  "rpassword",
+ "rprompt",
  "serde",
  "toml",
 ]
@@ -745,6 +746,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80472be3c897911d0137b2d2b9055faf6eeac5b14e324073d83bc17b191d7e3f"
 dependencies = [
  "libc",
+ "rtoolbox",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "rprompt"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d24bc146fc6baf226b8bca973d5e7655bd2077a8d94d9809a060c185108e611"
+dependencies = [
  "rtoolbox",
  "windows-sys 0.48.0",
 ]

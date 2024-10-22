@@ -21,12 +21,12 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
-use clap::Args;
+use clap::{ArgAction, Args};
 use log::debug;
 use nuts_tool_api::container_dir_for;
 use std::fs;
 
-use crate::cli::open_container;
+use crate::cli::{open_container, prompt_yes_no};
 use crate::config::ContainerConfig;
 use crate::{say, say_warn};
 
@@ -36,6 +36,10 @@ pub struct ContainerDeleteArgs {
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
 
+    /// Say yes, don't prompt for deletion
+    #[clap(short, long, action = ArgAction::SetTrue)]
+    yes: bool,
+
     #[clap(from_global)]
     verbose: u8,
 }
@@ -43,6 +47,11 @@ pub struct ContainerDeleteArgs {
 impl ContainerDeleteArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
+
+        if !prompt_yes_no("Do you really want to delete the container?", self.yes)? {
+            say!("aborted");
+            return Ok(());
+        }
 
         let path = container_dir_for(&self.container)?;
         let container = open_container(&self.container, self.verbose)?;

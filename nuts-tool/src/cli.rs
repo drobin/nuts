@@ -32,6 +32,7 @@ use log::LevelFilter;
 use nuts_container::{Container, OpenOptionsBuilder};
 use nuts_tool_api::tool::Plugin;
 use rpassword::prompt_password;
+use rprompt::prompt_reply;
 
 use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
 use crate::cli::archive::ArchiveArgs;
@@ -115,4 +116,15 @@ fn open_container(name: &str, verbose: u8) -> Result<Container<PluginBackend>> {
 pub fn ask_for_password() -> Result<Vec<u8>, String> {
     let password = prompt_password("Enter a password: ").map_err(|err| err.to_string())?;
     Ok(password.as_bytes().to_vec())
+}
+
+pub fn prompt_yes_no(prompt: &str, force: bool) -> Result<bool> {
+    let ok = force || {
+        let msg = format!("{} [yes/NO] ", prompt);
+        let reply = prompt_reply(msg)?;
+
+        reply == "yes"
+    };
+
+    Ok(ok)
 }
