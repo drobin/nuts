@@ -20,12 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+mod from_buffer;
+mod migrate;
+mod to_buffer;
+
 use nuts_memory::{MemoryBackend, Settings};
 
-use crate::buffer::ToBuffer;
 use crate::header::plain_secret::{Magics, PlainRev0, PlainRev1, PlainRev2, PlainSecret};
-use crate::header::HeaderError;
-use crate::migrate::{Migration, MigrationError, Migrator};
+use crate::migrate::Migration;
 
 const REV0: [u8; 49] = [
     0x00, 0x00, 0x12, 0x67, // magic1
@@ -158,170 +160,4 @@ fn create_latest() {
 
     assert_eq!(revision, 2);
     assert!(matches!(plain_secret, PlainSecret::Rev2(data) if data == expected));
-}
-
-#[test]
-fn from_buffer_rev0() {
-    let out = PlainSecret::<MemoryBackend>::from_buffer_rev0(&mut &REV0[..]).unwrap();
-
-    assert!(matches!(out, PlainSecret::Rev0(data) if data == rev0()));
-}
-
-#[test]
-fn from_buffer_rev0_inval() {
-    let mut vec = REV0.to_vec();
-    vec[0] += 1;
-
-    let err = PlainSecret::<MemoryBackend>::from_buffer_rev0(&mut &vec[..]).unwrap_err();
-
-    assert!(matches!(err, HeaderError::WrongPassword));
-}
-
-#[test]
-fn from_buffer_rev1() {
-    let out = PlainSecret::<MemoryBackend>::from_buffer_rev1(&mut &REV1[..]).unwrap();
-
-    assert!(matches!(out, PlainSecret::Rev1(data) if data == rev1()));
-}
-
-#[test]
-fn from_buffer_rev1_no_top_id() {
-    let out = PlainSecret::from_buffer_rev1(&mut &REV1_NO_TOP_ID[..]).unwrap();
-
-    assert!(matches!(out, PlainSecret::Rev1(data) if data == rev1_no_top_id()));
-}
-
-#[test]
-fn from_buffer_rev1_inval() {
-    let mut vec = REV1.to_vec();
-    vec[0] += 1;
-
-    match PlainSecret::<MemoryBackend>::from_buffer_rev1(&mut vec.as_slice()) {
-        Ok(_) => panic!("unexpected result"),
-        Err(err) => assert!(matches!(err, HeaderError::WrongPassword)),
-    }
-}
-
-#[test]
-fn from_buffer_rev2_sid() {
-    let out = PlainSecret::<MemoryBackend>::from_buffer_rev2(&mut &REV2_SID[..]).unwrap();
-
-    assert!(matches!(out, PlainSecret::Rev2(data) if data == rev2(Some(4711), None)));
-}
-
-#[test]
-fn from_buffer_rev2_top_id() {
-    let out = PlainSecret::<MemoryBackend>::from_buffer_rev2(&mut &REV2_TOP_ID[..]).unwrap();
-
-    assert!(matches!(out, PlainSecret::Rev2(data) if data == rev2(None, Some("666"))));
-}
-
-#[test]
-fn from_buffer_rev2_none() {
-    let out = PlainSecret::from_buffer_rev2(&mut &REV2_NONE[..]).unwrap();
-
-    assert!(matches!(out, PlainSecret::Rev2(data) if data == rev2(None, None)));
-}
-
-#[test]
-fn from_buffer_rev2_inval() {
-    let mut vec = REV2_NONE.to_vec();
-    vec[0] += 1;
-
-    match PlainSecret::<MemoryBackend>::from_buffer_rev2(&mut vec.as_slice()) {
-        Ok(_) => panic!("unexpected result"),
-        Err(err) => assert!(matches!(err, HeaderError::WrongPassword)),
-    }
-}
-
-#[test]
-fn to_buffer_rev0() {
-    let mut buf = vec![];
-
-    PlainSecret::Rev0(rev0()).to_buffer(&mut buf).unwrap();
-    assert_eq!(buf, REV0);
-}
-
-#[test]
-fn to_buffer_rev1() {
-    let mut buf = vec![];
-
-    PlainSecret::Rev1(rev1()).to_buffer(&mut buf).unwrap();
-    assert_eq!(buf, REV1);
-}
-
-#[test]
-fn to_buffer_rev1_no_top_id() {
-    let mut buf = vec![];
-
-    PlainSecret::Rev1(rev1_no_top_id())
-        .to_buffer(&mut buf)
-        .unwrap();
-    assert_eq!(buf, REV1_NO_TOP_ID);
-}
-
-#[test]
-fn to_buffer_rev2_sid() {
-    let mut buf = vec![];
-
-    PlainSecret::Rev2(rev2(Some(4711), None))
-        .to_buffer(&mut buf)
-        .unwrap();
-    assert_eq!(buf, REV2_SID);
-}
-
-#[test]
-fn to_buffer_rev2_top_id() {
-    let mut buf = vec![];
-
-    PlainSecret::Rev2(rev2(None, Some("666")))
-        .to_buffer(&mut buf)
-        .unwrap();
-    assert_eq!(buf, REV2_TOP_ID);
-}
-
-#[test]
-fn to_buffer_rev2_none() {
-    let mut buf = vec![];
-
-    PlainSecret::Rev2(rev2(None, None))
-        .to_buffer(&mut buf)
-        .unwrap();
-    assert_eq!(buf, REV2_NONE);
-}
-
-#[test]
-fn migrate_rev0_no_migrator() {
-    let migrator = Migrator::default();
-    let mut rev0 = rev0();
-
-    rev0.migrate(&migrator).unwrap();
-
-    assert!(rev0.top_id.is_none());
-}
-
-#[test]
-fn migrate_rev0_migrated() {
-    let migrator = Migrator::default().with_migration(SampleMigration);
-    let mut rev0 = rev0();
-
-    rev0.migrate(&migrator).unwrap();
-
-    assert_eq!(rev0.top_id.unwrap().to_string(), "4711");
-}
-
-#[test]
-fn migrate_rev0_inval_migration() {
-    // FIXME Id of MemoryBackend is always valid
-}
-
-#[test]
-fn migrate_rev0_err_migration() {
-    let migrator = Migrator::default().with_migration(ErrMigration);
-    let mut rev0 = rev0();
-
-    let err = rev0.migrate(&migrator).unwrap_err();
-
-    assert!(matches!(err, HeaderError::Migration(cause)
-        if matches!(cause, MigrationError::Rev0(ref msg) if msg == "foo")));
 }
