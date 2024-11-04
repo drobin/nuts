@@ -32,8 +32,8 @@ pub fn fixture_password() -> Result<Vec<u8>, String> {
     Ok(b"sample".to_vec())
 }
 
-pub fn fixture_path(name: &str) -> PathBuf {
-    [MANIFEST_DIR, "data", name].iter().collect()
+pub fn fixture_path(dir: &str, name: &str) -> PathBuf {
+    [MANIFEST_DIR, "data", dir, name].iter().collect()
 }
 
 #[derive(Debug, Error)]

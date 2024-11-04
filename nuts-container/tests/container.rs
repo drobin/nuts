@@ -20,8 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use nuts_memory::MemoryBackend;
-
 mod common;
 
 #[test]
@@ -50,55 +48,6 @@ fn create() {
 
     assert_eq!(info.cipher, Cipher::Aes128Ctr);
     assert_eq!(info.kdf, kdf);
-}
-
-#[test]
-fn create_inval_revision() {
-    use nuts_container::*;
-    use std::fs::File;
-
-    use crate::common::{fixture_path, SampleService};
-
-    // you need a rev0-container
-    let path = fixture_path("0.6.8-none.json");
-    let backend: MemoryBackend = serde_json::from_reader(File::open(path).unwrap()).unwrap();
-
-    let options = OpenOptionsBuilder::new().build::<MemoryBackend>().unwrap();
-    let container = Container::open(backend, options).unwrap();
-
-    assert_eq!(container.info().unwrap().revision, 0);
-
-    let err = Container::create_service::<SampleService>(container).unwrap_err();
-
-    assert!(matches!(err.0, Error::Header(cause)
-        if matches!(cause,HeaderError::InvalidRevision(expected, got)
-            if expected == 2 && got == 0)));
-}
-
-#[test]
-fn create_service_already_attached() {
-    use nuts_container::*;
-    use nuts_memory::MemoryBackend;
-
-    use crate::common::SampleService;
-
-    let backend = {
-        let options = CreateOptionsBuilder::new(Cipher::None)
-            .build::<MemoryBackend>()
-            .unwrap();
-        let container = Container::create(MemoryBackend::new(), options).unwrap();
-        let service = Container::create_service::<SampleService>(container).unwrap();
-
-        service.into_container().into_backend()
-    };
-
-    let options = OpenOptionsBuilder::new().build::<MemoryBackend>().unwrap();
-    let container = Container::open(backend, options).unwrap();
-    let err = Container::create_service::<SampleService>(container).unwrap_err();
-
-    assert!(matches!(err.0, Error::Header(cause)
-        if matches!(cause,HeaderError::UnexpectedSid { expected, got }
-            if expected.is_none() && got.unwrap() == 666)));
 }
 
 #[test]

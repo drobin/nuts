@@ -62,7 +62,7 @@ macro_rules! make_test {
     ($name:ident, $path:literal, $version:literal, | $info:ident | $assert_info:block) => {
         #[test]
         fn $name() {
-            let file = File::open(fixture_path($path)).unwrap();
+            let file = File::open(fixture_path("compat", $path)).unwrap();
             let backend: MemoryBackend = serde_json::from_reader(file).unwrap();
 
             let options = OpenOptionsBuilder::new()
