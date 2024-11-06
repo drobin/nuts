@@ -119,7 +119,7 @@ impl FromStr for Id {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Settings;
 
 impl Binary for Settings {

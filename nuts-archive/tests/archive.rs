@@ -73,7 +73,7 @@ fn open() {
         .unwrap();
     let container = Container::open(backend_options, container_options).unwrap();
 
-    let archive = Container::open_service::<ArchiveFactory>(container).unwrap();
+    let archive = Container::open_service::<ArchiveFactory>(container, false).unwrap();
 
     // Fetch some information
     let info = archive.info();
@@ -111,7 +111,7 @@ fn append() {
         .unwrap();
     let container = Container::open(backend_options, container_options).unwrap();
 
-    let mut archive = Container::open_service::<ArchiveFactory>(container).unwrap();
+    let mut archive = Container::open_service::<ArchiveFactory>(container, false).unwrap();
 
     // Append a new file entry
     let mut entry = archive.append_file("sample file").build().unwrap();
@@ -161,7 +161,7 @@ fn scan() {
     let container = Container::open(backend_options, container_options).unwrap();
 
     // Open the archive and append some entries
-    let mut archive = Container::open_service::<ArchiveFactory>(container).unwrap();
+    let mut archive = Container::open_service::<ArchiveFactory>(container, false).unwrap();
 
     archive.append_file("f1").build().unwrap();
     archive.append_directory("f2").build().unwrap();

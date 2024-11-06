@@ -392,7 +392,7 @@ impl<B: Backend> Container<B> {
                 header.set_top_id(id);
             }
 
-            Ok(())
+            Ok(true)
         })?;
 
         F::create(container)
@@ -454,16 +454,24 @@ impl<B: Backend> Container<B> {
     /// This should be the preferred way to open a nuts-service!
     pub fn open_service<F: ServiceFactory<B>>(
         mut container: Container<B>,
+        migrate: bool,
     ) -> Result<F::Service, F::Err> {
         let migration = F::Service::migration();
         let migrator = Migrator::default().with_migration(migration);
 
         container.header.set_migrator(migrator);
-        container.header.migrate().map_err(Error::<B>::Header)?;
+        container.header.migrate().map_err(Error::Header)?;
         container
             .header
             .accept_sid_for_open(F::Service::sid())
             .map_err(Error::Header)?;
+
+        if migrate {
+            container.update_header(|header| {
+                let changed = header.convert_to_latest(F::Service::sid());
+                Ok(changed)
+            })?;
+        }
 
         F::open(container)
     }
@@ -634,24 +642,25 @@ impl<B: Backend> Container<B> {
         }
     }
 
-    fn update_header<F: FnOnce(&mut Header<B>) -> Result<(), HeaderError>>(
+    fn update_header<F: FnOnce(&mut Header<B>) -> Result<bool, HeaderError>>(
         &mut self,
         f: F,
     ) -> ContainerResult<(), B> {
-        let migrator = Migrator::default();
-        let mut header = Self::read_header(&mut self.backend, migrator, &mut self.store)?;
-        let mut header_bytes = [0; HEADER_MAX_SIZE];
+        debug!("header before update: {:?}", self.header);
 
-        debug!("header before update: {:?}", header);
+        let changed = f(&mut self.header)?;
 
-        f(&mut header)?;
+        debug!(
+            "header after update: {:?}, changed: {}",
+            self.header, changed
+        );
 
-        debug!("header after update: {:?}", header);
+        if changed {
+            let mut header_bytes = [0; HEADER_MAX_SIZE];
 
-        header.write(&mut header_bytes, &mut self.store)?;
-        map_err!(self.backend.write_header(&header_bytes))?;
-
-        self.header = header;
+            self.header.write(&mut header_bytes, &mut self.store)?;
+            map_err!(self.backend.write_header(&header_bytes))?;
+        }
 
         Ok(())
     }

@@ -71,7 +71,7 @@ fn fmt_key_iv(key: &[u8], iv: &[u8]) -> Result<(String, String), fmt::Error> {
 //
 // - sid inserted
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Magics([u32; 2]);
 
 impl Magics {
@@ -328,6 +328,38 @@ impl<B: Backend> PlainSecret<B> {
         });
 
         Ok((2, rev))
+    }
+
+    pub fn convert_to_latest(&mut self, sid: u32) -> bool {
+        match self {
+            PlainSecret::Rev0(rev0) => {
+                assert_eq!(rev0.sid, Some(sid));
+
+                *self = Self::Rev2(PlainRev2 {
+                    magics: rev0.magics.clone(),
+                    key: rev0.key.clone(),
+                    iv: rev0.iv.clone(),
+                    sid: rev0.sid,
+                    top_id: rev0.top_id.clone(),
+                    settings: rev0.settings.clone(),
+                });
+
+                true
+            }
+            PlainSecret::Rev1(rev1) => {
+                *self = Self::Rev2(PlainRev2 {
+                    magics: rev1.magics.clone(),
+                    key: rev1.key.clone(),
+                    iv: rev1.iv.clone(),
+                    sid: Some(sid),
+                    top_id: rev1.top_id.clone(),
+                    settings: rev1.settings.clone(),
+                });
+
+                true
+            }
+            PlainSecret::Rev2(_) => false,
+        }
     }
 }
 

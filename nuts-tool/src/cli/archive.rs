@@ -87,5 +87,5 @@ impl ArchiveCommand {
 fn open_archive(name: &str, verbose: u8) -> Result<Archive<PluginBackend>> {
     let container = open_container(name, verbose)?;
 
-    Container::open_service::<ArchiveFactory>(container).map_err(|err| err.into())
+    Container::open_service::<ArchiveFactory>(container, false).map_err(|err| err.into())
 }

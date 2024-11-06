@@ -373,6 +373,10 @@ impl<'a, B: Backend> Header<'a, B> {
         self.migrator = migrator;
     }
 
+    pub fn convert_to_latest(&mut self, sid: u32) -> bool {
+        self.data.convert_to_latest(sid)
+    }
+
     fn prepare_cipher_ctx(cipher: Cipher, input: &[u8]) -> CipherContext {
         let mut ctx = CipherContext::new(cipher);
 

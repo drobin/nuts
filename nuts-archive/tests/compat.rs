@@ -82,7 +82,7 @@ macro_rules! make_test {
                 .unwrap();
             let container = Container::open(backend, options).unwrap();
 
-            let mut archive = Container::open_service::<ArchiveFactory>(container).unwrap();
+            let mut archive = Container::open_service::<ArchiveFactory>(container, false).unwrap();
             let container = archive.as_ref();
 
             let cipher = container.info().unwrap().cipher;

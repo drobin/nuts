@@ -48,7 +48,7 @@ fn open_archive(dir: TempDir) -> Archive<DirectoryBackend<TempDir>> {
         .unwrap();
     let container = Container::open(backend_options, container_options).unwrap();
 
-    Container::open_service::<ArchiveFactory>(container).unwrap()
+    Container::open_service::<ArchiveFactory>(container, false).unwrap()
 }
 
 #[test]

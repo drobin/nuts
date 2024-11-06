@@ -25,6 +25,7 @@ use nuts_memory::MemoryBackend;
 use std::path::PathBuf;
 use thiserror::Error;
 
+#[allow(dead_code)]
 const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
 #[allow(dead_code)]
@@ -32,6 +33,7 @@ pub fn fixture_password() -> Result<Vec<u8>, String> {
     Ok(b"sample".to_vec())
 }
 
+#[allow(dead_code)]
 pub fn fixture_path(dir: &str, name: &str) -> PathBuf {
     [MANIFEST_DIR, "data", dir, name].iter().collect()
 }
@@ -44,7 +46,7 @@ pub struct SampleMigration;
 
 impl Migration for SampleMigration {
     fn migrate_rev0(&self, _userdata: &[u8]) -> Result<(u32, Vec<u8>), String> {
-        unimplemented!()
+        Ok((666, vec![0x00, 0x00, 0x12, 0x67]))
     }
 }
 
