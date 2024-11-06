@@ -25,6 +25,7 @@ pub mod create;
 pub mod get;
 pub mod info;
 pub mod list;
+pub mod migrate;
 
 use anyhow::Result;
 use clap::{Args, Subcommand};
@@ -37,6 +38,7 @@ use crate::cli::archive::create::ArchiveCreateArgs;
 use crate::cli::archive::get::ArchiveGetArgs;
 use crate::cli::archive::info::ArchiveInfoArgs;
 use crate::cli::archive::list::ArchiveListArgs;
+use crate::cli::archive::migrate::ArchiveMigrateArgs;
 use crate::cli::open_container;
 
 #[derive(Debug, Args)]
@@ -70,6 +72,9 @@ pub enum ArchiveCommand {
 
     /// Lists the content of the archive
     List(ArchiveListArgs),
+
+    /// Performs migration tasks
+    Migrate(ArchiveMigrateArgs),
 }
 
 impl ArchiveCommand {
@@ -80,12 +85,13 @@ impl ArchiveCommand {
             Self::Get(args) => args.run(),
             Self::Info(args) => args.run(),
             Self::List(args) => args.run(),
+            Self::Migrate(args) => args.run(),
         }
     }
 }
 
-fn open_archive(name: &str, verbose: u8) -> Result<Archive<PluginBackend>> {
+fn open_archive(name: &str, migrate: bool, verbose: u8) -> Result<Archive<PluginBackend>> {
     let container = open_container(name, verbose)?;
 
-    Container::open_service::<ArchiveFactory>(container, false).map_err(|err| err.into())
+    Container::open_service::<ArchiveFactory>(container, migrate).map_err(|err| err.into())
 }

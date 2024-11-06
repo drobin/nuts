@@ -43,7 +43,7 @@ use crate::ossl;
 use crate::password::{PasswordError, PasswordStore};
 use crate::svec::SecureVec;
 
-const LATEST_REVISION: u32 = 2;
+pub const LATEST_REVISION: u32 = 2;
 
 /// Header related errors.
 #[derive(Debug, Error)]

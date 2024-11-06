@@ -49,7 +49,7 @@ impl ArchiveAddFileArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.verbose)?;
+        let mut archive = open_archive(&self.container, false, self.verbose)?;
         let block_size = archive.as_ref().block_size() as usize;
         let mut builder = archive.append_file(&self.name);
 

@@ -22,6 +22,7 @@
 
 pub mod archive;
 pub mod container;
+pub mod error;
 pub mod plugin;
 
 use anyhow::anyhow;

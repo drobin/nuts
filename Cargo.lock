@@ -566,6 +566,7 @@ dependencies = [
  "rpassword",
  "rprompt",
  "serde",
+ "thiserror",
  "toml",
 ]
 

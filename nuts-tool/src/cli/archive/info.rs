@@ -52,7 +52,7 @@ impl ArchiveInfoArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let archive = open_archive(&self.container, self.verbose)?;
+        let archive = open_archive(&self.container, false, self.verbose)?;
         let info = archive.info();
 
         let created = self.time_format.format(&info.created, "%c");

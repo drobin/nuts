@@ -158,7 +158,7 @@ impl ArchiveAddArgs {
 
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.verbose)?;
+        let mut archive = open_archive(&self.container, false, self.verbose)?;
 
         for path in self.paths.iter() {
             append_recursive(&mut archive, path)?;

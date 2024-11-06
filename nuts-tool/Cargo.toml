@@ -51,6 +51,7 @@ nuts-tool-api = { path = "../nuts-tool-api", version = "=0.7.4", default-feature
 rpassword = "7.3.1"
 rprompt = "2.1.1"
 serde = { version = "1.0.202", features = ["derive"] }
+thiserror = "1.0.61"
 toml = "0.8.13"
 is_executable = "1.0.1"
 

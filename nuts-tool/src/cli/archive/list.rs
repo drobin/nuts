@@ -169,7 +169,7 @@ impl ArchiveListArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.verbose)?;
+        let mut archive = open_archive(&self.container, false, self.verbose)?;
 
         let mut entry_opt = archive.first();
         let mut ctx_opt = None;

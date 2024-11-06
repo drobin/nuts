@@ -268,7 +268,7 @@ pub use buffer::BufferError;
 pub use cipher::{Cipher, CipherError};
 pub use digest::Digest;
 pub use error::{ContainerResult, Error};
-pub use header::HeaderError;
+pub use header::{HeaderError, LATEST_REVISION};
 pub use info::Info;
 pub use kdf::{Kdf, KdfError};
 pub use migrate::{Migration, MigrationError};

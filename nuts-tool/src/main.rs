@@ -23,6 +23,7 @@
 use anyhow::Result;
 use clap::Parser;
 use nuts_tool::backend::PluginBackend;
+use nuts_tool::cli::error::ExitOnly;
 use nuts_tool::cli::NutsCli;
 use nuts_tool::{say, say_err};
 
@@ -44,10 +45,14 @@ fn print_archive_error(err: &ArchiveError) -> bool {
     }
 }
 
-fn print_error(err: anyhow::Error) -> i32 {
+fn handle_error(err: anyhow::Error) -> i32 {
+    let mut exit_code = 1;
     let mut printed = false;
 
-    if let Some(err) = err.downcast_ref::<ArchiveError>() {
+    if let Some(err) = err.downcast_ref::<ExitOnly>() {
+        exit_code = err.code();
+        printed = true;
+    } else if let Some(err) = err.downcast_ref::<ArchiveError>() {
         printed = print_archive_error(err);
     }
 
@@ -55,13 +60,13 @@ fn print_error(err: anyhow::Error) -> i32 {
         say_err!("{}", err);
     }
 
-    1
+    exit_code
 }
 
 fn main() -> Result<()> {
     std::process::exit(match run_cli() {
         Ok(_) => 0,
-        Err(err) => print_error(err),
+        Err(err) => handle_error(err),
     })
 }
 
