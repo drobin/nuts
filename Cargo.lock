@@ -558,6 +558,7 @@ dependencies = [
  "colored",
  "env_logger",
  "is_executable",
+ "lazy_static",
  "log",
  "nuts-archive",
  "nuts-backend",

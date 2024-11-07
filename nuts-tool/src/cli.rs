@@ -29,6 +29,7 @@ use anyhow::anyhow;
 use anyhow::Result;
 use clap::{crate_version, ArgAction, Parser, Subcommand};
 use env_logger::Builder;
+use lazy_static::lazy_static;
 use log::LevelFilter;
 use nuts_container::{Container, OpenOptionsBuilder};
 use nuts_tool_api::tool::Plugin;
@@ -115,8 +116,15 @@ fn open_container(name: &str, verbose: u8) -> Result<Container<PluginBackend>> {
 }
 
 pub fn ask_for_password() -> Result<Vec<u8>, String> {
-    let password = prompt_password("Enter a password: ").map_err(|err| err.to_string())?;
-    Ok(password.as_bytes().to_vec())
+    lazy_static! {
+        static ref RESULT: Result<String, String> =
+            prompt_password("Enter a password: ").map_err(|err| err.to_string());
+    }
+
+    match RESULT.as_ref() {
+        Ok(s) => Ok(s.as_bytes().to_vec()),
+        Err(s) => Err(s.clone()),
+    }
 }
 
 pub fn prompt_yes_no(prompt: &str, force: bool) -> Result<bool> {
