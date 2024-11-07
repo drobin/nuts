@@ -28,7 +28,7 @@ use anyhow::Result;
 use chrono::offset::LocalResult;
 use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 use clap::builder::{TypedValueParser, ValueParserFactory};
-use clap::{value_parser, Arg, Args, Command, Subcommand};
+use clap::{value_parser, Arg, ArgAction, Args, Command, Subcommand};
 use log::debug;
 use std::ffi::OsStr;
 use std::path::PathBuf;
@@ -142,6 +142,10 @@ pub struct ArchiveAddArgs {
     /// are specified an empty archive is created.
     paths: Vec<PathBuf>,
 
+    /// Starts the migration when the container/archive is opened
+    #[clap(long, action = ArgAction::SetTrue)]
+    pub migrate: bool,
+
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
@@ -158,7 +162,7 @@ impl ArchiveAddArgs {
 
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, false, self.verbose)?;
+        let mut archive = open_archive(&self.container, self.migrate, self.verbose)?;
 
         for path in self.paths.iter() {
             append_recursive(&mut archive, path)?;

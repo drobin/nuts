@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use anyhow::{anyhow, Result};
-use clap::Args;
+use clap::{ArgAction, Args};
 use log::{debug, trace};
 
 use crate::cli::archive::open_archive;
@@ -37,6 +37,10 @@ pub struct ArchiveGetArgs {
     #[clap(short, long, value_parser, default_value = "raw")]
     format: Format,
 
+    /// Starts the migration when the container/archive is opened
+    #[clap(long, action = ArgAction::SetTrue)]
+    pub migrate: bool,
+
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
@@ -49,7 +53,7 @@ impl ArchiveGetArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, false, self.verbose)?;
+        let mut archive = open_archive(&self.container, self.migrate, self.verbose)?;
         let block_size = archive.as_ref().block_size() as usize;
 
         let entry = match archive.lookup(&self.name) {
