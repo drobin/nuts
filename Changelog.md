@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.5] - 2024-11-08
+
+### Changed
+
+* The container can be migrated to the current top-revision.
+* `nuts archive migrate` command is used for migration.
+* Each `nuts archive` command gets a `--migrate` argument, so so yan migrate
+  on-the-fly.
+
 ## [0.7.4] - 2024-10-24
 
 ### Changed
@@ -520,3 +529,4 @@ Initial public release.
 [0.7.2]: https://github.com/drobin/nuts/tree/v0.7.2
 [0.7.3]: https://github.com/drobin/nuts/tree/v0.7.3
 [0.7.4]: https://github.com/drobin/nuts/tree/v0.7.4
+[0.7.5]: https://github.com/drobin/nuts/tree/v0.7.5
