@@ -272,7 +272,10 @@ pub use header::{HeaderError, LATEST_REVISION};
 pub use info::Info;
 pub use kdf::{Kdf, KdfError};
 pub use migrate::{Migration, MigrationError};
-pub use options::{CreateOptions, CreateOptionsBuilder, OpenOptions, OpenOptionsBuilder};
+pub use options::{
+    CreateOptions, CreateOptionsBuilder, ModifyOptions, ModifyOptionsBuilder, OpenOptions,
+    OpenOptionsBuilder,
+};
 pub use password::PasswordError;
 pub use service::{Service, ServiceFactory};
 
@@ -527,6 +530,23 @@ impl<B: Backend> Container<B> {
         self.backend
             .block_size()
             .saturating_sub(self.header.cipher().tag_size())
+    }
+
+    /// Modifies the container with the given options.
+    ///
+    /// Use [`ModifyOptionsBuilder`] to create a [`ModifyOptions`] instance,
+    /// which collects all modification tasks.
+    ///
+    /// # Errors
+    ///
+    /// Errors are listed in the [`Error`] type.
+    pub fn modify(&mut self, options: ModifyOptions) -> ContainerResult<(), B> {
+        if options.password.is_some() {
+            self.store = PasswordStore::new(options.password);
+            self.update_header(|_| Ok(true))?;
+        }
+
+        Ok(())
     }
 
     /// Aquires a new block in the backend.

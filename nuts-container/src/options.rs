@@ -196,3 +196,52 @@ impl Default for OpenOptionsBuilder {
         Self::new()
     }
 }
+
+/// Options used to modify a container.
+///
+/// Use the [`ModifyOptionsBuilder`] utility to create a `ModifyOptions`
+/// instance.
+pub struct ModifyOptions {
+    pub(crate) password: Option<Rc<CallbackFn>>,
+}
+
+/// Utility used to create a [`ModifyOptions`] instance.
+///
+/// The following example creates a [`ModifyOptions`] instance, which changes
+/// the password of the container:
+///
+/// ```
+/// let options = nuts_container::ModifyOptionsBuilder::default()
+///     .change_password(|| Ok(b"123".to_vec()));
+/// ```
+pub struct ModifyOptionsBuilder(ModifyOptions);
+
+impl ModifyOptionsBuilder {
+    /// Change the password of the container.
+    ///
+    /// Use the given callback which returns the new password on success.
+    /// If encryption is disabled the callback is not invoked.
+    ///
+    /// On success the callback returns the password (represented as an
+    /// [`Vec<u8>`](`Vec`)) wrapped into an [`Ok`](`Result::Ok`). On any
+    /// failure an [`Err`](`Result::Err`) with an error message must be
+    /// returned.
+    pub fn change_password<Cb: Fn() -> Result<Vec<u8>, String> + 'static>(
+        mut self,
+        callback: Cb,
+    ) -> Self {
+        self.0.password = Some(Rc::new(callback));
+        self
+    }
+
+    /// Finally, creates the [`ModifyOptions`] instance.
+    pub fn build(self) -> ModifyOptions {
+        self.0
+    }
+}
+
+impl Default for ModifyOptionsBuilder {
+    fn default() -> Self {
+        Self(ModifyOptions { password: None })
+    }
+}
