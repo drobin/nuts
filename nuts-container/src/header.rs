@@ -264,6 +264,15 @@ impl<'a, B: Backend> Header<'a, B> {
         &self.kdf
     }
 
+    pub fn set_kdf(&mut self, kdf: Kdf) -> bool {
+        if self.cipher != Cipher::None && kdf != Kdf::None {
+            self.kdf = kdf;
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn settings(&self) -> &B::Settings {
         match &self.data {
             PlainSecret::Rev0(rev0) => &rev0.settings,

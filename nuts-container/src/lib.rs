@@ -541,12 +541,20 @@ impl<B: Backend> Container<B> {
     ///
     /// Errors are listed in the [`Error`] type.
     pub fn modify(&mut self, options: ModifyOptions) -> ContainerResult<(), B> {
+        let mut changed = false;
+
         if options.password.is_some() {
-            self.store = PasswordStore::new(options.password);
-            self.update_header(|_| Ok(true))?;
+            self.store = PasswordStore::new(options.password.clone());
+            changed = true;
         }
 
-        Ok(())
+        self.update_header(|header| {
+            if let Some(kdf) = options.kdf {
+                changed |= header.set_kdf(kdf);
+            }
+
+            Ok(changed)
+        })
     }
 
     /// Aquires a new block in the backend.

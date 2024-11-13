@@ -24,6 +24,7 @@ use nuts_backend::Binary;
 use nuts_memory::{MemoryBackend, Settings};
 
 use crate::cipher::Cipher;
+use crate::digest::Digest;
 use crate::header::plain_secret::{PlainRev0, PlainRev1, PlainRev2, PlainSecret};
 use crate::header::{Header, HeaderError};
 use crate::kdf::Kdf;
@@ -259,6 +260,54 @@ fn latest_revision_or_err_rev2() {
     };
 
     header.latest_revision_or_err().unwrap();
+}
+
+#[test]
+fn set_key_none_none() {
+    let mut header = Header {
+        cipher: Cipher::None,
+        kdf: Kdf::None,
+        ..header(PlainSecret::Rev2(rev2()))
+    };
+
+    assert!(!header.set_kdf(Kdf::None));
+    assert_eq!(header.kdf, Kdf::None);
+}
+
+#[test]
+fn set_key_none_some() {
+    let mut header = Header {
+        cipher: Cipher::None,
+        kdf: Kdf::None,
+        ..header(PlainSecret::Rev2(rev2()))
+    };
+
+    assert!(!header.set_kdf(Kdf::pbkdf2(Digest::Sha512, 4711, b"123")));
+    assert_eq!(header.kdf, Kdf::None);
+}
+
+#[test]
+fn set_key_some_none() {
+    let mut header = Header {
+        cipher: Cipher::Aes256Gcm,
+        kdf: Kdf::pbkdf2(Digest::Sha512, 4711, b"123"),
+        ..header(PlainSecret::Rev2(rev2()))
+    };
+
+    assert!(!header.set_kdf(Kdf::None));
+    assert_eq!(header.kdf, Kdf::pbkdf2(Digest::Sha512, 4711, b"123"));
+}
+
+#[test]
+fn set_key_some_some() {
+    let mut header = Header {
+        cipher: Cipher::Aes256Gcm,
+        kdf: Kdf::pbkdf2(Digest::Sha512, 4711, b"123"),
+        ..header(PlainSecret::Rev2(rev2()))
+    };
+
+    assert!(header.set_kdf(Kdf::pbkdf2(Digest::Sha1, 666, b"abc")));
+    assert_eq!(header.kdf, Kdf::pbkdf2(Digest::Sha1, 666, b"abc"));
 }
 
 #[test]

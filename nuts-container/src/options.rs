@@ -202,6 +202,7 @@ impl Default for OpenOptionsBuilder {
 /// Use the [`ModifyOptionsBuilder`] utility to create a `ModifyOptions`
 /// instance.
 pub struct ModifyOptions {
+    pub(crate) kdf: Option<Kdf>,
     pub(crate) password: Option<Rc<CallbackFn>>,
 }
 
@@ -217,6 +218,21 @@ pub struct ModifyOptions {
 pub struct ModifyOptionsBuilder(ModifyOptions);
 
 impl ModifyOptionsBuilder {
+    /// Changes the [key derivation function][Kdf] of the container.
+    ///
+    /// **Notes**
+    ///
+    /// * If encryption is deactivated, the _key derivation function_ is
+    ///   permanently set to [`Kdf::None`]. It cannot be changed.
+    /// * If encryption is activated, the _key derivation function_ cannot be
+    ///   set to [`Kdf::None`].
+    ///
+    /// For both exceptions the `kdf` passed to the method is ignored.
+    pub fn change_kdf(mut self, kdf: Kdf) -> Self {
+        self.0.kdf = Some(kdf);
+        self
+    }
+
     /// Change the password of the container.
     ///
     /// Use the given callback which returns the new password on success.
@@ -242,6 +258,9 @@ impl ModifyOptionsBuilder {
 
 impl Default for ModifyOptionsBuilder {
     fn default() -> Self {
-        Self(ModifyOptions { password: None })
+        Self(ModifyOptions {
+            kdf: None,
+            password: None,
+        })
     }
 }
