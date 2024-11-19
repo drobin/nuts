@@ -20,11 +20,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+pub mod kdf;
 pub mod password;
 
 use anyhow::Result;
 use clap::{Args, Subcommand};
 
+use crate::cli::container::change::kdf::ContainerChangeKdfArgs;
 use crate::cli::container::change::password::ContainerChangePasswordArgs;
 
 #[derive(Args, Debug)]
@@ -41,6 +43,9 @@ impl ContainerChangeArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum ContainerChangeCommand {
+    /// Changes the key derivation function of the container
+    Kdf(ContainerChangeKdfArgs),
+
     /// Changes the password of the container
     Password(ContainerChangePasswordArgs),
 }
@@ -48,6 +53,7 @@ pub enum ContainerChangeCommand {
 impl ContainerChangeCommand {
     pub fn run(&self) -> Result<()> {
         match self {
+            Self::Kdf(args) => args.run(),
             Self::Password(args) => args.run(),
         }
     }
