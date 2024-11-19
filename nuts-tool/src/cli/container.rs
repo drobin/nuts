@@ -22,6 +22,7 @@
 
 pub mod aquire;
 pub mod attach;
+pub mod change;
 pub mod create;
 pub mod delete;
 pub mod info;
@@ -38,6 +39,7 @@ use std::ops::Deref;
 
 use crate::cli::container::aquire::ContainerAquireArgs;
 use crate::cli::container::attach::ContainerAttachArgs;
+use crate::cli::container::change::ContainerChangeArgs;
 use crate::cli::container::create::ContainerCreateArgs;
 use crate::cli::container::delete::ContainerDeleteArgs;
 use crate::cli::container::info::ContainerInfoArgs;
@@ -122,6 +124,9 @@ pub enum ContainerCommand {
     /// Attaches a plugin to a nuts-container
     Attach(ContainerAttachArgs),
 
+    /// Modifies the container
+    Change(ContainerChangeArgs),
+
     /// Creates a nuts-container
     Create(ContainerCreateArgs),
 
@@ -149,6 +154,7 @@ impl ContainerCommand {
         match self {
             Self::Aquire(args) => args.run(),
             Self::Attach(args) => args.run(),
+            Self::Change(args) => args.run(),
             Self::Create(args) => args.run(),
             Self::Delete(args) => args.run(),
             Self::Info(args) => args.run(),
