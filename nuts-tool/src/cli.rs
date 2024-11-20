@@ -127,6 +127,17 @@ pub fn ask_for_password() -> Result<Vec<u8>, String> {
     }
 }
 
+pub fn ask_for_password_twice(prompt: &str) -> Result<Vec<u8>, String> {
+    let pass1 = prompt_password(format!("{}: ", prompt)).map_err(|err| err.to_string())?;
+    let pass2 = prompt_password(format!("{} (repeat): ", prompt)).map_err(|err| err.to_string())?;
+
+    if pass1 == pass2 {
+        Ok(pass1.as_bytes().to_vec())
+    } else {
+        Err("The passwords do not match".to_string())
+    }
+}
+
 pub fn prompt_yes_no(prompt: &str, force: bool) -> Result<bool> {
     let ok = force || {
         let msg = format!("{} [yes/NO] ", prompt);

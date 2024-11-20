@@ -27,7 +27,7 @@ use nuts_container::{Cipher, Container, CreateOptionsBuilder, Kdf};
 use nuts_tool_api::tool::Plugin;
 
 use crate::backend::{PluginBackend, PluginBackendCreateBuilder};
-use crate::cli::ask_for_password;
+use crate::cli::ask_for_password_twice;
 use crate::cli::container::{CliCipher, AES256_GCM};
 use crate::config::{ContainerConfig, PluginConfig};
 
@@ -94,7 +94,7 @@ impl ContainerCreateArgs {
         let backend_options =
             PluginBackendCreateBuilder::new(plugin, &self.name, self.verbose, &self.plugin_args)?;
         let mut builder = CreateOptionsBuilder::new(*self.cipher)
-            .with_password_callback(ask_for_password)
+            .with_password_callback(|| ask_for_password_twice("Enter a password"))
             .with_overwrite(self.overwrite);
 
         if self.cipher != Cipher::None {

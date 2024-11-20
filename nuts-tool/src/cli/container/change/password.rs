@@ -24,21 +24,8 @@ use anyhow::Result;
 use clap::Args;
 use log::debug;
 use nuts_container::ModifyOptionsBuilder;
-use rpassword::prompt_password;
 
-use crate::cli::open_container;
-
-pub fn ask_for_new_password() -> Result<Vec<u8>, String> {
-    let pass1 = prompt_password("Enter a new password: ").map_err(|err| err.to_string())?;
-    let pass2 =
-        prompt_password("Enter a new password (repeat): ").map_err(|err| err.to_string())?;
-
-    if pass1 == pass2 {
-        Ok(pass1.as_bytes().to_vec())
-    } else {
-        Err("The passwords do not match".to_string())
-    }
-}
+use crate::cli::{ask_for_password_twice, open_container};
 
 #[derive(Args, Debug)]
 pub struct ContainerChangePasswordArgs {
@@ -56,7 +43,7 @@ impl ContainerChangePasswordArgs {
 
         let mut container = open_container(&self.container, self.verbose)?;
         let options = ModifyOptionsBuilder::default()
-            .change_password(ask_for_new_password)
+            .change_password(|| ask_for_password_twice("Enter a new password"))
             .build();
 
         container.modify(options)?;
