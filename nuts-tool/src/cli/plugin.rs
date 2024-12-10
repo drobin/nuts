@@ -28,6 +28,8 @@ pub mod remove;
 
 use anyhow::Result;
 use clap::{Args, Subcommand};
+use std::os::fd::RawFd;
+use std::path::PathBuf;
 
 use crate::cli::plugin::add::PluginAddArgs;
 use crate::cli::plugin::info::PluginInfoArgs;
@@ -40,6 +42,12 @@ use crate::cli::plugin::remove::PluginRemoveArgs;
 pub struct PluginArgs {
     #[clap(subcommand)]
     command: Option<PluginCommand>,
+
+    #[clap(long, hide = true)]
+    password_from_fd: Option<RawFd>,
+
+    #[clap(long, hide = true)]
+    password_from_file: Option<PathBuf>,
 }
 
 impl PluginArgs {

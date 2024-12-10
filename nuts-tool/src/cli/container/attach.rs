@@ -23,6 +23,8 @@
 use anyhow::{anyhow, ensure, Result};
 use clap::{ArgAction, Args};
 use log::debug;
+use std::os::fd::RawFd;
+use std::path::PathBuf;
 
 use crate::config::{ContainerConfig, PluginConfig};
 
@@ -39,6 +41,12 @@ pub struct ContainerAttachArgs {
     /// container
     #[clap(short, long, action = ArgAction::SetTrue)]
     force: bool,
+
+    #[clap(long, hide = true)]
+    password_from_fd: Option<RawFd>,
+
+    #[clap(long, hide = true)]
+    password_from_file: Option<PathBuf>,
 }
 
 impl ContainerAttachArgs {

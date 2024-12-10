@@ -23,22 +23,23 @@
 pub mod archive;
 pub mod container;
 pub mod error;
+pub mod global;
+pub mod password;
 pub mod plugin;
 
-use anyhow::anyhow;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{crate_version, ArgAction, Parser, Subcommand};
 use env_logger::Builder;
-use lazy_static::lazy_static;
 use log::LevelFilter;
 use nuts_container::{Container, OpenOptionsBuilder};
 use nuts_tool_api::tool::Plugin;
-use rpassword::prompt_password;
 use rprompt::prompt_reply;
 
 use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
+use crate::cli::global::GlobalArgs;
+use crate::cli::password::password_from_source;
 use crate::cli::plugin::PluginArgs;
 use crate::config::{ContainerConfig, PluginConfig};
 
@@ -56,6 +57,9 @@ pub struct NutsCli {
     /// Be quiet. Don't produce any output
     #[clap(short, long, action = ArgAction::SetTrue, global = true)]
     pub quiet: bool,
+
+    #[command(flatten)]
+    global_args: GlobalArgs,
 }
 
 impl NutsCli {
@@ -71,6 +75,8 @@ impl NutsCli {
     }
 
     pub fn run(&self) -> Result<()> {
+        self.global_args.init();
+
         self.command.run()
     }
 }
@@ -109,33 +115,10 @@ fn open_container(name: &str, verbose: u8) -> Result<Container<PluginBackend>> {
     let plugin = Plugin::new(&exe);
     let plugin_builder = PluginBackendOpenBuilder::new(plugin, name, verbose)?;
 
-    let builder = OpenOptionsBuilder::new().with_password_callback(ask_for_password);
+    let builder = OpenOptionsBuilder::new().with_password_callback(password_from_source);
     let options = builder.build::<PluginBackend>()?;
 
     Container::open(plugin_builder, options).map_err(|err| err.into())
-}
-
-pub fn ask_for_password() -> Result<Vec<u8>, String> {
-    lazy_static! {
-        static ref RESULT: Result<String, String> =
-            prompt_password("Enter a password: ").map_err(|err| err.to_string());
-    }
-
-    match RESULT.as_ref() {
-        Ok(s) => Ok(s.as_bytes().to_vec()),
-        Err(s) => Err(s.clone()),
-    }
-}
-
-pub fn ask_for_password_twice(prompt: &str) -> Result<Vec<u8>, String> {
-    let pass1 = prompt_password(format!("{}: ", prompt)).map_err(|err| err.to_string())?;
-    let pass2 = prompt_password(format!("{} (repeat): ", prompt)).map_err(|err| err.to_string())?;
-
-    if pass1 == pass2 {
-        Ok(pass1.as_bytes().to_vec())
-    } else {
-        Err("The passwords do not match".to_string())
-    }
 }
 
 pub fn prompt_yes_no(prompt: &str, force: bool) -> Result<bool> {

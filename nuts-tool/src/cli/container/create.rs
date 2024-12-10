@@ -25,11 +25,23 @@ use clap::{value_parser, ArgAction, Args};
 use log::debug;
 use nuts_container::{Cipher, Container, CreateOptionsBuilder, Kdf};
 use nuts_tool_api::tool::Plugin;
+use std::cell::RefCell;
+use std::os::fd::RawFd;
+use std::path::PathBuf;
 
 use crate::backend::{PluginBackend, PluginBackendCreateBuilder};
-use crate::cli::ask_for_password_twice;
 use crate::cli::container::{CliCipher, AES256_GCM};
+use crate::cli::global::PasswordSource;
+use crate::cli::password::password_from_source_twice;
 use crate::config::{ContainerConfig, PluginConfig};
+
+thread_local! {
+    static SOURCE: RefCell<PasswordSource> = RefCell::new(Default::default());
+}
+
+fn password_callback() -> Result<Vec<u8>, String> {
+    SOURCE.with_borrow(|src| password_from_source_twice(src, "Enter a password"))
+}
 
 #[derive(Args, Debug)]
 pub struct ContainerCreateArgs {
@@ -72,6 +84,12 @@ pub struct ContainerCreateArgs {
 
     #[clap(from_global)]
     verbose: u8,
+
+    #[clap(from_global)]
+    password_from_fd: Option<RawFd>,
+
+    #[clap(from_global)]
+    password_from_file: Option<PathBuf>,
 }
 
 impl ContainerCreateArgs {
@@ -91,10 +109,14 @@ impl ContainerCreateArgs {
             self.name
         );
 
+        SOURCE.with_borrow_mut(|src| {
+            *src = PasswordSource::new(self.password_from_fd, self.password_from_file.clone())
+        });
+
         let backend_options =
             PluginBackendCreateBuilder::new(plugin, &self.name, self.verbose, &self.plugin_args)?;
         let mut builder = CreateOptionsBuilder::new(*self.cipher)
-            .with_password_callback(|| ask_for_password_twice("Enter a password"))
+            .with_password_callback(password_callback)
             .with_overwrite(self.overwrite);
 
         if self.cipher != Cipher::None {
