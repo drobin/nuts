@@ -45,16 +45,13 @@ pub struct ArchiveCreateArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ArchiveCreateArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container, self.verbose)?;
+        let container = open_container(&self.container)?;
         let mut archive = Container::create_service::<ArchiveFactory>(container)?;
 
         for path in self.paths.iter() {

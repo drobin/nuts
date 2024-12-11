@@ -45,16 +45,13 @@ pub struct ContainerReadArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ContainerReadArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut container = open_container(&self.container, self.verbose)?;
+        let mut container = open_container(&self.container)?;
         let id = self.id.parse()?;
 
         let max_bytes = self.max_bytes.unwrap_or(u64::MAX);

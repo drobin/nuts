@@ -57,16 +57,13 @@ pub struct ContainerWriteArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ContainerWriteArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut container = open_container(&self.container, self.verbose)?;
+        let mut container = open_container(&self.container)?;
 
         let block_size = container.block_size();
         let max_bytes = self.max_bytes.unwrap_or(u64::MAX);

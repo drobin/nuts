@@ -20,11 +20,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use clap::{ArgGroup, Args};
+use clap::{ArgAction, ArgGroup, Args};
 use log::debug;
 use std::cell::RefCell;
 use std::os::fd::RawFd;
 use std::path::PathBuf;
+
+use crate::say::Say;
 
 thread_local! {
     pub static GLOBALS: RefCell<GlobalValues> = RefCell::new(Default::default());
@@ -32,6 +34,8 @@ thread_local! {
 
 #[derive(Default)]
 pub struct GlobalValues {
+    pub verbose: u8,
+    pub say: Say,
     pub password_source: PasswordSource,
 }
 
@@ -77,6 +81,14 @@ impl Default for PasswordSource {
 #[derive(Args, Clone, Debug)]
 #[clap(group(ArgGroup::new("password").required(false).multiple(false)))]
 pub struct GlobalArgs {
+    /// Enable verbose output. Can be called multiple times
+    #[clap(short, long, action = ArgAction::Count, global = true)]
+    pub verbose: u8,
+
+    /// Be quiet. Don't produce any output
+    #[clap(short, long, action = ArgAction::SetTrue, global = true)]
+    pub quiet: bool,
+
     /// Reads the password from the specified file descriptor <FD>. The
     /// password is the first line until a `\n` is read.
     #[clap(long, group = "password", global = true, value_name = "FD")]
@@ -90,6 +102,10 @@ pub struct GlobalArgs {
 
 impl GlobalArgs {
     pub fn init(&self) {
-        GLOBALS.with_borrow_mut(|g| g.init_password_source(self));
+        GLOBALS.with_borrow_mut(|g| {
+            g.verbose = self.verbose;
+            g.say.set_quiet(self.quiet);
+            g.init_password_source(self);
+        });
     }
 }

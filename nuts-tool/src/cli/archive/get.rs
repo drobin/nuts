@@ -44,16 +44,13 @@ pub struct ArchiveGetArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ArchiveGetArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.migrate, self.verbose)?;
+        let mut archive = open_archive(&self.container, self.migrate)?;
         let block_size = archive.as_ref().block_size() as usize;
 
         let entry = match archive.lookup(&self.name) {

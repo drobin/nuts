@@ -149,9 +149,6 @@ pub struct ArchiveAddArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ArchiveAddArgs {
@@ -162,7 +159,7 @@ impl ArchiveAddArgs {
 
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.migrate, self.verbose)?;
+        let mut archive = open_archive(&self.container, self.migrate)?;
 
         for path in self.paths.iter() {
             append_recursive(&mut archive, path)?;

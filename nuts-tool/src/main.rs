@@ -73,8 +73,6 @@ fn main() -> Result<()> {
 fn run_cli() -> Result<()> {
     let cli = NutsCli::parse();
 
-    say::set_quiet(cli.quiet);
-
     cli.configure_logging();
     cli.run()
 }

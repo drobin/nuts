@@ -39,16 +39,13 @@ pub struct ContainerInfoArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ContainerInfoArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container, self.verbose)?;
+        let container = open_container(&self.container)?;
         let container_config = ContainerConfig::load()?;
         let plugin = container_config.get_plugin(&self.container).unwrap_or("?");
         let info = container.info()?;

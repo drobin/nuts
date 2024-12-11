@@ -28,7 +28,7 @@ pub mod password;
 pub mod plugin;
 
 use anyhow::{anyhow, Result};
-use clap::{crate_version, ArgAction, Parser, Subcommand};
+use clap::{crate_version, Parser, Subcommand};
 use env_logger::Builder;
 use log::LevelFilter;
 use nuts_container::{Container, OpenOptionsBuilder};
@@ -38,7 +38,7 @@ use rprompt::prompt_reply;
 use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
-use crate::cli::global::GlobalArgs;
+use crate::cli::global::{GlobalArgs, GLOBALS};
 use crate::cli::password::password_from_source;
 use crate::cli::plugin::PluginArgs;
 use crate::config::{ContainerConfig, PluginConfig};
@@ -50,21 +50,13 @@ pub struct NutsCli {
     #[clap(subcommand)]
     command: Commands,
 
-    /// Enable verbose output. Can be called multiple times
-    #[clap(short, long, action = ArgAction::Count, global = true)]
-    verbose: u8,
-
-    /// Be quiet. Don't produce any output
-    #[clap(short, long, action = ArgAction::SetTrue, global = true)]
-    pub quiet: bool,
-
     #[command(flatten)]
     global_args: GlobalArgs,
 }
 
 impl NutsCli {
     pub fn configure_logging(&self) {
-        let filter = match self.verbose {
+        let filter = match self.global_args.verbose {
             0 => LevelFilter::Off,
             1 => LevelFilter::Info,
             2 => LevelFilter::Debug,
@@ -103,9 +95,10 @@ impl Commands {
     }
 }
 
-fn open_container(name: &str, verbose: u8) -> Result<Container<PluginBackend>> {
+fn open_container(name: &str) -> Result<Container<PluginBackend>> {
     let container_config = ContainerConfig::load()?;
     let plugin_config = PluginConfig::load()?;
+    let verbose = GLOBALS.with_borrow(|g| g.verbose);
 
     let plugin = container_config
         .get_plugin(name)

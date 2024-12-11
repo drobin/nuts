@@ -132,9 +132,6 @@ pub struct ArchiveListArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ArchiveListArgs {
@@ -173,7 +170,7 @@ impl ArchiveListArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.migrate, self.verbose)?;
+        let mut archive = open_archive(&self.container, self.migrate)?;
 
         let mut entry_opt = archive.first();
         let mut ctx_opt = None;

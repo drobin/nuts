@@ -56,9 +56,6 @@ pub struct ContainerChangePasswordArgs {
     /// the first line until a `\n` is read.
     #[clap(long, group = "new_password", value_name = "PATH")]
     new_password_from_file: Option<PathBuf>,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ContainerChangePasswordArgs {
@@ -72,7 +69,7 @@ impl ContainerChangePasswordArgs {
             )
         });
 
-        let mut container = open_container(&self.container, self.verbose)?;
+        let mut container = open_container(&self.container)?;
         let options = ModifyOptionsBuilder::default()
             .change_password(password_callback)
             .build();

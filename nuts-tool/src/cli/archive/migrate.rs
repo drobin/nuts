@@ -46,16 +46,13 @@ pub struct ArchiveMigrateArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ArchiveMigrateArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let archive = open_archive(&self.container, false, self.verbose)?;
+        let archive = open_archive(&self.container, false)?;
         let info = archive.as_ref().info()?;
 
         match info.revision.cmp(&LATEST_REVISION) {
@@ -77,7 +74,7 @@ impl ArchiveMigrateArgs {
                 if self.verify {
                     Err(ExitOnly::new(1).into())
                 } else if prompt_yes_no("Do you really want to start the migration?", self.yes)? {
-                    open_archive(&self.container, true, self.verbose).map(|_| ())
+                    open_archive(&self.container, true).map(|_| ())
                 } else {
                     say!("aborted");
                     Ok(())

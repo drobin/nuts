@@ -44,9 +44,6 @@ pub struct ContainerDeleteArgs {
     /// Note that depending on the backend, data may remain.
     #[clap(short, long, action = ArgAction::SetTrue)]
     force: bool,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ContainerDeleteArgs {
@@ -69,7 +66,7 @@ impl ContainerDeleteArgs {
         }
 
         if !self.force {
-            let container = open_container(&self.container, self.verbose)?;
+            let container = open_container(&self.container)?;
             container.delete();
         }
 

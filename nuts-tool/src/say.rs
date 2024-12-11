@@ -21,18 +21,13 @@
 // IN THE SOFTWARE.
 
 use colored::{Color, Colorize};
-use std::{borrow::Cow, cell::RefCell, fmt::Arguments};
+use std::borrow::Cow;
+use std::fmt::Arguments;
 
-thread_local! {
-    pub static SAY: RefCell<Say> = RefCell::new(Say::new());
-}
+use crate::cli::global::GLOBALS;
 
 pub fn is_quiet() -> bool {
-    SAY.with(|say| say.borrow().quiet)
-}
-
-pub fn set_quiet(quiet: bool) {
-    SAY.with(|say| say.borrow_mut().quiet = quiet)
+    GLOBALS.with_borrow(|g| g.say.quiet)
 }
 
 #[derive(Clone, Copy)]
@@ -52,13 +47,14 @@ impl Level {
     }
 }
 
+#[derive(Default)]
 pub struct Say {
     quiet: bool,
 }
 
 impl Say {
-    fn new() -> Say {
-        Say { quiet: false }
+    pub fn set_quiet(&mut self, quiet: bool) {
+        self.quiet = quiet;
     }
 
     pub fn say(&self, level: Level, args: Arguments<'_>) {
@@ -81,9 +77,9 @@ impl Say {
 #[macro_export]
 macro_rules! say {
     ($level:ident $($arg:tt)*) => {{
-        $crate::say::SAY.with(|say|
-            say.borrow().say($crate::say::Level::$level, format_args!($($arg)*))
-        );
+        $crate::cli::global::GLOBALS.with_borrow(|g|
+            g.say.say($crate::say::Level::$level, format_args!($($arg)*))
+        )
     }};
 
     ($($arg:tt)*) => {

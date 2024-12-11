@@ -49,16 +49,13 @@ pub struct ContainerChangeKdfArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ContainerChangeKdfArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut container = open_container(&self.container, self.verbose)?;
+        let mut container = open_container(&self.container)?;
         let options = ModifyOptionsBuilder::default()
             .change_kdf(self.kdf.clone())
             .build();

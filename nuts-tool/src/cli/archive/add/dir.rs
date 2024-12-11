@@ -43,16 +43,13 @@ pub struct ArchiveAddDirectoryArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ArchiveAddDirectoryArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.migrate, self.verbose)?;
+        let mut archive = open_archive(&self.container, self.migrate)?;
         let mut builder = archive.append_directory(&self.name);
 
         if let Some(created) = self.timestamps.created {

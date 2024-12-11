@@ -46,16 +46,13 @@ pub struct ArchiveAddSymlinkArgs {
     /// Specifies the name of the container
     #[clap(short, long, env = "NUTS_CONTAINER")]
     container: String,
-
-    #[clap(from_global)]
-    verbose: u8,
 }
 
 impl ArchiveAddSymlinkArgs {
     pub fn run(&self) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.migrate, self.verbose)?;
+        let mut archive = open_archive(&self.container, self.migrate)?;
         let mut builder = archive.append_symlink(&self.name, &self.target);
 
         if let Some(created) = self.timestamps.created {
