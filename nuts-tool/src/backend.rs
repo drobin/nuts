@@ -143,8 +143,9 @@ impl PluginBackendCreateBuilder {
         plugin: Plugin,
         name: &str,
         verbose: u8,
+        extra_args: &[String],
     ) -> Result<PluginBackendCreateBuilder, PluginError> {
-        setup_connection(plugin.create(name, verbose)?)?;
+        setup_connection(plugin.create(name, verbose, extra_args)?)?;
 
         let settings = with_connection(|conn| conn.settings())?;
 

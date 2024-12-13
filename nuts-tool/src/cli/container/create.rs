@@ -91,7 +91,8 @@ impl ContainerCreateArgs {
             self.name
         );
 
-        let backend_options = PluginBackendCreateBuilder::new(plugin, &self.name, self.verbose)?;
+        let backend_options =
+            PluginBackendCreateBuilder::new(plugin, &self.name, self.verbose, &self.plugin_args)?;
         let mut builder = CreateOptionsBuilder::new(*self.cipher)
             .with_password_callback(ask_for_password)
             .with_overwrite(self.overwrite);

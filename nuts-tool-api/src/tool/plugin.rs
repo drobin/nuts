@@ -59,13 +59,21 @@ impl<'a> Plugin<'a> {
     }
 
     pub fn open(&self, name: &str, verbose: u8) -> PluginResult<PluginConnection> {
-        let child = self.new_child(Stdio::piped(), &Self::make_args("open", name, verbose))?;
+        let child = self.new_child(Stdio::piped(), &Self::make_args("open", name, verbose, &[]))?;
 
         Ok(PluginConnection::new(child))
     }
 
-    pub fn create(&self, name: &str, verbose: u8) -> PluginResult<PluginConnection> {
-        let child = self.new_child(Stdio::piped(), &Self::make_args("create", name, verbose))?;
+    pub fn create(
+        &self,
+        name: &str,
+        verbose: u8,
+        extra_args: &[String],
+    ) -> PluginResult<PluginConnection> {
+        let child = self.new_child(
+            Stdio::piped(),
+            &Self::make_args("create", name, verbose, extra_args),
+        )?;
 
         Ok(PluginConnection::new(child))
     }
@@ -93,8 +101,18 @@ impl<'a> Plugin<'a> {
         }
     }
 
-    fn make_args<'b>(command: &'b str, name: &'b str, verbose: u8) -> Vec<&'b str> {
+    fn make_args<'b>(
+        command: &'b str,
+        name: &'b str,
+        verbose: u8,
+        extra_args: &'b [String],
+    ) -> Vec<&'b str> {
         let mut args = vec![command, name];
+
+        extra_args
+            .iter()
+            .map(|s| s.as_str())
+            .for_each(|s| args.push(s));
 
         let max = cmp::min(verbose, 3);
         (0..max).for_each(|_| args.push("-v"));
