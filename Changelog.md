@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.6] - 2024-12-13
+
+### Fixed
+
+* `nuts container create`: Pass plugins extra args to the plugin
+
 ## [0.7.5] - 2024-11-08
 
 ### Changed
@@ -530,3 +536,4 @@ Initial public release.
 [0.7.3]: https://github.com/drobin/nuts/tree/v0.7.3
 [0.7.4]: https://github.com/drobin/nuts/tree/v0.7.4
 [0.7.5]: https://github.com/drobin/nuts/tree/v0.7.5
+[0.7.6]: https://github.com/drobin/nuts/tree/v0.7.6
