@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.7] - 2024-12-18
+
+### Added
+
+* `nuts container change kdf|password` let you change the kdf and password of
+  the container
+* Global args `--password-from-fd`, `--password-from-file` added, so you can
+  pass the password to the tool without a prompt.
+
 ## [0.7.6] - 2024-12-13
 
 ### Fixed
@@ -537,3 +546,4 @@ Initial public release.
 [0.7.4]: https://github.com/drobin/nuts/tree/v0.7.4
 [0.7.5]: https://github.com/drobin/nuts/tree/v0.7.5
 [0.7.6]: https://github.com/drobin/nuts/tree/v0.7.6
+[0.7.7]: https://github.com/drobin/nuts/tree/v0.7.7
