@@ -24,6 +24,7 @@
 name = "nuts-tool-api"
 version = "0.7.7"
 edition = "2018"
+rust-version = "1.81"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "Code that helps you to implement a nuts tool plugin"
 categories = ["cryptography", "command-line-utilities"]
@@ -35,16 +36,16 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "1.0.202", features = ["derive"] }
-bson = "2.9.0"
-bytes = "1.6.0"
-home = "0.5.9"
-log = "0.4.21"
+serde = { version = "1.0.216", features = ["derive"] }
+bson = "2.13.0"
+bytes = "1.9.0"
+home = "0.5.11"
+log = "0.4.22"
 
-clap = { version = "4.5.4", features = ["cargo", "derive"], optional = true }
-env_logger = { version = "0.10.2", optional = true }
+clap = { version = "4.5.23", features = ["cargo", "derive"], optional = true }
+env_logger = { version = "0.11.5", optional = true }
 nuts-backend = { path = "../nuts-backend", version = "=0.7.7", optional = true }
-thiserror = "1.0.61"
+thiserror = "2.0.8"
 
 [features]
 default = ["debug-condensed", "plugin"]

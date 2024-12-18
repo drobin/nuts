@@ -36,13 +36,13 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.86"
-chrono = "0.4.38"
-clap = { version = "4.5.4", features = ["cargo", "color", "derive", "env"] }
-colored = "2.1.0"
-env_logger = "0.10.2"
-lazy_static = "1.4.0"
-log = "0.4.21"
+anyhow = "1.0.94"
+chrono = "0.4.39"
+clap = { version = "4.5.23", features = ["cargo", "color", "derive", "env"] }
+colored = "2.2.0"
+env_logger = "0.11.5"
+lazy_static = "1.5.0"
+log = "0.4.22"
 nuts-archive = { path = "../nuts-archive", version = "=0.7.7" }
 nuts-backend = { path = "../nuts-backend", version = "=0.7.7" }
 nuts-container = { path = "../nuts-container", version = "=0.7.7" }
@@ -51,10 +51,10 @@ nuts-tool-api = { path = "../nuts-tool-api", version = "=0.7.7", default-feature
 ] }
 rpassword = "7.3.1"
 rprompt = "2.1.1"
-serde = { version = "1.0.202", features = ["derive"] }
-thiserror = "1.0.61"
-toml = "0.8.13"
-is_executable = "1.0.1"
+serde = { version = "1.0.216", features = ["derive"] }
+thiserror = "2.0.8"
+toml = "0.8.19"
+is_executable = "1.0.4"
 
 [dev-dependencies]
 assert_cmd = "2.0.16"

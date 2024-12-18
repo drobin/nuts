@@ -40,11 +40,11 @@ default = []
 debug-plain-keys = []
 
 [dependencies]
-log = "0.4.21"
+log = "0.4.22"
 nuts-backend = { path = "../nuts-backend", version = "=0.7.7" }
-openssl = { version = "0.10.66", features = ["vendored"] }
-thiserror = "1.0.61"
+openssl = { version = "0.10.68", features = ["vendored"] }
+thiserror = "2.0.8"
 
 [dev-dependencies]
 nuts-memory = { path = "../nuts-memory", version = "=0.7.7" }
-serde_json = { version = "1.0.128", features = ["std"] }
+serde_json = { version = "1.0.133", features = ["std"] }

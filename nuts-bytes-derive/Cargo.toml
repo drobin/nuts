@@ -36,9 +36,9 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-proc-macro2 = "1.0.83"
-quote = "1.0.36"
-syn = { version = "2.0.65", features = ["extra-traits"] }
+proc-macro2 = "1.0.92"
+quote = "1.0.37"
+syn = { version = "2.0.90", features = ["extra-traits"] }
 
 [lib]
 proc-macro = true
