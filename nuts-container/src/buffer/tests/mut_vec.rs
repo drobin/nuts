@@ -49,23 +49,23 @@ fn put_chunk_append() {
     assert_eq!(vec, [1, 2, 3, 4, 5]);
 }
 
-#[test]
-fn put_u8() {
-    let mut vec = vec![];
+// #[test]
+// fn put_u8() {
+//     let mut vec = vec![];
 
-    vec.put_u8(1).unwrap();
+//     vec.put_u8(1).unwrap();
 
-    assert_eq!(vec, [1]);
-}
+//     assert_eq!(vec, [1]);
+// }
 
-#[test]
-fn put_u16() {
-    let mut vec = vec![];
+// #[test]
+// fn put_u16() {
+//     let mut vec = vec![];
 
-    vec.put_u16(258).unwrap();
+//     vec.put_u16(258).unwrap();
 
-    assert_eq!(vec, [1, 2]);
-}
+//     assert_eq!(vec, [1, 2]);
+// }
 
 #[test]
 fn put_u32() {
@@ -76,14 +76,14 @@ fn put_u32() {
     assert_eq!(vec, [1, 2, 3, 4]);
 }
 
-#[test]
-fn put_u64() {
-    let mut vec = vec![];
+// #[test]
+// fn put_u64() {
+//     let mut vec = vec![];
 
-    vec.put_u64(72_623_859_790_382_856).unwrap();
+//     vec.put_u64(72_623_859_790_382_856).unwrap();
 
-    assert_eq!(vec, [1, 2, 3, 4, 5, 6, 7, 8]);
-}
+//     assert_eq!(vec, [1, 2, 3, 4, 5, 6, 7, 8]);
+// }
 
 macro_rules! vec_tests {
     ($mod:ident, $len:literal) => {

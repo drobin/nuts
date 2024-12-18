@@ -24,7 +24,7 @@
 name = "nuts-memory"
 version = "0.7.7"
 edition = "2018"
-authors = ["Robin Doer <robin@robind.de>"]
+authors = ["Robin Doer"]
 description = "A backend implementation for nuts"
 categories = ["cryptography"]
 keywords = ["secure", "storage", "nuts"]

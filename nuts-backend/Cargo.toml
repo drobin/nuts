@@ -24,7 +24,7 @@
 name = "nuts-backend"
 version = "0.7.7"
 edition = "2018"
-authors = ["Robin Doer <robin@robind.de>"]
+authors = ["Robin Doer"]
 description = "A secure storage library"
 categories = ["cryptography"]
 keywords = ["secure", "storage", "nuts"]

@@ -115,39 +115,39 @@ fn get_array_more() {
     assert!(matches!(err, BufferError::UnexpectedEof));
 }
 
-#[test]
-fn get_u8() {
-    let mut slice = [1, 2, 3].as_slice();
-    let n = slice.get_u8().unwrap();
+// #[test]
+// fn get_u8() {
+//     let mut slice = [1, 2, 3].as_slice();
+//     let n = slice.get_u8().unwrap();
 
-    assert_eq!(n, 1);
-    assert_eq!(slice, [2, 3]);
-}
+//     assert_eq!(n, 1);
+//     assert_eq!(slice, [2, 3]);
+// }
 
-#[test]
-fn get_u8_eof() {
-    let err = [].as_slice().get_u8().unwrap_err();
+// #[test]
+// fn get_u8_eof() {
+//     let err = [].as_slice().get_u8().unwrap_err();
 
-    assert!(matches!(err, BufferError::UnexpectedEof));
-}
+//     assert!(matches!(err, BufferError::UnexpectedEof));
+// }
 
-#[test]
-fn get_u16() {
-    let mut slice = [1, 2, 3].as_slice();
-    let n = slice.get_u16().unwrap();
+// #[test]
+// fn get_u16() {
+//     let mut slice = [1, 2, 3].as_slice();
+//     let n = slice.get_u16().unwrap();
 
-    assert_eq!(n, 258);
-    assert_eq!(slice, [3]);
-}
+//     assert_eq!(n, 258);
+//     assert_eq!(slice, [3]);
+// }
 
-#[test]
-fn get_u16_eof() {
-    let mut slice = [1].as_slice();
-    let err = slice.get_u16().unwrap_err();
+// #[test]
+// fn get_u16_eof() {
+//     let mut slice = [1].as_slice();
+//     let err = slice.get_u16().unwrap_err();
 
-    assert_eq!(slice, [1]);
-    assert!(matches!(err, BufferError::UnexpectedEof));
-}
+//     assert_eq!(slice, [1]);
+//     assert!(matches!(err, BufferError::UnexpectedEof));
+// }
 
 #[test]
 fn get_u32() {
@@ -167,23 +167,23 @@ fn get_u32_eof() {
     assert!(matches!(err, BufferError::UnexpectedEof));
 }
 
-#[test]
-fn get_u64() {
-    let mut slice = [1, 2, 3, 4, 5, 6, 7, 8, 9].as_slice();
-    let n = slice.get_u64().unwrap();
+// #[test]
+// fn get_u64() {
+//     let mut slice = [1, 2, 3, 4, 5, 6, 7, 8, 9].as_slice();
+//     let n = slice.get_u64().unwrap();
 
-    assert_eq!(n, 72_623_859_790_382_856);
-    assert_eq!(slice, [9]);
-}
+//     assert_eq!(n, 72_623_859_790_382_856);
+//     assert_eq!(slice, [9]);
+// }
 
-#[test]
-fn get_u64_eof() {
-    let mut slice = [1, 2, 3, 4, 5, 6, 7].as_slice();
-    let err = slice.get_u64().unwrap_err();
+// #[test]
+// fn get_u64_eof() {
+//     let mut slice = [1, 2, 3, 4, 5, 6, 7].as_slice();
+//     let err = slice.get_u64().unwrap_err();
 
-    assert_eq!(slice, [1, 2, 3, 4, 5, 6, 7]);
-    assert!(matches!(err, BufferError::UnexpectedEof));
-}
+//     assert_eq!(slice, [1, 2, 3, 4, 5, 6, 7]);
+//     assert!(matches!(err, BufferError::UnexpectedEof));
+// }
 
 macro_rules! vec_tests {
     ($mod:ident,$len:literal) => {

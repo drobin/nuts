@@ -75,40 +75,40 @@ fn put_chunk_more() {
     assert_eq!(&buf, b"xxx");
 }
 
-#[test]
-fn put_u8() {
-    let mut buf = [b'x'; 2];
+// #[test]
+// fn put_u8() {
+//     let mut buf = [b'x'; 2];
 
-    buf.as_mut_slice().put_u8(1).unwrap();
+//     buf.as_mut_slice().put_u8(1).unwrap();
 
-    assert_eq!(buf, [1, b'x']);
-}
+//     assert_eq!(buf, [1, b'x']);
+// }
 
-#[test]
-fn put_u8_eof() {
-    let mut buf = [];
-    let err = buf.as_mut_slice().put_u8(1).unwrap_err();
+// #[test]
+// fn put_u8_eof() {
+//     let mut buf = [];
+//     let err = buf.as_mut_slice().put_u8(1).unwrap_err();
 
-    assert!(matches!(err, BufferError::WriteZero));
-}
+//     assert!(matches!(err, BufferError::WriteZero));
+// }
 
-#[test]
-fn put_u16() {
-    let mut buf = [b'x'; 3];
+// #[test]
+// fn put_u16() {
+//     let mut buf = [b'x'; 3];
 
-    buf.as_mut_slice().put_u16(258).unwrap();
+//     buf.as_mut_slice().put_u16(258).unwrap();
 
-    assert_eq!(buf, [1, 2, b'x']);
-}
+//     assert_eq!(buf, [1, 2, b'x']);
+// }
 
-#[test]
-fn put_u16_eof() {
-    let mut buf = [b'x'; 1];
-    let err = buf.as_mut_slice().put_u16(258).unwrap_err();
+// #[test]
+// fn put_u16_eof() {
+//     let mut buf = [b'x'; 1];
+//     let err = buf.as_mut_slice().put_u16(258).unwrap_err();
 
-    assert!(matches!(err, BufferError::WriteZero));
-    assert_eq!(&buf, b"x");
-}
+//     assert!(matches!(err, BufferError::WriteZero));
+//     assert_eq!(&buf, b"x");
+// }
 
 #[test]
 fn put_u32() {
@@ -128,26 +128,26 @@ fn put_u32_eof() {
     assert_eq!(&buf, b"xxx");
 }
 
-#[test]
-fn put_u64() {
-    let mut buf = [b'x'; 9];
+// #[test]
+// fn put_u64() {
+//     let mut buf = [b'x'; 9];
 
-    buf.as_mut_slice().put_u64(72_623_859_790_382_856).unwrap();
+//     buf.as_mut_slice().put_u64(72_623_859_790_382_856).unwrap();
 
-    assert_eq!(buf, [1, 2, 3, 4, 5, 6, 7, 8, b'x']);
-}
+//     assert_eq!(buf, [1, 2, 3, 4, 5, 6, 7, 8, b'x']);
+// }
 
-#[test]
-fn put_u64_eof() {
-    let mut buf = [b'x'; 7];
-    let err = buf
-        .as_mut_slice()
-        .put_u64(72_623_859_790_382_856)
-        .unwrap_err();
+// #[test]
+// fn put_u64_eof() {
+//     let mut buf = [b'x'; 7];
+//     let err = buf
+//         .as_mut_slice()
+//         .put_u64(72_623_859_790_382_856)
+//         .unwrap_err();
 
-    assert!(matches!(err, BufferError::WriteZero));
-    assert_eq!(&buf, b"xxxxxxx");
-}
+//     assert!(matches!(err, BufferError::WriteZero));
+//     assert_eq!(&buf, b"xxxxxxx");
+// }
 
 macro_rules! vec_tests {
     ($mod:ident, $len:literal) => {

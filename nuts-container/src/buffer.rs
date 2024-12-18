@@ -73,10 +73,7 @@ pub trait Buffer: Sized {
         })
     }
 
-    get_func!(get_u8, u8);
-    get_func!(get_u16, u16);
     get_func!(get_u32, u32);
-    get_func!(get_u64, u64);
 
     fn get_vec<const L: usize>(&mut self) -> Result<Vec<u8>, BufferError> {
         let mut len = 0usize;
@@ -96,19 +93,7 @@ pub trait Buffer: Sized {
 pub trait BufferMut: Sized {
     fn put_chunk(&mut self, buf: &[u8]) -> Result<(), BufferError>;
 
-    fn put_u8(&mut self, value: u8) -> Result<(), BufferError> {
-        self.put_chunk(&value.to_be_bytes())
-    }
-
-    fn put_u16(&mut self, value: u16) -> Result<(), BufferError> {
-        self.put_chunk(&value.to_be_bytes())
-    }
-
     fn put_u32(&mut self, value: u32) -> Result<(), BufferError> {
-        self.put_chunk(&value.to_be_bytes())
-    }
-
-    fn put_u64(&mut self, value: u64) -> Result<(), BufferError> {
         self.put_chunk(&value.to_be_bytes())
     }
 
@@ -171,12 +156,6 @@ impl BufferMut for &mut [u8] {
             Err(BufferError::WriteZero)
         }
     }
-}
-
-pub trait FromBuffer: Sized {
-    type Error: From<BufferError>;
-
-    fn from_buffer<T: Buffer>(buf: &mut T) -> Result<Self, Self::Error>;
 }
 
 pub trait ToBuffer {

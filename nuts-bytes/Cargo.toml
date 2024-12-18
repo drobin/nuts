@@ -24,7 +24,7 @@
 name = "nuts-bytes"
 version = "0.7.7"
 edition = "2018"
-authors = ["Robin Doer <robin@robind.de>"]
+authors = ["Robin Doer"]
 description = "Serialization into a binary data format"
 categories = ["encoding"]
 keywords = ["serialization", "nuts"]
