@@ -28,9 +28,8 @@ pub mod remove;
 
 use anyhow::Result;
 use clap::{Args, Subcommand};
-use std::os::fd::RawFd;
-use std::path::PathBuf;
 
+use crate::cli::ctx::GlobalContext;
 use crate::cli::plugin::add::PluginAddArgs;
 use crate::cli::plugin::info::PluginInfoArgs;
 use crate::cli::plugin::list::PluginListArgs;
@@ -42,19 +41,13 @@ use crate::cli::plugin::remove::PluginRemoveArgs;
 pub struct PluginArgs {
     #[clap(subcommand)]
     command: Option<PluginCommand>,
-
-    #[clap(long, hide = true)]
-    password_from_fd: Option<RawFd>,
-
-    #[clap(long, hide = true)]
-    password_from_file: Option<PathBuf>,
 }
 
 impl PluginArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &GlobalContext) -> Result<()> {
         self.command
             .as_ref()
-            .map_or(Ok(()), |command| command.run())
+            .map_or(Ok(()), |command| command.run(ctx))
     }
 }
 
@@ -77,13 +70,13 @@ pub enum PluginCommand {
 }
 
 impl PluginCommand {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &GlobalContext) -> Result<()> {
         match self {
-            Self::Add(args) => args.run(),
-            Self::Modify(args) => args.run(),
-            Self::Remove(args) => args.run(),
-            Self::Info(args) => args.run(),
-            Self::List(args) => args.run(),
+            Self::Add(args) => args.run(ctx),
+            Self::Modify(args) => args.run(ctx),
+            Self::Remove(args) => args.run(ctx),
+            Self::Info(args) => args.run(ctx),
+            Self::List(args) => args.run(ctx),
         }
     }
 }

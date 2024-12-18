@@ -20,40 +20,44 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use anyhow::{bail, Result};
-use clap::Args;
-use log::debug;
-use std::path::PathBuf;
+use crate::cli::global::GlobalArgs;
 
-use crate::cli::ctx::GlobalContext;
-use crate::config::PluginConfig;
-
-#[derive(Args, Debug)]
-pub struct PluginAddArgs {
-    /// The name of the plugin
-    name: String,
-
-    /// The location of the plugin
-    #[clap(short, long)]
-    path: PathBuf,
+pub struct GlobalContext {
+    pub verbose: u8,
+    pub quiet: bool,
 }
 
-impl PluginAddArgs {
-    pub fn run(&self, _ctx: &GlobalContext) -> Result<()> {
-        debug!("args: {:?}", self);
-
-        let mut config = PluginConfig::load()?;
-
-        if config.have_plugin(&self.name) {
-            bail!("the plugin '{}' is already configured", self.name);
+impl GlobalContext {
+    pub fn from_args(args: &GlobalArgs) -> GlobalContext {
+        GlobalContext {
+            verbose: args.verbose,
+            quiet: args.quiet,
         }
-
-        if !config.set_path(&self.name, &self.path) {
-            bail!("the path '{}' is invalid", self.path.display());
-        }
-
-        config.save()?;
-
-        Ok(())
     }
 }
+
+macro_rules! say {
+    ($ctx:expr, $level:ident $($arg:tt)*) => {
+        if !$ctx.quiet {
+            $crate::say::say($crate::say::Level::$level, format_args!($($arg)*))
+        }
+    };
+
+    ($ctx:expr, $($arg:tt)*) => {
+        say!($ctx, Normal $($arg)*);
+    };
+}
+
+macro_rules! say_warn {
+    ($ctx:expr, $($arg:tt)*) => {
+        say!($ctx, Warning $($arg)*);
+    };
+}
+
+macro_rules! say_err {
+    ($ctx:expr, $($arg:tt)*) => {
+        say!($ctx, Error $($arg)*);
+    };
+}
+
+pub(crate) use {say, say_err, say_warn};

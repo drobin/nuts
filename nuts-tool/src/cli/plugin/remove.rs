@@ -24,6 +24,7 @@ use anyhow::{bail, Result};
 use clap::Args;
 use log::debug;
 
+use crate::cli::ctx::GlobalContext;
 use crate::config::PluginConfig;
 
 #[derive(Args, Debug)]
@@ -33,8 +34,8 @@ pub struct PluginRemoveArgs {
 }
 
 impl PluginRemoveArgs {
-    pub fn run(&self) -> Result<()> {
-        debug!("name: {}", self.name);
+    pub fn run(&self, _ctx: &GlobalContext) -> Result<()> {
+        debug!("args: {:?}", self);
 
         let mut config = PluginConfig::load()?;
 

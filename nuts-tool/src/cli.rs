@@ -22,6 +22,7 @@
 
 pub mod archive;
 pub mod container;
+pub mod ctx;
 pub mod error;
 pub mod global;
 pub mod password;
@@ -38,6 +39,7 @@ use rprompt::prompt_reply;
 use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
+use crate::cli::ctx::GlobalContext;
 use crate::cli::global::{GlobalArgs, GLOBALS};
 use crate::cli::password::password_from_source;
 use crate::cli::plugin::PluginArgs;
@@ -67,9 +69,11 @@ impl NutsCli {
     }
 
     pub fn run(&self) -> Result<()> {
+        let ctx = GlobalContext::from_args(&self.global_args);
+
         self.global_args.init();
 
-        self.command.run()
+        self.command.run(&ctx)
     }
 }
 
@@ -86,9 +90,9 @@ pub enum Commands {
 }
 
 impl Commands {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &GlobalContext) -> Result<()> {
         match self {
-            Self::Plugin(args) => args.run(),
+            Self::Plugin(args) => args.run(ctx),
             Self::Container(args) => args.run(),
             Self::Archive(args) => args.run(),
         }

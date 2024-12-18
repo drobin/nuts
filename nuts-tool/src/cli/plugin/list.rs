@@ -22,17 +22,20 @@
 
 use anyhow::Result;
 use clap::Args;
+use log::debug;
 
+use crate::cli::ctx::{say, GlobalContext};
 use crate::config::PluginConfig;
-use crate::say;
 
 #[derive(Args, Debug)]
 pub struct PluginListArgs {}
 
 impl PluginListArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &GlobalContext) -> Result<()> {
+        debug!("args: {:?}", self);
+
         for plugin in PluginConfig::load()?.all_plugins() {
-            say!("{}", plugin);
+            say!(ctx, "{}", plugin);
         }
 
         Ok(())

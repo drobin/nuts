@@ -25,8 +25,8 @@ use clap::Args;
 use log::debug;
 use nuts_tool_api::tool::Plugin;
 
+use crate::cli::ctx::{say, GlobalContext};
 use crate::config::PluginConfig;
-use crate::say;
 
 #[derive(Args, Debug)]
 pub struct PluginInfoArgs {
@@ -35,8 +35,8 @@ pub struct PluginInfoArgs {
 }
 
 impl PluginInfoArgs {
-    pub fn run(&self) -> Result<()> {
-        debug!("name: {}", self.name);
+    pub fn run(&self, ctx: &GlobalContext) -> Result<()> {
+        debug!("args: {:?}", self);
 
         let config = PluginConfig::load()?;
 
@@ -48,10 +48,10 @@ impl PluginInfoArgs {
         let plugin = Plugin::new(&path);
         let info = plugin.info()?;
 
-        say!("path:     {}", path.display());
-        say!("name:     {}", info.name());
-        say!("version:  {}", info.version());
-        say!("revision: {}", info.revision());
+        say!(ctx, "path:     {}", path.display());
+        say!(ctx, "name:     {}", info.name());
+        say!(ctx, "version:  {}", info.version());
+        say!(ctx, "revision: {}", info.revision());
 
         Ok(())
     }

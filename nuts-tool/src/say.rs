@@ -100,3 +100,15 @@ macro_rules! say_err {
         say!(Error $($arg)*);
     };
 }
+
+pub fn say(level: Level, args: Arguments<'_>) {
+    let msg = match args.as_str() {
+        Some(s) => Cow::Borrowed(s),
+        None => Cow::Owned(args.to_string()),
+    };
+
+    match level.into_color() {
+        Some(color) => println!("{}", msg.color(color)),
+        None => println!("{}", msg),
+    }
+}

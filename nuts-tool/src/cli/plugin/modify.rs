@@ -25,6 +25,7 @@ use clap::Args;
 use log::debug;
 use std::path::PathBuf;
 
+use crate::cli::ctx::GlobalContext;
 use crate::config::PluginConfig;
 
 #[derive(Args, Debug)]
@@ -38,9 +39,8 @@ pub struct PluginModifyArgs {
 }
 
 impl PluginModifyArgs {
-    pub fn run(&self) -> Result<()> {
-        debug!("name: {}", self.name);
-        debug!("path: {:?}", self.path);
+    pub fn run(&self, _ctx: &GlobalContext) -> Result<()> {
+        debug!("args: {:?}", self);
 
         let mut config = PluginConfig::load()?;
 
