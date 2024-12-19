@@ -26,7 +26,7 @@ use log::{debug, trace};
 use std::cmp;
 use std::io::{self, Read};
 
-use crate::cli::open_container;
+use crate::cli::ctx::ContainerContext;
 
 fn fill_buf(buf: &mut [u8]) -> Result<usize> {
     let mut nread = 0;
@@ -60,10 +60,10 @@ pub struct ContainerWriteArgs {
 }
 
 impl ContainerWriteArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut container = open_container(&self.container)?;
+        let mut container = ctx.open_container(&self.container)?;
 
         let block_size = container.block_size();
         let max_bytes = self.max_bytes.unwrap_or(u64::MAX);

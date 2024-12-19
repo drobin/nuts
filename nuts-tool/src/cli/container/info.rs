@@ -25,10 +25,9 @@ use clap::Args;
 use log::debug;
 use std::cmp;
 
-use crate::cli::open_container;
+use crate::cli::ctx::{say, ContainerContext};
 use crate::config::ContainerConfig;
 use crate::format::Format;
-use crate::say;
 
 #[derive(Args, Debug)]
 pub struct ContainerInfoArgs {
@@ -42,10 +41,10 @@ pub struct ContainerInfoArgs {
 }
 
 impl ContainerInfoArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container)?;
+        let container = ctx.open_container(&self.container)?;
         let container_config = ContainerConfig::load()?;
         let plugin = container_config.get_plugin(&self.container).unwrap_or("?");
         let info = container.info()?;
@@ -56,17 +55,27 @@ impl ContainerInfoArgs {
             .iter()
             .fold(key_width, |acc, (key, _)| cmp::max(acc, key.len() + 1));
 
-        say!("{:<key_width$} {}", "plugin:", plugin);
-        say!("{:<key_width$} {}", "revision:", info.revision);
-        say!("{:<key_width$} {}", "cipher:", info.cipher);
-        say!("{:<key_width$} {}", "kdf:", info.kdf.to_string());
-        say!("{:<key_width$} {}", "block size (gross):", info.bsize_gross);
-        say!("{:<key_width$} {}", "block size (net):", info.bsize_net);
+        say!(ctx, "{:<key_width$} {}", "plugin:", plugin);
+        say!(ctx, "{:<key_width$} {}", "revision:", info.revision);
+        say!(ctx, "{:<key_width$} {}", "cipher:", info.cipher);
+        say!(ctx, "{:<key_width$} {}", "kdf:", info.kdf.to_string());
+        say!(
+            ctx,
+            "{:<key_width$} {}",
+            "block size (gross):",
+            info.bsize_gross
+        );
+        say!(
+            ctx,
+            "{:<key_width$} {}",
+            "block size (net):",
+            info.bsize_net
+        );
 
-        say!("");
+        say!(ctx, "");
 
         for (key, value) in info.backend {
-            say!("{:<key_width$} {}", format!("{}:", key), value);
+            say!(ctx, "{:<key_width$} {}", format!("{}:", key), value);
         }
 
         Ok(())

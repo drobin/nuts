@@ -36,6 +36,8 @@ use clap::builder::PossibleValue;
 use clap::{Args, Subcommand, ValueEnum};
 use nuts_container::Cipher;
 use std::ops::Deref;
+use std::os::fd::RawFd;
+use std::path::PathBuf;
 
 use crate::cli::container::aquire::ContainerAquireArgs;
 use crate::cli::container::attach::ContainerAttachArgs;
@@ -47,6 +49,7 @@ use crate::cli::container::list::ContainerListArgs;
 use crate::cli::container::read::ContainerReadArgs;
 use crate::cli::container::release::ContainerReleaseArgs;
 use crate::cli::container::write::ContainerWriteArgs;
+use crate::cli::ctx::{ContainerContext, GlobalContext};
 
 const AES128_GCM: &str = "aes128-gcm";
 const AES192_GCM: &str = "aes192-gcm";
@@ -101,18 +104,36 @@ impl ValueEnum for CliCipher {
     }
 }
 
+#[derive(Args, Clone, Debug)]
+pub struct GlobalContainerArgs {
+    /// Reads the password from the specified file descriptor <FD>. The
+    /// password is the first line until a `\n` is read.
+    #[clap(long, group = "password", global = true, value_name = "FD")]
+    pub password_from_fd: Option<RawFd>,
+
+    /// Reads the password from the specified file <PATH>. The password is the
+    /// first line until a `\n` is read.
+    #[clap(long, group = "password", global = true, value_name = "PATH")]
+    pub password_from_file: Option<PathBuf>,
+}
+
 #[derive(Debug, Args)]
 #[clap(args_conflicts_with_subcommands = true, subcommand_required = true)]
 pub struct ContainerArgs {
     #[clap(subcommand)]
     command: Option<ContainerCommand>,
+
+    #[command(flatten)]
+    global_args: GlobalContainerArgs,
 }
 
 impl ContainerArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &GlobalContext) -> Result<()> {
+        let ctx = ContainerContext::new(ctx, &self.global_args);
+
         self.command
             .as_ref()
-            .map_or(Ok(()), |command| command.run())
+            .map_or(Ok(()), |command| command.run(&ctx))
     }
 }
 
@@ -150,18 +171,18 @@ pub enum ContainerCommand {
 }
 
 impl ContainerCommand {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         match self {
-            Self::Aquire(args) => args.run(),
-            Self::Attach(args) => args.run(),
-            Self::Change(args) => args.run(),
-            Self::Create(args) => args.run(),
-            Self::Delete(args) => args.run(),
-            Self::Info(args) => args.run(),
-            Self::List(args) => args.run(),
-            Self::Read(args) => args.run(),
-            Self::Release(args) => args.run(),
-            Self::Write(args) => args.run(),
+            Self::Aquire(args) => args.run(ctx),
+            Self::Attach(args) => args.run(ctx),
+            Self::Change(args) => args.run(ctx),
+            Self::Create(args) => args.run(ctx),
+            Self::Delete(args) => args.run(ctx),
+            Self::Info(args) => args.run(ctx),
+            Self::List(args) => args.run(ctx),
+            Self::Read(args) => args.run(ctx),
+            Self::Release(args) => args.run(ctx),
+            Self::Write(args) => args.run(ctx),
         }
     }
 }

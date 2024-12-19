@@ -25,7 +25,7 @@ use clap::Args;
 use log::debug;
 use nuts_container::{Kdf, ModifyOptionsBuilder};
 
-use crate::cli::open_container;
+use crate::cli::ctx::ContainerContext;
 
 #[derive(Args, Debug)]
 pub struct ContainerChangeKdfArgs {
@@ -52,10 +52,10 @@ pub struct ContainerChangeKdfArgs {
 }
 
 impl ContainerChangeKdfArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut container = open_container(&self.container)?;
+        let mut container = ctx.open_container(&self.container)?;
         let options = ModifyOptionsBuilder::default()
             .change_kdf(self.kdf.clone())
             .build();

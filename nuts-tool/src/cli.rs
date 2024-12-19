@@ -29,7 +29,7 @@ pub mod password;
 pub mod plugin;
 
 use anyhow::{anyhow, Result};
-use clap::{crate_version, Parser, Subcommand};
+use clap::{crate_version, ArgAction, Args, Parser, Subcommand};
 use env_logger::Builder;
 use log::LevelFilter;
 use nuts_container::{Container, OpenOptionsBuilder};
@@ -40,10 +40,21 @@ use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
 use crate::cli::ctx::GlobalContext;
-use crate::cli::global::{GlobalArgs, GLOBALS};
+use crate::cli::global::GLOBALS;
 use crate::cli::password::password_from_source;
 use crate::cli::plugin::PluginArgs;
 use crate::config::{ContainerConfig, PluginConfig};
+
+#[derive(Args, Clone, Debug)]
+pub struct GlobalArgs {
+    /// Enable verbose output. Can be called multiple times
+    #[clap(short, long, action = ArgAction::Count, global = true)]
+    pub verbose: u8,
+
+    /// Be quiet. Don't produce any output
+    #[clap(short, long, action = ArgAction::SetTrue, global = true)]
+    pub quiet: bool,
+}
 
 #[derive(Debug, Parser)]
 #[clap(name = "nuts", bin_name = "nuts")]
@@ -69,9 +80,7 @@ impl NutsCli {
     }
 
     pub fn run(&self) -> Result<()> {
-        let ctx = GlobalContext::from_args(&self.global_args);
-
-        self.global_args.init();
+        let ctx = GlobalContext::new(&self.global_args);
 
         self.command.run(&ctx)
     }
@@ -93,7 +102,7 @@ impl Commands {
     pub fn run(&self, ctx: &GlobalContext) -> Result<()> {
         match self {
             Self::Plugin(args) => args.run(ctx),
-            Self::Container(args) => args.run(),
+            Self::Container(args) => args.run(ctx),
             Self::Archive(args) => args.run(),
         }
     }

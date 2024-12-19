@@ -24,9 +24,35 @@ use lazy_static::lazy_static;
 use rpassword::prompt_password;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
-use std::os::fd::FromRawFd;
+use std::os::fd::{FromRawFd, RawFd};
+use std::path::PathBuf;
 
-use crate::cli::global::{PasswordSource, GLOBALS};
+use crate::cli::global::{PasswordSource as LegacyPasswordSource, GLOBALS};
+
+#[derive(Clone, Debug)]
+pub enum PasswordSource {
+    Fd(RawFd),
+    Path(PathBuf),
+    Console,
+}
+
+impl PasswordSource {
+    pub fn new(fd: Option<RawFd>, path: Option<PathBuf>) -> PasswordSource {
+        if let Some(fd) = fd {
+            Self::Fd(fd)
+        } else if let Some(path) = path {
+            Self::Path(path)
+        } else {
+            Self::Console
+        }
+    }
+}
+
+impl Default for PasswordSource {
+    fn default() -> Self {
+        Self::Console
+    }
+}
 
 fn ask_for_password() -> Result<Vec<u8>, String> {
     lazy_static! {
@@ -67,13 +93,13 @@ fn password_from_file(file: File) -> io::Result<Vec<u8>> {
 }
 
 fn password_from_source_or<F: FnOnce() -> Result<Vec<u8>, String>>(
-    source: &PasswordSource,
+    source: &LegacyPasswordSource,
     f: F,
 ) -> Result<Vec<u8>, String> {
     let file = match source {
-        PasswordSource::Fd(fd) => unsafe { Some(Ok(File::from_raw_fd(*fd))) },
-        PasswordSource::Path(path) => Some(File::open(path)),
-        PasswordSource::Console => None,
+        LegacyPasswordSource::Fd(fd) => unsafe { Some(Ok(File::from_raw_fd(*fd))) },
+        LegacyPasswordSource::Path(path) => Some(File::open(path)),
+        LegacyPasswordSource::Console => None,
     };
 
     match file {
@@ -88,8 +114,36 @@ pub fn password_from_source() -> Result<Vec<u8>, String> {
 }
 
 pub fn password_from_source_twice(
-    source: &PasswordSource,
+    source: &LegacyPasswordSource,
     prompt: &str,
 ) -> Result<Vec<u8>, String> {
     password_from_source_or(source, || ask_for_password_twice(prompt))
+}
+
+fn new_password_from_source_or<F: FnOnce() -> Result<Vec<u8>, String>>(
+    source: PasswordSource,
+    f: F,
+) -> Result<Vec<u8>, String> {
+    let file = match source {
+        PasswordSource::Fd(fd) => unsafe { Some(Ok(File::from_raw_fd(fd))) },
+        PasswordSource::Path(path) => Some(File::open(path)),
+        PasswordSource::Console => None,
+    };
+
+    match file {
+        Some(Ok(f)) => password_from_file(f).map_err(|err| err.to_string()),
+        Some(Err(err)) => Err(err.to_string()),
+        None => f(),
+    }
+}
+
+pub fn new_password_from_source(source: PasswordSource) -> Result<Vec<u8>, String> {
+    new_password_from_source_or(source, ask_for_password)
+}
+
+pub fn new_password_from_source_twice(
+    source: PasswordSource,
+    prompt: &str,
+) -> Result<Vec<u8>, String> {
+    new_password_from_source_or(source, || ask_for_password_twice(prompt))
 }

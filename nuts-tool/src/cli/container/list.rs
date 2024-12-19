@@ -26,8 +26,8 @@ use log::debug;
 use std::os::fd::RawFd;
 use std::path::PathBuf;
 
+use crate::cli::ctx::{say, say_warn, ContainerContext};
 use crate::config::{ContainerConfig, PluginConfig};
-use crate::{say, say_warn};
 
 #[derive(Args, Debug)]
 pub struct ContainerListArgs {
@@ -43,8 +43,8 @@ pub struct ContainerListArgs {
 }
 
 impl ContainerListArgs {
-    pub fn run(&self) -> Result<()> {
-        debug!("all: {}", self.all);
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
+        debug!("args: {:?}", self);
 
         let container_config = ContainerConfig::load()?;
         let plugin_config = PluginConfig::load()?;
@@ -56,11 +56,11 @@ impl ContainerListArgs {
                 .unwrap_or(false);
 
             if ok && self.all {
-                say!("  {}", name);
+                say!(ctx, "  {}", name);
             } else if ok && !self.all {
-                say!("{}", name);
+                say!(ctx, "{}", name);
             } else if self.all {
-                say_warn!("! {}", name);
+                say_warn!(ctx, "! {}", name);
             }
         }
 

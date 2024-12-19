@@ -26,9 +26,9 @@ use log::debug;
 use nuts_tool_api::container_dir_for;
 use std::fs;
 
-use crate::cli::{open_container, prompt_yes_no};
+use crate::cli::ctx::{say, say_warn, ContainerContext};
+use crate::cli::prompt_yes_no;
 use crate::config::ContainerConfig;
-use crate::{say, say_warn};
 
 #[derive(Args, Debug)]
 pub struct ContainerDeleteArgs {
@@ -47,11 +47,11 @@ pub struct ContainerDeleteArgs {
 }
 
 impl ContainerDeleteArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
         if !prompt_yes_no("Do you really want to delete the container?", self.yes)? {
-            say!("aborted");
+            say!(ctx, "aborted");
             return Ok(());
         }
 
@@ -62,11 +62,11 @@ impl ContainerDeleteArgs {
         debug!("path: {}", path.display());
 
         if !container_config.remove_plugin(&self.container) {
-            say_warn!("container {} not configured", self.container);
+            say_warn!(ctx, "container {} not configured", self.container);
         }
 
         if !self.force {
-            let container = open_container(&self.container)?;
+            let container = ctx.open_container(&self.container)?;
             container.delete();
         }
 

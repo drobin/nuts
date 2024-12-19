@@ -24,7 +24,7 @@ use anyhow::Result;
 use clap::Args;
 use log::debug;
 
-use crate::cli::open_container;
+use crate::cli::ctx::ContainerContext;
 
 #[derive(Args, Debug)]
 pub struct ContainerReleaseArgs {
@@ -37,10 +37,10 @@ pub struct ContainerReleaseArgs {
 }
 
 impl ContainerReleaseArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut container = open_container(&self.container)?;
+        let mut container = ctx.open_container(&self.container)?;
         let id = self.id.parse()?;
 
         container.release(id)?;

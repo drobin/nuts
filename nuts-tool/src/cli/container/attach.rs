@@ -26,6 +26,7 @@ use log::debug;
 use std::os::fd::RawFd;
 use std::path::PathBuf;
 
+use crate::cli::ctx::ContainerContext;
 use crate::config::{ContainerConfig, PluginConfig};
 
 #[derive(Args, Debug)]
@@ -50,10 +51,8 @@ pub struct ContainerAttachArgs {
 }
 
 impl ContainerAttachArgs {
-    pub fn run(&self) -> Result<()> {
-        debug!("container: {}", self.container);
-        debug!("plugin: {}", self.plugin);
-        debug!("force: {}", self.force);
+    pub fn run(&self, _ctx: &ContainerContext) -> Result<()> {
+        debug!("args: {:?}", self);
 
         let mut container_config = ContainerConfig::load()?;
         let plugin_config = PluginConfig::load()?;

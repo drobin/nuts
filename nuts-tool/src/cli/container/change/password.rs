@@ -24,21 +24,13 @@ use anyhow::Result;
 use clap::{ArgGroup, Args};
 use log::debug;
 use nuts_container::ModifyOptionsBuilder;
-use std::cell::RefCell;
 use std::os::fd::RawFd;
 use std::path::PathBuf;
 
-use crate::cli::global::PasswordSource;
-use crate::cli::open_container;
-use crate::cli::password::password_from_source_twice;
-
-thread_local! {
-    static SOURCE: RefCell<PasswordSource> = RefCell::new(Default::default());
-}
-
-fn password_callback() -> Result<Vec<u8>, String> {
-    SOURCE.with_borrow(|src| password_from_source_twice(src, "Enter a new password"))
-}
+use crate::cli::ctx::ContainerContext;
+use crate::cli::password::{
+    new_password_from_source_twice as password_from_source_twice, PasswordSource,
+};
 
 #[derive(Args, Debug)]
 #[clap(group(ArgGroup::new("new_password").required(false).multiple(false)))]
@@ -59,19 +51,17 @@ pub struct ContainerChangePasswordArgs {
 }
 
 impl ContainerChangePasswordArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        SOURCE.with_borrow_mut(|src| {
-            *src = PasswordSource::new(
-                self.new_password_from_fd,
-                self.new_password_from_file.clone(),
-            )
-        });
+        let source = PasswordSource::new(
+            self.new_password_from_fd,
+            self.new_password_from_file.clone(),
+        );
 
-        let mut container = open_container(&self.container)?;
+        let mut container = ctx.open_container(&self.container)?;
         let options = ModifyOptionsBuilder::default()
-            .change_password(password_callback)
+            .change_password(|| password_from_source_twice(source, "Enter a new password"))
             .build();
 
         container.modify(options)?;

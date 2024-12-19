@@ -25,9 +25,8 @@ use clap::Args;
 use log::debug;
 use std::cmp;
 
-use crate::cli::open_container;
+use crate::cli::ctx::ContainerContext;
 use crate::format::Format;
-use crate::say::is_quiet;
 
 #[derive(Args, Debug)]
 pub struct ContainerReadArgs {
@@ -48,10 +47,10 @@ pub struct ContainerReadArgs {
 }
 
 impl ContainerReadArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut container = open_container(&self.container)?;
+        let mut container = ctx.open_container(&self.container)?;
         let id = self.id.parse()?;
 
         let max_bytes = self.max_bytes.unwrap_or(u64::MAX);
@@ -65,7 +64,7 @@ impl ContainerReadArgs {
 
         let n = container.read(&id, &mut buf)?;
 
-        if !is_quiet() {
+        if !ctx.quiet {
             writer.print(&buf[..n])?;
             writer.flush()?;
         }

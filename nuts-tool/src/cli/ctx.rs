@@ -20,7 +20,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use crate::cli::global::GlobalArgs;
+use anyhow::{anyhow, Result};
+use nuts_container::{Container, OpenOptionsBuilder};
+use nuts_tool_api::tool::Plugin;
+use std::ops::Deref;
+
+use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
+use crate::cli::container::GlobalContainerArgs;
+use crate::cli::password::{new_password_from_source as password_from_source, PasswordSource};
+use crate::cli::GlobalArgs;
+use crate::config::{ContainerConfig, PluginConfig};
 
 pub struct GlobalContext {
     pub verbose: u8,
@@ -28,11 +37,56 @@ pub struct GlobalContext {
 }
 
 impl GlobalContext {
-    pub fn from_args(args: &GlobalArgs) -> GlobalContext {
+    pub fn new(args: &GlobalArgs) -> GlobalContext {
         GlobalContext {
             verbose: args.verbose,
             quiet: args.quiet,
         }
+    }
+}
+
+pub struct ContainerContext<'a> {
+    global: &'a GlobalContext,
+    password_source: PasswordSource,
+}
+
+impl<'a> ContainerContext<'a> {
+    pub fn new(parent: &'a GlobalContext, args: &GlobalContainerArgs) -> ContainerContext<'a> {
+        ContainerContext {
+            global: parent,
+            password_source: PasswordSource::new(
+                args.password_from_fd,
+                args.password_from_file.clone(),
+            ),
+        }
+    }
+
+    pub fn open_container(&self, name: &str) -> Result<Container<PluginBackend>> {
+        let container_config = ContainerConfig::load()?;
+        let plugin_config = PluginConfig::load()?;
+
+        let plugin = container_config
+            .get_plugin(name)
+            .ok_or_else(|| anyhow!("no such container: {}", name))?;
+        let exe = plugin_config.path(plugin)?;
+
+        let plugin = Plugin::new(&exe);
+        let plugin_builder = PluginBackendOpenBuilder::new(plugin, name, self.verbose)?;
+
+        let source = self.password_source.clone();
+        let builder =
+            OpenOptionsBuilder::new().with_password_callback(|| password_from_source(source));
+        let options = builder.build::<PluginBackend>()?;
+
+        Container::open(plugin_builder, options).map_err(|err| err.into())
+    }
+}
+
+impl<'a> Deref for ContainerContext<'a> {
+    type Target = GlobalContext;
+
+    fn deref(&self) -> &GlobalContext {
+        self.global
     }
 }
 

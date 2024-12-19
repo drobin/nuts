@@ -28,6 +28,7 @@ use clap::{Args, Subcommand};
 
 use crate::cli::container::change::kdf::ContainerChangeKdfArgs;
 use crate::cli::container::change::password::ContainerChangePasswordArgs;
+use crate::cli::ctx::ContainerContext;
 
 #[derive(Args, Debug)]
 pub struct ContainerChangeArgs {
@@ -36,8 +37,8 @@ pub struct ContainerChangeArgs {
 }
 
 impl ContainerChangeArgs {
-    pub fn run(&self) -> Result<()> {
-        self.command.run()
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
+        self.command.run(ctx)
     }
 }
 
@@ -51,10 +52,10 @@ pub enum ContainerChangeCommand {
 }
 
 impl ContainerChangeCommand {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         match self {
-            Self::Kdf(args) => args.run(),
-            Self::Password(args) => args.run(),
+            Self::Kdf(args) => args.run(ctx),
+            Self::Password(args) => args.run(ctx),
         }
     }
 }
