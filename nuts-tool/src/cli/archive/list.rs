@@ -28,7 +28,8 @@ use std::cmp;
 use std::fmt::{self, Write};
 
 use crate::backend::PluginBackend;
-use crate::cli::ctx::{say, ArchiveContext};
+use crate::cli::ctx::ArchiveContext;
+use crate::say::say;
 use crate::time::TimeFormat;
 
 const SIZE_WIDTH: usize = 9;

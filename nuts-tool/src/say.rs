@@ -24,12 +24,6 @@ use colored::{Color, Colorize};
 use std::borrow::Cow;
 use std::fmt::Arguments;
 
-use crate::cli::global::GLOBALS;
-
-pub fn is_quiet() -> bool {
-    GLOBALS.with_borrow(|g| g.say.quiet)
-}
-
 #[derive(Clone, Copy)]
 pub enum Level {
     Normal,
@@ -47,61 +41,7 @@ impl Level {
     }
 }
 
-#[derive(Default)]
-pub struct Say {
-    quiet: bool,
-}
-
-impl Say {
-    pub fn set_quiet(&mut self, quiet: bool) {
-        self.quiet = quiet;
-    }
-
-    pub fn say(&self, level: Level, args: Arguments<'_>) {
-        if self.quiet {
-            return;
-        }
-
-        let msg = match args.as_str() {
-            Some(s) => Cow::Borrowed(s),
-            None => Cow::Owned(args.to_string()),
-        };
-
-        match level.into_color() {
-            Some(color) => println!("{}", msg.color(color)),
-            None => println!("{}", msg),
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! say {
-    ($level:ident $($arg:tt)*) => {{
-        $crate::cli::global::GLOBALS.with_borrow(|g|
-            g.say.say($crate::say::Level::$level, format_args!($($arg)*))
-        )
-    }};
-
-    ($($arg:tt)*) => {
-        say!(Normal $($arg)*);
-    };
-}
-
-#[macro_export]
-macro_rules! say_warn {
-    ($($arg:tt)*) => {
-        say!(Warning $($arg)*);
-    };
-}
-
-#[macro_export]
-macro_rules! say_err {
-    ($($arg:tt)*) => {
-        say!(Error $($arg)*);
-    };
-}
-
-pub fn say(level: Level, args: Arguments<'_>) {
+pub fn say_args(level: Level, args: Arguments<'_>) {
     let msg = match args.as_str() {
         Some(s) => Cow::Borrowed(s),
         None => Cow::Owned(args.to_string()),
@@ -112,3 +52,29 @@ pub fn say(level: Level, args: Arguments<'_>) {
         None => println!("{}", msg),
     }
 }
+
+macro_rules! say {
+    ($ctx:expr, $($arg:tt)*) => {
+        if !$ctx.quiet {
+            $crate::say::say_args($crate::say::Level::Normal, format_args!($($arg)*))
+        }
+    };
+}
+
+macro_rules! say_warn {
+    ($ctx:expr, $($arg:tt)*) => {
+        if !$ctx.quiet {
+            $crate::say::say_args($crate::say::Level::Warning, format_args!($($arg)*))
+        }
+    };
+}
+
+macro_rules! say_err {
+    ($ctx:expr, $($arg:tt)*) => {
+        if !$ctx.quiet {
+            $crate::say::say_args($crate::say::Level::Error, format_args!($($arg)*))
+        }
+    };
+}
+
+pub(crate) use {say, say_err, say_warn};

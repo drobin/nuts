@@ -55,7 +55,7 @@ impl ArchiveCreateArgs {
         let mut archive = Container::create_service::<ArchiveFactory>(container)?;
 
         for path in self.paths.iter() {
-            append_recursive(&mut archive, path)?;
+            append_recursive(ctx, &mut archive, path)?;
         }
 
         Ok(())

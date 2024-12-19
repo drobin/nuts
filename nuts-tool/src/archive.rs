@@ -32,7 +32,8 @@ use std::path::Path;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
 use crate::backend::PluginBackend;
-use crate::{say, say_err};
+use crate::cli::ctx::ArchiveContext;
+use crate::say::{say, say_err};
 
 #[cfg(unix)]
 mod unix {
@@ -126,14 +127,18 @@ fn can_execute(metadata: &Metadata, group: Group) -> bool {
     }
 }
 
-pub fn append_recursive(archive: &mut Archive<PluginBackend>, path: &Path) -> Result<()> {
+pub fn append_recursive(
+    ctx: &ArchiveContext,
+    archive: &mut Archive<PluginBackend>,
+    path: &Path,
+) -> Result<()> {
     debug!("append {}", path.display());
 
     let metadata = match fs::symlink_metadata(path) {
         Ok(md) => md,
         Err(err) => {
             error!("{}", err);
-            say_err!("! {}", path.display());
+            say_err!(ctx, "! {}", path.display());
             return Ok(());
         }
     };
@@ -200,13 +205,13 @@ pub fn append_recursive(archive: &mut Archive<PluginBackend>, path: &Path) -> Re
         builder.build()?;
     }
 
-    say!("a {}", path.display());
+    say!(ctx, "a {}", path.display());
 
     if path.is_dir() {
         for entry in path.read_dir()? {
             let child = entry?.path();
 
-            append_recursive(archive, &child)?;
+            append_recursive(ctx, archive, &child)?;
         }
     }
 

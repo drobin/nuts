@@ -36,10 +36,50 @@ use rprompt::prompt_reply;
 use std::os::fd::RawFd;
 use std::path::PathBuf;
 
+use crate::backend::PluginBackend;
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
 use crate::cli::ctx::GlobalContext;
+use crate::cli::error::ExitOnly;
 use crate::cli::plugin::PluginArgs;
+use crate::say::say_err;
+
+type ArchiveError = nuts_archive::Error<PluginBackend>;
+
+fn print_archive_error(ctx: &GlobalContext, err: &ArchiveError) -> bool {
+    match err {
+        ArchiveError::UnsupportedRevision(rev, version) => {
+            say_err!(
+                ctx,
+                "The archive is not supported anymore!\n\
+                The latest version that supports the revision {} is {}.\n\
+                Any newer version will no longer be able to read this archive.",
+                rev,
+                version
+            );
+            true
+        }
+        _ => false,
+    }
+}
+
+fn handle_error(ctx: &GlobalContext, err: anyhow::Error) -> i32 {
+    let mut exit_code = 1;
+    let mut printed = false;
+
+    if let Some(err) = err.downcast_ref::<ExitOnly>() {
+        exit_code = err.code();
+        printed = true;
+    } else if let Some(err) = err.downcast_ref::<ArchiveError>() {
+        printed = print_archive_error(ctx, err);
+    }
+
+    if !printed {
+        say_err!(ctx, "{}", err);
+    }
+
+    exit_code
+}
 
 #[derive(Args, Clone, Debug)]
 pub struct GlobalArgs {
@@ -88,10 +128,13 @@ impl NutsCli {
         Builder::new().filter_level(filter).init();
     }
 
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self) -> i32 {
         let ctx = GlobalContext::new(&self.global_args);
 
-        self.command.run(&ctx)
+        match self.command.run(&ctx) {
+            Ok(()) => 0,
+            Err(err) => handle_error(&ctx, err),
+        }
     }
 }
 

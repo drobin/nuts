@@ -25,9 +25,10 @@ use clap::Args;
 use log::debug;
 use std::cmp;
 
-use crate::cli::ctx::{say, ContainerContext};
+use crate::cli::ctx::ContainerContext;
 use crate::config::ContainerConfig;
 use crate::format::Format;
+use crate::say::say;
 
 #[derive(Args, Debug)]
 pub struct ContainerInfoArgs {

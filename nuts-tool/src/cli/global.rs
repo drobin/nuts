@@ -26,8 +26,6 @@ use std::cell::RefCell;
 use std::os::fd::RawFd;
 use std::path::PathBuf;
 
-use crate::say::Say;
-
 thread_local! {
     pub static GLOBALS: RefCell<GlobalValues> = RefCell::new(Default::default());
 }
@@ -35,7 +33,6 @@ thread_local! {
 #[derive(Default)]
 pub struct GlobalValues {
     pub verbose: u8,
-    pub say: Say,
     pub password_source: PasswordSource,
 }
 
@@ -104,7 +101,6 @@ impl GlobalArgs {
     pub fn init(&self) {
         GLOBALS.with_borrow_mut(|g| {
             g.verbose = self.verbose;
-            g.say.set_quiet(self.quiet);
             g.init_password_source(self);
         });
     }

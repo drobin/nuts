@@ -162,7 +162,7 @@ impl ArchiveAddArgs {
         let mut archive = ctx.open_archive(&self.container, self.migrate)?;
 
         for path in self.paths.iter() {
-            append_recursive(&mut archive, path)?;
+            append_recursive(ctx, &mut archive, path)?;
         }
 
         Ok(())

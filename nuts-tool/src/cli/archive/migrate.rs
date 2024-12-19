@@ -26,9 +26,10 @@ use log::debug;
 use nuts_container::LATEST_REVISION;
 use std::cmp::Ordering;
 
-use crate::cli::ctx::{say, ArchiveContext};
+use crate::cli::ctx::ArchiveContext;
 use crate::cli::error::ExitOnly;
 use crate::cli::prompt_yes_no;
+use crate::say::say;
 
 #[derive(Args, Debug)]
 pub struct ArchiveMigrateArgs {

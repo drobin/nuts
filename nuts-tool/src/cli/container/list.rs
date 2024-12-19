@@ -26,8 +26,9 @@ use log::debug;
 use std::os::fd::RawFd;
 use std::path::PathBuf;
 
-use crate::cli::ctx::{say, say_warn, ContainerContext};
+use crate::cli::ctx::ContainerContext;
 use crate::config::{ContainerConfig, PluginConfig};
+use crate::say::{say, say_warn};
 
 #[derive(Args, Debug)]
 pub struct ContainerListArgs {

@@ -24,7 +24,8 @@ use anyhow::Result;
 use clap::Args;
 use log::debug;
 
-use crate::cli::ctx::{say, ContainerContext};
+use crate::cli::ctx::ContainerContext;
+use crate::say::say;
 
 #[derive(Args, Debug)]
 pub struct ContainerAquireArgs {

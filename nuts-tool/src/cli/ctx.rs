@@ -113,29 +113,3 @@ impl<'a> Deref for ArchiveContext<'a> {
         self.container
     }
 }
-
-macro_rules! say {
-    ($ctx:expr, $level:ident $($arg:tt)*) => {
-        if !$ctx.quiet {
-            $crate::say::say($crate::say::Level::$level, format_args!($($arg)*))
-        }
-    };
-
-    ($ctx:expr, $($arg:tt)*) => {
-        say!($ctx, Normal $($arg)*);
-    };
-}
-
-macro_rules! say_warn {
-    ($ctx:expr, $($arg:tt)*) => {
-        say!($ctx, Warning $($arg)*);
-    };
-}
-
-macro_rules! say_err {
-    ($ctx:expr, $($arg:tt)*) => {
-        say!($ctx, Error $($arg)*);
-    };
-}
-
-pub(crate) use {say, say_err, say_warn};

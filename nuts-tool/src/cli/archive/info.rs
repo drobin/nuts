@@ -24,7 +24,8 @@ use anyhow::Result;
 use clap::{ArgAction, Args};
 use log::debug;
 
-use crate::cli::ctx::{say, ArchiveContext};
+use crate::cli::ctx::ArchiveContext;
+use crate::say::say;
 use crate::time::TimeFormat;
 
 #[derive(Args, Debug)]

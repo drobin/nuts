@@ -26,9 +26,10 @@ use log::debug;
 use nuts_tool_api::container_dir_for;
 use std::fs;
 
-use crate::cli::ctx::{say, say_warn, ContainerContext};
+use crate::cli::ctx::ContainerContext;
 use crate::cli::prompt_yes_no;
 use crate::config::ContainerConfig;
+use crate::say::{say, say_warn};
 
 #[derive(Args, Debug)]
 pub struct ContainerDeleteArgs {
