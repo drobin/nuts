@@ -24,8 +24,7 @@ use anyhow::Result;
 use clap::{ArgAction, Args};
 use log::debug;
 
-use crate::cli::archive::open_archive;
-use crate::say;
+use crate::cli::ctx::{say, ArchiveContext};
 use crate::time::TimeFormat;
 
 #[derive(Args, Debug)]
@@ -50,19 +49,19 @@ pub struct ArchiveInfoArgs {
 }
 
 impl ArchiveInfoArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let archive = open_archive(&self.container, self.migrate)?;
+        let archive = ctx.open_archive(&self.container, self.migrate)?;
         let info = archive.info();
 
         let created = self.time_format.format(&info.created, "%c");
         let modified = self.time_format.format(&info.modified, "%c");
 
-        say!("created:  {}", created);
-        say!("modified: {}", modified);
-        say!("blocks:   {}", info.blocks);
-        say!("files:    {}", info.files);
+        say!(ctx, "created:  {}", created);
+        say!(ctx, "modified: {}", modified);
+        say!(ctx, "blocks:   {}", info.blocks);
+        say!(ctx, "files:    {}", info.files);
 
         Ok(())
     }

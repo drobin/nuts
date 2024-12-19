@@ -26,7 +26,7 @@ use log::debug;
 use std::io::{self, Read};
 
 use crate::cli::archive::add::{TimestampArgs, TSTAMP_HELP};
-use crate::cli::archive::open_archive;
+use crate::cli::ctx::ArchiveContext;
 
 #[derive(Args, Debug)]
 #[clap(after_help(TSTAMP_HELP))]
@@ -47,10 +47,10 @@ pub struct ArchiveAddFileArgs {
 }
 
 impl ArchiveAddFileArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.migrate)?;
+        let mut archive = ctx.open_archive(&self.container, self.migrate)?;
         let block_size = archive.as_ref().block_size() as usize;
         let mut builder = archive.append_file(&self.name);
 

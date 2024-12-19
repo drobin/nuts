@@ -24,9 +24,8 @@ use anyhow::{anyhow, Result};
 use clap::{ArgAction, Args};
 use log::{debug, trace};
 
-use crate::cli::archive::open_archive;
+use crate::cli::ctx::ArchiveContext;
 use crate::format::Format;
-use crate::say::is_quiet;
 
 #[derive(Args, Debug)]
 pub struct ArchiveGetArgs {
@@ -47,10 +46,10 @@ pub struct ArchiveGetArgs {
 }
 
 impl ArchiveGetArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.migrate)?;
+        let mut archive = ctx.open_archive(&self.container, self.migrate)?;
         let block_size = archive.as_ref().block_size() as usize;
 
         let entry = match archive.lookup(&self.name) {
@@ -68,7 +67,7 @@ impl ArchiveGetArgs {
                 trace!("{} bytes read from {}", n, self.name);
 
                 if n > 0 {
-                    if !is_quiet() {
+                    if !ctx.quiet {
                         writer.print(&buf[..n])?;
                     }
                 } else {
@@ -76,7 +75,7 @@ impl ArchiveGetArgs {
                 }
             }
 
-            if !is_quiet() {
+            if !ctx.quiet {
                 writer.flush()?;
             }
         }

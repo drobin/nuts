@@ -28,7 +28,7 @@ use nuts_container::Container;
 use std::path::PathBuf;
 
 use crate::archive::append_recursive;
-use crate::cli::open_container;
+use crate::cli::ctx::ArchiveContext;
 
 #[derive(Args, Debug)]
 pub struct ArchiveCreateArgs {
@@ -48,10 +48,10 @@ pub struct ArchiveCreateArgs {
 }
 
 impl ArchiveCreateArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = open_container(&self.container)?;
+        let container = ctx.open_container(&self.container)?;
         let mut archive = Container::create_service::<ArchiveFactory>(container)?;
 
         for path in self.paths.iter() {

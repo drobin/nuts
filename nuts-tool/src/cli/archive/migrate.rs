@@ -26,10 +26,9 @@ use log::debug;
 use nuts_container::LATEST_REVISION;
 use std::cmp::Ordering;
 
-use crate::cli::archive::open_archive;
+use crate::cli::ctx::{say, ArchiveContext};
 use crate::cli::error::ExitOnly;
 use crate::cli::prompt_yes_no;
-use crate::say;
 
 #[derive(Args, Debug)]
 pub struct ArchiveMigrateArgs {
@@ -49,15 +48,16 @@ pub struct ArchiveMigrateArgs {
 }
 
 impl ArchiveMigrateArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let archive = open_archive(&self.container, false)?;
+        let archive = ctx.open_archive(&self.container, false)?;
         let info = archive.as_ref().info()?;
 
         match info.revision.cmp(&LATEST_REVISION) {
             Ordering::Equal => {
                 say!(
+                    ctx,
                     "container revision: {}, no migration necessary",
                     info.revision
                 );
@@ -66,6 +66,7 @@ impl ArchiveMigrateArgs {
             }
             Ordering::Less => {
                 say!(
+                    ctx,
                     "container revision: {}, migration required to revision {}",
                     info.revision,
                     LATEST_REVISION
@@ -74,9 +75,9 @@ impl ArchiveMigrateArgs {
                 if self.verify {
                     Err(ExitOnly::new(1).into())
                 } else if prompt_yes_no("Do you really want to start the migration?", self.yes)? {
-                    open_archive(&self.container, true).map(|_| ())
+                    ctx.open_archive(&self.container, true).map(|_| ())
                 } else {
-                    say!("aborted");
+                    say!(ctx, "aborted");
                     Ok(())
                 }
             }

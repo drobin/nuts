@@ -28,22 +28,18 @@ pub mod global;
 pub mod password;
 pub mod plugin;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{crate_version, ArgAction, Args, Parser, Subcommand};
 use env_logger::Builder;
 use log::LevelFilter;
-use nuts_container::{Container, OpenOptionsBuilder};
-use nuts_tool_api::tool::Plugin;
 use rprompt::prompt_reply;
+use std::os::fd::RawFd;
+use std::path::PathBuf;
 
-use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
 use crate::cli::ctx::GlobalContext;
-use crate::cli::global::GLOBALS;
-use crate::cli::password::password_from_source;
 use crate::cli::plugin::PluginArgs;
-use crate::config::{ContainerConfig, PluginConfig};
 
 #[derive(Args, Clone, Debug)]
 pub struct GlobalArgs {
@@ -54,6 +50,19 @@ pub struct GlobalArgs {
     /// Be quiet. Don't produce any output
     #[clap(short, long, action = ArgAction::SetTrue, global = true)]
     pub quiet: bool,
+}
+
+#[derive(Args, Clone, Debug)]
+pub struct GlobalContainerArgs {
+    /// Reads the password from the specified file descriptor <FD>. The
+    /// password is the first line until a `\n` is read.
+    #[clap(long, group = "password", global = true, value_name = "FD")]
+    pub password_from_fd: Option<RawFd>,
+
+    /// Reads the password from the specified file <PATH>. The password is the
+    /// first line until a `\n` is read.
+    #[clap(long, group = "password", global = true, value_name = "PATH")]
+    pub password_from_file: Option<PathBuf>,
 }
 
 #[derive(Debug, Parser)]
@@ -103,28 +112,9 @@ impl Commands {
         match self {
             Self::Plugin(args) => args.run(ctx),
             Self::Container(args) => args.run(ctx),
-            Self::Archive(args) => args.run(),
+            Self::Archive(args) => args.run(ctx),
         }
     }
-}
-
-fn open_container(name: &str) -> Result<Container<PluginBackend>> {
-    let container_config = ContainerConfig::load()?;
-    let plugin_config = PluginConfig::load()?;
-    let verbose = GLOBALS.with_borrow(|g| g.verbose);
-
-    let plugin = container_config
-        .get_plugin(name)
-        .ok_or_else(|| anyhow!("no such container: {}", name))?;
-    let exe = plugin_config.path(plugin)?;
-
-    let plugin = Plugin::new(&exe);
-    let plugin_builder = PluginBackendOpenBuilder::new(plugin, name, verbose)?;
-
-    let builder = OpenOptionsBuilder::new().with_password_callback(password_from_source);
-    let options = builder.build::<PluginBackend>()?;
-
-    Container::open(plugin_builder, options).map_err(|err| err.into())
 }
 
 pub fn prompt_yes_no(prompt: &str, force: bool) -> Result<bool> {

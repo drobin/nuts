@@ -36,8 +36,6 @@ use clap::builder::PossibleValue;
 use clap::{Args, Subcommand, ValueEnum};
 use nuts_container::Cipher;
 use std::ops::Deref;
-use std::os::fd::RawFd;
-use std::path::PathBuf;
 
 use crate::cli::container::aquire::ContainerAquireArgs;
 use crate::cli::container::attach::ContainerAttachArgs;
@@ -50,6 +48,7 @@ use crate::cli::container::read::ContainerReadArgs;
 use crate::cli::container::release::ContainerReleaseArgs;
 use crate::cli::container::write::ContainerWriteArgs;
 use crate::cli::ctx::{ContainerContext, GlobalContext};
+use crate::cli::GlobalContainerArgs;
 
 const AES128_GCM: &str = "aes128-gcm";
 const AES192_GCM: &str = "aes192-gcm";
@@ -102,19 +101,6 @@ impl ValueEnum for CliCipher {
 
         Some(PossibleValue::new(value))
     }
-}
-
-#[derive(Args, Clone, Debug)]
-pub struct GlobalContainerArgs {
-    /// Reads the password from the specified file descriptor <FD>. The
-    /// password is the first line until a `\n` is read.
-    #[clap(long, group = "password", global = true, value_name = "FD")]
-    pub password_from_fd: Option<RawFd>,
-
-    /// Reads the password from the specified file <PATH>. The password is the
-    /// first line until a `\n` is read.
-    #[clap(long, group = "password", global = true, value_name = "PATH")]
-    pub password_from_file: Option<PathBuf>,
 }
 
 #[derive(Debug, Args)]

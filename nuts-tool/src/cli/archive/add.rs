@@ -37,7 +37,7 @@ use crate::archive::append_recursive;
 use crate::cli::archive::add::dir::ArchiveAddDirectoryArgs;
 use crate::cli::archive::add::file::ArchiveAddFileArgs;
 use crate::cli::archive::add::symlink::ArchiveAddSymlinkArgs;
-use crate::cli::archive::open_archive;
+use crate::cli::ctx::ArchiveContext;
 
 const TSTAMP_HELP: &str = "\x1B[1m\x1B[4mTimestamps:\x1B[0m
 
@@ -152,14 +152,14 @@ pub struct ArchiveAddArgs {
 }
 
 impl ArchiveAddArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         if let Some(command) = self.command.as_ref() {
-            return command.run();
+            return command.run(ctx);
         }
 
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.migrate)?;
+        let mut archive = ctx.open_archive(&self.container, self.migrate)?;
 
         for path in self.paths.iter() {
             append_recursive(&mut archive, path)?;
@@ -182,11 +182,11 @@ pub enum ArchiveAddCommand {
 }
 
 impl ArchiveAddCommand {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         match self {
-            Self::File(args) => args.run(),
-            Self::Directory(args) => args.run(),
-            Self::Symlink(args) => args.run(),
+            Self::File(args) => args.run(ctx),
+            Self::Directory(args) => args.run(ctx),
+            Self::Symlink(args) => args.run(ctx),
         }
     }
 }

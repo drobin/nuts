@@ -21,14 +21,14 @@
 // IN THE SOFTWARE.
 
 use anyhow::{anyhow, Result};
+use nuts_archive::{Archive, ArchiveFactory};
 use nuts_container::{Container, OpenOptionsBuilder};
 use nuts_tool_api::tool::Plugin;
 use std::ops::Deref;
 
 use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
-use crate::cli::container::GlobalContainerArgs;
 use crate::cli::password::{new_password_from_source as password_from_source, PasswordSource};
-use crate::cli::GlobalArgs;
+use crate::cli::{GlobalArgs, GlobalContainerArgs};
 use crate::config::{ContainerConfig, PluginConfig};
 
 pub struct GlobalContext {
@@ -87,6 +87,30 @@ impl<'a> Deref for ContainerContext<'a> {
 
     fn deref(&self) -> &GlobalContext {
         self.global
+    }
+}
+
+pub struct ArchiveContext<'a> {
+    container: &'a ContainerContext<'a>,
+}
+
+impl<'a> ArchiveContext<'a> {
+    pub fn new(parent: &'a ContainerContext) -> ArchiveContext<'a> {
+        ArchiveContext { container: parent }
+    }
+
+    pub fn open_archive(&self, name: &str, migrate: bool) -> Result<Archive<PluginBackend>> {
+        let container = self.open_container(name)?;
+
+        Container::open_service::<ArchiveFactory>(container, migrate).map_err(|err| err.into())
+    }
+}
+
+impl<'a> Deref for ArchiveContext<'a> {
+    type Target = ContainerContext<'a>;
+
+    fn deref(&self) -> &ContainerContext<'a> {
+        self.container
     }
 }
 

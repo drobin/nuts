@@ -25,7 +25,7 @@ use clap::{ArgAction, Args};
 use log::debug;
 
 use crate::cli::archive::add::{TimestampArgs, TSTAMP_HELP};
-use crate::cli::archive::open_archive;
+use crate::cli::ctx::ArchiveContext;
 
 #[derive(Args, Debug)]
 #[clap(after_help(TSTAMP_HELP))]
@@ -49,10 +49,10 @@ pub struct ArchiveAddSymlinkArgs {
 }
 
 impl ArchiveAddSymlinkArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.migrate)?;
+        let mut archive = ctx.open_archive(&self.container, self.migrate)?;
         let mut builder = archive.append_symlink(&self.name, &self.target);
 
         if let Some(created) = self.timestamps.created {

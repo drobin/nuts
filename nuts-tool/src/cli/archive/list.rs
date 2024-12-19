@@ -28,8 +28,7 @@ use std::cmp;
 use std::fmt::{self, Write};
 
 use crate::backend::PluginBackend;
-use crate::cli::archive::open_archive;
-use crate::say;
+use crate::cli::ctx::{say, ArchiveContext};
 use crate::time::TimeFormat;
 
 const SIZE_WIDTH: usize = 9;
@@ -135,11 +134,16 @@ pub struct ArchiveListArgs {
 }
 
 impl ArchiveListArgs {
-    fn print_short(&self, entry: &Entry<PluginBackend>) {
-        say!("{}", entry.name());
+    fn print_short(&self, ctx: &ArchiveContext, entry: &Entry<PluginBackend>) {
+        say!(ctx, "{}", entry.name());
     }
 
-    fn print_long(&self, entry: &Entry<PluginBackend>, ctx: &mut PrintLongContext) {
+    fn print_long(
+        &self,
+        ctx: &ArchiveContext,
+        entry: &Entry<PluginBackend>,
+        long_ctx: &mut PrintLongContext,
+    ) {
         let tstamp = if self.appended {
             entry.appended()
         } else if self.created {
@@ -152,9 +156,10 @@ impl ArchiveListArgs {
 
         let size = entry.size().to_string();
 
-        ctx.size_width = cmp::max(ctx.size_width, size.len());
+        long_ctx.size_width = cmp::max(long_ctx.size_width, size.len());
 
         say!(
+            ctx,
             "{}{}{}{} {:>size_width$} {} {}",
             Type(entry),
             Permission(entry, Group::User),
@@ -163,26 +168,26 @@ impl ArchiveListArgs {
             size,
             self.time_format.format(tstamp, "%d %b %H:%M"),
             Name(entry),
-            size_width = ctx.size_width,
+            size_width = long_ctx.size_width,
         );
     }
 
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = open_archive(&self.container, self.migrate)?;
+        let mut archive = ctx.open_archive(&self.container, self.migrate)?;
 
         let mut entry_opt = archive.first();
-        let mut ctx_opt = None;
+        let mut long_ctx_opt = None;
 
         loop {
             match entry_opt {
                 Some(Ok(entry)) => {
                     if self.long {
-                        let ctx = ctx_opt.get_or_insert_with(Default::default);
-                        self.print_long(&entry, ctx);
+                        let long_ctx = long_ctx_opt.get_or_insert_with(Default::default);
+                        self.print_long(ctx, &entry, long_ctx);
                     } else {
-                        self.print_short(&entry);
+                        self.print_short(ctx, &entry);
                     }
 
                     entry_opt = entry.next();

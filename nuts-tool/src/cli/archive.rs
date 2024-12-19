@@ -29,30 +29,34 @@ pub mod migrate;
 
 use anyhow::Result;
 use clap::{Args, Subcommand};
-use nuts_archive::{Archive, ArchiveFactory};
-use nuts_container::Container;
 
-use crate::backend::PluginBackend;
 use crate::cli::archive::add::ArchiveAddArgs;
 use crate::cli::archive::create::ArchiveCreateArgs;
 use crate::cli::archive::get::ArchiveGetArgs;
 use crate::cli::archive::info::ArchiveInfoArgs;
 use crate::cli::archive::list::ArchiveListArgs;
 use crate::cli::archive::migrate::ArchiveMigrateArgs;
-use crate::cli::open_container;
+use crate::cli::ctx::{ArchiveContext, ContainerContext, GlobalContext};
+use crate::cli::GlobalContainerArgs;
 
 #[derive(Debug, Args)]
 #[clap(args_conflicts_with_subcommands = true, subcommand_required = true)]
 pub struct ArchiveArgs {
     #[clap(subcommand)]
     command: Option<ArchiveCommand>,
+
+    #[command(flatten)]
+    global_args: GlobalContainerArgs,
 }
 
 impl ArchiveArgs {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &GlobalContext) -> Result<()> {
+        let ctx = ContainerContext::new(ctx, &self.global_args);
+        let ctx = ArchiveContext::new(&ctx);
+
         self.command
             .as_ref()
-            .map_or(Ok(()), |command| command.run())
+            .map_or(Ok(()), |command| command.run(&ctx))
     }
 }
 
@@ -78,20 +82,14 @@ pub enum ArchiveCommand {
 }
 
 impl ArchiveCommand {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         match self {
-            Self::Add(args) => args.run(),
-            Self::Create(args) => args.run(),
-            Self::Get(args) => args.run(),
-            Self::Info(args) => args.run(),
-            Self::List(args) => args.run(),
-            Self::Migrate(args) => args.run(),
+            Self::Add(args) => args.run(ctx),
+            Self::Create(args) => args.run(ctx),
+            Self::Get(args) => args.run(ctx),
+            Self::Info(args) => args.run(ctx),
+            Self::List(args) => args.run(ctx),
+            Self::Migrate(args) => args.run(ctx),
         }
     }
-}
-
-fn open_archive(name: &str, migrate: bool) -> Result<Archive<PluginBackend>> {
-    let container = open_container(name)?;
-
-    Container::open_service::<ArchiveFactory>(container, migrate).map_err(|err| err.into())
 }
