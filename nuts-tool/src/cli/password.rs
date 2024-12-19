@@ -27,8 +27,6 @@ use std::io::{self, BufRead, BufReader};
 use std::os::fd::{FromRawFd, RawFd};
 use std::path::PathBuf;
 
-use crate::cli::global::{PasswordSource as LegacyPasswordSource, GLOBALS};
-
 #[derive(Clone, Debug)]
 pub enum PasswordSource {
     Fd(RawFd),
@@ -93,34 +91,6 @@ fn password_from_file(file: File) -> io::Result<Vec<u8>> {
 }
 
 fn password_from_source_or<F: FnOnce() -> Result<Vec<u8>, String>>(
-    source: &LegacyPasswordSource,
-    f: F,
-) -> Result<Vec<u8>, String> {
-    let file = match source {
-        LegacyPasswordSource::Fd(fd) => unsafe { Some(Ok(File::from_raw_fd(*fd))) },
-        LegacyPasswordSource::Path(path) => Some(File::open(path)),
-        LegacyPasswordSource::Console => None,
-    };
-
-    match file {
-        Some(Ok(f)) => password_from_file(f).map_err(|err| err.to_string()),
-        Some(Err(err)) => Err(err.to_string()),
-        None => f(),
-    }
-}
-
-pub fn password_from_source() -> Result<Vec<u8>, String> {
-    GLOBALS.with_borrow(|g| password_from_source_or(&g.password_source, ask_for_password))
-}
-
-pub fn password_from_source_twice(
-    source: &LegacyPasswordSource,
-    prompt: &str,
-) -> Result<Vec<u8>, String> {
-    password_from_source_or(source, || ask_for_password_twice(prompt))
-}
-
-fn new_password_from_source_or<F: FnOnce() -> Result<Vec<u8>, String>>(
     source: PasswordSource,
     f: F,
 ) -> Result<Vec<u8>, String> {
@@ -137,13 +107,10 @@ fn new_password_from_source_or<F: FnOnce() -> Result<Vec<u8>, String>>(
     }
 }
 
-pub fn new_password_from_source(source: PasswordSource) -> Result<Vec<u8>, String> {
-    new_password_from_source_or(source, ask_for_password)
+pub fn password_from_source(source: PasswordSource) -> Result<Vec<u8>, String> {
+    password_from_source_or(source, ask_for_password)
 }
 
-pub fn new_password_from_source_twice(
-    source: PasswordSource,
-    prompt: &str,
-) -> Result<Vec<u8>, String> {
-    new_password_from_source_or(source, || ask_for_password_twice(prompt))
+pub fn password_from_source_twice(source: PasswordSource, prompt: &str) -> Result<Vec<u8>, String> {
+    password_from_source_or(source, || ask_for_password_twice(prompt))
 }

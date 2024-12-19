@@ -31,9 +31,7 @@ use std::path::PathBuf;
 use crate::backend::{PluginBackend, PluginBackendCreateBuilder};
 use crate::cli::container::{CliCipher, AES256_GCM};
 use crate::cli::ctx::ContainerContext;
-use crate::cli::password::{
-    new_password_from_source_twice as password_from_source_twice, PasswordSource,
-};
+use crate::cli::password::{password_from_source_twice, PasswordSource};
 use crate::config::{ContainerConfig, PluginConfig};
 
 #[derive(Args, Debug)]

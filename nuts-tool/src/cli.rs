@@ -24,7 +24,6 @@ pub mod archive;
 pub mod container;
 pub mod ctx;
 pub mod error;
-pub mod global;
 pub mod password;
 pub mod plugin;
 

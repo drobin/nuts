@@ -28,9 +28,7 @@ use std::os::fd::RawFd;
 use std::path::PathBuf;
 
 use crate::cli::ctx::ContainerContext;
-use crate::cli::password::{
-    new_password_from_source_twice as password_from_source_twice, PasswordSource,
-};
+use crate::cli::password::{password_from_source_twice, PasswordSource};
 
 #[derive(Args, Debug)]
 #[clap(group(ArgGroup::new("new_password").required(false).multiple(false)))]

@@ -27,7 +27,7 @@ use nuts_tool_api::tool::Plugin;
 use std::ops::Deref;
 
 use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
-use crate::cli::password::{new_password_from_source as password_from_source, PasswordSource};
+use crate::cli::password::{password_from_source, PasswordSource};
 use crate::cli::{GlobalArgs, GlobalContainerArgs};
 use crate::config::{ContainerConfig, PluginConfig};
 
