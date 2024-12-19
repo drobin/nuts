@@ -334,8 +334,7 @@ impl<B: Backend> Container<B> {
         let settings = backend_options.settings();
         let header = Header::create(&options, settings)?;
 
-        let callback = options.callback.clone();
-        let mut store = PasswordStore::new(callback);
+        let mut store = PasswordStore::new(options.callback);
 
         header.write(&mut header_bytes, &mut store)?;
 
@@ -423,8 +422,7 @@ impl<B: Backend> Container<B> {
         mut backend_options: O,
         options: OpenOptions,
     ) -> ContainerResult<Container<B>, B> {
-        let callback = options.callback.clone();
-        let mut store = PasswordStore::new(callback);
+        let mut store = PasswordStore::new(options.callback);
         let migrator = Migrator::default();
 
         let mut header = Self::read_header(&mut backend_options, migrator, &mut store)?;
@@ -542,15 +540,16 @@ impl<B: Backend> Container<B> {
     /// Errors are listed in the [`Error`] type.
     pub fn modify(&mut self, options: ModifyOptions) -> ContainerResult<(), B> {
         let mut changed = false;
+        let kdf = options.kdf.clone();
 
         if options.password.is_some() {
-            self.store = PasswordStore::new(options.password.clone());
+            self.store = PasswordStore::new(options.password);
             changed = true;
         }
 
         self.update_header(|header| {
-            if let Some(kdf) = options.kdf {
-                changed |= header.set_kdf(kdf);
+            if let Some(v) = kdf {
+                changed |= header.set_kdf(v);
             }
 
             Ok(changed)

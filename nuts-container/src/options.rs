@@ -21,7 +21,6 @@
 // IN THE SOFTWARE.
 
 use nuts_backend::Backend;
-use std::rc::Rc;
 
 use crate::cipher::Cipher;
 use crate::digest::Digest;
@@ -53,7 +52,7 @@ impl KdfBuilder {
 /// Use the [`CreateOptionsBuilder`] utility to create a `CreateOptions`
 /// instance.
 pub struct CreateOptions {
-    pub(crate) callback: Option<Rc<CallbackFn>>,
+    pub(crate) callback: Option<Box<CallbackFn>>,
     pub(crate) cipher: Cipher,
     pub(crate) kdf: KdfBuilder,
     pub(crate) overwrite: bool,
@@ -96,11 +95,11 @@ impl CreateOptionsBuilder {
     /// returned.
     ///
     /// [`Error::NoPassword`]: enum.Error.html#variant.NoPassword
-    pub fn with_password_callback<Cb: Fn() -> Result<Vec<u8>, String> + 'static>(
+    pub fn with_password_callback<Cb: FnOnce() -> Result<Vec<u8>, String> + 'static>(
         mut self,
         callback: Cb,
     ) -> Self {
-        self.0.callback = Some(Rc::new(callback));
+        self.0.callback = Some(Box::new(callback));
         self
     }
 
@@ -143,7 +142,7 @@ impl CreateOptionsBuilder {
 ///
 /// Use the [`OpenOptionsBuilder`] utility to create a `OpenOptions` instance.
 pub struct OpenOptions {
-    pub(crate) callback: Option<Rc<CallbackFn>>,
+    pub(crate) callback: Option<Box<CallbackFn>>,
 }
 
 /// Utility used to create a [`OpenOptions`] instance.
@@ -170,11 +169,11 @@ impl OpenOptionsBuilder {
     /// returned.
     ///
     /// [`Error::NoPassword`]: enum.Error.html#variant.NoPassword
-    pub fn with_password_callback<Cb: Fn() -> Result<Vec<u8>, String> + 'static>(
+    pub fn with_password_callback<Cb: FnOnce() -> Result<Vec<u8>, String> + 'static>(
         mut self,
         callback: Cb,
     ) -> Self {
-        self.0.callback = Some(Rc::new(callback));
+        self.0.callback = Some(Box::new(callback));
         self
     }
 
@@ -203,7 +202,7 @@ impl Default for OpenOptionsBuilder {
 /// instance.
 pub struct ModifyOptions {
     pub(crate) kdf: Option<Kdf>,
-    pub(crate) password: Option<Rc<CallbackFn>>,
+    pub(crate) password: Option<Box<CallbackFn>>,
 }
 
 /// Utility used to create a [`ModifyOptions`] instance.
@@ -242,11 +241,11 @@ impl ModifyOptionsBuilder {
     /// [`Vec<u8>`](`Vec`)) wrapped into an [`Ok`](`Result::Ok`). On any
     /// failure an [`Err`](`Result::Err`) with an error message must be
     /// returned.
-    pub fn change_password<Cb: Fn() -> Result<Vec<u8>, String> + 'static>(
+    pub fn change_password<Cb: FnOnce() -> Result<Vec<u8>, String> + 'static>(
         mut self,
         callback: Cb,
     ) -> Self {
-        self.0.password = Some(Rc::new(callback));
+        self.0.password = Some(Box::new(callback));
         self
     }
 

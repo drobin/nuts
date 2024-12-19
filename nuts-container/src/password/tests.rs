@@ -20,8 +20,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-use std::rc::Rc;
-
 use crate::password::{PasswordError, PasswordStore};
 
 #[test]
@@ -39,7 +37,7 @@ fn no_callback() {
 
 #[test]
 fn error_from_callback() {
-    let mut store = PasswordStore::new(Some(Rc::new(|| Err(String::from("some error")))));
+    let mut store = PasswordStore::new(Some(Box::new(|| Err(String::from("some error")))));
 
     let err = store.value().unwrap_err();
     assert!(matches!(err, PasswordError::PasswordCallback(msg) if msg == "some error"));
@@ -47,7 +45,7 @@ fn error_from_callback() {
 
 #[test]
 fn value_from_callback() {
-    let mut store = PasswordStore::new(Some(Rc::new(|| Ok(vec![1, 2, 3]))));
+    let mut store = PasswordStore::new(Some(Box::new(|| Ok(vec![1, 2, 3]))));
 
     let value1 = store.value().unwrap();
     assert_eq!(value1, [1, 2, 3]);

@@ -24,7 +24,6 @@
 mod tests;
 
 use std::fmt;
-use std::rc::Rc;
 use thiserror::Error;
 
 use crate::svec::SecureVec;
@@ -43,15 +42,15 @@ pub enum PasswordError {
     PasswordCallback(String),
 }
 
-pub type CallbackFn = dyn Fn() -> Result<Vec<u8>, String>;
+pub type CallbackFn = dyn FnOnce() -> Result<Vec<u8>, String>;
 
 pub struct PasswordStore {
-    callback: Option<Rc<CallbackFn>>,
+    callback: Option<Box<CallbackFn>>,
     value: Option<SecureVec>,
 }
 
 impl PasswordStore {
-    pub fn new(callback: Option<Rc<CallbackFn>>) -> PasswordStore {
+    pub fn new(callback: Option<Box<CallbackFn>>) -> PasswordStore {
         PasswordStore {
             callback,
             value: None,
@@ -70,10 +69,13 @@ impl PasswordStore {
         match self.value {
             Some(ref v) => Ok(v),
             None => {
-                let callback = self.callback.as_ref().ok_or(PasswordError::NoPassword)?;
-                let value = callback().map_err(PasswordError::PasswordCallback)?;
+                if let Some(cb) = self.callback.take() {
+                    let value = cb().map_err(PasswordError::PasswordCallback)?;
 
-                Ok(self.value.insert(value.into()))
+                    Ok(self.value.insert(value.into()))
+                } else {
+                    Err(PasswordError::NoPassword)
+                }
             }
         }
     }
