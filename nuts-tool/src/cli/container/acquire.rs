@@ -35,7 +35,7 @@ impl ContainerAcquireArgs {
         debug!("args: {:?}", self);
 
         let mut container = ctx.open_container()?;
-        let id = container.aquire()?;
+        let id = container.acquire()?;
 
         say!(ctx, "acquired: {}", id);
 

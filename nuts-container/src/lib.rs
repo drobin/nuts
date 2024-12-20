@@ -233,7 +233,7 @@
 //!     the container.
 //!   * _top-id_: The _top-id_ points to some kind of super-block. During
 //!     [service-creation](Container::create_service) the super-block is
-//!     aquired (if requested by the service) and its id (the _top-id_) is
+//!     acquired (if requested by the service) and its id (the _top-id_) is
 //!     stored in the _secret_.
 //!   * _settings of the backend_: The backend of the container stores its
 //!     runtime information in the secret. It gets it back when opening the
@@ -380,9 +380,9 @@ impl<B: Backend> Container<B> {
             .accept_sid_for_create()
             .map_err(Error::<B>::Header)?;
 
-        // aquire top-id (if requested)
+        // acquire top-id (if requested)
         let top_id = if F::Service::need_top_id() {
-            Some(container.aquire()?)
+            Some(container.acquire()?)
         } else {
             None
         };
@@ -556,12 +556,12 @@ impl<B: Backend> Container<B> {
         })
     }
 
-    /// Aquires a new block in the backend.
+    /// Acquires a new block in the backend.
     ///
-    /// Once aquired you should be able to [read](Container::read) and
+    /// Once acquired you should be able to [read](Container::read) and
     /// [write](Container::write) from/to it.
     ///
-    /// By default an aquired block, which is not written yet, returns an
+    /// By default an acquired block, which is not written yet, returns an
     /// all-zero buffer.
     ///
     /// Returns the [id](Backend::Id) of the block.
@@ -569,7 +569,7 @@ impl<B: Backend> Container<B> {
     /// # Errors
     ///
     /// Errors are listed in the [`Error`] type.
-    pub fn aquire(&mut self) -> ContainerResult<B::Id, B> {
+    pub fn acquire(&mut self) -> ContainerResult<B::Id, B> {
         let key = self.header.key();
         let iv = self.header.iv();
 

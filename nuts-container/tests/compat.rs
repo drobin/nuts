@@ -47,7 +47,7 @@ use crate::common::{fixture_password, fixture_path};
 //             .unwrap();
 
 //         let mut container = Container::create(MemoryBackend::new(), options).unwrap();
-//         let id = container.aquire().unwrap();
+//         let id = container.acquire().unwrap();
 
 //         container.write(&id, VERSION).unwrap();
 

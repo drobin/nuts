@@ -47,7 +47,7 @@ pub trait Service<B: Backend> {
 
     /// Returns `true` if the service requires a top-id.
     ///
-    /// If a top-id is required, a top-id is aquired and stored in the header
+    /// If a top-id is required, a top-id is acquired and stored in the header
     /// of the container when creating a
     /// [service-instance](Container::create_service).
     fn need_top_id() -> bool;

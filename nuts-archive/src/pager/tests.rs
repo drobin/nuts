@@ -27,7 +27,7 @@ use crate::tests::setup_container_with_bsize;
 #[test]
 fn read() {
     let mut container = setup_container_with_bsize(12);
-    let id = container.aquire().unwrap();
+    let id = container.acquire().unwrap();
 
     assert_eq!(
         container

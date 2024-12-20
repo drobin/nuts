@@ -47,7 +47,7 @@ fn fill_buf(buf: &mut [u8]) -> Result<usize> {
 
 #[derive(Args, Debug)]
 pub struct ContainerWriteArgs {
-    /// The id of the block to write. If not specified, aquire a new block
+    /// The id of the block to write. If not specified, acquire a new block
     id: Option<String>,
 
     /// Writes up to SIZE bytes. If not specified, write the whole block
@@ -74,8 +74,8 @@ impl ContainerWriteArgs {
                 id
             }
             None => {
-                let id = container.aquire()?;
-                debug!("aquire new id: {}", id);
+                let id = container.acquire()?;
+                debug!("acquire new id: {}", id);
                 id
             }
         };

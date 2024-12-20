@@ -72,7 +72,7 @@ impl<B: Backend> Pager<B> {
     }
 
     pub fn aquire(&mut self) -> ArchiveResult<Id<B>, B> {
-        let id = self.container.aquire()?;
+        let id = self.container.acquire()?;
 
         Ok(Id::new(id))
     }

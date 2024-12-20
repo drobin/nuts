@@ -94,7 +94,7 @@ mod none {
             .unwrap();
 
         let mut container = Container::<MemoryBackend>::create(backend, options).unwrap();
-        let id = container.aquire().unwrap();
+        let id = container.acquire().unwrap();
 
         (container, id)
     }
@@ -193,7 +193,7 @@ mod aed128_ctr {
             .unwrap();
 
         let mut container = Container::<MemoryBackend>::create(backend, options).unwrap();
-        let id = container.aquire().unwrap();
+        let id = container.acquire().unwrap();
 
         (container, id)
     }
@@ -292,7 +292,7 @@ mod aes128_gcm {
             .unwrap();
 
         let mut container = Container::<MemoryBackend>::create(backend, options).unwrap();
-        let id = container.aquire().unwrap();
+        let id = container.acquire().unwrap();
 
         (container, id)
     }
