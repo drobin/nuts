@@ -207,7 +207,7 @@ impl Backend for PluginBackend {
     }
 
     fn acquire(&mut self, buf: &[u8]) -> Result<PluginId, PluginError> {
-        let id = with_connection(|conn| conn.aquire(buf.to_vec()))?;
+        let id = with_connection(|conn| conn.acquire(buf.to_vec()))?;
 
         Ok(PluginId(id))
     }

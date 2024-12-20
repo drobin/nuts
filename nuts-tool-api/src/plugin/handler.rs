@@ -168,7 +168,7 @@ pub trait PluginHandler<B: Backend> {
     }
 
     /// Handles the [`Request::Aquire`] command.
-    fn handle_aquire(&self, backend: &mut B, bytes: &[u8]) -> Result<Vec<u8>, ErrorResponse> {
+    fn handle_acquire(&self, backend: &mut B, bytes: &[u8]) -> Result<Vec<u8>, ErrorResponse> {
         match B::acquire(backend, bytes) {
             Ok(id) => Ok(<B::Id as Binary>::as_bytes(&id)),
             Err(err) => Err(ErrorResponse::backend::<B>(err)),
@@ -321,7 +321,7 @@ impl<'a, B: Backend, T: PluginHandler<B>> OpenCreateHandler<'a, B, T> {
                         Request::IdToBytes(ref str) => self.on_id_to_bytes(str),
                         Request::IdToString(ref bytes) => self.on_id_to_string(bytes),
                         Request::Info => self.on_info(),
-                        Request::Aquire(ref bytes) => self.on_aquire(bytes),
+                        Request::Aquire(ref bytes) => self.on_acquire(bytes),
                         Request::Release(ref id) => self.on_release(id),
                         Request::ReadHeader => self.on_read_header(),
                         Request::WriteHeader(ref header) => self.on_write_header(header),
@@ -435,9 +435,9 @@ impl<'a, B: Backend, T: PluginHandler<B>> OpenCreateHandler<'a, B, T> {
         }
     }
 
-    fn on_aquire(&mut self, bytes: &[u8]) -> Response {
+    fn on_acquire(&mut self, bytes: &[u8]) -> Response {
         if let Some(backend) = self.backend.as_mut() {
-            match self.handler.handle_aquire(backend, bytes) {
+            match self.handler.handle_acquire(backend, bytes) {
                 Ok(id) => Response::ok_bytes(id),
                 Err(err) => Response::Err(err),
             }

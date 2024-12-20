@@ -203,7 +203,7 @@ impl PluginConnection {
     handshake_func!(open(settings: Vec<u8>) -> (), Request::Open(settings), OkResponse::Void => Ok(()));
     handshake_func!(create(header: Vec<u8>, overwrite: bool) -> (), Request::Create(header, overwrite), OkResponse::Void => Ok(()));
     handshake_func!(info() -> HashMap<String, String>, Request::Info, OkResponse::Map(map) => Ok(map));
-    handshake_func!(aquire(bytes: Vec<u8>) -> Vec<u8>, Request::Aquire(bytes), OkResponse::Bytes(bytes) => Ok(bytes));
+    handshake_func!(acquire(bytes: Vec<u8>) -> Vec<u8>, Request::Aquire(bytes), OkResponse::Bytes(bytes) => Ok(bytes));
     handshake_func!(release(id: Vec<u8>) -> (), Request::Release(id), OkResponse::Void => Ok(()));
     handshake_func!(read_header() -> Vec<u8>, Request::ReadHeader, OkResponse::Bytes(bytes) => Ok(bytes));
     handshake_func!(write_header(bytes: Vec<u8>) -> (), Request::WriteHeader(bytes), OkResponse::Void => Ok(()));

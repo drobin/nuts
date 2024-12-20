@@ -145,7 +145,7 @@ pub enum Request {
     /// * The response must be a [`OkResponse::Map`] variant.
     Info,
 
-    /// Request to aquire a new block in the backend.
+    /// Request to acquire a new block in the backend.
     ///
     /// * The argument contains the initial data of the block.
     /// * The response must be a [`OkResponse::Bytes`] variant.
