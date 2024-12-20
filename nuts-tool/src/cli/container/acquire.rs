@@ -28,16 +28,16 @@ use crate::cli::ctx::ContainerContext;
 use crate::say::say;
 
 #[derive(Args, Debug)]
-pub struct ContainerAquireArgs {}
+pub struct ContainerAcquireArgs {}
 
-impl ContainerAquireArgs {
+impl ContainerAcquireArgs {
     pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
         let mut container = ctx.open_container()?;
         let id = container.aquire()?;
 
-        say!(ctx, "aquired: {}", id);
+        say!(ctx, "acquired: {}", id);
 
         Ok(())
     }

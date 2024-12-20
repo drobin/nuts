@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-pub mod aquire;
+pub mod acquire;
 pub mod attach;
 pub mod change;
 pub mod create;
@@ -37,7 +37,7 @@ use clap::{Args, Subcommand, ValueEnum};
 use nuts_container::Cipher;
 use std::ops::Deref;
 
-use crate::cli::container::aquire::ContainerAquireArgs;
+use crate::cli::container::acquire::ContainerAcquireArgs;
 use crate::cli::container::attach::ContainerAttachArgs;
 use crate::cli::container::change::ContainerChangeArgs;
 use crate::cli::container::create::ContainerCreateArgs;
@@ -125,8 +125,8 @@ impl ContainerArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum ContainerCommand {
-    /// Aquires a new block in a container
-    Aquire(ContainerAquireArgs),
+    /// Acquires a new block in a container
+    Acquire(ContainerAcquireArgs),
 
     /// Attaches a plugin to a nuts-container
     Attach(ContainerAttachArgs),
@@ -159,7 +159,7 @@ pub enum ContainerCommand {
 impl ContainerCommand {
     pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         match self {
-            Self::Aquire(args) => args.run(ctx),
+            Self::Acquire(args) => args.run(ctx),
             Self::Attach(args) => args.run(ctx),
             Self::Change(args) => args.run(ctx),
             Self::Create(args) => args.run(ctx),

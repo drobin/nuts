@@ -43,7 +43,7 @@ use crate::common::{
 use crate::predicates_ext::{hash, list};
 
 fn container_acquire(home: &Path, name: Option<&str>, pass: Option<&[u8]>) -> Command {
-    let mut cmd = nuts_tool(home, ["container", "aquire"]);
+    let mut cmd = nuts_tool(home, ["container", "acquire"]);
 
     if let Some(name) = name {
         cmd.args(["--container", name]);
@@ -173,7 +173,7 @@ fn default_info_with<'a>(values: HashMap<&'a str, &'a str>) -> HashMap<&'a str, 
 }
 
 fn id_from_acquire_stdout(assert: Assert) -> String {
-    str::from_utf8(&assert.get_output().stdout[9..])
+    str::from_utf8(&assert.get_output().stdout[10..]) // "acquired: ".len()
         .unwrap()
         .trim_end()
         .to_string()
@@ -195,7 +195,7 @@ fn help() {
 
     for (args, passwd_args, container_arg) in [
         (["container", "--help"].as_slice(), true, true), // FIXME no need for --password-from-*, --container
-        (["container", "aquire", "--help"].as_slice(), true, true),
+        (["container", "acquire", "--help"].as_slice(), true, true),
         (["container", "attach", "--help"].as_slice(), false, true),
         (["container", "change", "--help"].as_slice(), true, true), // no need for --password-from-*, --container
         (
@@ -354,7 +354,7 @@ fn acquire() {
     let assert = container_acquire(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .success()
-        .stdout(predicates::str::starts_with("aquired: "))
+        .stdout(predicates::str::starts_with("acquired: "))
         .stderr("");
     let id = id_from_acquire_stdout(assert);
 
