@@ -70,8 +70,8 @@ impl<B: Backend> Node<B> {
         Ok(())
     }
 
-    pub fn aquire(&mut self, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
-        let id = pager.aquire()?;
+    pub fn acquire(&mut self, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
+        let id = pager.acquire()?;
 
         Node::<B>::new().flush(&id, pager)?;
         self.vec.push(id);

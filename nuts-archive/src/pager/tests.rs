@@ -51,7 +51,7 @@ fn read() {
 #[test]
 fn write() {
     let mut pager = Pager::new(setup_container_with_bsize(12));
-    let id = pager.aquire().unwrap();
+    let id = pager.acquire().unwrap();
     let mut buf = [0; 12];
 
     let mut writer = pager.create_writer();

@@ -95,7 +95,7 @@ impl<B: Backend> Cache<B> {
         Ok(id_opt)
     }
 
-    pub fn aquire<'a>(
+    pub fn acquire<'a>(
         &'a mut self,
         pager: &mut Pager<B>,
         start: &'a Id<B>,
@@ -109,7 +109,7 @@ impl<B: Backend> Cache<B> {
             entry.refresh(id, pager)?;
 
             if entry.node.get(*idx).is_none() {
-                entry.node.aquire(pager)?;
+                entry.node.acquire(pager)?;
                 entry.flush(pager)?;
             }
 

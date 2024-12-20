@@ -45,9 +45,9 @@ macro_rules! make_node {
 
 fn make_indirect_tree(num: u64, pager: &mut Pager<MemoryBackend>) -> Tree<MemoryBackend> {
     let mut tree = make_direct_tree(12, pager);
-    let indirect = pager.aquire().unwrap();
+    let indirect = pager.acquire().unwrap();
 
-    make_node!(pager, indirect, 2 => pager.aquire().unwrap(), pager.aquire().unwrap());
+    make_node!(pager, indirect, 2 => pager.acquire().unwrap(), pager.acquire().unwrap());
 
     tree.ids.push(indirect);
     tree.nblocks = 12 + num;
@@ -64,16 +64,16 @@ fn make_d_indirect_tree(num: u64, pager: &mut Pager<MemoryBackend>) -> Tree<Memo
     //            /       \
     // ( 1_0_1 1_0_1 )  ( 1_1_0_ 1_1_1)
 
-    let id = pager.aquire().unwrap();
+    let id = pager.acquire().unwrap();
 
-    let id_1_0 = pager.aquire().unwrap();
-    let id_1_1 = pager.aquire().unwrap();
+    let id_1_0 = pager.acquire().unwrap();
+    let id_1_1 = pager.acquire().unwrap();
 
-    let id_1_0_0 = pager.aquire().unwrap();
-    let id_1_0_1 = pager.aquire().unwrap();
+    let id_1_0_0 = pager.acquire().unwrap();
+    let id_1_0_1 = pager.acquire().unwrap();
 
-    let id_1_1_0 = pager.aquire().unwrap();
-    let id_1_1_1 = pager.aquire().unwrap();
+    let id_1_1_0 = pager.acquire().unwrap();
+    let id_1_1_1 = pager.acquire().unwrap();
 
     make_node!(pager, id, 2 => id_1_0, id_1_1);
     make_node!(pager, id_1_0, 2 => id_1_0_0, id_1_0_1);
@@ -94,28 +94,28 @@ fn make_t_indirect_tree(num: u64, pager: &mut Pager<MemoryBackend>) -> Tree<Memo
     //            /       \
     // ( 1_0_1 1_0_1 )  ( 1_1_0_ 1_1_1)
 
-    let id = pager.aquire().unwrap();
+    let id = pager.acquire().unwrap();
 
-    let id_1_0 = pager.aquire().unwrap();
-    let id_1_1 = pager.aquire().unwrap();
+    let id_1_0 = pager.acquire().unwrap();
+    let id_1_1 = pager.acquire().unwrap();
 
-    let id_1_0_0 = pager.aquire().unwrap();
-    let id_1_0_1 = pager.aquire().unwrap();
+    let id_1_0_0 = pager.acquire().unwrap();
+    let id_1_0_1 = pager.acquire().unwrap();
 
-    let id_1_1_0 = pager.aquire().unwrap();
-    let id_1_1_1 = pager.aquire().unwrap();
+    let id_1_1_0 = pager.acquire().unwrap();
+    let id_1_1_1 = pager.acquire().unwrap();
 
-    let id_1_0_0_0 = pager.aquire().unwrap();
-    let id_1_0_0_1 = pager.aquire().unwrap();
+    let id_1_0_0_0 = pager.acquire().unwrap();
+    let id_1_0_0_1 = pager.acquire().unwrap();
 
-    let id_1_0_1_0 = pager.aquire().unwrap();
-    let id_1_0_1_1 = pager.aquire().unwrap();
+    let id_1_0_1_0 = pager.acquire().unwrap();
+    let id_1_0_1_1 = pager.acquire().unwrap();
 
-    let id_1_1_0_0 = pager.aquire().unwrap();
-    let id_1_1_0_1 = pager.aquire().unwrap();
+    let id_1_1_0_0 = pager.acquire().unwrap();
+    let id_1_1_0_1 = pager.acquire().unwrap();
 
-    let id_1_1_1_0 = pager.aquire().unwrap();
-    let id_1_1_1_1 = pager.aquire().unwrap();
+    let id_1_1_1_0 = pager.acquire().unwrap();
+    let id_1_1_1_1 = pager.acquire().unwrap();
 
     make_node!(pager, id, 2 => id_1_0, id_1_1);
     make_node!(pager, id_1_0, 2 => id_1_0_0, id_1_0_1);
@@ -153,7 +153,7 @@ fn make_direct_tree(num: u64, pager: &mut Pager<MemoryBackend>) -> Tree<MemoryBa
     tree.nblocks = num;
 
     for _ in 0..num {
-        tree.ids.push(pager.aquire().unwrap());
+        tree.ids.push(pager.acquire().unwrap());
     }
 
     tree

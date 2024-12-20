@@ -188,7 +188,7 @@ impl<'a, B: Backend> InnerBuilder<'a, B> {
     }
 
     fn build(self) -> ArchiveResult<EntryMut<'a, B>, B> {
-        let id = self.tree.aquire(self.pager)?.clone();
+        let id = self.tree.acquire(self.pager)?.clone();
 
         self.entry.flush(self.pager, &id)?;
 
@@ -251,9 +251,9 @@ impl<'a, B: Backend> EntryMut<'a, B> {
         let pos = (self.entry.size % block_size) as usize;
 
         let available = if pos == 0 {
-            self.last = self.tree.aquire(self.pager)?.clone();
+            self.last = self.tree.acquire(self.pager)?.clone();
 
-            debug!("block aquired: {}", self.last);
+            debug!("block acquired: {}", self.last);
 
             self.cache.clear();
             self.cache.resize(block_size as usize, 0);

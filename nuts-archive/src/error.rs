@@ -49,7 +49,7 @@ pub enum Error<B: Backend> {
     #[error("could not parse the header of the archive")]
     InvalidHeader(nuts_bytes::Error),
 
-    /// Cannot aquire another block, the archive is full.
+    /// Cannot acquire another block, the archive is full.
     #[error("the archive is full")]
     Full,
 

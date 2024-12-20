@@ -57,27 +57,35 @@ macro_rules! assert_t_indirect {
     };
 }
 
-fn aquire_direct(num: usize, tree: &mut Tree<MemoryBackend>, pager: &mut Pager<MemoryBackend>) {
+fn acquire_direct(num: usize, tree: &mut Tree<MemoryBackend>, pager: &mut Pager<MemoryBackend>) {
     for i in 0..num {
-        assert_eq!(tree.aquire(pager).unwrap(), &_id!((i + 1).to_string()));
+        assert_eq!(tree.acquire(pager).unwrap(), &_id!((i + 1).to_string()));
     }
 }
 
-fn aquire_indirect(num: usize, tree: &mut Tree<MemoryBackend>, pager: &mut Pager<MemoryBackend>) {
+fn acquire_indirect(num: usize, tree: &mut Tree<MemoryBackend>, pager: &mut Pager<MemoryBackend>) {
     for i in 0..num {
-        assert_eq!(tree.aquire(pager).unwrap(), &_id!((i + 14).to_string()));
+        assert_eq!(tree.acquire(pager).unwrap(), &_id!((i + 14).to_string()));
     }
 }
 
-fn aquire_d_indirect(num: usize, tree: &mut Tree<MemoryBackend>, pager: &mut Pager<MemoryBackend>) {
+fn acquire_d_indirect(
+    num: usize,
+    tree: &mut Tree<MemoryBackend>,
+    pager: &mut Pager<MemoryBackend>,
+) {
     let results = [_id!("18"), _id!("19"), _id!("21"), _id!("22")];
 
     for id in results.iter().take(num) {
-        assert_eq!(tree.aquire(pager).unwrap(), id);
+        assert_eq!(tree.acquire(pager).unwrap(), id);
     }
 }
 
-fn aquire_t_indirect(num: usize, tree: &mut Tree<MemoryBackend>, pager: &mut Pager<MemoryBackend>) {
+fn acquire_t_indirect(
+    num: usize,
+    tree: &mut Tree<MemoryBackend>,
+    pager: &mut Pager<MemoryBackend>,
+) {
     let results = [
         _id!("26"),
         _id!("27"),
@@ -90,7 +98,7 @@ fn aquire_t_indirect(num: usize, tree: &mut Tree<MemoryBackend>, pager: &mut Pag
     ];
 
     for id in results.iter().take(num) {
-        assert_eq!(tree.aquire(pager).unwrap(), id);
+        assert_eq!(tree.acquire(pager).unwrap(), id);
     }
 }
 
@@ -99,7 +107,7 @@ fn direct_1() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(1, &mut tree, &mut pager);
+    acquire_direct(1, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert!(tree.lookup(&mut pager, 1).is_none());
@@ -110,7 +118,7 @@ fn direct_2() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(2, &mut tree, &mut pager);
+    acquire_direct(2, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert_eq!(tree.lookup(&mut pager, 1).unwrap().unwrap(), &_id!("2"));
@@ -122,7 +130,7 @@ fn direct_3() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(3, &mut tree, &mut pager);
+    acquire_direct(3, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert_eq!(tree.lookup(&mut pager, 1).unwrap().unwrap(), &_id!("2"));
@@ -135,7 +143,7 @@ fn direct_4() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(4, &mut tree, &mut pager);
+    acquire_direct(4, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert_eq!(tree.lookup(&mut pager, 1).unwrap().unwrap(), &_id!("2"));
@@ -149,7 +157,7 @@ fn direct_5() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(5, &mut tree, &mut pager);
+    acquire_direct(5, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert_eq!(tree.lookup(&mut pager, 1).unwrap().unwrap(), &_id!("2"));
@@ -164,7 +172,7 @@ fn direct_6() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(6, &mut tree, &mut pager);
+    acquire_direct(6, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert_eq!(tree.lookup(&mut pager, 1).unwrap().unwrap(), &_id!("2"));
@@ -180,7 +188,7 @@ fn direct_7() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(7, &mut tree, &mut pager);
+    acquire_direct(7, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert_eq!(tree.lookup(&mut pager, 1).unwrap().unwrap(), &_id!("2"));
@@ -197,7 +205,7 @@ fn direct_8() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(8, &mut tree, &mut pager);
+    acquire_direct(8, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert_eq!(tree.lookup(&mut pager, 1).unwrap().unwrap(), &_id!("2"));
@@ -215,7 +223,7 @@ fn direct_9() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(9, &mut tree, &mut pager);
+    acquire_direct(9, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert_eq!(tree.lookup(&mut pager, 1).unwrap().unwrap(), &_id!("2"));
@@ -234,7 +242,7 @@ fn direct_10() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(10, &mut tree, &mut pager);
+    acquire_direct(10, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert_eq!(tree.lookup(&mut pager, 1).unwrap().unwrap(), &_id!("2"));
@@ -254,7 +262,7 @@ fn direct_11() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(11, &mut tree, &mut pager);
+    acquire_direct(11, &mut tree, &mut pager);
 
     assert_eq!(tree.lookup(&mut pager, 0).unwrap().unwrap(), &_id!("1"));
     assert_eq!(tree.lookup(&mut pager, 1).unwrap().unwrap(), &_id!("2"));
@@ -275,7 +283,7 @@ fn direct_12() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert!(tree.lookup(&mut pager, 12).is_none());
@@ -286,8 +294,8 @@ fn indirect_1() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(1, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(1, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_eq!(tree.lookup(&mut pager, 12).unwrap().unwrap(), &_id!("14"));
@@ -299,8 +307,8 @@ fn indirect_2() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_eq!(tree.lookup(&mut pager, 12).unwrap().unwrap(), &_id!("14"));
@@ -313,9 +321,9 @@ fn d_indirect_1() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(1, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(1, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -329,9 +337,9 @@ fn d_indirect_2() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(2, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(2, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -346,9 +354,9 @@ fn d_indirect_3() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(3, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(3, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -364,9 +372,9 @@ fn d_indirect_4() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(4, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(4, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -383,10 +391,10 @@ fn t_indirect_1() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(4, &mut tree, &mut pager);
-    aquire_t_indirect(1, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(4, &mut tree, &mut pager);
+    acquire_t_indirect(1, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -401,10 +409,10 @@ fn t_indirect_2() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(4, &mut tree, &mut pager);
-    aquire_t_indirect(2, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(4, &mut tree, &mut pager);
+    acquire_t_indirect(2, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -420,10 +428,10 @@ fn t_indirect_3() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(4, &mut tree, &mut pager);
-    aquire_t_indirect(3, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(4, &mut tree, &mut pager);
+    acquire_t_indirect(3, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -440,10 +448,10 @@ fn t_indirect_4() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(4, &mut tree, &mut pager);
-    aquire_t_indirect(4, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(4, &mut tree, &mut pager);
+    acquire_t_indirect(4, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -461,10 +469,10 @@ fn t_indirect_5() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(4, &mut tree, &mut pager);
-    aquire_t_indirect(5, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(4, &mut tree, &mut pager);
+    acquire_t_indirect(5, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -483,10 +491,10 @@ fn t_indirect_6() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(4, &mut tree, &mut pager);
-    aquire_t_indirect(6, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(4, &mut tree, &mut pager);
+    acquire_t_indirect(6, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -506,10 +514,10 @@ fn t_indirect_7() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(4, &mut tree, &mut pager);
-    aquire_t_indirect(7, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(4, &mut tree, &mut pager);
+    acquire_t_indirect(7, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -530,10 +538,10 @@ fn t_indirect_8() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(4, &mut tree, &mut pager);
-    aquire_t_indirect(8, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(4, &mut tree, &mut pager);
+    acquire_t_indirect(8, &mut tree, &mut pager);
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);
@@ -547,12 +555,12 @@ fn full() {
     let mut pager = Pager::new(setup_container_with_bsize(BSIZE));
     let mut tree = make_tree();
 
-    aquire_direct(12, &mut tree, &mut pager);
-    aquire_indirect(2, &mut tree, &mut pager);
-    aquire_d_indirect(4, &mut tree, &mut pager);
-    aquire_t_indirect(8, &mut tree, &mut pager);
+    acquire_direct(12, &mut tree, &mut pager);
+    acquire_indirect(2, &mut tree, &mut pager);
+    acquire_d_indirect(4, &mut tree, &mut pager);
+    acquire_t_indirect(8, &mut tree, &mut pager);
 
-    assert!(matches!(tree.aquire(&mut pager).unwrap_err(), Error::Full));
+    assert!(matches!(tree.acquire(&mut pager).unwrap_err(), Error::Full));
 
     assert_direct!(tree, pager);
     assert_indirect!(tree, pager);

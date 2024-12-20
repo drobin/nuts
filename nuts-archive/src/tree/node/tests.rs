@@ -39,7 +39,7 @@ fn new() {
 #[test]
 fn load() {
     let mut pager = Pager::new(setup_container_with_bsize(20));
-    let id = pager.aquire().unwrap();
+    let id = pager.acquire().unwrap();
 
     let mut writer = Writer::new(vec![]);
 
@@ -63,7 +63,7 @@ fn load() {
 #[test]
 fn load_inval_node() {
     let mut pager = Pager::new(setup_container_with_bsize(20));
-    let id = pager.aquire().unwrap();
+    let id = pager.acquire().unwrap();
 
     let mut writer = Writer::new(vec![]);
 
@@ -82,7 +82,7 @@ fn load_inval_node() {
 #[test]
 fn flush() {
     let mut pager = Pager::new(setup_container_with_bsize(20));
-    let id = pager.aquire().unwrap();
+    let id = pager.acquire().unwrap();
 
     let mut node = Node::new();
 
@@ -108,7 +108,7 @@ fn flush() {
 #[test]
 fn flush_nospace() {
     let mut pager = Pager::new(setup_container_with_bsize(19));
-    let id = pager.aquire().unwrap();
+    let id = pager.acquire().unwrap();
 
     let mut node = Node::new();
 
@@ -121,11 +121,11 @@ fn flush_nospace() {
 }
 
 #[test]
-fn aquire() {
+fn acquire() {
     let mut pager = Pager::new(setup_container_with_bsize(16));
     let mut node = Node::<MemoryBackend>::new();
 
-    node.aquire(&mut pager).unwrap();
+    node.acquire(&mut pager).unwrap();
 
     assert_eq!(node.vec.len(), 1);
 

@@ -67,17 +67,17 @@ impl<B: Backend> Tree<B> {
         self.nblocks
     }
 
-    pub fn aquire(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
+    pub fn acquire(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
         let ipn = ids_per_node(pager) as u64; // ids per node
 
         if self.nblocks < NUM_DIRECT as u64 {
-            self.aquire_direct(pager)
+            self.acquire_direct(pager)
         } else if self.nblocks < NUM_DIRECT as u64 + ipn {
-            self.aquire_indirect(pager)
+            self.acquire_indirect(pager)
         } else if self.nblocks < NUM_DIRECT as u64 + ipn + ipn * ipn {
-            self.aquire_d_indirect(pager)
+            self.acquire_d_indirect(pager)
         } else if self.nblocks < NUM_DIRECT as u64 + ipn + ipn * ipn + ipn * ipn * ipn {
-            self.aquire_t_indirect(pager)
+            self.acquire_t_indirect(pager)
         } else {
             Err(Error::Full)
         }
@@ -120,15 +120,15 @@ impl<B: Backend> Tree<B> {
         Ok(id)
     }
 
-    fn aquire_direct(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
+    fn acquire_direct(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
         assert!(self.nblocks < NUM_DIRECT as u64);
 
-        self.ids.push(pager.aquire()?);
+        self.ids.push(pager.acquire()?);
         self.nblocks += 1;
 
         let id = &self.ids[self.nblocks as usize - 1];
 
-        debug!("aquire_direct: nblocks={} => {}", self.nblocks, id);
+        debug!("acquire_direct: nblocks={} => {}", self.nblocks, id);
 
         Ok(id)
     }
@@ -150,16 +150,16 @@ impl<B: Backend> Tree<B> {
         Ok(id)
     }
 
-    fn aquire_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
+    fn acquire_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
         self.ensure_id(IDX_INDIRECT, pager)?;
 
         let idx = self.nblocks as usize - NUM_DIRECT as usize;
-        let id = self.cache.aquire(pager, &self.ids[IDX_INDIRECT], &[idx])?;
+        let id = self.cache.acquire(pager, &self.ids[IDX_INDIRECT], &[idx])?;
 
         self.nblocks += 1;
 
         debug!(
-            "aquire_indirect: idx={}, nblocks={} => {}",
+            "acquire_indirect: idx={}, nblocks={} => {}",
             idx, self.nblocks, id
         );
 
@@ -185,7 +185,7 @@ impl<B: Backend> Tree<B> {
         Ok(id)
     }
 
-    fn aquire_d_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
+    fn acquire_d_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
         self.ensure_id(IDX_D_INDIRECT, pager)?;
 
         let ipn = ids_per_node(pager) as usize; // ids per node
@@ -194,12 +194,12 @@ impl<B: Backend> Tree<B> {
         let d_idx = [(idx / ipn) % ipn, idx % ipn];
         let d_indirect = &self.ids[IDX_D_INDIRECT];
 
-        let id = self.cache.aquire(pager, d_indirect, &d_idx)?;
+        let id = self.cache.acquire(pager, d_indirect, &d_idx)?;
 
         self.nblocks += 1;
 
         debug!(
-            "aquire_d_indirect: idx={} => {:?}, nblocks={} => {}",
+            "acquire_d_indirect: idx={} => {:?}, nblocks={} => {}",
             idx, d_idx, self.nblocks, id
         );
 
@@ -225,7 +225,7 @@ impl<B: Backend> Tree<B> {
         Ok(id)
     }
 
-    fn aquire_t_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
+    fn acquire_t_indirect(&mut self, pager: &mut Pager<B>) -> ArchiveResult<&Id<B>, B> {
         self.ensure_id(IDX_T_INDIRECT, pager)?;
 
         let ipn = ids_per_node(pager) as usize; // ids per node
@@ -234,12 +234,12 @@ impl<B: Backend> Tree<B> {
         let t_idx = [(idx / (ipn * ipn)) % ipn, (idx / ipn) % ipn, idx % ipn];
         let t_indirect = &self.ids[IDX_T_INDIRECT];
 
-        let id = self.cache.aquire(pager, t_indirect, &t_idx)?;
+        let id = self.cache.acquire(pager, t_indirect, &t_idx)?;
 
         self.nblocks += 1;
 
         debug!(
-            "aquire_t_indirect: idx={} => {:?}, nblocks={} => {}",
+            "acquire_t_indirect: idx={} => {:?}, nblocks={} => {}",
             idx, t_idx, self.nblocks, id
         );
 
@@ -248,7 +248,7 @@ impl<B: Backend> Tree<B> {
 
     fn ensure_id(&mut self, idx: usize, pager: &mut Pager<B>) -> ArchiveResult<(), B> {
         while self.ids.get(idx).is_none() {
-            let id = pager.aquire()?;
+            let id = pager.acquire()?;
 
             Node::<B>::new().flush(&id, pager)?;
 
