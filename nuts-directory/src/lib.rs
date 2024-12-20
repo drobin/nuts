@@ -104,7 +104,11 @@ fn write_block(
         if path.exists() {
             return Err(io::Error::new(
                 ErrorKind::Other,
-                format!("cannot acquire {}, already stored in {}", id, path.display()),
+                format!(
+                    "cannot acquire {}, already stored in {}",
+                    id,
+                    path.display()
+                ),
             )
             .into());
         }

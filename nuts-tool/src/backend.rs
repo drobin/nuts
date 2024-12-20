@@ -29,8 +29,8 @@ use std::str::FromStr;
 use std::{cmp, fmt};
 
 thread_local! {
-    static ID_SIZE: RefCell<usize> = RefCell::new(0);
-    static CONN: RefCell<Option<PluginConnection>> = RefCell::new(None);
+    static ID_SIZE: RefCell<usize> = const { RefCell::new(0) };
+    static CONN: RefCell<Option<PluginConnection>> = const{ RefCell::new(None) };
 }
 
 fn setup_connection(mut connection: PluginConnection) -> Result<(), PluginError> {

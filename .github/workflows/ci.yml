@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
 
@@ -13,9 +12,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - run: rustup update --no-self-update 1.75
-    - run: rustup component add rustfmt clippy --toolchain 1.75
-    - run: rustup default 1.75
+    - run: rustup update --no-self-update 1.81
+    - run: rustup component add rustfmt clippy --toolchain 1.81
+    - run: rustup default 1.81
     - run: rustc --version
     - uses: actions/checkout@v4
     - name: Format

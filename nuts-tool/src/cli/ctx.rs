@@ -66,7 +66,7 @@ impl<'a> ContainerContext<'a> {
     }
 
     pub fn container_name(&self) -> Result<&str> {
-        self.container.as_ref().map(|s| s.as_str()).ok_or_else(|| {
+        self.container.as_deref().ok_or_else(|| {
             let mut err = clap::Error::new(ErrorKind::InvalidValue);
 
             err.insert(
