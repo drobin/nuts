@@ -69,9 +69,9 @@ pub enum Error {
     #[error("no such id: {0}")]
     NoSuchId(Id),
 
-    /// Failed to aquire the given id.
-    #[error("already aquired: {0}")]
-    AlreadAquired(Id),
+    /// Failed to acquire the given id.
+    #[error("already acquired: {0}")]
+    AlreadAcquired(Id),
 
     /// Tried to open the backend without header data
     #[error("no header data available")]
@@ -204,7 +204,7 @@ impl MemoryBackend {
         block[..n].copy_from_slice(&data[..n]);
 
         match self.blocks.insert(id.0, block) {
-            Some(_) => Err(Error::AlreadAquired(id)),
+            Some(_) => Err(Error::AlreadAcquired(id)),
             None => Ok(id),
         }
     }
