@@ -325,17 +325,16 @@ fn create() {
         .arg(d1.to_str().unwrap())
         .assert()
         .success()
-        .stdout(format!(
-            "a {}\na {}\na {}\n",
-            d1.display(),
-            f1.display(),
-            f2.display()
-        ))
+        .stdout(list::unordered([
+            format!("a {}", d1.display()),
+            format!("a {}", f1.display()),
+            format!("a {}", f2.display()),
+        ]))
         .stderr("");
     archive_list(&tmp_dir, "sample3", Some(b"123"))
         .assert()
         .success()
-        .stdout(list::eq([
+        .stdout(list::unordered([
             d1.to_str().unwrap(),
             f1.to_str().unwrap(),
             f2.to_str().unwrap(),

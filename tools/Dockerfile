@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM rust:1.75 as nuts-build
+FROM rust:1.81 AS nuts-build
 
 ARG BRANCH=master
 
