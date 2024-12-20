@@ -206,7 +206,7 @@ impl Backend for PluginBackend {
         self.block_size
     }
 
-    fn aquire(&mut self, buf: &[u8]) -> Result<PluginId, PluginError> {
+    fn acquire(&mut self, buf: &[u8]) -> Result<PluginId, PluginError> {
         let id = with_connection(|conn| conn.aquire(buf.to_vec()))?;
 
         Ok(PluginId(id))

@@ -267,7 +267,7 @@ impl Backend for MemoryBackend {
         self.bsize
     }
 
-    fn aquire(&mut self, buf: &[u8]) -> Result<Id, Error> {
+    fn acquire(&mut self, buf: &[u8]) -> Result<Id, Error> {
         self.insert_data(buf)
     }
 

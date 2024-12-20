@@ -169,7 +169,7 @@ pub trait PluginHandler<B: Backend> {
 
     /// Handles the [`Request::Aquire`] command.
     fn handle_aquire(&self, backend: &mut B, bytes: &[u8]) -> Result<Vec<u8>, ErrorResponse> {
-        match B::aquire(backend, bytes) {
+        match B::acquire(backend, bytes) {
             Ok(id) => Ok(<B::Id as Binary>::as_bytes(&id)),
             Err(err) => Err(ErrorResponse::backend::<B>(err)),
         }

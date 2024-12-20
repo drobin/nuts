@@ -174,7 +174,7 @@ impl<P: AsRef<Path>> Backend for DirectoryBackend<P> {
         self.bsize
     }
 
-    fn aquire(&mut self, buf: &[u8]) -> Result<Self::Id> {
+    fn acquire(&mut self, buf: &[u8]) -> Result<Self::Id> {
         const MAX: u8 = 3;
 
         for n in 0..MAX {

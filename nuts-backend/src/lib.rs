@@ -210,9 +210,9 @@ where
     /// Returns the block size of the backend.
     fn block_size(&self) -> u32;
 
-    /// Aquires a new block in the backend.
+    /// Acquires a new block in the backend.
     ///
-    /// Once aquired you should be able to [read](Backend::read) and
+    /// Once acquired you should be able to [read](Backend::read) and
     /// [write](Backend::write) from/to it.
     ///
     /// `buf` contains the initial data, which should be copied into the block.
@@ -223,7 +223,7 @@ where
     ///   then only the first [block-size](Backend::block_size) bytes are
     ///   copied into the block.
     ///
-    /// By default an aquired block, which is not written yet, should return
+    /// By default an acquired block, which is not written yet, should return
     /// an all-zero buffer.
     ///
     /// Returns the [id](Backend::Id) if the block.
@@ -231,7 +231,7 @@ where
     /// # Errors
     ///
     /// On any error a self-defined [`Backend::Err`] is returned.
-    fn aquire(&mut self, buf: &[u8]) -> Result<Self::Id, Self::Err>;
+    fn acquire(&mut self, buf: &[u8]) -> Result<Self::Id, Self::Err>;
 
     /// Releases a block again.
     ///

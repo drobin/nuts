@@ -576,7 +576,7 @@ impl<B: Backend> Container<B> {
         self.ctx.copy_from_slice(self.block_size() as usize, &[]);
         let ctext = self.ctx.encrypt(key, iv)?;
 
-        map_err!(self.backend.aquire(ctext))
+        map_err!(self.backend.acquire(ctext))
     }
 
     /// Releases a block again.
