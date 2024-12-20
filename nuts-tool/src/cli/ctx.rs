@@ -21,6 +21,7 @@
 // IN THE SOFTWARE.
 
 use anyhow::{anyhow, Result};
+use clap::error::{ContextKind, ContextValue, ErrorKind};
 use nuts_archive::{Archive, ArchiveFactory};
 use nuts_container::{Container, OpenOptionsBuilder};
 use nuts_tool_api::tool::Plugin;
@@ -47,7 +48,8 @@ impl GlobalContext {
 
 pub struct ContainerContext<'a> {
     global: &'a GlobalContext,
-    password_source: PasswordSource,
+    pub password_source: PasswordSource,
+    container: Option<String>,
 }
 
 impl<'a> ContainerContext<'a> {
@@ -58,12 +60,31 @@ impl<'a> ContainerContext<'a> {
                 args.password_from_fd,
                 args.password_from_file.clone(),
             ),
+            container: args.container.clone(),
         }
     }
 
-    pub fn open_container(&self, name: &str) -> Result<Container<PluginBackend>> {
+    pub fn container_name(&self) -> Result<&str> {
+        self.container.as_ref().map(|s| s.as_str()).ok_or_else(|| {
+            let mut err = clap::Error::new(ErrorKind::InvalidValue);
+
+            err.insert(
+                ContextKind::InvalidArg,
+                ContextValue::String("--container".to_string()),
+            );
+            err.insert(
+                ContextKind::InvalidValue,
+                ContextValue::String("".to_string()),
+            );
+
+            err.into()
+        })
+    }
+
+    pub fn open_container(&self) -> Result<Container<PluginBackend>> {
         let container_config = ContainerConfig::load()?;
         let plugin_config = PluginConfig::load()?;
+        let name = self.container_name()?;
 
         let plugin = container_config
             .get_plugin(name)
@@ -99,8 +120,8 @@ impl<'a> ArchiveContext<'a> {
         ArchiveContext { container: parent }
     }
 
-    pub fn open_archive(&self, name: &str, migrate: bool) -> Result<Archive<PluginBackend>> {
-        let container = self.open_container(name)?;
+    pub fn open_archive(&self, migrate: bool) -> Result<Archive<PluginBackend>> {
+        let container = self.open_container()?;
 
         Container::open_service::<ArchiveFactory>(container, migrate).map_err(|err| err.into())
     }

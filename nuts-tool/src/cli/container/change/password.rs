@@ -33,10 +33,6 @@ use crate::cli::password::{password_from_source_twice, PasswordSource};
 #[derive(Args, Debug)]
 #[clap(group(ArgGroup::new("new_password").required(false).multiple(false)))]
 pub struct ContainerChangePasswordArgs {
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
-
     /// Reads the new password from the specified file descriptor <FD>. The
     /// password is the first line until a `\n` is read.
     #[clap(long, group = "new_password", value_name = "FD")]
@@ -57,7 +53,7 @@ impl ContainerChangePasswordArgs {
             self.new_password_from_file.clone(),
         );
 
-        let mut container = ctx.open_container(&self.container)?;
+        let mut container = ctx.open_container()?;
         let options = ModifyOptionsBuilder::default()
             .change_password(|| password_from_source_twice(source, "Enter a new password"))
             .build();

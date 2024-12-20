@@ -43,17 +43,13 @@ pub struct ArchiveInfoArgs {
     /// Starts the migration when the container/archive is opened
     #[clap(long, action = ArgAction::SetTrue)]
     pub migrate: bool,
-
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
 }
 
 impl ArchiveInfoArgs {
     pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let archive = ctx.open_archive(&self.container, self.migrate)?;
+        let archive = ctx.open_archive(self.migrate)?;
         let info = archive.info();
 
         let created = self.time_format.format(&info.created, "%c");

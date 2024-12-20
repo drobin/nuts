@@ -40,17 +40,13 @@ pub struct ContainerReadArgs {
     /// Reads up to SIZE bytes. If not specified, reads the whole block
     #[clap(short, long, id = "SIZE")]
     max_bytes: Option<u64>,
-
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
 }
 
 impl ContainerReadArgs {
     pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut container = ctx.open_container(&self.container)?;
+        let mut container = ctx.open_container()?;
         let id = self.id.parse()?;
 
         let max_bytes = self.max_bytes.unwrap_or(u64::MAX);

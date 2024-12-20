@@ -35,19 +35,16 @@ pub struct ContainerInfoArgs {
     /// Specifies the format of the userdata dump
     #[clap(short, long, value_parser, default_value = "raw")]
     format: Format,
-
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
 }
 
 impl ContainerInfoArgs {
     pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = ctx.open_container(&self.container)?;
+        let container_name = ctx.container_name()?;
+        let container = ctx.open_container()?;
         let container_config = ContainerConfig::load()?;
-        let plugin = container_config.get_plugin(&self.container).unwrap_or("?");
+        let plugin = container_config.get_plugin(container_name).unwrap_or("?");
         let info = container.info()?;
 
         let key_width = 19;

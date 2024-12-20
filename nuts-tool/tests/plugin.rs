@@ -62,6 +62,7 @@ fn help() {
     ] {
         let no_password_from_fd = predicates::str::contains("--password-from-fd").not();
         let no_password_from_file = predicates::str::contains("--password-from-file").not();
+        let no_container = predicates::str::contains("--container").not();
         let verbose = predicates::str::contains("--verbose");
         let quiet = predicates::str::contains("--quiet");
 
@@ -71,6 +72,7 @@ fn help() {
             .stdout(
                 no_password_from_fd
                     .and(no_password_from_file)
+                    .and(no_container)
                     .and(verbose)
                     .and(quiet),
             )

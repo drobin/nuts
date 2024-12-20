@@ -31,10 +31,6 @@ use crate::config::{ContainerConfig, PluginConfig};
 
 #[derive(Args, Debug)]
 pub struct ContainerAttachArgs {
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
-
     /// Attaches PLUGIN to CONTAINER
     plugin: String,
 
@@ -51,9 +47,10 @@ pub struct ContainerAttachArgs {
 }
 
 impl ContainerAttachArgs {
-    pub fn run(&self, _ctx: &ContainerContext) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
+        let container_name = ctx.container_name()?;
         let mut container_config = ContainerConfig::load()?;
         let plugin_config = PluginConfig::load()?;
 
@@ -63,10 +60,10 @@ impl ContainerAttachArgs {
             self.plugin
         );
 
-        if !container_config.add_plugin(&self.container, &self.plugin, self.force) {
+        if !container_config.add_plugin(container_name, &self.plugin, self.force) {
             return Err(anyhow!(
                 "you already have a container with the name {}",
-                self.container,
+                container_name,
             ));
         }
 

@@ -42,17 +42,13 @@ pub struct ArchiveAddSymlinkArgs {
     /// Starts the migration when the container/archive is opened
     #[clap(long, action = ArgAction::SetTrue)]
     pub migrate: bool,
-
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
 }
 
 impl ArchiveAddSymlinkArgs {
     pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = ctx.open_archive(&self.container, self.migrate)?;
+        let mut archive = ctx.open_archive(self.migrate)?;
         let mut builder = archive.append_symlink(&self.name, &self.target);
 
         if let Some(created) = self.timestamps.created {

@@ -41,17 +41,13 @@ pub struct ArchiveCreateArgs {
     /// container
     #[clap(short, long, action = ArgAction::SetTrue)]
     force: bool,
-
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
 }
 
 impl ArchiveCreateArgs {
     pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let container = ctx.open_container(&self.container)?;
+        let container = ctx.open_container()?;
         let mut archive = Container::create_service::<ArchiveFactory>(container)?;
 
         for path in self.paths.iter() {

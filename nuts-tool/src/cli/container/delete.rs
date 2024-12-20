@@ -33,10 +33,6 @@ use crate::say::{say, say_warn};
 
 #[derive(Args, Debug)]
 pub struct ContainerDeleteArgs {
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
-
     /// Say yes, don't prompt for deletion
     #[clap(short, long, action = ArgAction::SetTrue)]
     yes: bool,
@@ -56,18 +52,19 @@ impl ContainerDeleteArgs {
             return Ok(());
         }
 
-        let path = container_dir_for(&self.container)?;
+        let container_name = ctx.container_name()?;
+        let path = container_dir_for(container_name)?;
         let mut container_config = ContainerConfig::load()?;
 
-        debug!("container: {}", self.container);
+        debug!("container: {}", container_name);
         debug!("path: {}", path.display());
 
-        if !container_config.remove_plugin(&self.container) {
-            say_warn!(ctx, "container {} not configured", self.container);
+        if !container_config.remove_plugin(container_name) {
+            say_warn!(ctx, "container {} not configured", container_name);
         }
 
         if !self.force {
-            let container = ctx.open_container(&self.container)?;
+            let container = ctx.open_container()?;
             container.delete();
         }
 

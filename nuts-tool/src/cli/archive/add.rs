@@ -145,10 +145,6 @@ pub struct ArchiveAddArgs {
     /// Starts the migration when the container/archive is opened
     #[clap(long, action = ArgAction::SetTrue)]
     pub migrate: bool,
-
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
 }
 
 impl ArchiveAddArgs {
@@ -159,7 +155,7 @@ impl ArchiveAddArgs {
 
         debug!("args: {:?}", self);
 
-        let mut archive = ctx.open_archive(&self.container, self.migrate)?;
+        let mut archive = ctx.open_archive(self.migrate)?;
 
         for path in self.paths.iter() {
             append_recursive(ctx, &mut archive, path)?;

@@ -42,42 +42,67 @@ use crate::common::{
 };
 use crate::predicates_ext::{hash, list};
 
-fn container_acquire(home: &Path, name: &str, pass: Option<&[u8]>) -> Command {
-    let cmd = nuts_tool(home, ["container", "aquire", "--container", name]);
+fn container_acquire(home: &Path, name: Option<&str>, pass: Option<&[u8]>) -> Command {
+    let mut cmd = nuts_tool(home, ["container", "aquire"]);
+
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
+    }
 
     handle_password_args(cmd, pass)
 }
 
-fn container_attach(home: &Path, name: &str, plugin: &str) -> Command {
-    nuts_tool(home, ["container", "attach", "--container", name, plugin])
+fn container_attach(home: &Path, name: Option<&str>, plugin: &str) -> Command {
+    let mut cmd = nuts_tool(home, ["container", "attach", plugin]);
+
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
+    }
+
+    cmd
 }
 
-fn container_change_kdf(home: &Path, name: &str, kdf: &str, pass: Option<&[u8]>) -> Command {
-    let cmd = nuts_tool(
-        home,
-        ["container", "change", "kdf", "--container", name, kdf],
-    );
+fn container_change_kdf(
+    home: &Path,
+    name: Option<&str>,
+    kdf: &str,
+    pass: Option<&[u8]>,
+) -> Command {
+    let mut cmd = nuts_tool(home, ["container", "change", "kdf", kdf]);
+
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
+    }
 
     handle_password_args(cmd, pass)
 }
 
-fn container_change_password(home: &Path, name: &str, pass: Option<&[u8]>) -> Command {
-    let cmd = nuts_tool(
-        home,
-        ["container", "change", "password", "--container", name],
-    );
+fn container_change_password(home: &Path, name: Option<&str>, pass: Option<&[u8]>) -> Command {
+    let mut cmd = nuts_tool(home, ["container", "change", "password"]);
+
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
+    }
 
     handle_password_args(cmd, pass)
 }
 
-fn container_delete(home: &Path, name: &str, pass: Option<&[u8]>) -> Command {
-    let cmd = nuts_tool(home, ["container", "delete", "--container", name]);
+fn container_delete(home: &Path, name: Option<&str>, pass: Option<&[u8]>) -> Command {
+    let mut cmd = nuts_tool(home, ["container", "delete"]);
+
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
+    }
 
     handle_password_args(cmd, pass)
 }
 
-fn container_info(home: &Path, name: &str, pass: Option<&[u8]>) -> Command {
-    let cmd = nuts_tool(home, ["container", "info", "--container", name]);
+fn container_info(home: &Path, name: Option<&str>, pass: Option<&[u8]>) -> Command {
+    let mut cmd = nuts_tool(home, ["container", "info"]);
+
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
+    }
 
     handle_password_args(cmd, pass)
 }
@@ -86,32 +111,42 @@ fn container_list(home: &Path) -> Command {
     nuts_tool(home, ["container", "list"])
 }
 
-fn container_read(home: &Path, name: &str, id: &str, pass: Option<&[u8]>) -> Command {
-    let cmd = nuts_tool(home, ["container", "read", "--container", name, id]);
+fn container_read(home: &Path, name: Option<&str>, id: &str, pass: Option<&[u8]>) -> Command {
+    let mut cmd = nuts_tool(home, ["container", "read", id]);
+
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
+    }
 
     handle_password_args(cmd, pass)
 }
 
-fn container_release(home: &Path, name: &str, id: &str, pass: Option<&[u8]>) -> Command {
-    let cmd = nuts_tool(home, ["container", "release", "--container", name, id]);
+fn container_release(home: &Path, name: Option<&str>, id: &str, pass: Option<&[u8]>) -> Command {
+    let mut cmd = nuts_tool(home, ["container", "release", id]);
+
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
+    }
 
     handle_password_args(cmd, pass)
 }
 
 fn container_write(
     home: &Path,
-    name: &str,
+    name: Option<&str>,
     id: Option<&str>,
     data: &[u8],
     pass: Option<&[u8]>,
 ) -> Command {
-    let mut args = vec!["container", "write", "--container", name];
+    let mut cmd = nuts_tool(home, ["container", "write"]);
 
-    if let Some(s) = id {
-        args.push(s);
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
     }
 
-    let mut cmd = nuts_tool(home, args);
+    if let Some(s) = id {
+        cmd.arg(s);
+    }
 
     cmd.write_stdin(data);
 
@@ -158,55 +193,52 @@ fn setup_new_plugin(home: &Path) {
 fn help() {
     let tmp_dir = TempDir::new().unwrap();
 
-    for args in [
-        ["container", "attach", "--help"].as_slice(),
-        ["container", "list", "--help"].as_slice(),
-    ] {
-        let no_password_from_fd = predicates::str::contains("--password-from-fd").not();
-        let no_password_from_file = predicates::str::contains("--password-from-file").not();
-        let verbose = predicates::str::contains("--verbose");
-        let quiet = predicates::str::contains("--quiet");
-
-        nuts_tool(&tmp_dir, args)
-            .assert()
-            .success()
-            .stdout(
-                no_password_from_fd
-                    .and(no_password_from_file)
-                    .and(verbose)
-                    .and(quiet),
-            )
-            .stderr("");
-    }
-
-    for args in [
-        ["container", "--help"].as_slice(), // FIXME
-        ["container", "aquire", "--help"].as_slice(),
-        ["container", "change", "--help"].as_slice(), // FIXME
-        ["container", "change", "password", "--help"].as_slice(),
-        ["container", "change", "kdf", "--help"].as_slice(),
-        ["container", "create", "--help"].as_slice(),
-        ["container", "delete", "--help"].as_slice(),
-        ["container", "info", "--help"].as_slice(),
-        ["container", "read", "--help"].as_slice(),
-        ["container", "release", "--help"].as_slice(),
-        ["container", "write", "--help"].as_slice(),
+    for (args, passwd_args, container_arg) in [
+        (["container", "--help"].as_slice(), true, true), // FIXME no need for --password-from-*, --container
+        (["container", "aquire", "--help"].as_slice(), true, true),
+        (["container", "attach", "--help"].as_slice(), false, true),
+        (["container", "change", "--help"].as_slice(), true, true), // no need for --password-from-*, --container
+        (
+            ["container", "change", "password", "--help"].as_slice(),
+            true,
+            true,
+        ),
+        (
+            ["container", "change", "kdf", "--help"].as_slice(),
+            true,
+            true,
+        ),
+        (["container", "create", "--help"].as_slice(), true, false),
+        (["container", "delete", "--help"].as_slice(), true, true),
+        (["container", "info", "--help"].as_slice(), true, true),
+        (["container", "list", "--help"].as_slice(), false, false),
+        (["container", "read", "--help"].as_slice(), true, true),
+        (["container", "release", "--help"].as_slice(), true, true),
+        (["container", "write", "--help"].as_slice(), true, true),
     ] {
         let password_from_fd = predicates::str::contains("--password-from-fd");
         let password_from_file = predicates::str::contains("--password-from-file");
+        let container = predicates::str::contains("--container");
         let verbose = predicates::str::contains("--verbose");
         let quiet = predicates::str::contains("--quiet");
 
-        nuts_tool(&tmp_dir, args)
+        let mut assert = nuts_tool(&tmp_dir, args)
             .assert()
             .success()
-            .stdout(
-                password_from_fd
-                    .and(password_from_file)
-                    .and(verbose)
-                    .and(quiet),
-            )
+            .stdout(verbose.and(quiet))
             .stderr("");
+
+        assert = if passwd_args {
+            assert.stdout(password_from_fd.and(password_from_file))
+        } else {
+            assert.stdout(password_from_fd.not().and(password_from_file.not()))
+        };
+
+        if container_arg {
+            assert.stdout(container);
+        } else {
+            assert.stdout(container.not());
+        }
     }
 }
 
@@ -216,7 +248,15 @@ fn attach() {
 
     setup_new_plugin(&tmp_dir);
 
-    container_attach(&tmp_dir, "sample", "directory")
+    // XXX test for unknown/wrong container
+
+    container_attach(&tmp_dir, None, "directory")
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+
+    container_attach(&tmp_dir, Some("sample"), "directory")
         .assert()
         .success()
         .stdout("")
@@ -226,12 +266,12 @@ fn attach() {
         .success()
         .stdout(list::eq(["sample"]));
 
-    container_attach(&tmp_dir, "sample", "new_plugin")
+    container_attach(&tmp_dir, Some("sample"), "new_plugin")
         .assert()
         .code(1)
         .stdout("you already have a container with the name sample\n")
         .stderr("");
-    container_attach(&tmp_dir, "sample", "new_plugin")
+    container_attach(&tmp_dir, Some("sample"), "new_plugin")
         .arg("--force")
         .assert()
         .success()
@@ -291,7 +331,12 @@ fn list() {
 fn acquire() {
     let tmp_dir = setup();
 
-    container_acquire(&tmp_dir, "sample", Some(b"123"))
+    container_acquire(&tmp_dir, None, Some(b"123"))
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+    container_acquire(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .code(1)
         .stdout("no such container: sample\n")
@@ -300,20 +345,20 @@ fn acquire() {
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
         .success();
-    container_acquire(&tmp_dir, "sample", Some(b"xxx"))
+    container_acquire(&tmp_dir, Some("sample"), Some(b"xxx"))
         .assert()
         .code(1)
         .stdout("the plaintext is not trustworthy\n")
         .stderr("");
 
-    let assert = container_acquire(&tmp_dir, "sample", Some(b"123"))
+    let assert = container_acquire(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .success()
         .stdout(predicates::str::starts_with("aquired: "))
         .stderr("");
     let id = id_from_acquire_stdout(assert);
 
-    container_read(&tmp_dir, "sample", &id, Some(b"123"))
+    container_read(&tmp_dir, Some("sample"), &id, Some(b"123"))
         .assert()
         .success()
         .stdout([b'\0'; 496].as_slice());
@@ -328,7 +373,12 @@ fn change_password() {
     f.write_all(b"new_password").unwrap();
     f.flush().unwrap();
 
-    container_change_password(&tmp_dir, "sample", Some(b"123"))
+    container_change_password(&tmp_dir, None, Some(b"123"))
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+    container_change_password(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .code(1)
         .stdout("no such container: sample\n")
@@ -337,12 +387,12 @@ fn change_password() {
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
         .success();
-    container_change_password(&tmp_dir, "sample", Some(b"xxx"))
+    container_change_password(&tmp_dir, Some("sample"), Some(b"xxx"))
         .assert()
         .code(1)
         .stdout("the plaintext is not trustworthy\n")
         .stderr("");
-    let cmd = container_change_password(&tmp_dir, "sample", Some(b"123"));
+    let cmd = container_change_password(&tmp_dir, Some("sample"), Some(b"123"));
     handle_password_file(
         &tmp_dir,
         cmd,
@@ -354,7 +404,7 @@ fn change_password() {
     .stdout("")
     .stderr("");
 
-    container_info(&tmp_dir, "sample", Some(b"new_password"))
+    container_info(&tmp_dir, Some("sample"), Some(b"new_password"))
         .assert()
         .success();
 }
@@ -363,7 +413,12 @@ fn change_password() {
 fn change_kdf() {
     let tmp_dir = setup();
 
-    container_change_kdf(&tmp_dir, "sample", "pbkdf2", Some(b"123"))
+    container_change_kdf(&tmp_dir, None, "pbkdf2", Some(b"123"))
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+    container_change_kdf(&tmp_dir, Some("sample"), "pbkdf2", Some(b"123"))
         .assert()
         .code(1)
         .stdout("no such container: sample\n")
@@ -372,7 +427,7 @@ fn change_kdf() {
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
         .success();
-    container_change_kdf(&tmp_dir, "sample", "pbkdf2", Some(b"xxx"))
+    container_change_kdf(&tmp_dir, Some("sample"), "pbkdf2", Some(b"xxx"))
         .assert()
         .code(1)
         .stdout("the plaintext is not trustworthy\n")
@@ -385,12 +440,12 @@ fn change_kdf() {
         ("pbkdf2::666:", "pbkdf2:sha256:666:16"),
         ("pbkdf2:::6", "pbkdf2:sha256:65536:6"),
     ] {
-        container_change_kdf(&tmp_dir, "sample", arg, Some(b"123"))
+        container_change_kdf(&tmp_dir, Some("sample"), arg, Some(b"123"))
             .assert()
             .success()
             .stdout("")
             .stderr("");
-        container_info(&tmp_dir, "sample", Some(b"123"))
+        container_info(&tmp_dir, Some("sample"), Some(b"123"))
             .assert()
             .success()
             .stdout(hash::eq(default_info_with([("kdf", kdf)].into())));
@@ -477,7 +532,7 @@ fn create() {
             .success()
             .stdout("")
             .stderr("");
-        container_info(&tmp_dir, &name, pass)
+        container_info(&tmp_dir, Some(&name), pass)
             .assert()
             .success()
             .stdout(hash::eq(default_info_with(infos)));
@@ -499,7 +554,7 @@ fn create() {
         .stdout("")
         .stderr("");
 
-    container_info(&tmp_dir, "sample-overwrite", Some(b"blabla"))
+    container_info(&tmp_dir, Some("sample-overwrite"), Some(b"blabla"))
         .assert()
         .success();
 }
@@ -508,7 +563,13 @@ fn create() {
 fn delete() {
     let tmp_dir = setup();
 
-    container_delete(&tmp_dir, "sample", Some(b"123"))
+    container_delete(&tmp_dir, None, Some(b"123"))
+        .arg("--yes")
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+    container_delete(&tmp_dir, Some("sample"), Some(b"123"))
         .arg("--yes")
         .assert()
         .code(1)
@@ -519,14 +580,14 @@ fn delete() {
         .assert()
         .success();
     assert!(tmp_dir.join(".nuts/container.d/sample").exists());
-    container_delete(&tmp_dir, "sample", Some(b"xxx"))
+    container_delete(&tmp_dir, Some("sample"), Some(b"xxx"))
         .arg("--yes")
         .assert()
         .code(1)
         .stdout("the plaintext is not trustworthy\n")
         .stderr("");
     assert!(tmp_dir.join(".nuts/container.d/sample").exists());
-    container_delete(&tmp_dir, "sample", Some(b"123"))
+    container_delete(&tmp_dir, Some("sample"), Some(b"123"))
         .arg("--yes")
         .assert()
         .success()
@@ -538,14 +599,14 @@ fn delete() {
         .assert()
         .success();
     assert!(tmp_dir.join(".nuts/container.d/sample").exists());
-    container_delete(&tmp_dir, "sample", Some(b"xxx"))
+    container_delete(&tmp_dir, Some("sample"), Some(b"xxx"))
         .arg("--yes")
         .assert()
         .code(1)
         .stdout("the plaintext is not trustworthy\n")
         .stderr("");
     assert!(tmp_dir.join(".nuts/container.d/sample").exists());
-    container_delete(&tmp_dir, "sample", None)
+    container_delete(&tmp_dir, Some("sample"), None)
         .args(["--force", "--yes"])
         .assert()
         .success()
@@ -558,7 +619,12 @@ fn delete() {
 fn info() {
     let tmp_dir = setup();
 
-    container_info(&tmp_dir, "sample", Some(b"123"))
+    container_info(&tmp_dir, None, Some(b"123"))
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+    container_info(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .code(1)
         .stdout("no such container: sample\n")
@@ -567,12 +633,12 @@ fn info() {
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
         .success();
-    container_info(&tmp_dir, "sample", Some(b"xxx"))
+    container_info(&tmp_dir, Some("sample"), Some(b"xxx"))
         .assert()
         .code(1)
         .stdout("the plaintext is not trustworthy\n")
         .stderr("");
-    container_info(&tmp_dir, "sample", Some(b"123"))
+    container_info(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .success()
         .stdout(hash::eq(default_info_with([].into())))
@@ -583,7 +649,7 @@ fn info() {
 fn read() {
     let tmp_dir = setup();
 
-    container_read(&tmp_dir, "sample", "xxx", Some(b"123"))
+    container_read(&tmp_dir, Some("sample"), "xxx", Some(b"123"))
         .assert()
         .code(1)
         .stdout("no such container: sample\n")
@@ -592,7 +658,7 @@ fn read() {
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
         .success();
-    let assert = container_acquire(&tmp_dir, "sample", Some(b"123"))
+    let assert = container_acquire(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .success();
     let id = id_from_acquire_stdout(assert);
@@ -605,33 +671,38 @@ fn read() {
     );
     let data = [0, 1, 2, 3, 4, 5, 6, 7].repeat(62);
 
-    container_write(&tmp_dir, "sample", Some(&id), &data, Some(b"123"))
+    container_write(&tmp_dir, Some("sample"), Some(&id), &data, Some(b"123"))
         .assert()
         .success();
 
-    container_read(&tmp_dir, "sample", "xxx", Some(b"123"))
+    container_read(&tmp_dir, None, &id, Some(b"123"))
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+    container_read(&tmp_dir, Some("sample"), "xxx", Some(b"123"))
         .assert()
         .code(1)
         .stdout("could not parse id\n")
         .stderr("");
-    container_read(&tmp_dir, "sample", &reverted_id, Some(b"123"))
+    container_read(&tmp_dir, Some("sample"), &reverted_id, Some(b"123"))
         .assert()
         .code(1)
         .stdout("the backend created an error: No such file or directory (os error 2)\n")
         .stderr("");
-    container_read(&tmp_dir, "sample", &id, Some(b"xxx"))
+    container_read(&tmp_dir, Some("sample"), &id, Some(b"xxx"))
         .assert()
         .code(1)
         .stdout("the plaintext is not trustworthy\n")
         .stderr("");
-    container_read(&tmp_dir, "sample", &id, Some(b"123"))
+    container_read(&tmp_dir, Some("sample"), &id, Some(b"123"))
         .assert()
         .success()
         .stdout(data.clone())
         .stderr("");
 
     for (max, n) in [("0", 0), ("1", 1), ("248", 248), ("496", 496), ("497", 496)] {
-        container_read(&tmp_dir, "sample", &id, Some(b"123"))
+        container_read(&tmp_dir, Some("sample"), &id, Some(b"123"))
             .args(["--max-bytes", max])
             .assert()
             .success()
@@ -644,7 +715,7 @@ fn read() {
 fn release() {
     let tmp_dir = setup();
 
-    container_release(&tmp_dir, "sample", "xxx", Some(b"123"))
+    container_release(&tmp_dir, Some("sample"), "xxx", Some(b"123"))
         .assert()
         .code(1)
         .stdout("no such container: sample\n")
@@ -653,7 +724,7 @@ fn release() {
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
         .success();
-    let assert = container_acquire(&tmp_dir, "sample", Some(b"123"))
+    let assert = container_acquire(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .success();
     let id = id_from_acquire_stdout(assert);
@@ -665,23 +736,28 @@ fn release() {
             .collect::<Vec<_>>(),
     );
 
-    container_release(&tmp_dir, "sample", "xxx", Some(b"123"))
+    container_release(&tmp_dir, None, &id, Some(b"123"))
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+    container_release(&tmp_dir, Some("sample"), "xxx", Some(b"123"))
         .assert()
         .code(1)
         .stdout("could not parse id\n")
         .stderr("");
-    container_release(&tmp_dir, "sample", &reverted_id, Some(b"123"))
+    container_release(&tmp_dir, Some("sample"), &reverted_id, Some(b"123"))
         .assert()
         .code(1)
         .stdout("the backend created an error: No such file or directory (os error 2)\n")
         .stderr("");
 
-    container_release(&tmp_dir, "sample", &id, Some(b"123"))
+    container_release(&tmp_dir, Some("sample"), &id, Some(b"123"))
         .assert()
         .success()
         .stdout("")
         .stderr("");
-    container_read(&tmp_dir, "sample", &id, Some(b"123"))
+    container_read(&tmp_dir, Some("sample"), &id, Some(b"123"))
         .assert()
         .code(1)
         .stdout("the backend created an error: No such file or directory (os error 2)\n")
@@ -693,7 +769,7 @@ fn write() {
     let tmp_dir = setup();
     let data = [0, 1, 2, 3, 4, 5, 6, 7].repeat(63);
 
-    container_write(&tmp_dir, "sample", Some("xxx"), &data, Some(b"123"))
+    container_write(&tmp_dir, Some("sample"), Some("xxx"), &data, Some(b"123"))
         .assert()
         .code(1)
         .stdout("no such container: sample\n")
@@ -702,7 +778,7 @@ fn write() {
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
         .success();
-    let assert = container_acquire(&tmp_dir, "sample", Some(b"123"))
+    let assert = container_acquire(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .success();
     let id = id_from_acquire_stdout(assert);
@@ -714,19 +790,30 @@ fn write() {
             .collect::<Vec<_>>(),
     );
 
-    container_write(&tmp_dir, "sample", Some("xxx"), &data, Some(b"123"))
+    container_write(&tmp_dir, None, Some(&id), &data, Some(b"123"))
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+    container_write(&tmp_dir, Some("sample"), Some("xxx"), &data, Some(b"123"))
         .assert()
         .code(1)
         .stdout("could not parse id\n")
         .stderr("");
-    container_write(&tmp_dir, "sample", Some(&reverted_id), &data, Some(b"123"))
-        .assert()
-        .code(1)
-        .stdout(predicates::str::starts_with(format!(
-            "the backend created an error: cannot open {reverted_id}, no related file "
-        )))
-        .stderr("");
-    container_write(&tmp_dir, "sample", Some(&id), &data, Some(b"xxx"))
+    container_write(
+        &tmp_dir,
+        Some("sample"),
+        Some(&reverted_id),
+        &data,
+        Some(b"123"),
+    )
+    .assert()
+    .code(1)
+    .stdout(predicates::str::starts_with(format!(
+        "the backend created an error: cannot open {reverted_id}, no related file "
+    )))
+    .stderr("");
+    container_write(&tmp_dir, Some("sample"), Some(&id), &data, Some(b"xxx"))
         .assert()
         .code(1)
         .stdout("the plaintext is not trustworthy\n")
@@ -739,7 +826,7 @@ fn write() {
         (&["--max-bytes", "496"], 496, 496),
         (&["--max-bytes", "497"], 497, 496),
     ] {
-        let assert = container_acquire(&tmp_dir, "sample", Some(b"123"))
+        let assert = container_acquire(&tmp_dir, Some("sample"), Some(b"123"))
             .assert()
             .success();
         let id = id_from_acquire_stdout(assert);
@@ -747,20 +834,26 @@ fn write() {
 
         out[..num].copy_from_slice(&data[..num]);
 
-        container_write(&tmp_dir, "sample", Some(&id), &data[..max], Some(b"123"))
-            .args(args)
-            .assert()
-            .success()
-            .stdout(format!("{num} bytes written into {id}\n"))
-            .stderr("");
-        container_read(&tmp_dir, "sample", &id, Some(b"123"))
+        container_write(
+            &tmp_dir,
+            Some("sample"),
+            Some(&id),
+            &data[..max],
+            Some(b"123"),
+        )
+        .args(args)
+        .assert()
+        .success()
+        .stdout(format!("{num} bytes written into {id}\n"))
+        .stderr("");
+        container_read(&tmp_dir, Some("sample"), &id, Some(b"123"))
             .assert()
             .success()
             .stdout(out)
             .stderr("");
     }
 
-    let assert = container_write(&tmp_dir, "sample", None, &data, Some(b"123"))
+    let assert = container_write(&tmp_dir, Some("sample"), None, &data, Some(b"123"))
         .assert()
         .success()
         .stdout(predicates::str::starts_with("496 bytes written into "))
@@ -769,7 +862,7 @@ fn write() {
     let id = str::from_utf8(output.stdout.split(|b| *b == b' ').nth(4).unwrap())
         .unwrap()
         .trim_end();
-    container_read(&tmp_dir, "sample", &id, Some(b"123"))
+    container_read(&tmp_dir, Some("sample"), &id, Some(b"123"))
         .assert()
         .success()
         .stdout(data[..496].to_vec())

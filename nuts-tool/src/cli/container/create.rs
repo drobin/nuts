@@ -25,13 +25,11 @@ use clap::{value_parser, ArgAction, Args};
 use log::debug;
 use nuts_container::{Cipher, Container, CreateOptionsBuilder, Kdf};
 use nuts_tool_api::tool::Plugin;
-use std::os::fd::RawFd;
-use std::path::PathBuf;
 
 use crate::backend::{PluginBackend, PluginBackendCreateBuilder};
 use crate::cli::container::{CliCipher, AES256_GCM};
 use crate::cli::ctx::ContainerContext;
-use crate::cli::password::{password_from_source_twice, PasswordSource};
+use crate::cli::password::password_from_source_twice;
 use crate::config::{ContainerConfig, PluginConfig};
 
 #[derive(Args, Debug)]
@@ -73,18 +71,12 @@ pub struct ContainerCreateArgs {
     #[clap(value_name = "PLUGIN ARGS")]
     plugin_args: Vec<String>,
 
-    #[clap(from_global)]
-    verbose: u8,
-
-    #[clap(from_global)]
-    password_from_fd: Option<RawFd>,
-
-    #[clap(from_global)]
-    password_from_file: Option<PathBuf>,
+    #[clap(long, hide = true)]
+    container: Option<String>,
 }
 
 impl ContainerCreateArgs {
-    pub fn run(&self, _ctx: &ContainerContext) -> Result<()> {
+    pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
         let plugin_config = PluginConfig::load()?;
@@ -100,10 +92,9 @@ impl ContainerCreateArgs {
             self.name
         );
 
-        let source = PasswordSource::new(self.password_from_fd, self.password_from_file.clone());
-
+        let source = ctx.password_source.clone();
         let backend_options =
-            PluginBackendCreateBuilder::new(plugin, &self.name, self.verbose, &self.plugin_args)?;
+            PluginBackendCreateBuilder::new(plugin, &self.name, ctx.verbose, &self.plugin_args)?;
         let mut builder = CreateOptionsBuilder::new(*self.cipher)
             .with_password_callback(|| password_from_source_twice(source, "Enter a password"))
             .with_overwrite(self.overwrite);

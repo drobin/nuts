@@ -35,14 +35,22 @@ use std::path::Path;
 use crate::common::{container_create, handle_password_args, nuts_tool, setup};
 use crate::predicates_ext::{hash, list};
 
-fn archive_add(home: &Path, name: &str, pass: Option<&[u8]>) -> Command {
-    let cmd = nuts_tool(home, ["archive", "add", "--container", name]);
+fn archive_add(home: &Path, name: Option<&str>, pass: Option<&[u8]>) -> Command {
+    let mut cmd = nuts_tool(home, ["archive", "add"]);
+
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
+    }
 
     handle_password_args(cmd, pass)
 }
 
-fn archive_create(home: &Path, name: &str, pass: Option<&[u8]>) -> Command {
-    let cmd = nuts_tool(home, ["archive", "create", "--container", name]);
+fn archive_create(home: &Path, name: Option<&str>, pass: Option<&[u8]>) -> Command {
+    let mut cmd = nuts_tool(home, ["archive", "create"]);
+
+    if let Some(name) = name {
+        cmd.args(["--container", name]);
+    }
 
     handle_password_args(cmd, pass)
 }
@@ -65,7 +73,7 @@ fn setup_archive() -> TempDir {
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
         .success();
-    archive_create(&tmp_dir, "sample", Some(b"123"))
+    archive_create(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .success();
 
@@ -77,6 +85,7 @@ fn help() {
     let tmp_dir = TempDir::new().unwrap();
 
     for args in [
+        ["archive", "--help"].as_slice(), // FIXME
         ["archive", "add", "--help"].as_slice(),
         ["archive", "add", "file", "--help"].as_slice(),
         ["archive", "add", "directory", "--help"].as_slice(),
@@ -89,6 +98,7 @@ fn help() {
     ] {
         let password_from_fd = predicates::str::contains("--password-from-fd");
         let password_from_file = predicates::str::contains("--password-from-file");
+        let container = predicates::str::contains("--container");
         let verbose = predicates::str::contains("--verbose");
         let quiet = predicates::str::contains("--quiet");
 
@@ -98,6 +108,7 @@ fn help() {
             .stdout(
                 password_from_fd
                     .and(password_from_file)
+                    .and(container)
                     .and(verbose)
                     .and(quiet),
             )
@@ -140,18 +151,23 @@ fn add() {
         }
     }
 
-    archive_add(&tmp_dir, "xxx", Some(b"123"))
+    archive_add(&tmp_dir, None, Some(b"123"))
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+    archive_add(&tmp_dir, Some("xxx"), Some(b"123"))
         .assert()
         .code(1)
         .stdout("no such container: xxx\n")
         .stderr("");
-    archive_add(&tmp_dir, "sample", Some(b"xxx"))
+    archive_add(&tmp_dir, Some("sample"), Some(b"xxx"))
         .assert()
         .code(1)
         .stdout("the plaintext is not trustworthy\n")
         .stderr("");
 
-    archive_add(&tmp_dir, "sample", Some(b"123"))
+    archive_add(&tmp_dir, Some("sample"), Some(b"123"))
         .arg(f1.to_str().unwrap())
         .assert()
         .success()
@@ -162,7 +178,7 @@ fn add() {
         .success()
         .stdout(list::eq([f1.to_str().unwrap()]));
 
-    archive_add(&tmp_dir, "sample", Some(b"123"))
+    archive_add(&tmp_dir, Some("sample"), Some(b"123"))
         .arg(f2.to_str().unwrap())
         .assert()
         .success()
@@ -173,7 +189,7 @@ fn add() {
         .success()
         .stdout(list::eq([f1.to_str().unwrap(), f2.to_str().unwrap()]));
 
-    archive_add(&tmp_dir, "sample", Some(b"123"))
+    archive_add(&tmp_dir, Some("sample"), Some(b"123"))
         .arg(d1.to_str().unwrap())
         .assert()
         .success()
@@ -229,7 +245,12 @@ fn create() {
         }
     }
 
-    archive_create(&tmp_dir, "sample", Some(b"123"))
+    archive_create(&tmp_dir, None, Some(b"123"))
+        .assert()
+        .code(1)
+        .stdout("error: a value is required for '--container' but none was supplied\n\n")
+        .stderr("");
+    archive_create(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .code(1)
         .stdout("no such container: sample\n")
@@ -239,13 +260,13 @@ fn create() {
         .assert()
         .success();
 
-    archive_create(&tmp_dir, "sample", Some(b"xxx"))
+    archive_create(&tmp_dir, Some("sample"), Some(b"xxx"))
         .assert()
         .code(1)
         .stdout("the plaintext is not trustworthy\n")
         .stderr("");
 
-    archive_create(&tmp_dir, "sample", Some(b"123"))
+    archive_create(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .success()
         .stdout("")
@@ -256,7 +277,7 @@ fn create() {
         .stdout(hash::contains([("blocks", "0"), ("files", "0")]))
         .stderr("");
 
-    archive_create(&tmp_dir, "sample", Some(b"123"))
+    archive_create(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .code(1)
         .stdout("unexpected sid, expected none but got 1634886504\n")
@@ -265,7 +286,7 @@ fn create() {
     container_create(&tmp_dir, "sample1", "directory", Some(b"123"))
         .assert()
         .success();
-    archive_create(&tmp_dir, "sample1", Some(b"123"))
+    archive_create(&tmp_dir, Some("sample1"), Some(b"123"))
         .arg(f1.to_str().unwrap())
         .assert()
         .success()
@@ -279,7 +300,7 @@ fn create() {
     container_create(&tmp_dir, "sample2", "directory", Some(b"123"))
         .assert()
         .success();
-    archive_create(&tmp_dir, "sample2", Some(b"123"))
+    archive_create(&tmp_dir, Some("sample2"), Some(b"123"))
         .arg(f2.to_str().unwrap())
         .assert()
         .success()
@@ -293,7 +314,7 @@ fn create() {
     container_create(&tmp_dir, "sample3", "directory", Some(b"123"))
         .assert()
         .success();
-    archive_create(&tmp_dir, "sample3", Some(b"123"))
+    archive_create(&tmp_dir, Some("sample3"), Some(b"123"))
         .arg(d1.to_str().unwrap())
         .assert()
         .success()

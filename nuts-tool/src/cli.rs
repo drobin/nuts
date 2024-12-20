@@ -28,7 +28,7 @@ pub mod password;
 pub mod plugin;
 
 use anyhow::Result;
-use clap::{crate_version, ArgAction, Args, Parser, Subcommand};
+use clap::{crate_version, ArgAction, ArgGroup, Args, Parser, Subcommand};
 use env_logger::Builder;
 use log::LevelFilter;
 use rprompt::prompt_reply;
@@ -92,6 +92,7 @@ pub struct GlobalArgs {
 }
 
 #[derive(Args, Clone, Debug)]
+#[clap(group(ArgGroup::new("password").required(false).multiple(false)))]
 pub struct GlobalContainerArgs {
     /// Reads the password from the specified file descriptor <FD>. The
     /// password is the first line until a `\n` is read.
@@ -102,6 +103,10 @@ pub struct GlobalContainerArgs {
     /// first line until a `\n` is read.
     #[clap(long, group = "password", global = true, value_name = "PATH")]
     pub password_from_file: Option<PathBuf>,
+
+    /// Specifies the name of the container
+    #[clap(short, long, env = "NUTS_CONTAINER", global = true)]
+    pub container: Option<String>,
 }
 
 #[derive(Debug, Parser)]

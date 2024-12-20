@@ -41,6 +41,9 @@ pub struct ContainerListArgs {
 
     #[clap(long, hide = true)]
     password_from_file: Option<PathBuf>,
+
+    #[clap(long, hide = true)]
+    container: Option<String>,
 }
 
 impl ContainerListArgs {

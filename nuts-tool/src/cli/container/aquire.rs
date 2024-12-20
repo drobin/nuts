@@ -28,17 +28,13 @@ use crate::cli::ctx::ContainerContext;
 use crate::say::say;
 
 #[derive(Args, Debug)]
-pub struct ContainerAquireArgs {
-    /// Specifies the name of the container
-    #[clap(short, long, env = "NUTS_CONTAINER")]
-    container: String,
-}
+pub struct ContainerAquireArgs {}
 
 impl ContainerAquireArgs {
     pub fn run(&self, ctx: &ContainerContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut container = ctx.open_container(&self.container)?;
+        let mut container = ctx.open_container()?;
         let id = container.aquire()?;
 
         say!(ctx, "aquired: {}", id);
