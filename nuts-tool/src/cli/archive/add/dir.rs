@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
-use clap::{ArgAction, Args};
+use clap::Args;
 use log::debug;
 
 use crate::cli::archive::add::{TimestampArgs, TSTAMP_HELP};
@@ -35,17 +35,13 @@ pub struct ArchiveAddDirectoryArgs {
 
     #[clap(flatten)]
     timestamps: TimestampArgs,
-
-    /// Starts the migration when the container/archive is opened
-    #[clap(long, action = ArgAction::SetTrue)]
-    pub migrate: bool,
 }
 
 impl ArchiveAddDirectoryArgs {
     pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = ctx.open_archive(self.migrate)?;
+        let mut archive = ctx.open_archive()?;
         let mut builder = archive.append_directory(&self.name);
 
         if let Some(created) = self.timestamps.created {

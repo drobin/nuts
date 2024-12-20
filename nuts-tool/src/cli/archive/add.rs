@@ -28,7 +28,7 @@ use anyhow::Result;
 use chrono::offset::LocalResult;
 use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 use clap::builder::{TypedValueParser, ValueParserFactory};
-use clap::{value_parser, Arg, ArgAction, Args, Command, Subcommand};
+use clap::{value_parser, Arg, Args, Command, Subcommand};
 use log::debug;
 use std::ffi::OsStr;
 use std::path::PathBuf;
@@ -141,10 +141,6 @@ pub struct ArchiveAddArgs {
     /// a directory all entries in the directory are also appended. If no PATHS
     /// are specified an empty archive is created.
     paths: Vec<PathBuf>,
-
-    /// Starts the migration when the container/archive is opened
-    #[clap(long, action = ArgAction::SetTrue)]
-    pub migrate: bool,
 }
 
 impl ArchiveAddArgs {
@@ -155,7 +151,7 @@ impl ArchiveAddArgs {
 
         debug!("args: {:?}", self);
 
-        let mut archive = ctx.open_archive(self.migrate)?;
+        let mut archive = ctx.open_archive()?;
 
         for path in self.paths.iter() {
             append_recursive(ctx, &mut archive, path)?;

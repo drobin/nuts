@@ -28,6 +28,7 @@ use nuts_tool_api::tool::Plugin;
 use std::ops::Deref;
 
 use crate::backend::{PluginBackend, PluginBackendOpenBuilder};
+use crate::cli::archive::GlobalArchiveArgs;
 use crate::cli::password::{password_from_source, PasswordSource};
 use crate::cli::{GlobalArgs, GlobalContainerArgs};
 use crate::config::{ContainerConfig, PluginConfig};
@@ -113,14 +114,22 @@ impl<'a> Deref for ContainerContext<'a> {
 
 pub struct ArchiveContext<'a> {
     container: &'a ContainerContext<'a>,
+    migrate: bool,
 }
 
 impl<'a> ArchiveContext<'a> {
-    pub fn new(parent: &'a ContainerContext) -> ArchiveContext<'a> {
-        ArchiveContext { container: parent }
+    pub fn new(parent: &'a ContainerContext, args: &GlobalArchiveArgs) -> ArchiveContext<'a> {
+        ArchiveContext {
+            container: parent,
+            migrate: args.migrate,
+        }
     }
 
-    pub fn open_archive(&self, migrate: bool) -> Result<Archive<PluginBackend>> {
+    pub fn open_archive(&self) -> Result<Archive<PluginBackend>> {
+        self.open_archive_args(self.migrate)
+    }
+
+    pub fn open_archive_args(&self, migrate: bool) -> Result<Archive<PluginBackend>> {
         let container = self.open_container()?;
 
         Container::open_service::<ArchiveFactory>(container, migrate).map_err(|err| err.into())

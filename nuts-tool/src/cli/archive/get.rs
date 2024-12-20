@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use anyhow::{anyhow, Result};
-use clap::{ArgAction, Args};
+use clap::Args;
 use log::{debug, trace};
 
 use crate::cli::ctx::ArchiveContext;
@@ -35,17 +35,13 @@ pub struct ArchiveGetArgs {
     /// Specifies the format of the output
     #[clap(short, long, value_parser, default_value = "raw")]
     format: Format,
-
-    /// Starts the migration when the container/archive is opened
-    #[clap(long, action = ArgAction::SetTrue)]
-    pub migrate: bool,
 }
 
 impl ArchiveGetArgs {
     pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = ctx.open_archive(self.migrate)?;
+        let mut archive = ctx.open_archive()?;
         let block_size = archive.as_ref().block_size() as usize;
 
         let entry = match archive.lookup(&self.name) {

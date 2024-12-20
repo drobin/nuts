@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
-use clap::{ArgAction, Args};
+use clap::Args;
 use log::debug;
 
 use crate::cli::ctx::ArchiveContext;
@@ -39,17 +39,13 @@ pub struct ArchiveInfoArgs {
         default_value = "local"
     )]
     time_format: TimeFormat,
-
-    /// Starts the migration when the container/archive is opened
-    #[clap(long, action = ArgAction::SetTrue)]
-    pub migrate: bool,
 }
 
 impl ArchiveInfoArgs {
     pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let archive = ctx.open_archive(self.migrate)?;
+        let archive = ctx.open_archive()?;
         let info = archive.info();
 
         let created = self.time_format.format(&info.created, "%c");

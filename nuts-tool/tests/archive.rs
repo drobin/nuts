@@ -84,25 +84,26 @@ fn setup_archive() -> TempDir {
 fn help() {
     let tmp_dir = TempDir::new().unwrap();
 
-    for args in [
-        ["archive", "--help"].as_slice(), // FIXME
-        ["archive", "add", "--help"].as_slice(),
-        ["archive", "add", "file", "--help"].as_slice(),
-        ["archive", "add", "directory", "--help"].as_slice(),
-        ["archive", "add", "symlink", "--help"].as_slice(),
-        ["archive", "create", "--help"].as_slice(),
-        ["archive", "get", "--help"].as_slice(),
-        ["archive", "info", "--help"].as_slice(),
-        ["archive", "list", "--help"].as_slice(),
-        ["archive", "migrate", "--help"].as_slice(),
+    for (args, migrate_arg) in [
+        (["archive", "--help"].as_slice(), true), // FIXME
+        (["archive", "add", "--help"].as_slice(), true),
+        (["archive", "add", "file", "--help"].as_slice(), true),
+        (["archive", "add", "directory", "--help"].as_slice(), true),
+        (["archive", "add", "symlink", "--help"].as_slice(), true),
+        (["archive", "create", "--help"].as_slice(), false),
+        (["archive", "get", "--help"].as_slice(), true),
+        (["archive", "info", "--help"].as_slice(), true),
+        (["archive", "list", "--help"].as_slice(), true),
+        (["archive", "migrate", "--help"].as_slice(), false),
     ] {
         let password_from_fd = predicates::str::contains("--password-from-fd");
         let password_from_file = predicates::str::contains("--password-from-file");
         let container = predicates::str::contains("--container");
+        let migrate = predicates::str::contains("--migrate");
         let verbose = predicates::str::contains("--verbose");
         let quiet = predicates::str::contains("--quiet");
 
-        nuts_tool(&tmp_dir, args)
+        let assert = nuts_tool(&tmp_dir, args)
             .assert()
             .success()
             .stdout(
@@ -113,6 +114,12 @@ fn help() {
                     .and(quiet),
             )
             .stderr("");
+
+        if migrate_arg {
+            assert.stdout(migrate);
+        } else {
+            assert.stdout(migrate.not());
+        }
     }
 }
 

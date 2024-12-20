@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 
 use anyhow::Result;
-use clap::{ArgAction, Args};
+use clap::Args;
 use log::debug;
 use std::io::{self, Read};
 
@@ -36,17 +36,13 @@ pub struct ArchiveAddFileArgs {
 
     #[clap(flatten)]
     timestamps: TimestampArgs,
-
-    /// Starts the migration when the container/archive is opened
-    #[clap(long, action = ArgAction::SetTrue)]
-    pub migrate: bool,
 }
 
 impl ArchiveAddFileArgs {
     pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let mut archive = ctx.open_archive(self.migrate)?;
+        let mut archive = ctx.open_archive()?;
         let block_size = archive.as_ref().block_size() as usize;
         let mut builder = archive.append_file(&self.name);
 

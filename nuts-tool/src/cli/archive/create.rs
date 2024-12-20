@@ -41,6 +41,9 @@ pub struct ArchiveCreateArgs {
     /// container
     #[clap(short, long, action = ArgAction::SetTrue)]
     force: bool,
+
+    #[clap(long, hide = true)]
+    migrate: bool,
 }
 
 impl ArchiveCreateArgs {

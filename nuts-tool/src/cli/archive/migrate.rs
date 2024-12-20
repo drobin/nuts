@@ -42,13 +42,16 @@ pub struct ArchiveMigrateArgs {
     /// Say yes, don't prompt for migration
     #[clap(short, long, action = ArgAction::SetTrue)]
     yes: bool,
+
+    #[clap(long, hide = true)]
+    migrate: bool,
 }
 
 impl ArchiveMigrateArgs {
     pub fn run(&self, ctx: &ArchiveContext) -> Result<()> {
         debug!("args: {:?}", self);
 
-        let archive = ctx.open_archive(false)?;
+        let archive = ctx.open_archive_args(false)?;
         let info = archive.as_ref().info()?;
 
         match info.revision.cmp(&LATEST_REVISION) {
@@ -72,7 +75,7 @@ impl ArchiveMigrateArgs {
                 if self.verify {
                     Err(ExitOnly::new(1).into())
                 } else if prompt_yes_no("Do you really want to start the migration?", self.yes)? {
-                    ctx.open_archive(true).map(|_| ())
+                    ctx.open_archive_args(true).map(|_| ())
                 } else {
                     say!(ctx, "aborted");
                     Ok(())

@@ -28,7 +28,7 @@ pub mod list;
 pub mod migrate;
 
 use anyhow::Result;
-use clap::{Args, Subcommand};
+use clap::{ArgAction, Args, Subcommand};
 
 use crate::cli::archive::add::ArchiveAddArgs;
 use crate::cli::archive::create::ArchiveCreateArgs;
@@ -39,6 +39,13 @@ use crate::cli::archive::migrate::ArchiveMigrateArgs;
 use crate::cli::ctx::{ArchiveContext, ContainerContext, GlobalContext};
 use crate::cli::GlobalContainerArgs;
 
+#[derive(Args, Clone, Debug)]
+pub struct GlobalArchiveArgs {
+    /// Starts the migration when the container/archive is opened
+    #[clap(long, action = ArgAction::SetTrue, global = true)]
+    pub migrate: bool,
+}
+
 #[derive(Debug, Args)]
 #[clap(args_conflicts_with_subcommands = true, subcommand_required = true)]
 pub struct ArchiveArgs {
@@ -47,12 +54,15 @@ pub struct ArchiveArgs {
 
     #[command(flatten)]
     global_args: GlobalContainerArgs,
+
+    #[command(flatten)]
+    global_archive_args: GlobalArchiveArgs,
 }
 
 impl ArchiveArgs {
     pub fn run(&self, ctx: &GlobalContext) -> Result<()> {
         let ctx = ContainerContext::new(ctx, &self.global_args);
-        let ctx = ArchiveContext::new(&ctx);
+        let ctx = ArchiveContext::new(&ctx, &self.global_archive_args);
 
         self.command
             .as_ref()
