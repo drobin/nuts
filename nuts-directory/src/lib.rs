@@ -88,7 +88,7 @@ fn read_block(path: &Path, id: &Id, bsize: u32, buf: &mut [u8]) -> Result<usize>
 fn write_block(
     path: &Path,
     id: &Id,
-    aquire: bool,
+    acquire: bool,
     header: bool,
     bsize: u32,
     buf: &[u8],
@@ -99,18 +99,18 @@ fn write_block(
         fs::create_dir_all(dir)?;
     }
 
-    if aquire {
-        // A block is aquired. Allow only to create non-existing files.
+    if acquire {
+        // A block is acquired. Allow only to create non-existing files.
         if path.exists() {
             return Err(io::Error::new(
                 ErrorKind::Other,
-                format!("cannot aquire {}, already stored in {}", id, path.display()),
+                format!("cannot acquire {}, already stored in {}", id, path.display()),
             )
             .into());
         }
     } else {
         // * The header block can be created even if it does not exist.
-        // * Any other block must be aquired before, thus open should fail if the
+        // * Any other block must be acquired before, thus open should fail if the
         //   file does not exist.
         if !header && !path.is_file() {
             return Err(io::Error::new(
