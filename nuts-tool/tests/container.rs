@@ -349,7 +349,7 @@ fn acquire() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("the plaintext is not trustworthy\n");
+        .stderr("the password is wrong\n");
 
     let assert = container_acquire(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
@@ -391,7 +391,7 @@ fn change_password() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("the plaintext is not trustworthy\n");
+        .stderr("the password is wrong\n");
     let cmd = container_change_password(&tmp_dir, Some("sample"), Some(b"123"));
     handle_password_file(
         &tmp_dir,
@@ -431,7 +431,7 @@ fn change_kdf() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("the plaintext is not trustworthy\n");
+        .stderr("the password is wrong\n");
 
     for (arg, kdf) in [
         ("pbkdf2", "pbkdf2:sha256:65536:16"),
@@ -585,7 +585,7 @@ fn delete() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("the plaintext is not trustworthy\n");
+        .stderr("the password is wrong\n");
     assert!(tmp_dir.join(".nuts/container.d/sample").exists());
     container_delete(&tmp_dir, Some("sample"), Some(b"123"))
         .arg("--yes")
@@ -604,7 +604,7 @@ fn delete() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("the plaintext is not trustworthy\n");
+        .stderr("the password is wrong\n");
     assert!(tmp_dir.join(".nuts/container.d/sample").exists());
     container_delete(&tmp_dir, Some("sample"), None)
         .args(["--force", "--yes"])
@@ -637,7 +637,7 @@ fn info() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("the plaintext is not trustworthy\n");
+        .stderr("the password is wrong\n");
     container_info(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .success()
@@ -694,7 +694,7 @@ fn read() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("the plaintext is not trustworthy\n");
+        .stderr("the password is wrong\n");
     container_read(&tmp_dir, Some("sample"), &id, Some(b"123"))
         .assert()
         .success()
@@ -817,7 +817,7 @@ fn write() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("the plaintext is not trustworthy\n");
+        .stderr("the password is wrong\n");
 
     for (args, max, num) in [
         ([].as_slice(), 496, 496),

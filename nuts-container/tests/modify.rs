@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2024 Robin Doer
+// Copyright (c) 2024,2025 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -94,24 +94,13 @@ macro_rules! old_password_test {
         }
     };
 
-    ($name:ident ( wrong ), $json:literal) => {
+    ($name:ident, $json:literal) => {
         #[test]
         fn $name() {
             let err = backend_with_changed_password_err($json);
 
             assert!(matches!(err, Error::Header(cause)
                 if matches!(cause, HeaderError::WrongPassword)));
-        }
-    };
-
-    ($name:ident ( trust ), $json:literal) => {
-        #[test]
-        fn $name() {
-            let err = backend_with_changed_password_err($json);
-
-            assert!(matches!(err, Error::Header(ref cause)
-                if matches!(cause, HeaderError::Cipher(cause)
-                    if matches!(cause, CipherError::NotTrustworthy))));
         }
     };
 }
@@ -160,9 +149,7 @@ macro_rules! kdf_test {
 }
 
 mod v_0_6_8 {
-    use nuts_container::{
-        Cipher, CipherError, Digest, Error, HeaderError, Kdf, ModifyOptionsBuilder,
-    };
+    use nuts_container::{Cipher, Digest, Error, HeaderError, Kdf, ModifyOptionsBuilder};
 
     use crate::{
         backend_with_changed_password, backend_with_changed_password_err,
@@ -177,18 +164,16 @@ mod v_0_6_8 {
     kdf_test!(kdf_none, "0.6.8-none.json", None);
 
     password_test!(password_aes128ctr, "0.6.8-aes128ctr.json", Aes128Ctr);
-    old_password_test!(old_password_ses128ctr(wrong), "0.6.8-aes128ctr.json");
+    old_password_test!(old_password_aes128ctr, "0.6.8-aes128ctr.json");
     kdf_test!(kdf_aes128ctr, "0.6.8-aes128ctr.json", Aes128Ctr);
 
     password_test!(password_aes128gcm, "0.6.8-aes128gcm.json", Aes128Gcm);
-    old_password_test!(old_password_aes128gcm(trust), "0.6.8-aes128gcm.json");
+    old_password_test!(old_password_aes128gcm, "0.6.8-aes128gcm.json");
     kdf_test!(kdf_aes128gcm, "0.6.8-aes128gcm.json", Aes128Gcm);
 }
 
 mod v_0_7_0 {
-    use nuts_container::{
-        Cipher, CipherError, Digest, Error, HeaderError, Kdf, ModifyOptionsBuilder,
-    };
+    use nuts_container::{Cipher, Digest, Error, HeaderError, Kdf, ModifyOptionsBuilder};
 
     use crate::{
         backend_with_changed_password, backend_with_changed_password_err,
@@ -203,34 +188,32 @@ mod v_0_7_0 {
     kdf_test!(kdf_none, "0.7.0-none.json", None);
 
     password_test!(password_aes128ctr, "0.7.0-aes128ctr.json", Aes128Ctr);
-    old_password_test!(old_password_aes128ctr(wrong), "0.7.0-aes128ctr.json");
+    old_password_test!(old_password_aes128ctr, "0.7.0-aes128ctr.json");
     kdf_test!(kdf_aes128ctr, "0.7.0-aes128ctr.json", Aes128Ctr);
 
     password_test!(password_aes128gcm, "0.7.0-aes128gcm.json", Aes128Gcm);
-    old_password_test!(old_password_aes128gcm(trust), "0.7.0-aes128gcm.json");
+    old_password_test!(old_password_aes128gcm, "0.7.0-aes128gcm.json");
     kdf_test!(kdf_aes128gcm, "0.7.0-aes128gcm.json", Aes128Gcm);
 
     password_test!(password_aes192ctr, "0.7.0-aes192ctr.json", Aes192Ctr);
-    old_password_test!(old_password_aes192ctr(wrong), "0.7.0-aes192ctr.json");
+    old_password_test!(old_password_aes192ctr, "0.7.0-aes192ctr.json");
     kdf_test!(kdf_aes192ctr, "0.7.0-aes192ctr.json", Aes192Ctr);
 
     password_test!(password_aes192gcm, "0.7.0-aes192gcm.json", Aes192Gcm);
-    old_password_test!(old_password_aes192gcm(trust), "0.7.0-aes192gcm.json");
+    old_password_test!(old_password_aes192gcm, "0.7.0-aes192gcm.json");
     kdf_test!(kdf_aes192gcm, "0.7.0-aes192gcm.json", Aes192Gcm);
 
     password_test!(password_aes256ctr, "0.7.0-aes256ctr.json", Aes256Ctr);
-    old_password_test!(old_password_aes256ctr(wrong), "0.7.0-aes256ctr.json");
+    old_password_test!(old_password_aes256ctr, "0.7.0-aes256ctr.json");
     kdf_test!(kdf_aes256ctr, "0.7.0-aes256ctr.json", Aes256Ctr);
 
     password_test!(password_aes256gcm, "0.7.0-aes256gcm.json", Aes256Gcm);
-    old_password_test!(old_password_aes256gcm(trust), "0.7.0-aes256gcm.json");
+    old_password_test!(old_password_aes256gcm, "0.7.0-aes256gcm.json");
     kdf_test!(kdf_aes256gcm, "0.7.0-aes256gcm.json", Aes256Gcm);
 }
 
 mod v_0_7_1 {
-    use nuts_container::{
-        Cipher, CipherError, Digest, Error, HeaderError, Kdf, ModifyOptionsBuilder,
-    };
+    use nuts_container::{Cipher, Digest, Error, HeaderError, Kdf, ModifyOptionsBuilder};
 
     use crate::{
         backend_with_changed_password, backend_with_changed_password_err,
@@ -245,34 +228,32 @@ mod v_0_7_1 {
     kdf_test!(kdf_none, "0.7.1-none.json", None);
 
     password_test!(password_aes128ctr, "0.7.1-aes128ctr.json", Aes128Ctr);
-    old_password_test!(old_password_aes128ctr(wrong), "0.7.1-aes128ctr.json");
+    old_password_test!(old_password_aes128ctr, "0.7.1-aes128ctr.json");
     kdf_test!(kdf_aes128ctr, "0.7.1-aes128ctr.json", Aes128Ctr);
 
     password_test!(password_aes128gcm, "0.7.1-aes128gcm.json", Aes128Gcm);
-    old_password_test!(old_password_aes128gcm(trust), "0.7.1-aes128gcm.json");
+    old_password_test!(old_password_aes128gcm, "0.7.1-aes128gcm.json");
     kdf_test!(kdf_aes128gcm, "0.7.1-aes128gcm.json", Aes128Gcm);
 
     password_test!(password_aes192ctr, "0.7.1-aes192ctr.json", Aes192Ctr);
-    old_password_test!(old_password_aes192ctr(wrong), "0.7.1-aes192ctr.json");
+    old_password_test!(old_password_aes192ctr, "0.7.1-aes192ctr.json");
     kdf_test!(kdf_aes192ctr, "0.7.1-aes192ctr.json", Aes192Ctr);
 
     password_test!(password_aes192gcm, "0.7.1-aes192gcm.json", Aes192Gcm);
-    old_password_test!(old_password_aes192gcm(trust), "0.7.1-aes192gcm.json");
+    old_password_test!(old_password_aes192gcm, "0.7.1-aes192gcm.json");
     kdf_test!(kdf_aes192gcm, "0.7.1-aes192gcm.json", Aes192Gcm);
 
     password_test!(password_aes256ctr, "0.7.1-aes256ctr.json", Aes256Ctr);
-    old_password_test!(old_password_aes256ctr(wrong), "0.7.1-aes256ctr.json");
+    old_password_test!(old_password_aes256ctr, "0.7.1-aes256ctr.json");
     kdf_test!(kdf_aes256ctr, "0.7.1-aes256ctr.json", Aes256Ctr);
 
     password_test!(password_aes256gcm, "0.7.1-aes256gcm.json", Aes256Gcm);
-    old_password_test!(old_password_aes256gcm(trust), "0.7.1-aes256gcm.json");
+    old_password_test!(old_password_aes256gcm, "0.7.1-aes256gcm.json");
     kdf_test!(kdf_aes256gcm, "0.7.1-aes256gcm.json", Aes256Gcm);
 }
 
 mod v_0_7_3 {
-    use nuts_container::{
-        Cipher, CipherError, Digest, Error, HeaderError, Kdf, ModifyOptionsBuilder,
-    };
+    use nuts_container::{Cipher, Digest, Error, HeaderError, Kdf, ModifyOptionsBuilder};
 
     use crate::{
         backend_with_changed_password, backend_with_changed_password_err,
@@ -287,26 +268,26 @@ mod v_0_7_3 {
     kdf_test!(kdf_none, "0.7.3-none.json", None);
 
     password_test!(password_aes128ctr, "0.7.3-aes128ctr.json", Aes128Ctr);
-    old_password_test!(old_password_aes128ctr(wrong), "0.7.3-aes128ctr.json");
+    old_password_test!(old_password_aes128ctr, "0.7.3-aes128ctr.json");
     kdf_test!(kdf_aes128ctr, "0.7.3-aes128ctr.json", Aes128Ctr);
 
     password_test!(password_aes128gcm, "0.7.3-aes128gcm.json", Aes128Gcm);
-    old_password_test!(old_password_aes128gcm(trust), "0.7.3-aes128gcm.json");
+    old_password_test!(old_password_aes128gcm, "0.7.3-aes128gcm.json");
     kdf_test!(kdf_aes128gcm, "0.7.3-aes128gcm.json", Aes128Gcm);
 
     password_test!(password_aes192ctr, "0.7.3-aes192ctr.json", Aes192Ctr);
-    old_password_test!(old_password_aes192ctr(wrong), "0.7.3-aes192ctr.json");
+    old_password_test!(old_password_aes192ctr, "0.7.3-aes192ctr.json");
     kdf_test!(kdf_aes192ctr, "0.7.3-aes192ctr.json", Aes192Ctr);
 
     password_test!(password_aes192gcm, "0.7.3-aes192gcm.json", Aes192Gcm);
-    old_password_test!(old_password_aes192gcm(trust), "0.7.3-aes192gcm.json");
+    old_password_test!(old_password_aes192gcm, "0.7.3-aes192gcm.json");
     kdf_test!(kdf_aes192gcm, "0.7.3-aes192gcm.json", Aes192Gcm);
 
     password_test!(password_aes256ctr, "0.7.3-aes256ctr.json", Aes256Ctr);
-    old_password_test!(old_password_aes256ctr(wrong), "0.7.3-aes256ctr.json");
+    old_password_test!(old_password_aes256ctr, "0.7.3-aes256ctr.json");
     kdf_test!(kdf_aes256ctr, "0.7.3-aes256ctr.json", Aes256Ctr);
 
     password_test!(password_aes256gcm, "0.7.3-aes256gcm.json", Aes256Gcm);
-    old_password_test!(old_password_aes256gcm(trust), "0.7.3-aes256gcm.json");
+    old_password_test!(old_password_aes256gcm, "0.7.3-aes256gcm.json");
     kdf_test!(kdf_aes256gcm, "0.7.3-aes256gcm.json", Aes256Gcm);
 }

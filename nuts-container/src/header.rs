@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022-2024 Robin Doer
+// Copyright (c) 2022-2025 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -154,15 +154,23 @@ impl<'a, B: Backend> Header<'a, B> {
         }
     }
 
+    fn decrypt_read(data: &Data, store: &mut PasswordStore) -> Result<SecureVec, HeaderError> {
+        let key = Self::create_key(data.cipher, &data.kdf, store)?;
+        let mut ctx = Self::prepare_cipher_ctx(data.cipher, &data.secret);
+
+        match ctx.decrypt(&key, &data.iv) {
+            Ok(_) => Ok(ctx.into_outp()),
+            Err(CipherError::NotTrustworthy) => Err(HeaderError::WrongPassword),
+            Err(err) => Err(err.into()),
+        }
+    }
+
     fn read_rev0(
         data: Data,
         migrator: Migrator<'a>,
         store: &mut PasswordStore,
     ) -> Result<Header<'a, B>, HeaderError> {
-        let key = Self::create_key(data.cipher, &data.kdf, store)?;
-        let mut ctx = Self::prepare_cipher_ctx(data.cipher, &data.secret);
-
-        let pbuf = ctx.decrypt(&key, &data.iv)?;
+        let pbuf = Self::decrypt_read(&data, store)?;
         let plain_secret = PlainSecret::from_buffer_rev0(&mut &pbuf[..])?;
 
         Ok(Header {
@@ -179,10 +187,7 @@ impl<'a, B: Backend> Header<'a, B> {
         migrator: Migrator<'a>,
         store: &mut PasswordStore,
     ) -> Result<Header<'a, B>, HeaderError> {
-        let key = Self::create_key(data.cipher, &data.kdf, store)?;
-        let mut ctx = Self::prepare_cipher_ctx(data.cipher, &data.secret);
-
-        let pbuf = ctx.decrypt(&key, &data.iv)?;
+        let pbuf = Self::decrypt_read(&data, store)?;
         let plain_secret = PlainSecret::from_buffer_rev1(&mut &pbuf[..])?;
 
         Ok(Header {
@@ -199,10 +204,7 @@ impl<'a, B: Backend> Header<'a, B> {
         migrator: Migrator<'a>,
         store: &mut PasswordStore,
     ) -> Result<Header<'a, B>, HeaderError> {
-        let key = Self::create_key(data.cipher, &data.kdf, store)?;
-        let mut ctx = Self::prepare_cipher_ctx(data.cipher, &data.secret);
-
-        let pbuf = ctx.decrypt(&key, &data.iv)?;
+        let pbuf = Self::decrypt_read(&data, store)?;
         let plain_secret = PlainSecret::from_buffer_rev2(&mut &pbuf[..])?;
 
         Ok(Header {

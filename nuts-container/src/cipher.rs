@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2022-2024 Robin Doer
+// Copyright (c) 2022-2025 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -234,6 +234,10 @@ impl CipherContext {
         self.copy_from_slice(buf_size, &[]); // whiteout
 
         &mut self.inp
+    }
+
+    pub fn into_outp(self) -> SecureVec {
+        self.outp
     }
 
     pub fn encrypt(&mut self, key: &[u8], iv: &[u8]) -> Result<&[u8], CipherError> {

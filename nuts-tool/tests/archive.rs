@@ -172,7 +172,7 @@ fn add() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("the plaintext is not trustworthy\n");
+        .stderr("the password is wrong\n");
 
     archive_add(&tmp_dir, Some("sample"), Some(b"123"))
         .arg(f1.to_str().unwrap())
@@ -271,7 +271,7 @@ fn create() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("the plaintext is not trustworthy\n");
+        .stderr("the password is wrong\n");
 
     archive_create(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
