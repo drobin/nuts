@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2024 Robin Doer
+// Copyright (c) 2024,2025 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -161,18 +161,18 @@ fn add() {
     archive_add(&tmp_dir, None, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
     archive_add(&tmp_dir, Some("xxx"), Some(b"123"))
         .assert()
         .code(1)
-        .stdout("no such container: xxx\n")
-        .stderr("");
+        .stdout("")
+        .stderr("no such container: xxx\n");
     archive_add(&tmp_dir, Some("sample"), Some(b"xxx"))
         .assert()
         .code(1)
-        .stdout("the plaintext is not trustworthy\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plaintext is not trustworthy\n");
 
     archive_add(&tmp_dir, Some("sample"), Some(b"123"))
         .arg(f1.to_str().unwrap())
@@ -255,13 +255,13 @@ fn create() {
     archive_create(&tmp_dir, None, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
     archive_create(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .code(1)
-        .stdout("no such container: sample\n")
-        .stderr("");
+        .stdout("")
+        .stderr("no such container: sample\n");
 
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
@@ -270,8 +270,8 @@ fn create() {
     archive_create(&tmp_dir, Some("sample"), Some(b"xxx"))
         .assert()
         .code(1)
-        .stdout("the plaintext is not trustworthy\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plaintext is not trustworthy\n");
 
     archive_create(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
@@ -287,8 +287,8 @@ fn create() {
     archive_create(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .code(1)
-        .stdout("unexpected sid, expected none but got 1634886504\n")
-        .stderr("");
+        .stdout("")
+        .stderr("unexpected sid, expected none but got 1634886504\n");
 
     container_create(&tmp_dir, "sample1", "directory", Some(b"123"))
         .assert()

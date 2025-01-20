@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2024 Robin Doer
+// Copyright (c) 2024,2025 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -88,8 +88,8 @@ fn add() {
     plugin_add(&tmp_dir, "directory", "no_such_file")
         .assert()
         .code(1)
-        .stdout("the path 'no_such_file' is invalid\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the path 'no_such_file' is invalid\n");
     plugin_list(&tmp_dir).assert().success().stdout("");
 
     plugin_add(&tmp_dir, "directory", &plugin.to_string_lossy())
@@ -106,8 +106,8 @@ fn add() {
     plugin_add(&tmp_dir, "directory", &plugin.to_string_lossy())
         .assert()
         .code(1)
-        .stdout("the plugin 'directory' is already configured\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plugin 'directory' is already configured\n");
 }
 
 #[test]
@@ -122,8 +122,8 @@ fn modify() {
         .args(["--path", &plugin.to_str().unwrap()])
         .assert()
         .code(1)
-        .stdout("the plugin 'directory' is not configured\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plugin 'directory' is not configured\n");
     plugin_list(&tmp_dir).assert().success().stdout("");
 
     plugin_add(&tmp_dir, "directory", plugin.to_str().unwrap())
@@ -134,8 +134,8 @@ fn modify() {
         .args(["--path", "no_such_file"])
         .assert()
         .code(1)
-        .stdout("the path \'no_such_file\' is invalid\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the path \'no_such_file\' is invalid\n");
     plugin_info(&tmp_dir, "directory")
         .assert()
         .success()
@@ -171,8 +171,8 @@ fn remove() {
     plugin_remove(&tmp_dir, "directory")
         .assert()
         .code(1)
-        .stdout("the plugin 'directory' is not configured\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plugin 'directory' is not configured\n");
 
     plugin_add(&tmp_dir, "directory", &plugin.to_string_lossy())
         .assert()
@@ -195,8 +195,8 @@ fn info() {
     plugin_info(&tmp_dir, "directory")
         .assert()
         .code(1)
-        .stdout("the plugin 'directory' is not configured\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plugin 'directory' is not configured\n");
 
     plugin_add(&tmp_dir, "directory", &plugin.to_string_lossy())
         .assert()

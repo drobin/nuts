@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023,2024 Robin Doer
+// Copyright (c) 2023-2025 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -29,6 +29,7 @@ pub mod plugin;
 
 use anyhow::Result;
 use clap::{crate_version, ArgAction, ArgGroup, Args, Parser, Subcommand};
+use colored::Colorize;
 use env_logger::Builder;
 use log::LevelFilter;
 use rprompt::prompt_reply;
@@ -41,40 +42,35 @@ use crate::cli::container::ContainerArgs;
 use crate::cli::ctx::GlobalContext;
 use crate::cli::error::ExitOnly;
 use crate::cli::plugin::PluginArgs;
-use crate::say::say_err;
 
 type ArchiveError = nuts_archive::Error<PluginBackend>;
 
-fn print_archive_error(ctx: &GlobalContext, err: &ArchiveError) -> bool {
+fn print_archive_error(err: &ArchiveError) -> Option<String> {
     match err {
-        ArchiveError::UnsupportedRevision(rev, version) => {
-            say_err!(
-                ctx,
-                "The archive is not supported anymore!\n\
-                The latest version that supports the revision {} is {}.\n\
-                Any newer version will no longer be able to read this archive.",
-                rev,
-                version
-            );
-            true
-        }
-        _ => false,
+        ArchiveError::UnsupportedRevision(rev, version) => Some(format!(
+            "The archive is not supported anymore!\n\
+            The latest version that supports the revision {} is {}.\n\
+            Any newer version will no longer be able to read this archive.",
+            rev, version
+        )),
+        _ => Some(err.to_string()),
     }
 }
 
-fn handle_error(ctx: &GlobalContext, err: anyhow::Error) -> i32 {
+fn handle_error(err: anyhow::Error) -> i32 {
     let mut exit_code = 1;
-    let mut printed = false;
 
-    if let Some(err) = err.downcast_ref::<ExitOnly>() {
+    let msg = if let Some(err) = err.downcast_ref::<ExitOnly>() {
         exit_code = err.code();
-        printed = true;
+        None
     } else if let Some(err) = err.downcast_ref::<ArchiveError>() {
-        printed = print_archive_error(ctx, err);
-    }
+        print_archive_error(err)
+    } else {
+        Some(err.to_string())
+    };
 
-    if !printed {
-        say_err!(ctx, "{}", err);
+    if let Some(m) = msg {
+        eprintln!("{}", m.red());
     }
 
     exit_code
@@ -137,7 +133,7 @@ impl NutsCli {
 
         match self.command.run(&ctx) {
             Ok(()) => 0,
-            Err(err) => handle_error(&ctx, err),
+            Err(err) => handle_error(err),
         }
     }
 }

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2024 Robin Doer
+// Copyright (c) 2024,2025 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -253,8 +253,8 @@ fn attach() {
     container_attach(&tmp_dir, None, "directory")
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
 
     container_attach(&tmp_dir, Some("sample"), "directory")
         .assert()
@@ -269,8 +269,8 @@ fn attach() {
     container_attach(&tmp_dir, Some("sample"), "new_plugin")
         .assert()
         .code(1)
-        .stdout("you already have a container with the name sample\n")
-        .stderr("");
+        .stdout("")
+        .stderr("you already have a container with the name sample\n");
     container_attach(&tmp_dir, Some("sample"), "new_plugin")
         .arg("--force")
         .assert()
@@ -334,13 +334,13 @@ fn acquire() {
     container_acquire(&tmp_dir, None, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
     container_acquire(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .code(1)
-        .stdout("no such container: sample\n")
-        .stderr("");
+        .stdout("")
+        .stderr("no such container: sample\n");
 
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
@@ -348,8 +348,8 @@ fn acquire() {
     container_acquire(&tmp_dir, Some("sample"), Some(b"xxx"))
         .assert()
         .code(1)
-        .stdout("the plaintext is not trustworthy\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plaintext is not trustworthy\n");
 
     let assert = container_acquire(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
@@ -376,13 +376,13 @@ fn change_password() {
     container_change_password(&tmp_dir, None, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
     container_change_password(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .code(1)
-        .stdout("no such container: sample\n")
-        .stderr("");
+        .stdout("")
+        .stderr("no such container: sample\n");
 
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
@@ -390,8 +390,8 @@ fn change_password() {
     container_change_password(&tmp_dir, Some("sample"), Some(b"xxx"))
         .assert()
         .code(1)
-        .stdout("the plaintext is not trustworthy\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plaintext is not trustworthy\n");
     let cmd = container_change_password(&tmp_dir, Some("sample"), Some(b"123"));
     handle_password_file(
         &tmp_dir,
@@ -416,13 +416,13 @@ fn change_kdf() {
     container_change_kdf(&tmp_dir, None, "pbkdf2", Some(b"123"))
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
     container_change_kdf(&tmp_dir, Some("sample"), "pbkdf2", Some(b"123"))
         .assert()
         .code(1)
-        .stdout("no such container: sample\n")
-        .stderr("");
+        .stdout("")
+        .stderr("no such container: sample\n");
 
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
@@ -430,8 +430,8 @@ fn change_kdf() {
     container_change_kdf(&tmp_dir, Some("sample"), "pbkdf2", Some(b"xxx"))
         .assert()
         .code(1)
-        .stdout("the plaintext is not trustworthy\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plaintext is not trustworthy\n");
 
     for (arg, kdf) in [
         ("pbkdf2", "pbkdf2:sha256:65536:16"),
@@ -545,8 +545,8 @@ fn create() {
     container_create(&tmp_dir, "sample-overwrite", "directory", Some(b"123"))
         .assert()
         .code(1)
-        .stdout("you already have a container with the name sample-overwrite\n")
-        .stderr("");
+        .stdout("")
+        .stderr("you already have a container with the name sample-overwrite\n");
     container_create(&tmp_dir, "sample-overwrite", "directory", Some(b"blabla"))
         .arg("--overwrite")
         .assert()
@@ -567,14 +567,14 @@ fn delete() {
         .arg("--yes")
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
     container_delete(&tmp_dir, Some("sample"), Some(b"123"))
         .arg("--yes")
         .assert()
         .code(1)
-        .stdout("container sample not configured\nno such container: sample\n")
-        .stderr("");
+        .stdout("container sample not configured\n")
+        .stderr("no such container: sample\n");
 
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
@@ -584,8 +584,8 @@ fn delete() {
         .arg("--yes")
         .assert()
         .code(1)
-        .stdout("the plaintext is not trustworthy\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plaintext is not trustworthy\n");
     assert!(tmp_dir.join(".nuts/container.d/sample").exists());
     container_delete(&tmp_dir, Some("sample"), Some(b"123"))
         .arg("--yes")
@@ -603,8 +603,8 @@ fn delete() {
         .arg("--yes")
         .assert()
         .code(1)
-        .stdout("the plaintext is not trustworthy\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plaintext is not trustworthy\n");
     assert!(tmp_dir.join(".nuts/container.d/sample").exists());
     container_delete(&tmp_dir, Some("sample"), None)
         .args(["--force", "--yes"])
@@ -622,13 +622,13 @@ fn info() {
     container_info(&tmp_dir, None, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
     container_info(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .code(1)
-        .stdout("no such container: sample\n")
-        .stderr("");
+        .stdout("")
+        .stderr("no such container: sample\n");
 
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
@@ -636,8 +636,8 @@ fn info() {
     container_info(&tmp_dir, Some("sample"), Some(b"xxx"))
         .assert()
         .code(1)
-        .stdout("the plaintext is not trustworthy\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plaintext is not trustworthy\n");
     container_info(&tmp_dir, Some("sample"), Some(b"123"))
         .assert()
         .success()
@@ -652,8 +652,8 @@ fn read() {
     container_read(&tmp_dir, Some("sample"), "xxx", Some(b"123"))
         .assert()
         .code(1)
-        .stdout("no such container: sample\n")
-        .stderr("");
+        .stdout("")
+        .stderr("no such container: sample\n");
 
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
@@ -678,23 +678,23 @@ fn read() {
     container_read(&tmp_dir, None, &id, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
     container_read(&tmp_dir, Some("sample"), "xxx", Some(b"123"))
         .assert()
         .code(1)
-        .stdout("could not parse id\n")
-        .stderr("");
+        .stdout("")
+        .stderr("could not parse id\n");
     container_read(&tmp_dir, Some("sample"), &reverted_id, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("the backend created an error: No such file or directory (os error 2)\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the backend created an error: No such file or directory (os error 2)\n");
     container_read(&tmp_dir, Some("sample"), &id, Some(b"xxx"))
         .assert()
         .code(1)
-        .stdout("the plaintext is not trustworthy\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plaintext is not trustworthy\n");
     container_read(&tmp_dir, Some("sample"), &id, Some(b"123"))
         .assert()
         .success()
@@ -718,8 +718,8 @@ fn release() {
     container_release(&tmp_dir, Some("sample"), "xxx", Some(b"123"))
         .assert()
         .code(1)
-        .stdout("no such container: sample\n")
-        .stderr("");
+        .stdout("")
+        .stderr("no such container: sample\n");
 
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
@@ -739,18 +739,18 @@ fn release() {
     container_release(&tmp_dir, None, &id, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
     container_release(&tmp_dir, Some("sample"), "xxx", Some(b"123"))
         .assert()
         .code(1)
-        .stdout("could not parse id\n")
-        .stderr("");
+        .stdout("")
+        .stderr("could not parse id\n");
     container_release(&tmp_dir, Some("sample"), &reverted_id, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("the backend created an error: No such file or directory (os error 2)\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the backend created an error: No such file or directory (os error 2)\n");
 
     container_release(&tmp_dir, Some("sample"), &id, Some(b"123"))
         .assert()
@@ -760,8 +760,8 @@ fn release() {
     container_read(&tmp_dir, Some("sample"), &id, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("the backend created an error: No such file or directory (os error 2)\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the backend created an error: No such file or directory (os error 2)\n");
 }
 
 #[test]
@@ -772,8 +772,8 @@ fn write() {
     container_write(&tmp_dir, Some("sample"), Some("xxx"), &data, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("no such container: sample\n")
-        .stderr("");
+        .stdout("")
+        .stderr("no such container: sample\n");
 
     container_create(&tmp_dir, "sample", "directory", Some(b"123"))
         .assert()
@@ -793,13 +793,13 @@ fn write() {
     container_write(&tmp_dir, None, Some(&id), &data, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("error: a value is required for '--container' but none was supplied\n\n")
-        .stderr("");
+        .stdout("")
+        .stderr("error: a value is required for '--container' but none was supplied\n\n");
     container_write(&tmp_dir, Some("sample"), Some("xxx"), &data, Some(b"123"))
         .assert()
         .code(1)
-        .stdout("could not parse id\n")
-        .stderr("");
+        .stdout("")
+        .stderr("could not parse id\n");
     container_write(
         &tmp_dir,
         Some("sample"),
@@ -809,15 +809,15 @@ fn write() {
     )
     .assert()
     .code(1)
-    .stdout(predicates::str::starts_with(format!(
+    .stdout("")
+    .stderr(predicates::str::starts_with(format!(
         "the backend created an error: cannot open {reverted_id}, no related file "
-    )))
-    .stderr("");
+    )));
     container_write(&tmp_dir, Some("sample"), Some(&id), &data, Some(b"xxx"))
         .assert()
         .code(1)
-        .stdout("the plaintext is not trustworthy\n")
-        .stderr("");
+        .stdout("")
+        .stderr("the plaintext is not trustworthy\n");
 
     for (args, max, num) in [
         ([].as_slice(), 496, 496),
