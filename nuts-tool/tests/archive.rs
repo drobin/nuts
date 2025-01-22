@@ -288,7 +288,7 @@ fn create() {
         .assert()
         .code(1)
         .stdout("")
-        .stderr("unexpected sid, expected none but got 1634886504\n");
+        .stderr("the container is already acquired by a service (sid = 0x61726368)\n");
 
     container_create(&tmp_dir, "sample1", "directory", Some(b"123"))
         .assert()

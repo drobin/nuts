@@ -36,41 +36,19 @@ use rprompt::prompt_reply;
 use std::os::fd::RawFd;
 use std::path::PathBuf;
 
-use crate::backend::PluginBackend;
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::container::ContainerArgs;
 use crate::cli::ctx::GlobalContext;
 use crate::cli::error::ExitOnly;
 use crate::cli::plugin::PluginArgs;
 
-type ArchiveError = nuts_archive::Error<PluginBackend>;
-
-fn print_archive_error(err: &ArchiveError) -> Option<String> {
-    match err {
-        ArchiveError::UnsupportedRevision(rev, version) => Some(format!(
-            "The archive is not supported anymore!\n\
-            The latest version that supports the revision {} is {}.\n\
-            Any newer version will no longer be able to read this archive.",
-            rev, version
-        )),
-        _ => Some(err.to_string()),
-    }
-}
-
 fn handle_error(err: anyhow::Error) -> i32 {
     let mut exit_code = 1;
 
-    let msg = if let Some(err) = err.downcast_ref::<ExitOnly>() {
+    if let Some(err) = err.downcast_ref::<ExitOnly>() {
         exit_code = err.code();
-        None
-    } else if let Some(err) = err.downcast_ref::<ArchiveError>() {
-        print_archive_error(err)
     } else {
-        Some(err.to_string())
-    };
-
-    if let Some(m) = msg {
-        eprintln!("{}", m.red());
+        eprintln!("{}", err.to_string().red());
     }
 
     exit_code

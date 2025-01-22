@@ -45,6 +45,22 @@ use crate::svec::SecureVec;
 
 pub const LATEST_REVISION: u32 = 2;
 
+fn unexpected_sid_message(
+    expected: &Option<u32>,
+    got: &Option<u32>,
+    fmt: &mut fmt::Formatter,
+) -> Result<(), fmt::Error> {
+    match (expected, got) {
+        (None, None) => write!(fmt, "the container is already acquired with no service"), // ???
+        (None, Some(g)) => write!(
+            fmt,
+            "the container is already acquired by a service (sid = 0x{g:x})"
+        ),
+        (Some(e), None) => write!(fmt, "cannot open container for service with sid = 0x{e:x}: not acquired"),
+        (Some(e), Some(g)) => write!(fmt, "cannot open container for service with sid = 0x{e:x}: already acquired by a service (sid = 0x{g:x})"),
+    }
+}
+
 /// Header related errors.
 #[derive(Debug, Error)]
 pub enum HeaderError {
@@ -81,9 +97,7 @@ pub enum HeaderError {
     InvalidSid,
 
     /// Unexpected service identifier (sid)
-    #[error("unexpected sid, expected {} but got {}",
-        .expected.map_or_else(|| "none".to_string(), |n| n.to_string()),
-        .got.map_or_else(|| "none".to_string(), |n| n.to_string()))]
+    #[error(fmt = unexpected_sid_message)]
     UnexpectedSid {
         expected: Option<u32>,
         got: Option<u32>,

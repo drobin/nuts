@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2023,2024 Robin Doer
+// Copyright (c) 2023-2025 Robin Doer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -21,9 +21,23 @@
 // IN THE SOFTWARE.
 
 use nuts_backend::Backend;
+use std::fmt;
 use thiserror::Error;
 
 use crate::header::HeaderMagicError;
+
+fn unsupported_revision_message(
+    rev: &u16,
+    version: &String,
+    fmt: &mut fmt::Formatter,
+) -> Result<(), fmt::Error> {
+    write!(
+        fmt,
+        "The archive is not supported anymore!\n\
+        The latest version that supports the revision {rev} is {version}.\n\
+        Any newer version will no longer be able to read this archive."
+    )
+}
 
 /// Error type of this library.
 #[derive(Debug, Error)]
@@ -38,7 +52,7 @@ pub enum Error<B: Backend> {
 
     /// The revision of the archive is not supported anymore. You can open the
     /// archive till the given version.
-    #[error("unsupported revision: {0}, latest supported version is {1}")]
+    #[error(fmt = unsupported_revision_message)]
     UnsupportedRevision(u16, String),
 
     /// The service requires a top-id but the container does not provide it.
