@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.8] - 2025-02-19
+
+### Fixed
+
+* Update `openssl` from 0.10.66 to 0.10.71 to fix Dependabot alert
+
 ## [0.7.7] - 2024-12-18
 
 ### Added
@@ -547,3 +553,4 @@ Initial public release.
 [0.7.5]: https://github.com/drobin/nuts/tree/v0.7.5
 [0.7.6]: https://github.com/drobin/nuts/tree/v0.7.6
 [0.7.7]: https://github.com/drobin/nuts/tree/v0.7.7
+[0.7.8]: https://github.com/drobin/nuts/tree/v0.7.8

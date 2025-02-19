@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2024 Robin Doer
+# Copyright (c) 2024,2025 Robin Doer
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-memory"
-version = "0.7.7"
+version = "0.7.8"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A backend implementation for nuts"
@@ -36,8 +36,8 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-nuts-backend = { path = "../nuts-backend", version = "=0.7.7" }
-nuts-bytes = { path = "../nuts-bytes", version = "=0.7.7", features = [
+nuts-backend = { path = "../nuts-backend", version = "=0.7.8" }
+nuts-bytes = { path = "../nuts-bytes", version = "=0.7.8", features = [
     "derive",
 ] }
 serde = { version = "1.0.202", features = ["derive"] }

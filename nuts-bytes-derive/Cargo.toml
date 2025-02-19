@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2023,2024 Robin Doer
+# Copyright (c) 2023-2025 Robin Doer
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-bytes-derive"
-version = "0.7.7"
+version = "0.7.8"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "Serialization into a binary data format"

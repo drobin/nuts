@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2023,2024 Robin Doer
+# Copyright (c) 2023-2025 Robin Doer
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-archive"
-version = "0.7.7"
+version = "0.7.8"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A tar like archive on top of the nuts-container"
@@ -38,15 +38,15 @@ readme = "README.md"
 [dependencies]
 chrono = { version = "0.4.38" }
 log = "0.4.21"
-nuts-backend = { path = "../nuts-backend", version = "=0.7.7" }
-nuts-bytes = { path = "../nuts-bytes", version = "=0.7.7", features = [
+nuts-backend = { path = "../nuts-backend", version = "=0.7.8" }
+nuts-bytes = { path = "../nuts-bytes", version = "=0.7.8", features = [
     "derive",
 ] }
-nuts-container = { path = "../nuts-container", version = "=0.7.7" }
+nuts-container = { path = "../nuts-container", version = "=0.7.8" }
 thiserror = "1.0.61"
 
 [dev-dependencies]
-nuts-directory = { path = "../nuts-directory", version = "=0.7.7" }
-nuts-memory = { path = "../nuts-memory", version = "=0.7.7" }
+nuts-directory = { path = "../nuts-directory", version = "=0.7.8" }
+nuts-memory = { path = "../nuts-memory", version = "=0.7.8" }
 serde_json = "1.0.128"
 tempfile = "3.10.1"

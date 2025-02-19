@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2022-2024 Robin Doer
+# Copyright (c) 2022-2025 Robin Doer
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-directory"
-version = "0.7.7"
+version = "0.7.8"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "A backend implementation for nuts"
@@ -37,8 +37,8 @@ readme = "README.md"
 [dependencies]
 getrandom = { version = "0.2.15", features = ["std"] }
 log = "0.4.21"
-nuts-backend = { path = "../nuts-backend", version = "=0.7.7" }
-nuts-tool-api = { path = "../nuts-tool-api", version = "=0.7.7", optional = true }
+nuts-backend = { path = "../nuts-backend", version = "=0.7.8" }
+nuts-tool-api = { path = "../nuts-tool-api", version = "=0.7.8", optional = true }
 
 [features]
 plugin = ["dep:nuts-tool-api"]

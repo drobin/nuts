@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2024 Robin Doer
+# Copyright (c) 2024,2025 Robin Doer
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
 
 [package]
 name = "nuts-tool-api"
-version = "0.7.7"
+version = "0.7.8"
 edition = "2018"
 authors = ["Robin Doer <robin@robind.de>"]
 description = "Code that helps you to implement a nuts tool plugin"
@@ -43,7 +43,7 @@ log = "0.4.21"
 
 clap = { version = "4.5.4", features = ["cargo", "derive"], optional = true }
 env_logger = { version = "0.10.2", optional = true }
-nuts-backend = { path = "../nuts-backend", version = "=0.7.7", optional = true }
+nuts-backend = { path = "../nuts-backend", version = "=0.7.8", optional = true }
 thiserror = "1.0.61"
 
 [features]
